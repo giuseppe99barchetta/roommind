@@ -876,6 +876,7 @@ class RoomMindCoordinator(DataUpdateCoordinator):
                     heat_source_plan=heat_source_plan,
                     compressor_forced_on=compressor_forced_on or None,
                     compressor_forced_off=compressor_forced_off or None,
+                    force_off=force_off,
                 )
             except Exception:  # noqa: BLE001
                 _LOGGER.warning(
