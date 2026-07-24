@@ -1403,7 +1403,12 @@ class RoomMindCoordinator(DataUpdateCoordinator):
         Compares current_temperature to the device setpoint to avoid showing
         'Heating' when the thermostat is in heat mode but already at target.
         Used for display and as a fallback for EKF training when hvac_action
-        is missing (Managed Mode and learn-only mode).  See #69.
+        is missing (Managed Mode and learn-only mode).  See #69, #332.
+
+        Handles single-setpoint modes ('heat', 'cool') and range modes
+        ('heat_cool', 'auto') — the latter via ``target_temp_low`` /
+        ``target_temp_high``.  A range mode without explicit low/high
+        setpoints is ambiguous, so it stays idle (conservative, see #332).
         """
         for eid in get_all_entity_ids(room.get("devices", [])):
             state = self.hass.states.get(eid)
@@ -1419,6 +1424,17 @@ class RoomMindCoordinator(DataUpdateCoordinator):
                 if current is not None and setpoint is not None and current <= setpoint:
                     continue  # at or below setpoint — not actively cooling
                 return MODE_COOLING
+            if state.state in ("heat_cool", "auto"):
+                # Range mode: the device fires only once the room temp leaves
+                # the [low, high] dead-band.  Above high → cooling, below low →
+                # heating, within the band (or setpoints missing) → idle.
+                low = state.attributes.get("target_temp_low")
+                high = state.attributes.get("target_temp_high")
+                if current is not None and high is not None and current > high:
+                    return MODE_COOLING
+                if current is not None and low is not None and current < low:
+                    return MODE_HEATING
+                continue
         return MODE_IDLE
 
     def _is_window_open(self, room: dict) -> bool:
