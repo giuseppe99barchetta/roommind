@@ -93,6 +93,38 @@ def _get_area_name(hass: HomeAssistant, area_id: str) -> str:
         return area_id
 
 
+# Per-room entity unique_id suffixes (uid = ``{DOMAIN}_{area_id}{suffix}``).
+# All suffixes end differently, so a given uid maps to exactly one
+# (area_id, suffix) pair — enabling unambiguous exact matching.
+ROOM_ENTITY_SUFFIXES = (
+    "_target_temp",
+    "_mode",
+    "_override",
+    "_climate_control",
+    "_cover_auto",
+    "_cover_paused",
+)
+# Suffixes only valid when the room has covers configured.
+COVER_ENTITY_SUFFIXES = ("_cover_auto", "_cover_paused")
+
+
+def _match_room_entity(parts: str, rooms: dict) -> tuple[str, str] | None:
+    """Match ``parts`` (a uid without the ``{DOMAIN}_`` prefix) to an owning room.
+
+    Returns ``(area_id, suffix)`` when ``parts`` equals ``{area_id}{suffix}`` for
+    an existing room and a known per-room suffix, else ``None``.
+
+    Uses exact matching rather than prefix ``startswith`` so a shorter area_id
+    (e.g. ``bedroom``) never falsely claims a longer room's entity
+    (``bedroom_2_l_override``). (#340)
+    """
+    for area_id in rooms:
+        for suffix in ROOM_ENTITY_SUFFIXES:
+            if parts == f"{area_id}{suffix}":
+                return area_id, suffix
+    return None
+
+
 class RoomMindCoordinator(DataUpdateCoordinator):
     """Central coordinator for RoomMind room data and state."""
 
@@ -1664,11 +1696,14 @@ class RoomMindCoordinator(DataUpdateCoordinator):
 
         registry = er.async_get(self.hass)
 
-        # Find and remove all entities whose unique_id belongs to this area
+        # Remove entities owned by exactly this area. Exact-match the known
+        # per-room suffixes so a shorter area_id (e.g. `bedroom`) does not also
+        # remove a longer room's entities (`bedroom_2_l_*`). (#340)
+        owned_uids = {f"{DOMAIN}_{area_id}{suffix}" for suffix in ROOM_ENTITY_SUFFIXES}
         entries_to_remove = [
             entity_entry.entity_id
             for entity_entry in registry.entities.values()
-            if entity_entry.unique_id and entity_entry.unique_id.startswith(f"{DOMAIN}_{area_id}_")
+            if isinstance(entity_entry.unique_id, str) and entity_entry.unique_id in owned_uids
         ]
 
         for entity_id in entries_to_remove:
@@ -1708,9 +1743,6 @@ class RoomMindCoordinator(DataUpdateCoordinator):
         rooms = store.get_rooms()
         registry = er.async_get(self.hass)
 
-        # Known valid suffixes for each condition
-        always_valid = ("_target_temp", "_mode", "_override", "_climate_control")
-        cover_only = ("_cover_auto", "_cover_paused")
         # Global entities (not per-room) that should never be cleaned up
         global_uids = {f"{DOMAIN}_vacation"}
 
@@ -1722,30 +1754,19 @@ class RoomMindCoordinator(DataUpdateCoordinator):
             if uid in global_uids:
                 continue
 
-            # Extract area_id: roommind_{area_id}_{suffix}
+            # Match uid to an owning room via exact suffix matching (#340).
             parts = uid.removeprefix(f"{DOMAIN}_")
-            # Find which room this belongs to
-            matched_area = None
-            for area_id in rooms:
-                if parts.startswith(f"{area_id}_"):
-                    matched_area = area_id
-                    break
+            match = _match_room_entity(parts, rooms)
 
-            if matched_area is None:
-                # Room no longer exists — orphaned entity
+            if match is None:
+                # No room owns this uid — removed room or removed feature.
                 to_remove.append(entity_entry.entity_id)
                 continue
 
-            suffix = parts.removeprefix(f"{matched_area}")
-            room = rooms[matched_area]
-
-            if suffix in always_valid:
-                continue
-            if suffix in cover_only and room.get("covers"):
-                continue
-
-            # Entity doesn't match any valid type — orphaned
-            to_remove.append(entity_entry.entity_id)
+            area_id, suffix = match
+            if suffix in COVER_ENTITY_SUFFIXES and not rooms[area_id].get("covers"):
+                # Cover entity for a room without covers configured — orphaned.
+                to_remove.append(entity_entry.entity_id)
 
         for eid in to_remove:
             _LOGGER.info("Removing orphaned entity: %s", eid)
