@@ -35,7 +35,8 @@ declare global {
     "ha-expansion-panel": HTMLElement & { header?: string; outlined?: boolean; expanded?: boolean };
     "ha-entity-picker": HTMLElement & {
       hass?: any;
-      value?: string;
+      value?: string | string[];
+      multiple?: boolean;
       label?: string;
       includeDomains?: string[];
       includeDeviceClasses?: string[];

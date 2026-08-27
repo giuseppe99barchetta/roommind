@@ -628,8 +628,9 @@ async def websocket_get_settings(
 # ---------------------------------------------------------------------------
 
 
-@websocket_api.websocket_command(
-    {
+# Schema is kept as a named value so its strict websocket contract is tested
+# directly; in particular, hydraulic bypass entities must remain a list.
+SETTINGS_SAVE_SCHEMA = {
         vol.Required("type"): "roommind/settings/save",
         vol.Optional("outdoor_temp_sensor"): str,
         vol.Optional("outdoor_humidity_sensor"): str,
@@ -705,8 +706,10 @@ async def websocket_get_settings(
         vol.Optional("power_budget_max_watts"): vol.All(vol.Coerce(float), vol.Range(min=0, max=100000)),
         vol.Optional("power_budget_reserve_watts"): vol.All(vol.Coerce(float), vol.Range(min=0, max=100000)),
         vol.Optional("power_budget_unavailable_behavior"): vol.In(["boiler", "allow"]),
-    }
-)
+}
+
+
+@websocket_api.websocket_command(SETTINGS_SAVE_SCHEMA)
 @websocket_api.async_response
 async def websocket_save_settings(
     hass: HomeAssistant,

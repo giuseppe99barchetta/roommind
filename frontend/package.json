@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build",
+    "test": "tsc && node --test test/heating-settings.test.mjs",
     "preview": "vite preview",
     "lint": "eslint src/",
     "format": "prettier --write src/",

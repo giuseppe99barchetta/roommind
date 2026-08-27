@@ -1107,6 +1107,49 @@ async def test_save_settings(ws_hass, store, connection):
     assert result["settings"]["outdoor_temp_sensor"] == "sensor.outdoor"
 
 
+@pytest.mark.asyncio
+@pytest.mark.parametrize("power_mode", ("available", "consumption"))
+async def test_save_settings_native_heating_fields(ws_hass, store, connection, power_mode):
+    """Native heating settings persist a bypass list and either supported power mode."""
+    await store.async_load()
+
+    await _save_settings(
+        ws_hass,
+        connection,
+        {
+            "id": 11,
+            "type": "roommind/settings/save",
+            "hydraulic_bypass_entities": ["climate.valvola_bagno"],
+            "power_sensor_mode": power_mode,
+        },
+    )
+
+    settings = connection.send_result.call_args[0][1]["settings"]
+    assert settings["hydraulic_bypass_entities"] == ["climate.valvola_bagno"]
+    assert settings["power_sensor_mode"] == power_mode
+
+
+def test_save_settings_schema_rejects_invalid_native_heating_fields():
+    """The websocket contract remains list-only and accepts only known power modes."""
+    import voluptuous as vol
+
+    from custom_components.roommind.websocket_api import SETTINGS_SAVE_SCHEMA
+
+    schema = vol.Schema(SETTINGS_SAVE_SCHEMA)
+    assert schema(
+        {
+            "type": "roommind/settings/save",
+            "hydraulic_bypass_entities": ["climate.valvola_bagno"],
+            "power_sensor_mode": "consumption",
+        }
+    )["hydraulic_bypass_entities"] == ["climate.valvola_bagno"]
+
+    with pytest.raises(vol.Invalid):
+        schema({"type": "roommind/settings/save", "hydraulic_bypass_entities": "climate.valvola_bagno"})
+    with pytest.raises(vol.Invalid):
+        schema({"type": "roommind/settings/save", "power_sensor_mode": "invalid"})
+
+
 # ---------------------------------------------------------------------------
 # Vacation mode tests
 # ---------------------------------------------------------------------------

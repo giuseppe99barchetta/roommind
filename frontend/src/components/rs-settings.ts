@@ -14,6 +14,11 @@ import type {
 } from "../types";
 import { localize } from "../utils/localize";
 import { fireSaveStatus } from "../utils/events";
+import {
+  normalizeBypassEntities,
+  normalizePowerSensorMode,
+  serializeHeatingSettings,
+} from "../utils/heating-settings";
 import { VACATION_SENTINEL } from "../utils/constants";
 import "./settings/rs-settings-panel";
 import "./settings/rs-settings-general";
@@ -138,13 +143,13 @@ export class RsSettings extends LitElement {
       this._boostAppliedAt = s.boost_applied_at ?? {};
       this._boilerEntity = s.boiler_entity ?? "";
       this._boilerControlType = s.boiler_control_type ?? "climate";
-      this._bypassEntities = s.hydraulic_bypass_entities ?? [];
+      this._bypassEntities = normalizeBypassEntities(s.hydraulic_bypass_entities);
       this._startupDelay = s.boiler_startup_delay_seconds ?? 30;
       this._shutdownDelay = s.boiler_shutdown_delay_seconds ?? 60;
       this._bypassTemperature = s.hydraulic_bypass_open_temperature ?? 28;
       this._budgetEnabled = s.power_budget_enabled ?? false;
       this._powerSensor = s.power_sensor ?? "";
-      this._powerMode = s.power_sensor_mode ?? "available";
+      this._powerMode = normalizePowerSensorMode(s.power_sensor_mode);
       this._maxPower = s.power_budget_max_watts ?? 3300;
       this._reserve = s.power_budget_reserve_watts ?? 200;
     } catch (err) {
@@ -353,7 +358,13 @@ export class RsSettings extends LitElement {
 
   private _onSettingChanged(e: CustomEvent<{ key: string; value: unknown }>) {
     const { key, value } = e.detail;
-    (this as Record<string, unknown>)[`_${key}`] = value;
+    if (key === "bypassEntities") {
+      this._bypassEntities = normalizeBypassEntities(value);
+    } else if (key === "powerMode") {
+      this._powerMode = normalizePowerSensorMode(value);
+    } else {
+      (this as Record<string, unknown>)[`_${key}`] = value;
+    }
     this._autoSave();
   }
 
@@ -370,6 +381,7 @@ export class RsSettings extends LitElement {
 
   private async _doSave() {
     fireSaveStatus(this, "saving");
+    const heatingSettings = serializeHeatingSettings(this._bypassEntities, this._powerMode);
 
     try {
       await this.hass.callWS({
@@ -404,11 +416,11 @@ export class RsSettings extends LitElement {
         boiler_control_type: this._boilerControlType,
         boiler_startup_delay_seconds: this._startupDelay,
         boiler_shutdown_delay_seconds: this._shutdownDelay,
-        hydraulic_bypass_entities: this._bypassEntities,
+        hydraulic_bypass_entities: heatingSettings.hydraulic_bypass_entities,
         hydraulic_bypass_open_temperature: this._bypassTemperature,
         power_budget_enabled: this._budgetEnabled,
         power_sensor: this._powerSensor,
-        power_sensor_mode: this._powerMode,
+        power_sensor_mode: heatingSettings.power_sensor_mode,
         power_budget_max_watts: this._maxPower,
         power_budget_reserve_watts: this._reserve,
         power_budget_unavailable_behavior: "boiler",

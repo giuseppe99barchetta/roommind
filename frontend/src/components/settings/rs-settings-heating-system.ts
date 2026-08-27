@@ -1,6 +1,11 @@
 import { LitElement, html, css, nothing } from "lit";
 import { customElement, property } from "lit/decorators.js";
 import type { HomeAssistant } from "../../types";
+import {
+  normalizeBypassEntities,
+  normalizePowerSensorMode,
+  selectEventValue,
+} from "../../utils/heating-settings";
 
 /** Native central-boiler, hydraulic safety and electrical budget settings. */
 @customElement("rs-settings-heating-system")
@@ -60,7 +65,8 @@ export class RsSettingsHeatingSystem extends LitElement {
                 .multiple=${true}
                 .value=${this.bypassEntities}
                 label="Hydraulic bypass TRVs"
-                @value-changed=${(e: CustomEvent) => fire("bypassEntities", e.detail.value || [])}
+                @value-changed=${(e: CustomEvent) =>
+                  fire("bypassEntities", normalizeBypassEntities(e.detail?.value))}
               ></ha-entity-picker>
               <label
                 >Forced bypass temperature
@@ -91,7 +97,8 @@ export class RsSettingsHeatingSystem extends LitElement {
               ><ha-select
                 .value=${this.powerMode}
                 label="Sensor reports"
-                @selected=${(e: CustomEvent) => fire("powerMode", e.detail.value)}
+                @selected=${(e: Event) =>
+                  fire("powerMode", normalizePowerSensorMode(selectEventValue(e)))}
                 ><ha-list-item value="available">Available power</ha-list-item
                 ><ha-list-item value="consumption">House consumption</ha-list-item></ha-select
               >
