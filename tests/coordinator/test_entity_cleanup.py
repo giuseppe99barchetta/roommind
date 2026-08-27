@@ -143,6 +143,86 @@ class TestCoverageGaps:
 
         mock_registry.async_remove.assert_not_called()
 
+    def test_cleanup_preserves_canonical_and_native_hybrid_entities(self, hass, mock_config_entry):
+        """Cleanup preserves all current per-room and global entity types."""
+        from custom_components.roommind.const import DOMAIN
+
+        coordinator = _create_coordinator(hass, mock_config_entry)
+        store = MagicMock()
+        store.get_rooms.return_value = {"sala": {}}
+        hass.data = {DOMAIN: {"store": store}}
+
+        entries = []
+        for unique_id, entity_id in (
+            (f"{DOMAIN}_sala", "climate.roommind_sala"),
+            (f"{DOMAIN}_sala_override", "climate.roommind_sala_override"),
+            (f"{DOMAIN}_sala_heat_source", "sensor.roommind_sala_heat_source"),
+            (
+                f"{DOMAIN}_sala_heat_source_reason",
+                "sensor.roommind_sala_heat_source_reason",
+            ),
+            (f"{DOMAIN}_vacation", "switch.roommind_vacation"),
+            (f"{DOMAIN}_boiler_demand", "sensor.roommind_boiler_demand"),
+            (f"{DOMAIN}_available_power", "sensor.roommind_available_power"),
+            (f"{DOMAIN}_reserved_power", "sensor.roommind_reserved_power"),
+            (f"{DOMAIN}_boiler_active", "binary_sensor.roommind_boiler_active"),
+            (
+                f"{DOMAIN}_hydraulic_path_safe",
+                "binary_sensor.roommind_hydraulic_path_safe",
+            ),
+        ):
+            entry = MagicMock()
+            entry.unique_id = unique_id
+            entry.entity_id = entity_id
+            entries.append(entry)
+
+        mock_registry = MagicMock()
+        mock_registry.entities.values.return_value = entries
+        with patch(
+            "homeassistant.helpers.entity_registry.async_get",
+            return_value=mock_registry,
+        ):
+            coordinator.cleanup_orphaned_entities()
+
+        mock_registry.async_remove.assert_not_called()
+
+    def test_cleanup_removes_deleted_rooms_and_obsolete_entity_types(self, hass, mock_config_entry):
+        """Cleanup removes IDs not present in the authoritative ownership inventory."""
+        from custom_components.roommind.const import DOMAIN
+
+        coordinator = _create_coordinator(hass, mock_config_entry)
+        store = MagicMock()
+        store.get_rooms.return_value = {"sala": {}}
+        hass.data = {DOMAIN: {"store": store}}
+
+        entries = []
+        for unique_id, entity_id in (
+            (f"{DOMAIN}_deleted_room", "climate.roommind_deleted_room"),
+            (
+                f"{DOMAIN}_deleted_room_heat_source",
+                "sensor.roommind_deleted_room_heat_source",
+            ),
+            (f"{DOMAIN}_sala_obsolete", "sensor.roommind_sala_obsolete"),
+        ):
+            entry = MagicMock()
+            entry.unique_id = unique_id
+            entry.entity_id = entity_id
+            entries.append(entry)
+
+        mock_registry = MagicMock()
+        mock_registry.entities.values.return_value = entries
+        with patch(
+            "homeassistant.helpers.entity_registry.async_get",
+            return_value=mock_registry,
+        ):
+            coordinator.cleanup_orphaned_entities()
+
+        assert {call.args[0] for call in mock_registry.async_remove.call_args_list} == {
+            "climate.roommind_deleted_room",
+            "sensor.roommind_deleted_room_heat_source",
+            "sensor.roommind_sala_obsolete",
+        }
+
     def test_cleanup_orphaned_entities_skips_non_string_unique_id(self, hass, mock_config_entry):
         """cleanup_orphaned_entities skips entities with non-string unique_id (e.g. int)."""
         from custom_components.roommind.const import DOMAIN
@@ -243,15 +323,28 @@ class TestCoverageGaps:
         coordinator._history_store = None
 
         entry_bedroom = MagicMock()
-        entry_bedroom.unique_id = f"{DOMAIN}_bedroom_override"
-        entry_bedroom.entity_id = "climate.roommind_bedroom_override"
+        entry_bedroom.unique_id = f"{DOMAIN}_bedroom"
+        entry_bedroom.entity_id = "climate.roommind_bedroom"
+
+        entry_bedroom_heat_source = MagicMock()
+        entry_bedroom_heat_source.unique_id = f"{DOMAIN}_bedroom_heat_source"
+        entry_bedroom_heat_source.entity_id = "sensor.roommind_bedroom_heat_source"
+
+        entry_bedroom_heat_source_reason = MagicMock()
+        entry_bedroom_heat_source_reason.unique_id = f"{DOMAIN}_bedroom_heat_source_reason"
+        entry_bedroom_heat_source_reason.entity_id = "sensor.roommind_bedroom_heat_source_reason"
 
         entry_sibling = MagicMock()
-        entry_sibling.unique_id = f"{DOMAIN}_bedroom_2_l_override"
-        entry_sibling.entity_id = "climate.roommind_bedroom_2_l_override"
+        entry_sibling.unique_id = f"{DOMAIN}_bedroom_2_l"
+        entry_sibling.entity_id = "climate.roommind_bedroom_2_l"
 
         mock_registry = MagicMock()
-        mock_registry.entities.values.return_value = [entry_bedroom, entry_sibling]
+        mock_registry.entities.values.return_value = [
+            entry_bedroom,
+            entry_bedroom_heat_source,
+            entry_bedroom_heat_source_reason,
+            entry_sibling,
+        ]
 
         with patch(
             "homeassistant.helpers.entity_registry.async_get",
@@ -260,5 +353,7 @@ class TestCoverageGaps:
             await coordinator.async_room_removed("bedroom")
 
         removed_ids = [c.args[0] for c in mock_registry.async_remove.call_args_list]
-        assert "climate.roommind_bedroom_override" in removed_ids
-        assert "climate.roommind_bedroom_2_l_override" not in removed_ids
+        assert "climate.roommind_bedroom" in removed_ids
+        assert "sensor.roommind_bedroom_heat_source" in removed_ids
+        assert "sensor.roommind_bedroom_heat_source_reason" in removed_ids
+        assert "climate.roommind_bedroom_2_l" not in removed_ids

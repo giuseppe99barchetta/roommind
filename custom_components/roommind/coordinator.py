@@ -96,19 +96,40 @@ def _get_area_name(hass: HomeAssistant, area_id: str) -> str:
         return area_id
 
 
-# Per-room entity unique_id suffixes (uid = ``{DOMAIN}_{area_id}{suffix}``).
-# All suffixes end differently, so a given uid maps to exactly one
-# (area_id, suffix) pair — enabling unambiguous exact matching.
+# Authoritative inventory of RoomMind-owned entity unique IDs. Per-room IDs use
+# ``{DOMAIN}_{area_id}{suffix}``; the empty suffix is the canonical room climate.
+# Exact matching keeps area IDs such as ``bedroom`` and ``bedroom_2`` distinct.
 ROOM_ENTITY_SUFFIXES = (
+    "",
     "_target_temp",
     "_mode",
     "_override",
     "_climate_control",
     "_cover_auto",
     "_cover_paused",
+    "_heat_source",
+    "_heat_source_reason",
 )
 # Suffixes only valid when the room has covers configured.
 COVER_ENTITY_SUFFIXES = ("_cover_auto", "_cover_paused")
+
+# Global RoomMind entities do not belong to an individual room and therefore
+# must never be considered orphaned by the per-room cleanup pass.
+GLOBAL_ENTITY_UNIQUE_IDS = frozenset(
+    {
+        f"{DOMAIN}_vacation",
+        f"{DOMAIN}_boiler_demand",
+        f"{DOMAIN}_available_power",
+        f"{DOMAIN}_reserved_power",
+        f"{DOMAIN}_boiler_active",
+        f"{DOMAIN}_hydraulic_path_safe",
+    }
+)
+
+
+def _room_entity_unique_ids(area_id: str) -> frozenset[str]:
+    """Return every registered per-room unique ID for an area."""
+    return frozenset(f"{DOMAIN}_{area_id}{suffix}" for suffix in ROOM_ENTITY_SUFFIXES)
 
 
 def _match_room_entity(parts: str, rooms: dict) -> tuple[str, str] | None:
@@ -1795,7 +1816,7 @@ class RoomMindCoordinator(DataUpdateCoordinator):
         # Remove entities owned by exactly this area. Exact-match the known
         # per-room suffixes so a shorter area_id (e.g. `bedroom`) does not also
         # remove a longer room's entities (`bedroom_2_l_*`). (#340)
-        owned_uids = {f"{DOMAIN}_{area_id}{suffix}" for suffix in ROOM_ENTITY_SUFFIXES}
+        owned_uids = _room_entity_unique_ids(area_id)
         entries_to_remove = [
             entity_entry.entity_id
             for entity_entry in registry.entities.values()
@@ -1839,15 +1860,12 @@ class RoomMindCoordinator(DataUpdateCoordinator):
         rooms = store.get_rooms()
         registry = er.async_get(self.hass)
 
-        # Global entities (not per-room) that should never be cleaned up
-        global_uids = {f"{DOMAIN}_vacation"}
-
         to_remove: list[str] = []
         for entity_entry in registry.entities.values():
             uid = entity_entry.unique_id
             if not isinstance(uid, str) or not uid.startswith(f"{DOMAIN}_"):
                 continue
-            if uid in global_uids:
+            if uid in GLOBAL_ENTITY_UNIQUE_IDS:
                 continue
 
             # Match uid to an owning room via exact suffix matching (#340).
