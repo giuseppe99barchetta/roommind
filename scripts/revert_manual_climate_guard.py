@@ -6,3 +6,4 @@ old = '''        settings = store.get_settings()\n        room = store.get_room(
 if old not in text:
     raise SystemExit("manual climate guard not found")
 path.write_text(text.replace(old, "", 1), encoding="utf-8")
+# Triggered as a one-shot repository correction.
