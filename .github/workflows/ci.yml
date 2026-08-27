@@ -2,7 +2,7 @@ name: CI
 
 on:
   push:
-    branches: [main]
+    branches: [main, feature/native-hybrid-heating]
   pull_request:
     branches: [main]
 
@@ -71,7 +71,7 @@ jobs:
         run: pytest tests/utils/test_schedule_utils.py -v -o asyncio_mode=auto
 
   frontend:
-    name: Frontend type check
+    name: Frontend build and package check
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7.0.1
@@ -96,6 +96,16 @@ jobs:
       - name: Prettier check
         working-directory: frontend
         run: npx prettier --check src/
+
+      - name: Build panel bundle
+        working-directory: frontend
+        run: npm run build
+
+      - name: Verify packaged panel artifact
+        run: |
+          test -s custom_components/roommind/frontend/roommind-panel.js
+          git ls-files --error-unmatch custom_components/roommind/frontend/roommind-panel.js
+          git diff --exit-code -- custom_components/roommind/frontend/roommind-panel.js
 
   lint:
     name: Lint

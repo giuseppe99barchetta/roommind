@@ -55,6 +55,18 @@
 2. Restart Home Assistant
 3. Go to **Settings > Devices & Services > Add Integration > RoomMind**
 
+### Testing a feature branch
+
+HACS normally follows the repository's default branch; it does not install an
+arbitrary Git branch with `git pull`. To test `feature/native-hybrid-heating`,
+create a prerelease tag from that branch, enable prereleases in the RoomMind
+HACS repository, and select that tagged version. The tag source archive includes
+the committed `custom_components/roommind/frontend/roommind-panel.js` bundle.
+
+For an untagged local test, build first with `cd frontend && npm ci && npm run
+build`, then copy the complete `custom_components/roommind/` directory to Home
+Assistant. Do not copy only the Python files.
+
 ## Quick Start
 
 After installation, RoomMind appears as a panel in the HA sidebar.
