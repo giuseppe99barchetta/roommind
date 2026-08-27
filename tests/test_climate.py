@@ -9,6 +9,7 @@ import pytest
 from homeassistant.components.climate import ClimateEntityFeature, HVACMode
 
 from custom_components.roommind.climate import (
+    RoomMindClimate,
     RoomMindOverrideClimate,
     _create_room_climates,
     async_setup_entry,
@@ -48,8 +49,47 @@ def test_create_room_climates(mock_coordinator):
     """Factory creates exactly one climate entity per room."""
     coordinator, _ = mock_coordinator
     climates = _create_room_climates(coordinator, "living_room")
-    assert len(climates) == 1
-    assert isinstance(climates[0], RoomMindOverrideClimate)
+    assert len(climates) == 2
+    assert isinstance(climates[0], RoomMindClimate)
+    assert isinstance(climates[1], RoomMindOverrideClimate)
+
+
+def _canonical_room(devices, **overrides):
+    room = {
+        "devices": devices,
+        "logical_heat_target": 21.0,
+        "logical_cool_target": 26.0,
+        "room_hvac_mode": "cool",
+    }
+    room.update(overrides)
+    return room
+
+
+def test_canonical_mixed_room_capabilities_and_logical_cooling_target(mock_coordinator):
+    """TRV frost targets cannot affect the canonical cooling target."""
+    coordinator, store = mock_coordinator
+    ac = MagicMock(
+        state="cool",
+        attributes={"hvac_modes": ["off", "heat", "cool", "dry", "fan_only"], "fan_modes": ["low", "high"]},
+    )
+    trv = MagicMock(state="off", attributes={"temperature": 7.0, "hvac_modes": ["off", "heat"]})
+    device_states = {"climate.ac": ac, "climate.trv": trv}
+    coordinator.hass.states.get.side_effect = device_states.get
+    store.get_room.return_value = _canonical_room(
+        [{"entity_id": "climate.ac", "type": "ac"}, {"entity_id": "climate.trv", "type": "trv"}]
+    )
+    entity = RoomMindClimate(coordinator, "living_room")
+    assert {mode.value for mode in entity.hvac_modes} == {"off", "heat", "cool", "heat_cool", "dry", "fan_only"}
+    assert entity.hvac_mode == HVACMode.COOL
+    assert entity.target_temperature == 26.0
+    assert entity.fan_modes == ["low", "high"]
+
+
+def test_canonical_trv_only_does_not_expose_ac_modes(mock_coordinator):
+    coordinator, store = mock_coordinator
+    store.get_room.return_value = _canonical_room([{"entity_id": "climate.trv", "type": "trv"}], room_hvac_mode="heat")
+    coordinator.hass.states.get.return_value = MagicMock(state="heat", attributes={"hvac_modes": ["off", "heat"]})
+    assert [mode.value for mode in RoomMindClimate(coordinator, "living_room").hvac_modes] == ["off", "heat"]
 
 
 def test_unique_id_and_entity_id(mock_coordinator):
@@ -401,8 +441,8 @@ async def test_async_setup_entry_creates_entities_for_all_rooms():
     assert coordinator.async_add_climate_entities is async_add_entities
     async_add_entities.assert_called_once()
     entities = async_add_entities.call_args[0][0]
-    assert len(entities) == 2
-    assert all(isinstance(e, RoomMindOverrideClimate) for e in entities)
+    assert len(entities) == 4
+    assert sum(isinstance(e, RoomMindClimate) for e in entities) == 2
     assert "living_room" in coordinator._climate_entity_areas
     assert "bedroom" in coordinator._climate_entity_areas
 

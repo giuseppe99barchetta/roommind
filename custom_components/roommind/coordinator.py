@@ -66,6 +66,7 @@ from .managers.heat_source_orchestrator import HeatSourcePlan, evaluate_heat_sou
 from .managers.mold_manager import MoldManager
 from .managers.power_budget_manager import PowerBudgetManager
 from .managers.residual_heat_tracker import ResidualHeatTracker
+from .managers.room_climate import async_apply_ac_auxiliary_mode
 from .managers.valve_manager import ValveManager
 from .managers.weather_manager import WeatherManager
 from .managers.window_manager import WindowManager
@@ -632,9 +633,21 @@ class RoomMindCoordinator(DataUpdateCoordinator):
         # Returns TargetTemps(heat, cool). None values mean "force off".
         targets = self._resolve_target_temps(room, settings, schedule_blocks, schedule_entity_id)
 
+        # The canonical climate persists logical heat/cool targets separately
+        # from physical device targets.  A TRV frost setpoint can therefore
+        # never become the AC cooling target on a mode transition.
+        requested_hvac_mode = room.get("room_hvac_mode")
+        if requested_hvac_mode in ("heat", "cool", "heat_cool", "auto"):
+            logical_heat = room.get("logical_heat_target", room.get("comfort_heat", DEFAULT_COMFORT_HEAT))
+            logical_cool = room.get("logical_cool_target", room.get("comfort_cool", DEFAULT_COMFORT_COOL))
+            targets = TargetTemps(
+                heat=float(logical_heat) if requested_hvac_mode in ("heat", "heat_cool", "auto") else None,
+                cool=float(logical_cool) if requested_hvac_mode in ("cool", "heat_cool", "auto") else None,
+            )
+
         # Apply mold prevention temperature delta (heating target only).
         # Safety: mold prevention overrides "off" to prevent structural damage.
-        force_off = targets.heat is None and targets.cool is None
+        force_off = targets.heat is None and targets.cool is None or requested_hvac_mode in ("off", "dry", "fan_only")
         if mold_prevention_active_room and mold_prevention_temp_delta > 0:
             if force_off:
                 eco_heat = room.get("eco_heat", room.get("eco_temp", DEFAULT_ECO_HEAT))
@@ -796,13 +809,22 @@ class RoomMindCoordinator(DataUpdateCoordinator):
             room.get("heat_source_orchestration", False)
             and mode == MODE_HEATING
             and has_external_sensor
-            and (room.get("native_heat_source", False) or (get_trv_eids(room.get("devices", [])) and get_ac_eids(room.get("devices", []))))
+            and (
+                room.get("native_heat_source", False)
+                or (get_trv_eids(room.get("devices", [])) and get_ac_eids(room.get("devices", [])))
+            )
         ):
             previous_source = self._heat_source_states.get(area_id, "inactive")
             if room.get("native_heat_source", False):
                 heat_source_plan = evaluate_native_heat_sources(
-                    room, mode, power_fraction, current_temp, targets.heat,
-                    self.outdoor_temp_effective, previous_source, self.hass,
+                    room,
+                    mode,
+                    power_fraction,
+                    current_temp,
+                    targets.heat,
+                    self.outdoor_temp_effective,
+                    previous_source,
+                    self.hass,
                 )
                 if heat_source_plan and heat_source_plan.active_sources in ("heat_pump", "hybrid"):
                     running = previous_source in ("heat_pump", "hybrid")
@@ -810,26 +832,43 @@ class RoomMindCoordinator(DataUpdateCoordinator):
                         area_id, float(room.get("heat_pump_power_watts", 0) or 0), running
                     ):
                         heat_source_plan = evaluate_native_heat_sources(
-                            room, mode, power_fraction, current_temp, targets.heat,
-                            self.outdoor_temp_effective, previous_source, self.hass, allow_heat_pump=False,
+                            room,
+                            mode,
+                            power_fraction,
+                            current_temp,
+                            targets.heat,
+                            self.outdoor_temp_effective,
+                            previous_source,
+                            self.hass,
+                            allow_heat_pump=False,
                         )
                 # Source dwell complements compressor protection and avoids
                 # heat-pump/hybrid/boiler flapping on noisy sensor readings.
-                if heat_source_plan and previous_source not in ("inactive", "none") and heat_source_plan.active_sources != previous_source:
+                if (
+                    heat_source_plan
+                    and previous_source not in ("inactive", "none")
+                    and heat_source_plan.active_sources != previous_source
+                ):
                     dwell = float(room.get("heat_source_min_dwell_minutes", 10)) * 60
                     if time.monotonic() - self._heat_source_changed_at.get(area_id, 0) < dwell:
                         for command in heat_source_plan.commands:
-                            command.active = (command.device_type == "ac" and previous_source in ("heat_pump", "hybrid")) or (command.device_type == "thermostat" and previous_source in ("boiler", "hybrid"))
+                            command.active = (
+                                command.device_type == "ac" and previous_source in ("heat_pump", "hybrid")
+                            ) or (command.device_type == "thermostat" and previous_source in ("boiler", "hybrid"))
                             command.power_fraction = power_fraction if command.active else 0.0
                             command.reason = "minimum_dwell"
                         heat_source_plan.active_sources = previous_source
                         heat_source_plan.reason = "minimum_dwell"
             else:
                 heat_source_plan = evaluate_heat_sources(
-                    room_config=room, mode=mode, power_fraction=power_fraction,
-                    current_temp=current_temp, target_temp=targets.heat,
+                    room_config=room,
+                    mode=mode,
+                    power_fraction=power_fraction,
+                    current_temp=current_temp,
+                    target_temp=targets.heat,
                     outdoor_temp=self.outdoor_temp_effective,
-                    previous_active_sources=previous_source, hass=self.hass,
+                    previous_active_sources=previous_source,
+                    hass=self.hass,
                 )
             if heat_source_plan is not None:
                 if heat_source_plan.active_sources != previous_source:
@@ -928,6 +967,10 @@ class RoomMindCoordinator(DataUpdateCoordinator):
                     compressor_forced_off=compressor_forced_off or None,
                     force_off=force_off,
                 )
+                if requested_hvac_mode in ("dry", "fan_only"):
+                    # Controller has safely idled every managed device; only
+                    # the AC is then allowed to receive the auxiliary mode.
+                    await async_apply_ac_auxiliary_mode(self.hass, room)
             except Exception:  # noqa: BLE001
                 _LOGGER.warning(
                     "Room '%s': climate service call failed",

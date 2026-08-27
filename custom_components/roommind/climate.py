@@ -25,6 +25,8 @@ from .const import (
     is_override_active,
 )
 from .coordinator import RoomMindCoordinator
+from .managers.room_climate import room_capabilities
+from .utils.device_utils import get_ac_eids
 
 
 def _create_room_climates(
@@ -32,7 +34,9 @@ def _create_room_climates(
     area_id: str,
 ) -> list[ClimateEntity]:
     """Create climate entities for a room."""
-    return [RoomMindOverrideClimate(coordinator, area_id)]
+    # The canonical entity has a stable, concise entity ID.  The old override
+    # endpoint remains disabled by default for existing automations.
+    return [RoomMindClimate(coordinator, area_id), RoomMindOverrideClimate(coordinator, area_id)]
 
 
 async def async_setup_entry(
@@ -62,6 +66,7 @@ class RoomMindOverrideClimate(CoordinatorEntity, ClimateEntity):
     _attr_target_temperature_step = 0.5
     _attr_min_temp = 5.0
     _attr_max_temp = 35.0
+    _attr_entity_registry_enabled_default = False
 
     def __init__(self, coordinator: RoomMindCoordinator, area_id: str) -> None:
         super().__init__(coordinator)
@@ -184,30 +189,220 @@ class RoomMindOverrideClimate(CoordinatorEntity, ClimateEntity):
         await self.coordinator.async_request_refresh()
 
     async def async_set_hvac_mode(self, hvac_mode: HVACMode) -> None:
-        """Set HVAC mode: OFF clears override, any other mode activates it."""
+        """Legacy override endpoint behaviour retained for automations."""
         store = self.coordinator.hass.data[DOMAIN]["store"]
         if hvac_mode == HVACMode.OFF:
-            await store.async_update_room(
-                self._area_id,
-                {
-                    "override_heat": None,
-                    "override_cool": None,
-                    "override_until": None,
-                    "override_type": None,
-                },
-            )
+            updates = {"override_heat": None, "override_cool": None, "override_until": None, "override_type": None}
         elif not self._is_override_active():
             room = self._room() or {}
             mode = self._climate_mode()
-            heat = room.get("comfort_heat", DEFAULT_COMFORT_HEAT) if mode != "cool_only" else None
-            cool = room.get("comfort_cool", DEFAULT_COMFORT_COOL) if mode != "heat_only" else None
-            await store.async_update_room(
-                self._area_id,
-                {
-                    "override_heat": heat,
-                    "override_cool": cool,
-                    "override_until": None,
-                    "override_type": OVERRIDE_CUSTOM,
-                },
-            )
+            updates = {
+                "override_heat": room.get("comfort_heat", DEFAULT_COMFORT_HEAT) if mode != "cool_only" else None,
+                "override_cool": room.get("comfort_cool", DEFAULT_COMFORT_COOL) if mode != "heat_only" else None,
+                "override_until": None,
+                "override_type": OVERRIDE_CUSTOM,
+            }
+        else:
+            updates = None
+        if updates is not None:
+            await store.async_update_room(self._area_id, updates)
         await self.coordinator.async_request_refresh()
+
+
+class RoomMindClimate(RoomMindOverrideClimate):
+    """Canonical logical room climate; never aggregates physical target states."""
+
+    _attr_entity_registry_enabled_default = True
+    _attr_icon = "mdi:home-thermometer"
+
+    def __init__(self, coordinator: RoomMindCoordinator, area_id: str) -> None:
+        CoordinatorEntity.__init__(self, coordinator)
+        self._area_id = area_id
+        self._attr_unique_id = f"{DOMAIN}_{area_id}"
+        self._attr_name = area_id
+        self.entity_id = f"climate.{DOMAIN}_{area_id}"
+
+    def _capabilities(self):
+        return room_capabilities(self.coordinator.hass, self._room() or {})
+
+    def _logical_targets(self) -> tuple[float, float]:
+        room = self._room() or {}
+        return (
+            float(room.get("logical_heat_target", room.get("comfort_heat", DEFAULT_COMFORT_HEAT))),
+            float(room.get("logical_cool_target", room.get("comfort_cool", DEFAULT_COMFORT_COOL))),
+        )
+
+    @property
+    def hvac_modes(self) -> list[HVACMode]:
+        return [HVACMode(mode) for mode in self._capabilities().hvac_modes]
+
+    @property
+    def hvac_mode(self) -> HVACMode:
+        room = self._room() or {}
+        selected = room.get("room_hvac_mode")
+        if selected in self._capabilities().hvac_modes:
+            return HVACMode(selected)
+        # Existing users retain automatic RoomMind control without needing a
+        # migration write; capability rather than member state is authoritative.
+        return HVACMode.HEAT_COOL if HVACMode.HEAT_COOL in self.hvac_modes else self.hvac_modes[0]
+
+    @property
+    def supported_features(self) -> ClimateEntityFeature:
+        caps = self._capabilities()
+        features = ClimateEntityFeature.TURN_ON | ClimateEntityFeature.TURN_OFF
+        if "heat_cool" in caps.hvac_modes or "auto" in caps.hvac_modes:
+            features |= ClimateEntityFeature.TARGET_TEMPERATURE_RANGE
+        if any(mode in caps.hvac_modes for mode in ("heat", "cool")):
+            features |= ClimateEntityFeature.TARGET_TEMPERATURE
+        if caps.fan_modes:
+            features |= ClimateEntityFeature.FAN_MODE
+        if caps.swing_modes:
+            features |= ClimateEntityFeature.SWING_MODE
+        if caps.swing_horizontal_modes:
+            features |= ClimateEntityFeature.SWING_HORIZONTAL_MODE
+        return features
+
+    @property
+    def target_temperature(self) -> float | None:
+        heat, cool = self._logical_targets()
+        return cool if self.hvac_mode in (HVACMode.COOL, HVACMode.DRY) else heat
+
+    @property
+    def target_temperature_low(self) -> float | None:
+        return self._logical_targets()[0]
+
+    @property
+    def target_temperature_high(self) -> float | None:
+        return self._logical_targets()[1]
+
+    @property
+    def hvac_action(self):
+        mode = self.hvac_mode
+        if mode == HVACMode.OFF:
+            return None
+        if mode == HVACMode.DRY:
+            from homeassistant.components.climate import HVACAction
+
+            return HVACAction.DRYING
+        if mode == HVACMode.FAN_ONLY:
+            from homeassistant.components.climate import HVACAction
+
+            return HVACAction.FAN
+        live = (self.coordinator.data or {}).get("rooms", {}).get(self._area_id, {})
+        from homeassistant.components.climate import HVACAction
+
+        commanded = live.get("commanded_mode")
+        if commanded == "heating":
+            return HVACAction.HEATING
+        if commanded == "cooling":
+            return HVACAction.COOLING
+        return HVACAction.IDLE
+
+    @property
+    def fan_modes(self) -> list[str] | None:
+        return list(self._capabilities().fan_modes) or None
+
+    @property
+    def fan_mode(self) -> str | None:
+        return (self._room() or {}).get("room_fan_mode") or None
+
+    @property
+    def swing_modes(self) -> list[str] | None:
+        return list(self._capabilities().swing_modes) or None
+
+    @property
+    def swing_mode(self) -> str | None:
+        return (self._room() or {}).get("room_swing_mode") or None
+
+    @property
+    def swing_horizontal_modes(self) -> list[str] | None:
+        return list(self._capabilities().swing_horizontal_modes) or None
+
+    @property
+    def swing_horizontal_mode(self) -> str | None:
+        return (self._room() or {}).get("room_swing_horizontal_mode") or None
+
+    async def async_set_temperature(self, **kwargs: Any) -> None:
+        heat, cool = self._logical_targets()
+        low, high, single = (
+            kwargs.get(ATTR_TARGET_TEMP_LOW),
+            kwargs.get(ATTR_TARGET_TEMP_HIGH),
+            kwargs.get(ATTR_TEMPERATURE),
+        )
+        selected = self.hvac_mode
+        if low is not None or high is not None:
+            heat = float(low if low is not None else heat)
+            cool = float(high if high is not None else cool)
+        elif single is not None:
+            if selected in (HVACMode.COOL, HVACMode.DRY):
+                cool = float(single)
+            else:
+                heat = float(single)
+        else:
+            return
+        if cool < heat:
+            raise ValueError("Cooling target must be >= heating target")
+        store = self.coordinator.hass.data[DOMAIN]["store"]
+        mode = selected.value if selected != HVACMode.OFF else "heat_cool"
+        await store.async_update_room(
+            self._area_id,
+            {
+                "logical_heat_target": heat,
+                "logical_cool_target": cool,
+                "room_hvac_mode": mode,
+                "override_heat": heat if mode in ("heat", "heat_cool", "auto") else None,
+                "override_cool": cool if mode in ("cool", "heat_cool", "auto") else None,
+                "override_until": None,
+                "override_type": OVERRIDE_CUSTOM,
+            },
+        )
+        await self.coordinator.async_request_refresh()
+
+    async def async_set_hvac_mode(self, hvac_mode: HVACMode) -> None:
+        if hvac_mode not in self.hvac_modes:
+            raise ValueError(f"Unsupported room HVAC mode: {hvac_mode}")
+        heat, cool = self._logical_targets()
+        mode = hvac_mode.value
+        updates = {"room_hvac_mode": mode, "override_until": None, "override_type": OVERRIDE_CUSTOM}
+        updates["override_heat"] = heat if mode in ("heat", "heat_cool", "auto") else None
+        updates["override_cool"] = cool if mode in ("cool", "heat_cool", "auto") else None
+        if mode == "off":
+            updates.update({"override_heat": None, "override_cool": None, "override_type": None})
+        await self.coordinator.hass.data[DOMAIN]["store"].async_update_room(self._area_id, updates)
+        await self.coordinator.async_request_refresh()
+
+    async def async_set_fan_mode(self, fan_mode: str) -> None:
+        if fan_mode not in self._capabilities().fan_modes:
+            raise ValueError(f"Unsupported fan mode: {fan_mode}")
+        await self._set_ac_option("room_fan_mode", "set_fan_mode", "fan_mode", fan_mode)
+        await self.coordinator.async_request_refresh()
+
+    async def async_set_swing_mode(self, swing_mode: str) -> None:
+        if swing_mode not in self._capabilities().swing_modes:
+            raise ValueError(f"Unsupported swing mode: {swing_mode}")
+        await self._set_ac_option("room_swing_mode", "set_swing_mode", "swing_mode", swing_mode)
+        await self.coordinator.async_request_refresh()
+
+    async def async_set_swing_horizontal_mode(self, swing_horizontal_mode: str) -> None:
+        if swing_horizontal_mode not in self._capabilities().swing_horizontal_modes:
+            raise ValueError(f"Unsupported horizontal swing mode: {swing_horizontal_mode}")
+        await self._set_ac_option(
+            "room_swing_horizontal_mode", "set_swing_horizontal_mode", "swing_horizontal_mode", swing_horizontal_mode
+        )
+        await self.coordinator.async_request_refresh()
+
+    async def async_turn_off(self, **kwargs: Any) -> None:
+        await self.async_set_hvac_mode(HVACMode.OFF)
+
+    async def async_turn_on(self, **kwargs: Any) -> None:
+        fallback = HVACMode.HEAT_COOL if HVACMode.HEAT_COOL in self.hvac_modes else HVACMode.HEAT
+        await self.async_set_hvac_mode(fallback)
+
+    async def _set_ac_option(self, key: str, service: str, service_key: str, value: str) -> None:
+        acs = get_ac_eids((self._room() or {}).get("devices", []))
+        if not acs:
+            raise ValueError("Room has no AC device")
+        await self.coordinator.hass.data[DOMAIN]["store"].async_update_room(self._area_id, {key: value})
+        await self.coordinator.hass.services.async_call(
+            "climate", service, {"entity_id": acs[0], service_key: value}, blocking=True
+        )

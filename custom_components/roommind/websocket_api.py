@@ -111,6 +111,12 @@ _ROOM_SAVE_FIELDS = (
     "heat_source_min_dwell_minutes",
     "valve_protection_exclude",
     "climate_control_enabled",
+    "logical_heat_target",
+    "logical_cool_target",
+    "room_hvac_mode",
+    "room_fan_mode",
+    "room_swing_mode",
+    "room_swing_horizontal_mode",
 )
 
 _SETTINGS_SAVE_FIELDS = (
@@ -392,6 +398,14 @@ async def websocket_list_rooms(
         vol.Optional("heat_source_hysteresis"): vol.All(vol.Coerce(float), vol.Range(min=0, max=5)),
         vol.Optional("heat_source_min_dwell_minutes"): vol.All(vol.Coerce(float), vol.Range(min=0, max=240)),
         vol.Optional("climate_control_enabled"): bool,
+        vol.Optional("logical_heat_target"): vol.Coerce(float),
+        vol.Optional("logical_cool_target"): vol.Coerce(float),
+        vol.Optional("room_hvac_mode"): vol.Any(
+            None, vol.In(["off", "heat", "cool", "heat_cool", "auto", "dry", "fan_only"])
+        ),
+        vol.Optional("room_fan_mode"): str,
+        vol.Optional("room_swing_mode"): str,
+        vol.Optional("room_swing_horizontal_mode"): str,
     }
 )
 @websocket_api.async_response

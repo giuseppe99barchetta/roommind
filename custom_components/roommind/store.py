@@ -72,6 +72,9 @@ def _migrate_room(room: dict) -> dict:
     _migrate_override_fields(room)
     migrate_heat_pump_devices(room.get("devices", []))
     ensure_room_has_devices(room)
+    room.setdefault("logical_heat_target", room.get("comfort_heat", DEFAULT_COMFORT_HEAT))
+    room.setdefault("logical_cool_target", room.get("comfort_cool", DEFAULT_COMFORT_COOL))
+    room.setdefault("room_hvac_mode", None)
     return room
 
 
@@ -280,6 +283,14 @@ class RoomMindStore:
             "heat_source_hysteresis": config.get("heat_source_hysteresis", 0.3),
             "heat_source_min_dwell_minutes": config.get("heat_source_min_dwell_minutes", 10),
             "climate_control_enabled": config.get("climate_control_enabled", True),
+            # Logical room targets are never derived from physical TRV/AC
+            # setpoints. They survive OFF and incompatible mode transitions.
+            "logical_heat_target": config.get("logical_heat_target", comfort_heat),
+            "logical_cool_target": config.get("logical_cool_target", config.get("comfort_cool", DEFAULT_COMFORT_COOL)),
+            "room_hvac_mode": config.get("room_hvac_mode", None),
+            "room_fan_mode": config.get("room_fan_mode", ""),
+            "room_swing_mode": config.get("room_swing_mode", ""),
+            "room_swing_horizontal_mode": config.get("room_swing_horizontal_mode", ""),
         }
         # Directional device sync for new rooms (truthiness check, not just presence)
         if "devices" in config and config["devices"]:
