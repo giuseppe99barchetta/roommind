@@ -59,6 +59,7 @@ export class RsSettingsHeatingSystem extends LitElement {
     const onBypassChanged = (e: CustomEvent) => {
       const value = pickerValue(e);
       // Diagnostic logging is intentionally limited to explicit user changes.
+      // eslint-disable-next-line no-console
       console.debug("RoomMind hydraulic bypass picker event", {
         type: e.type,
         detail: e.detail,
@@ -72,6 +73,7 @@ export class RsSettingsHeatingSystem extends LitElement {
       const value = getSelectValue(e);
       // HA 2026.8 puts the selected option in detail.value; target.value may
       // still be the previous selection while the event is being dispatched.
+      // eslint-disable-next-line no-console
       console.debug("RoomMind power sensor mode selected", {
         type: e.type,
         detail: (e as CustomEvent).detail,

@@ -1108,9 +1108,17 @@ async def test_save_settings(ws_hass, store, connection):
 
 
 @pytest.mark.asyncio
-@pytest.mark.parametrize("power_mode", ("available", "consumption"))
-async def test_save_settings_native_heating_fields(ws_hass, store, connection, power_mode):
-    """Native heating settings persist a bypass list and either supported power mode."""
+@pytest.mark.parametrize(
+    ("bypasses", "expected_bypasses"),
+    (
+        ("climate.valvola_bagno", ["climate.valvola_bagno"]),
+        (["climate.valvola_bagno"], ["climate.valvola_bagno"]),
+    ),
+)
+async def test_save_settings_normalizes_native_heating_fields(
+    ws_hass, store, connection, bypasses, expected_bypasses
+):
+    """Save accepts legacy bypass scalars and persists the canonical list."""
     await store.async_load()
 
     await _save_settings(
@@ -1119,18 +1127,24 @@ async def test_save_settings_native_heating_fields(ws_hass, store, connection, p
         {
             "id": 11,
             "type": "roommind/settings/save",
-            "hydraulic_bypass_entities": ["climate.valvola_bagno"],
-            "power_sensor_mode": power_mode,
+            "hydraulic_bypass_entities": bypasses,
+            "power_sensor_mode": "consumption",
         },
     )
 
     settings = connection.send_result.call_args[0][1]["settings"]
-    assert settings["hydraulic_bypass_entities"] == ["climate.valvola_bagno"]
-    assert settings["power_sensor_mode"] == power_mode
+    assert settings["hydraulic_bypass_entities"] == expected_bypasses
+    assert settings["power_sensor_mode"] == "consumption"
+
+    connection.send_result.reset_mock()
+    await _get_settings(ws_hass, connection, {"id": 12, "type": "roommind/settings/get"})
+    settings = connection.send_result.call_args[0][1]["settings"]
+    assert settings["hydraulic_bypass_entities"] == expected_bypasses
+    assert settings["power_sensor_mode"] == "consumption"
 
 
-def test_save_settings_schema_rejects_invalid_native_heating_fields():
-    """The websocket contract remains list-only and accepts only known power modes."""
+def test_save_settings_schema_normalizes_legacy_bypass_and_rejects_invalid_fields():
+    """The schema accepts legacy bypass scalars but storage stays list-only."""
     import voluptuous as vol
 
     from custom_components.roommind.websocket_api import SETTINGS_SAVE_SCHEMA
@@ -1144,8 +1158,12 @@ def test_save_settings_schema_rejects_invalid_native_heating_fields():
         }
     )["hydraulic_bypass_entities"] == ["climate.valvola_bagno"]
 
+    assert schema(
+        {"type": "roommind/settings/save", "hydraulic_bypass_entities": "climate.valvola_bagno"}
+    )["hydraulic_bypass_entities"] == ["climate.valvola_bagno"]
+
     with pytest.raises(vol.Invalid):
-        schema({"type": "roommind/settings/save", "hydraulic_bypass_entities": "climate.valvola_bagno"})
+        schema({"type": "roommind/settings/save", "hydraulic_bypass_entities": ["climate.valvola_bagno", 1]})
     with pytest.raises(vol.Invalid):
         schema({"type": "roommind/settings/save", "power_sensor_mode": "invalid"})
 

@@ -2,8 +2,8 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import {
-  finalizeHeatingSettingsPayload,
   normalizeBypassEntities,
+  normalizeHeatingSettingsForWebsocket,
   normalizePowerSensorMode,
   serializeHeatingSettings,
 } from "../dist/utils/heating-settings.js";
@@ -42,27 +42,25 @@ test("save payload keeps the selected consumption mode and list-form bypasses", 
 });
 
 test("the final WebSocket payload converts a single bypass string to a list", () => {
-  const payload = finalizeHeatingSettingsPayload({
-    type: "roommind/settings/save",
-    hydraulic_bypass_entities: "climate.valvola_bagno",
-    power_sensor_mode: "available",
-  });
-  assert.deepEqual(payload.hydraulic_bypass_entities, ["climate.valvola_bagno"]);
+  const payload = normalizeHeatingSettingsForWebsocket("climate.valvola_bagno", "available");
+  assert.deepEqual(payload.hydraulicBypassEntities, ["climate.valvola_bagno"]);
 });
 
 test("the final WebSocket payload preserves consumption mode", () => {
-  const payload = finalizeHeatingSettingsPayload({
-    type: "roommind/settings/save",
-    hydraulic_bypass_entities: [],
-    power_sensor_mode: "consumption",
-  });
-  assert.equal(payload.power_sensor_mode, "consumption");
+  const payload = normalizeHeatingSettingsForWebsocket([], "consumption");
+  assert.equal(payload.powerSensorMode, "consumption");
 });
 
-test("persisted heating settings render with supported values after reload", () => {
-  const persisted = serializeHeatingSettings(["climate.valvola_bagno"], "consumption");
-  assert.deepEqual(normalizeBypassEntities(persisted.hydraulic_bypass_entities), [
+test("the settings model keeps consumption received from the get-settings response", () => {
+  const response = {
+    settings: serializeHeatingSettings(["climate.valvola_bagno"], "consumption"),
+  };
+  const settingsModel = {
+    bypassEntities: normalizeBypassEntities(response.settings.hydraulic_bypass_entities),
+    powerMode: normalizePowerSensorMode(response.settings.power_sensor_mode),
+  };
+  assert.deepEqual(settingsModel.bypassEntities, [
     "climate.valvola_bagno",
   ]);
-  assert.equal(normalizePowerSensorMode(persisted.power_sensor_mode), "consumption");
+  assert.equal(settingsModel.powerMode, "consumption");
 });

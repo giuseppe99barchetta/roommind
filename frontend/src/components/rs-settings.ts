@@ -15,8 +15,8 @@ import type {
 import { localize } from "../utils/localize";
 import { fireSaveStatus } from "../utils/events";
 import {
-  finalizeHeatingSettingsPayload,
   normalizeBypassEntities,
+  normalizeHeatingSettingsForWebsocket,
   normalizePowerSensorMode,
 } from "../utils/heating-settings";
 import { VACATION_SENTINEL } from "../utils/constants";
@@ -383,7 +383,15 @@ export class RsSettings extends LitElement {
     fireSaveStatus(this, "saving");
 
     try {
-      const payload = finalizeHeatingSettingsPayload({
+      // This is the final untrusted UI boundary. Do not rely on picker event
+      // shapes here: Home Assistant components differ across releases.
+      const rawBypass = this._bypassEntities;
+      const rawPowerSensorMode = this._powerMode;
+      const { hydraulicBypassEntities, powerSensorMode } = normalizeHeatingSettingsForWebsocket(
+        rawBypass,
+        rawPowerSensorMode,
+      );
+      const payload = {
         type: "roommind/settings/save",
         group_by_floor: this._groupByFloor,
         climate_control_active: this._climateControlActive,
@@ -415,11 +423,11 @@ export class RsSettings extends LitElement {
         boiler_control_type: this._boilerControlType,
         boiler_startup_delay_seconds: this._startupDelay,
         boiler_shutdown_delay_seconds: this._shutdownDelay,
-        hydraulic_bypass_entities: this._bypassEntities,
+        hydraulic_bypass_entities: hydraulicBypassEntities,
         hydraulic_bypass_open_temperature: this._bypassTemperature,
         power_budget_enabled: this._budgetEnabled,
         power_sensor: this._powerSensor,
-        power_sensor_mode: this._powerMode,
+        power_sensor_mode: powerSensorMode,
         power_budget_max_watts: this._maxPower,
         power_budget_reserve_watts: this._reserve,
         power_budget_unavailable_behavior: "boiler",
@@ -435,14 +443,23 @@ export class RsSettings extends LitElement {
         mold_prevention_notify_targets: this._moldPreventionNotify
           ? this._moldNotificationTargets.filter((t) => t.entity_id)
           : [],
-      });
+      };
+      // eslint-disable-next-line no-console
       console.debug("RoomMind heating settings save payload", payload);
+      // eslint-disable-next-line no-console
       console.debug(
         "RoomMind heating settings save values",
         typeof payload.hydraulic_bypass_entities,
         payload.hydraulic_bypass_entities,
         payload.power_sensor_mode,
       );
+      // eslint-disable-next-line no-console
+      console.error("[RoomMind DEBUG FINAL PAYLOAD]", {
+        hydraulic_bypass_entities: payload.hydraulic_bypass_entities,
+        bypassIsArray: Array.isArray(payload.hydraulic_bypass_entities),
+        power_sensor_mode: payload.power_sensor_mode,
+        fullPayload: payload,
+      });
       await this.hass.callWS(payload);
       fireSaveStatus(this, "saved");
     } catch {

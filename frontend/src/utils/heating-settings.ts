@@ -25,21 +25,20 @@ export function serializeHeatingSettings(
   };
 }
 
-/**
- * Apply the strict heating-settings contract at the final WebSocket boundary.
- * This intentionally accepts the picker values emitted by multiple HA releases
- * while guaranteeing a schema-compatible payload.
- */
-export function finalizeHeatingSettingsPayload<
-  T extends { hydraulic_bypass_entities: unknown; power_sensor_mode: unknown },
->(
-  payload: T,
-): Omit<T, "hydraulic_bypass_entities" | "power_sensor_mode"> & {
-  hydraulic_bypass_entities: string[];
-  power_sensor_mode: PowerSensorMode;
-} {
+/** Normalize raw UI state for the final global-settings WebSocket payload. */
+export function normalizeHeatingSettingsForWebsocket(
+  rawBypass: unknown,
+  rawPowerSensorMode: unknown,
+): { hydraulicBypassEntities: string[]; powerSensorMode: PowerSensorMode } {
+  const hydraulicBypassEntities = Array.isArray(rawBypass)
+    ? rawBypass.filter((value): value is string => typeof value === "string" && value.length > 0)
+    : typeof rawBypass === "string" && rawBypass.length > 0
+      ? [rawBypass]
+      : [];
+  const powerSensorMode = rawPowerSensorMode === "consumption" ? "consumption" : "available";
+
   return {
-    ...payload,
-    ...serializeHeatingSettings(payload.hydraulic_bypass_entities, payload.power_sensor_mode),
+    hydraulicBypassEntities,
+    powerSensorMode,
   };
 }

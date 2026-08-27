@@ -628,8 +628,19 @@ async def websocket_get_settings(
 # ---------------------------------------------------------------------------
 
 
-# Schema is kept as a named value so its strict websocket contract is tested
-# directly; in particular, hydraulic bypass entities must remain a list.
+# Accept the scalar form emitted by legacy/cached frontends, but always return
+# the canonical list[str] representation to the handler and storage layer.
+def _normalize_hydraulic_bypass_entities(value: object) -> list[str]:
+    """Normalize a legacy scalar bypass entity while rejecting invalid values."""
+    if isinstance(value, str):
+        return [value]
+    if isinstance(value, list) and all(isinstance(entity_id, str) for entity_id in value):
+        return value
+    raise vol.Invalid("expected a string or list of strings")
+
+
+# Schema is kept as a named value so its websocket compatibility contract is
+# tested directly. Storage remains canonical list[str].
 SETTINGS_SAVE_SCHEMA = {
         vol.Required("type"): "roommind/settings/save",
         vol.Optional("outdoor_temp_sensor"): str,
@@ -698,7 +709,7 @@ SETTINGS_SAVE_SCHEMA = {
         vol.Optional("boiler_control_type"): vol.In(["climate", "switch"]),
         vol.Optional("boiler_startup_delay_seconds"): vol.All(vol.Coerce(float), vol.Range(min=0, max=3600)),
         vol.Optional("boiler_shutdown_delay_seconds"): vol.All(vol.Coerce(float), vol.Range(min=0, max=3600)),
-        vol.Optional("hydraulic_bypass_entities"): [str],
+        vol.Optional("hydraulic_bypass_entities"): _normalize_hydraulic_bypass_entities,
         vol.Optional("hydraulic_bypass_open_temperature"): vol.All(vol.Coerce(float), vol.Range(min=5, max=50)),
         vol.Optional("power_budget_enabled"): bool,
         vol.Optional("power_sensor"): str,
@@ -722,6 +733,14 @@ async def websocket_save_settings(
     for key in _SETTINGS_SAVE_FIELDS:
         if key in msg:
             changes[key] = msg[key]
+
+    # Handlers are also called directly by deterministic tests and extension
+    # code, bypassing Home Assistant's decorator schema. Keep their persisted
+    # representation canonical as well.
+    if "hydraulic_bypass_entities" in changes:
+        changes["hydraulic_bypass_entities"] = _normalize_hydraulic_bypass_entities(
+            changes["hydraulic_bypass_entities"]
+        )
 
     # Validate compressor groups
     groups = changes.get("compressor_groups")
