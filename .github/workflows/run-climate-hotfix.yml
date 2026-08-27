@@ -19,7 +19,7 @@ jobs:
           cache: npm
           cache-dependency-path: frontend/package-lock.json
       - name: Apply patch
-        run: python scripts/apply_climate_hotfix.py
+        run: python scripts/apply_climate_hotfix_v2.py
       - name: Validate backend
         run: python -m compileall -q custom_components/roommind
       - name: Build frontend
@@ -29,7 +29,7 @@ jobs:
           npm run build
       - name: Commit result
         run: |
-          rm .github/workflows/run-climate-hotfix.yml scripts/apply_climate_hotfix.py
+          rm .github/workflows/run-climate-hotfix.yml scripts/apply_climate_hotfix.py scripts/apply_climate_hotfix_v2.py
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add -A
