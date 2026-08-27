@@ -272,6 +272,13 @@ class RoomMindStore:
                 "heat_source_outdoor_threshold", DEFAULT_HEAT_SOURCE_OUTDOOR_THRESHOLD
             ),
             "heat_source_ac_min_outdoor": config.get("heat_source_ac_min_outdoor", DEFAULT_HEAT_SOURCE_AC_MIN_OUTDOOR),
+            "native_heat_source": config.get("native_heat_source", False),
+            "heat_pump_power_watts": config.get("heat_pump_power_watts", 0),
+            "heat_source_boiler_outdoor_threshold": config.get("heat_source_boiler_outdoor_threshold", 2.0),
+            "heat_source_heat_pump_outdoor_threshold": config.get("heat_source_heat_pump_outdoor_threshold", 8.0),
+            "heat_source_hybrid_delta": config.get("heat_source_hybrid_delta", 1.5),
+            "heat_source_hysteresis": config.get("heat_source_hysteresis", 0.3),
+            "heat_source_min_dwell_minutes": config.get("heat_source_min_dwell_minutes", 10),
             "climate_control_enabled": config.get("climate_control_enabled", True),
         }
         # Directional device sync for new rooms (truthiness check, not just presence)

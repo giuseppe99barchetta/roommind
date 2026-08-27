@@ -20,6 +20,9 @@ from homeassistant.core import HomeAssistant
 
 from ..const import (
     DEFAULT_HEAT_SOURCE_AC_MIN_OUTDOOR,
+    DEFAULT_HEAT_SOURCE_BOILER_OUTDOOR,
+    DEFAULT_HEAT_SOURCE_HEAT_PUMP_OUTDOOR,
+    DEFAULT_HEAT_SOURCE_HYBRID_DELTA,
     DEFAULT_HEAT_SOURCE_OUTDOOR_THRESHOLD,
     DEFAULT_HEAT_SOURCE_PRIMARY_DELTA,
     HEAT_SOURCE_HYSTERESIS,
@@ -51,6 +54,69 @@ class HeatSourcePlan:
     commands: list[DeviceCommand]
     active_sources: str  # "primary" | "secondary" | "both" | "none"
     reason: str
+
+
+def _native_commands(thermostats: list[str], acs: list[str], active: str, power_fraction: float, reason: str) -> HeatSourcePlan:
+    """Build the shared device-command form used by the MPC controller."""
+    commands: list[DeviceCommand] = []
+    for eid in thermostats:
+        on = active in ("boiler", "hybrid")
+        commands.append(DeviceCommand(eid, "boiler", "thermostat", on, power_fraction if on else 0.0, reason))
+    for eid in acs:
+        on = active in ("heat_pump", "hybrid")
+        commands.append(DeviceCommand(eid, "heat_pump", "ac", on, power_fraction if on else 0.0, reason))
+    return HeatSourcePlan(commands=commands, active_sources=active, reason=reason)
+
+
+def evaluate_native_heat_sources(
+    room_config: dict,
+    mode: str,
+    power_fraction: float,
+    current_temp: float | None,
+    target_temp: float | None,
+    outdoor_temp: float | None,
+    previous_source: str,
+    hass: HomeAssistant,
+    *,
+    allow_heat_pump: bool = True,
+) -> HeatSourcePlan | None:
+    """Select heat pump, hybrid or boiler using stable, explainable thresholds.
+
+    The function is pure apart from availability checks, which keeps all source
+    decisions deterministic and independently unit-testable. Dwell protection
+    is applied by the coordinator before changing ``previous_source``.
+    """
+    if mode != MODE_HEATING or not room_config.get("heat_source_orchestration", False):
+        return None
+    trvs = [eid for eid in get_trv_eids(room_config.get("devices", [])) if _is_available(hass, eid)]
+    acs = [eid for eid in get_ac_eids(room_config.get("devices", [])) if _ac_can_heat(hass, eid)]
+    if current_temp is None or target_temp is None:
+        return None
+    gap = target_temp - current_temp
+    if gap <= 0:
+        return _native_commands(trvs, acs, "inactive", 0.0, "target_reached")
+    if not acs:
+        return _native_commands(trvs, acs, "boiler" if trvs else "inactive", power_fraction, "heat_pump_unavailable")
+    if not trvs:
+        return _native_commands(trvs, acs, "heat_pump" if allow_heat_pump else "inactive", power_fraction, "boiler_unavailable" if not allow_heat_pump else "heat_pump_only")
+    if not allow_heat_pump:
+        return _native_commands(trvs, acs, "boiler", power_fraction, "electrical_budget_limited")
+    cold = float(room_config.get("heat_source_boiler_outdoor_threshold", DEFAULT_HEAT_SOURCE_BOILER_OUTDOOR))
+    mild = float(room_config.get("heat_source_heat_pump_outdoor_threshold", DEFAULT_HEAT_SOURCE_HEAT_PUMP_OUTDOOR))
+    hybrid_gap = float(room_config.get("heat_source_hybrid_delta", DEFAULT_HEAT_SOURCE_HYBRID_DELTA))
+    hysteresis = float(room_config.get("heat_source_hysteresis", HEAT_SOURCE_HYSTERESIS))
+    if outdoor_temp is None:
+        # Missing weather must not prevent heat; favour the non-electric source.
+        choice, reason = "boiler", "outdoor_unavailable"
+    elif outdoor_temp <= cold - (hysteresis if previous_source == "boiler" else 0):
+        choice, reason = "boiler", "outdoor_too_cold"
+    elif outdoor_temp >= mild + (hysteresis if previous_source == "heat_pump" else 0):
+        choice, reason = "heat_pump", "mild_outdoor_temperature"
+    elif gap >= hybrid_gap + (hysteresis if previous_source != "hybrid" else -hysteresis):
+        choice, reason = "hybrid", "large_temperature_deficit"
+    else:
+        choice, reason = (previous_source if previous_source in {"heat_pump", "hybrid", "boiler"} else "heat_pump"), "source_hysteresis"
+    return _native_commands(trvs, acs, choice, power_fraction, reason)
 
 
 def _is_available(hass: HomeAssistant, entity_id: str) -> bool:
