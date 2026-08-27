@@ -226,3 +226,4 @@ docs/plans/
 # Worktrees
 .worktrees/
 
+.code/
