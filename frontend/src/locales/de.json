@@ -526,5 +526,7 @@
   "heat_source.ac_min_outdoor": "Min. Außentemp. für AC-Heizen",
   "heat_source.ac_min_outdoor_hint": "AC-Heizen unter dieser Temperatur komplett deaktivieren, um die Wärmepumpen-Hardware zu schützen.",
   "heat_source.ac_min_outdoor_suffix": "°C",
-  "heat_source.summary_disabled": "Intelligente Quellenwahl ist aus"
+  "heat_source.summary_disabled": "Intelligente Quellenwahl ist aus",
+  "devices.keep_fan_only_window": "Nur Lüften bei offenem Fenster beibehalten",
+  "devices.keep_fan_only_window_hint": "Heizen und Kühlen werden pausiert, aber ein Klimagerät im Nur-Lüften-Modus bleibt eingeschaltet."
 }

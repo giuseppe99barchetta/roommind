@@ -54,6 +54,7 @@ export class RsRoomDetail extends LitElement {
   @state() private _selectedWindowSensors: Set<string> = new Set();
   @state() private _windowOpenDelay = 0;
   @state() private _windowCloseDelay = 0;
+  @state() private _keepFanOnlyOnWindowOpen = true;
   @state() private _climateMode: ClimateMode = "auto";
   @state() private _schedules: ScheduleEntry[] = [];
   @state() private _scheduleSelectorEntity = "";
@@ -262,6 +263,7 @@ export class RsRoomDetail extends LitElement {
       this._selectedWindowSensors = new Set(this.config.window_sensors ?? []);
       this._windowOpenDelay = this.config.window_open_delay ?? 0;
       this._windowCloseDelay = this.config.window_close_delay ?? 0;
+      this._keepFanOnlyOnWindowOpen = this.config.keep_fan_only_on_window_open ?? true;
       this._climateMode = this.config.climate_mode;
       this._schedules = this.config.schedules ?? [];
       this._scheduleSelectorEntity = this.config.schedule_selector_entity ?? "";
@@ -304,6 +306,7 @@ export class RsRoomDetail extends LitElement {
       this._selectedWindowSensors = new Set();
       this._windowOpenDelay = 0;
       this._windowCloseDelay = 0;
+      this._keepFanOnlyOnWindowOpen = true;
       this._climateMode = "auto";
       this._schedules = [];
       this._scheduleSelectorEntity = "";
@@ -504,6 +507,7 @@ export class RsRoomDetail extends LitElement {
                     .windowSensors=${this._selectedWindowSensors}
                     .windowOpenDelay=${this._windowOpenDelay}
                     .windowCloseDelay=${this._windowCloseDelay}
+                    .keepFanOnlyOnWindowOpen=${this._keepFanOnlyOnWindowOpen}
                     .heatingSystemType=${resolveHeatingSystemType(this._devices)}
                     .language=${this.hass.language}
                     @sensor-changed=${this._onSensorChanged}
@@ -748,6 +752,7 @@ export class RsRoomDetail extends LitElement {
             .windowSensors=${this._selectedWindowSensors}
             .windowOpenDelay=${this._windowOpenDelay}
             .windowCloseDelay=${this._windowCloseDelay}
+            .keepFanOnlyOnWindowOpen=${this._keepFanOnlyOnWindowOpen}
             .heatingSystemType=${resolveHeatingSystemType(this._devices)}
             .language=${this.hass.language}
             @sensor-changed=${this._onSensorChanged}
@@ -940,7 +945,7 @@ export class RsRoomDetail extends LitElement {
     this._autoSave();
   }
 
-  private _onSensorChanged(e: CustomEvent<{ key: string; value: string | string[] | number }>) {
+  private _onSensorChanged(e: CustomEvent<{ key: string; value: string | string[] | number | boolean }>) {
     const { key, value } = e.detail;
     if (key === "temperature_sensor") {
       this._selectedTempSensor = value as string;
@@ -954,6 +959,8 @@ export class RsRoomDetail extends LitElement {
       this._windowOpenDelay = value as number;
     } else if (key === "window_close_delay") {
       this._windowCloseDelay = value as number;
+    } else if (key === "keep_fan_only_on_window_open") {
+      this._keepFanOnlyOnWindowOpen = value as boolean;
     }
     this._autoSave();
   }
@@ -1107,6 +1114,7 @@ export class RsRoomDetail extends LitElement {
         display_name: this._displayName,
         covers: [...this._selectedCovers],
         climate_control_enabled: this._climateControlEnabled,
+        keep_fan_only_on_window_open: this._keepFanOnlyOnWindowOpen,
         covers_auto_enabled: this._coversAutoEnabled,
         covers_deploy_threshold: this._coversDeployThreshold,
         covers_min_position: this._coversMinPosition,

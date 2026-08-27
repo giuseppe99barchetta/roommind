@@ -402,7 +402,12 @@ class RoomMindClimate(RoomMindOverrideClimate):
         acs = get_ac_eids((self._room() or {}).get("devices", []))
         if not acs:
             raise ValueError("Room has no AC device")
-        await self.coordinator.hass.data[DOMAIN]["store"].async_update_room(self._area_id, {key: value})
+        store = self.coordinator.hass.data[DOMAIN]["store"]
+        await store.async_update_room(self._area_id, {key: value})
+        settings = store.get_settings()
+        room = store.get_room(self._area_id) or {}
+        if not settings.get("climate_control_active", True) or not room.get("climate_control_enabled", True):
+            return
         await self.coordinator.hass.services.async_call(
             "climate", service, {"entity_id": acs[0], service_key: value}, blocking=True
         )

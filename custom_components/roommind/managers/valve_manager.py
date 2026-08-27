@@ -9,6 +9,7 @@ from homeassistant.core import HomeAssistant
 
 from ..const import (
     DEFAULT_COMFORT_HEAT,
+    DOMAIN,
     DEFAULT_VALVE_PROTECTION_INTERVAL,
     HEATING_BOOST_TARGET,
     VALVE_PROTECTION_CHECK_CYCLES,
@@ -117,6 +118,9 @@ class ValveManager:
         TRVs stay awake after the cycle). If omitted, falls back to
         async_turn_off_climate for backward compatibility.
         """
+        store = self.hass.data.get(DOMAIN, {}).get("store")
+        if store is not None and not store.get_settings().get("climate_control_active", True):
+            return
         if not self._cycling:
             return
         now = time.time()
@@ -130,6 +134,8 @@ class ValveManager:
 
     async def async_check_and_cycle(self, rooms: dict, settings: dict) -> None:
         """Scan for TRV valves that have been idle too long and start cycling them."""
+        if not settings.get("climate_control_active", True):
+            return
         if not settings.get("valve_protection_enabled", False):
             # Disabled -- close any active cycles before clearing
             rooms_devices = build_rooms_devices_map(rooms)

@@ -6,7 +6,7 @@ from dataclasses import dataclass
 
 from homeassistant.core import HomeAssistant
 
-from ..const import make_roommind_context
+from ..const import DOMAIN, make_roommind_context
 from ..control.mpc_controller import MPCController
 from ..utils.device_utils import get_ac_eids, get_trv_eids
 
@@ -95,6 +95,12 @@ def room_capabilities(hass: HomeAssistant, room: dict) -> RoomClimateCapabilitie
 
 async def async_apply_ac_auxiliary_mode(hass: HomeAssistant, room: dict) -> None:
     """Route dry/fan-only and optional AC controls only to the configured AC."""
+    store = hass.data.get(DOMAIN, {}).get("store")
+    if store is not None:
+        settings = store.get_settings()
+        if not settings.get("climate_control_active", True) or not room.get("climate_control_enabled", True):
+            return
+
     acs = get_ac_eids(room.get("devices", []))
     if not acs:
         return

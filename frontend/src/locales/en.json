@@ -526,5 +526,7 @@
   "heat_source.ac_min_outdoor": "Min. outdoor temp for AC heating",
   "heat_source.ac_min_outdoor_hint": "Disable AC heating entirely below this temperature to protect the heat pump hardware.",
   "heat_source.ac_min_outdoor_suffix": "°C",
-  "heat_source.summary_disabled": "Smart source selection is off"
+  "heat_source.summary_disabled": "Smart source selection is off",
+  "devices.keep_fan_only_window": "Keep fan-only with open window",
+  "devices.keep_fan_only_window_hint": "Heating and cooling pause, but an AC already in fan-only mode stays on."
 }

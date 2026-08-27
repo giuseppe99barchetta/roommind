@@ -526,5 +526,7 @@
   "heat_source.ac_min_outdoor": "Température extérieure min. pour la climatisation",
   "heat_source.ac_min_outdoor_hint": "Désactiver complètement la climatisation en dessous de cette température pour protéger le matériel de la pompe à chaleur.",
   "heat_source.ac_min_outdoor_suffix": "°C",
-  "heat_source.summary_disabled": "La sélection intelligente de la source est désactivée"
+  "heat_source.summary_disabled": "La sélection intelligente de la source est désactivée",
+  "devices.keep_fan_only_window": "Maintenir la ventilation seule si la fenêtre est ouverte",
+  "devices.keep_fan_only_window_hint": "Le chauffage et le refroidissement sont suspendus, mais un climatiseur en ventilation seule reste allumé."
 }
