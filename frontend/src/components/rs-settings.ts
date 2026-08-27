@@ -27,6 +27,7 @@ import "./settings/rs-settings-mold";
 import "./settings/rs-settings-notifications";
 import "./settings/rs-settings-learning";
 import "./settings/rs-settings-reset";
+import "./settings/rs-settings-heating-system";
 
 @customElement("rs-settings")
 export class RsSettings extends LitElement {
@@ -66,6 +67,17 @@ export class RsSettings extends LitElement {
   @state() private _moldPreventionNotify = false;
   @state() private _compressorGroups: CompressorGroup[] = [];
   @state() private _boostAppliedAt: Record<string, number> = {};
+  @state() private _boilerEntity = "";
+  @state() private _boilerControlType: "climate" | "switch" = "climate";
+  @state() private _bypassEntities: string[] = [];
+  @state() private _startupDelay = 30;
+  @state() private _shutdownDelay = 60;
+  @state() private _bypassTemperature = 28;
+  @state() private _budgetEnabled = false;
+  @state() private _powerSensor = "";
+  @state() private _powerMode: "available" | "consumption" = "available";
+  @state() private _maxPower = 3300;
+  @state() private _reserve = 200;
   @state() private _loaded = false;
 
   private _saveDebounce?: ReturnType<typeof setTimeout>;
@@ -124,6 +136,17 @@ export class RsSettings extends LitElement {
       this._moldPreventionNotify = s.mold_prevention_notify_enabled ?? false;
       this._compressorGroups = s.compressor_groups ?? [];
       this._boostAppliedAt = s.boost_applied_at ?? {};
+      this._boilerEntity = s.boiler_entity ?? "";
+      this._boilerControlType = s.boiler_control_type ?? "climate";
+      this._bypassEntities = s.hydraulic_bypass_entities ?? [];
+      this._startupDelay = s.boiler_startup_delay_seconds ?? 30;
+      this._shutdownDelay = s.boiler_shutdown_delay_seconds ?? 60;
+      this._bypassTemperature = s.hydraulic_bypass_open_temperature ?? 28;
+      this._budgetEnabled = s.power_budget_enabled ?? false;
+      this._powerSensor = s.power_sensor ?? "";
+      this._powerMode = s.power_sensor_mode ?? "available";
+      this._maxPower = s.power_budget_max_watts ?? 3300;
+      this._reserve = s.power_budget_reserve_watts ?? 200;
     } catch (err) {
       // eslint-disable-next-line no-console
       console.debug("[RoomMind] loadSettings:", err);
@@ -140,6 +163,27 @@ export class RsSettings extends LitElement {
     const l = this.hass.language;
 
     return html`
+      <rs-settings-panel
+        icon="mdi:home-thermometer"
+        heading="Heating system"
+        intro="Native boiler safety, hydraulic bypass and heat-pump power arbitration."
+        ><rs-settings-heating-system
+          .hass=${this.hass}
+          .boilerEntity=${this._boilerEntity}
+          .boilerControlType=${this._boilerControlType}
+          .bypassEntities=${this._bypassEntities}
+          .startupDelay=${this._startupDelay}
+          .shutdownDelay=${this._shutdownDelay}
+          .bypassTemperature=${this._bypassTemperature}
+          .budgetEnabled=${this._budgetEnabled}
+          .powerSensor=${this._powerSensor}
+          .powerMode=${this._powerMode}
+          .maxPower=${this._maxPower}
+          .reserve=${this._reserve}
+          @setting-changed=${this._onSettingChanged}
+        ></rs-settings-heating-system>
+      </rs-settings-panel>
+
       <rs-settings-panel
         icon="mdi:power"
         .heading=${localize("settings.general_title", l)}
@@ -356,6 +400,18 @@ export class RsSettings extends LitElement {
         valve_protection_enabled: this._valveProtectionEnabled,
         valve_protection_interval_days: this._valveProtectionInterval,
         compressor_groups: this._compressorGroups.filter((g) => g.members.length > 0),
+        boiler_entity: this._boilerEntity,
+        boiler_control_type: this._boilerControlType,
+        boiler_startup_delay_seconds: this._startupDelay,
+        boiler_shutdown_delay_seconds: this._shutdownDelay,
+        hydraulic_bypass_entities: this._bypassEntities,
+        hydraulic_bypass_open_temperature: this._bypassTemperature,
+        power_budget_enabled: this._budgetEnabled,
+        power_sensor: this._powerSensor,
+        power_sensor_mode: this._powerMode,
+        power_budget_max_watts: this._maxPower,
+        power_budget_reserve_watts: this._reserve,
+        power_budget_unavailable_behavior: "boiler",
         mold_detection_enabled: this._moldDetectionEnabled,
         mold_humidity_threshold: this._moldHumidityThreshold,
         mold_sustained_minutes: this._moldSustainedMinutes,

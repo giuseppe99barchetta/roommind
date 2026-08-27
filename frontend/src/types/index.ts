@@ -53,6 +53,8 @@ export interface RoomLiveData {
   cover_forced_reason: string;
   active_cover_schedule_index: number;
   active_heat_sources: string | null;
+  heat_source?: "inactive" | "heat_pump" | "hybrid" | "boiler" | string;
+  heat_source_reason?: string;
   learning_paused_reason: "outdoor_unavailable" | null;
   compressor_protection_active: boolean;
   compressor_protection_reason: "min_off" | "min_run" | null;
@@ -138,6 +140,13 @@ export interface RoomConfig {
   heat_source_primary_delta?: number;
   heat_source_outdoor_threshold?: number;
   heat_source_ac_min_outdoor?: number;
+  native_heat_source?: boolean;
+  heat_pump_power_watts?: number;
+  heat_source_boiler_outdoor_threshold?: number;
+  heat_source_heat_pump_outdoor_threshold?: number;
+  heat_source_hybrid_delta?: number;
+  heat_source_hysteresis?: number;
+  heat_source_min_dwell_minutes?: number;
   climate_control_enabled?: boolean;
   live?: RoomLiveData;
 }
@@ -177,6 +186,18 @@ export interface GlobalSettings {
   compressor_groups?: CompressorGroup[];
   room_order?: string[];
   group_by_floor?: boolean;
+  boiler_entity?: string;
+  boiler_control_type?: "climate" | "switch";
+  boiler_startup_delay_seconds?: number;
+  boiler_shutdown_delay_seconds?: number;
+  hydraulic_bypass_entities?: string[];
+  hydraulic_bypass_open_temperature?: number;
+  power_budget_enabled?: boolean;
+  power_sensor?: string;
+  power_sensor_mode?: "available" | "consumption";
+  power_budget_max_watts?: number;
+  power_budget_reserve_watts?: number;
+  power_budget_unavailable_behavior?: "boiler" | "allow";
   boost_applied_at?: Record<string, number>;
 }
 

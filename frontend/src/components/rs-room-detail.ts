@@ -89,6 +89,8 @@ export class RsRoomDetail extends LitElement {
   @state() private _heatSourcePrimaryDelta = 1.5;
   @state() private _heatSourceOutdoorThreshold = 5.0;
   @state() private _heatSourceAcMinOutdoor = -15.0;
+  @state() private _nativeHeatSource = false;
+  @state() private _heatPumpPowerWatts = 0;
   @state() private _optimisticCoverResume = false;
 
   private _prevAreaId: string | null = null;
@@ -292,6 +294,8 @@ export class RsRoomDetail extends LitElement {
       this._heatSourcePrimaryDelta = this.config.heat_source_primary_delta ?? 1.5;
       this._heatSourceOutdoorThreshold = this.config.heat_source_outdoor_threshold ?? 5.0;
       this._heatSourceAcMinOutdoor = this.config.heat_source_ac_min_outdoor ?? -15.0;
+      this._nativeHeatSource = this.config.native_heat_source ?? false;
+      this._heatPumpPowerWatts = this.config.heat_pump_power_watts ?? 0;
     } else {
       this._devices = [];
       this._selectedTempSensor = "";
@@ -861,6 +865,8 @@ export class RsRoomDetail extends LitElement {
             .primaryDelta=${this._heatSourcePrimaryDelta}
             .outdoorThreshold=${this._heatSourceOutdoorThreshold}
             .acMinOutdoor=${this._heatSourceAcMinOutdoor}
+            .native=${this._nativeHeatSource}
+            .heatPumpPower=${this._heatPumpPowerWatts}
             @setting-changed=${this._onHeatSourceSettingChanged}
           ></rs-heat-source-section>
         </rs-edit-dialog>`;
@@ -1045,6 +1051,8 @@ export class RsRoomDetail extends LitElement {
     else if (key === "heat_source_outdoor_threshold")
       this._heatSourceOutdoorThreshold = value as number;
     else if (key === "heat_source_ac_min_outdoor") this._heatSourceAcMinOutdoor = value as number;
+    else if (key === "native_heat_source") this._nativeHeatSource = value as boolean;
+    else if (key === "heat_pump_power_watts") this._heatPumpPowerWatts = value as number;
     this._autoSave();
   }
 
@@ -1120,6 +1128,8 @@ export class RsRoomDetail extends LitElement {
         heat_source_primary_delta: this._heatSourcePrimaryDelta,
         heat_source_outdoor_threshold: this._heatSourceOutdoorThreshold,
         heat_source_ac_min_outdoor: this._heatSourceAcMinOutdoor,
+        native_heat_source: this._nativeHeatSource,
+        heat_pump_power_watts: this._heatPumpPowerWatts,
       });
 
       this._dirty = false;

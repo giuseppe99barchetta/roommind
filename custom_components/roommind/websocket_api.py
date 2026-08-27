@@ -102,6 +102,13 @@ _ROOM_SAVE_FIELDS = (
     "heat_source_primary_delta",
     "heat_source_outdoor_threshold",
     "heat_source_ac_min_outdoor",
+    "native_heat_source",
+    "heat_pump_power_watts",
+    "heat_source_boiler_outdoor_threshold",
+    "heat_source_heat_pump_outdoor_threshold",
+    "heat_source_hybrid_delta",
+    "heat_source_hysteresis",
+    "heat_source_min_dwell_minutes",
     "valve_protection_exclude",
     "climate_control_enabled",
 )
@@ -141,6 +148,18 @@ _SETTINGS_SAVE_FIELDS = (
     "room_order",
     "group_by_floor",
     "compressor_groups",
+    "boiler_entity",
+    "boiler_control_type",
+    "boiler_startup_delay_seconds",
+    "boiler_shutdown_delay_seconds",
+    "hydraulic_bypass_entities",
+    "hydraulic_bypass_open_temperature",
+    "power_budget_enabled",
+    "power_sensor",
+    "power_sensor_mode",
+    "power_budget_max_watts",
+    "power_budget_reserve_watts",
+    "power_budget_unavailable_behavior",
 )
 
 
@@ -365,6 +384,13 @@ async def websocket_list_rooms(
         vol.Optional("heat_source_primary_delta"): vol.All(vol.Coerce(float), vol.Range(min=0.5, max=5.0)),
         vol.Optional("heat_source_outdoor_threshold"): vol.All(vol.Coerce(float), vol.Range(min=-20, max=25)),
         vol.Optional("heat_source_ac_min_outdoor"): vol.All(vol.Coerce(float), vol.Range(min=-30, max=5)),
+        vol.Optional("native_heat_source"): bool,
+        vol.Optional("heat_pump_power_watts"): vol.All(vol.Coerce(float), vol.Range(min=0, max=20000)),
+        vol.Optional("heat_source_boiler_outdoor_threshold"): vol.All(vol.Coerce(float), vol.Range(min=-30, max=20)),
+        vol.Optional("heat_source_heat_pump_outdoor_threshold"): vol.All(vol.Coerce(float), vol.Range(min=-20, max=35)),
+        vol.Optional("heat_source_hybrid_delta"): vol.All(vol.Coerce(float), vol.Range(min=0, max=10)),
+        vol.Optional("heat_source_hysteresis"): vol.All(vol.Coerce(float), vol.Range(min=0, max=5)),
+        vol.Optional("heat_source_min_dwell_minutes"): vol.All(vol.Coerce(float), vol.Range(min=0, max=240)),
         vol.Optional("climate_control_enabled"): bool,
     }
 )
@@ -653,6 +679,18 @@ async def websocket_get_settings(
                 vol.Optional("enforce_uniform_mode", default=False): bool,
             }
         ],
+        vol.Optional("boiler_entity"): str,
+        vol.Optional("boiler_control_type"): vol.In(["climate", "switch"]),
+        vol.Optional("boiler_startup_delay_seconds"): vol.All(vol.Coerce(float), vol.Range(min=0, max=3600)),
+        vol.Optional("boiler_shutdown_delay_seconds"): vol.All(vol.Coerce(float), vol.Range(min=0, max=3600)),
+        vol.Optional("hydraulic_bypass_entities"): [str],
+        vol.Optional("hydraulic_bypass_open_temperature"): vol.All(vol.Coerce(float), vol.Range(min=5, max=50)),
+        vol.Optional("power_budget_enabled"): bool,
+        vol.Optional("power_sensor"): str,
+        vol.Optional("power_sensor_mode"): vol.In(["available", "consumption"]),
+        vol.Optional("power_budget_max_watts"): vol.All(vol.Coerce(float), vol.Range(min=0, max=100000)),
+        vol.Optional("power_budget_reserve_watts"): vol.All(vol.Coerce(float), vol.Range(min=0, max=100000)),
+        vol.Optional("power_budget_unavailable_behavior"): vol.In(["boiler", "allow"]),
     }
 )
 @websocket_api.async_response

@@ -18,6 +18,8 @@ def _create_room_entities(coordinator: RoomMindCoordinator, area_id: str) -> lis
     return [
         RoomMindTargetTemperatureSensor(coordinator, area_id),
         RoomMindModeSensor(coordinator, area_id),
+        RoomMindHeatSourceSensor(coordinator, area_id),
+        RoomMindHeatSourceReasonSensor(coordinator, area_id),
     ]
 
 
@@ -39,6 +41,7 @@ async def async_setup_entry(
     for area_id in rooms:
         entities.extend(_create_room_entities(coordinator, area_id))
         coordinator._entity_areas.add(area_id)
+    entities.extend([RoomMindBoilerDemandSensor(coordinator), RoomMindAvailablePowerSensor(coordinator), RoomMindReservedPowerSensor(coordinator)])
     if entities:
         async_add_entities(entities)
 
@@ -99,3 +102,48 @@ class RoomMindModeSensor(_RoomMindBaseSensor):
             val = room.get("mode", "idle")
             return str(val) if val is not None else "idle"
         return "idle"
+
+
+class RoomMindHeatSourceSensor(_RoomMindBaseSensor):
+    _data_key = "heat_source"
+    def __init__(self, coordinator: RoomMindCoordinator, area_id: str) -> None:
+        super().__init__(coordinator, area_id, "heat_source", "Heat Source")
+
+
+class RoomMindHeatSourceReasonSensor(_RoomMindBaseSensor):
+    _data_key = "heat_source_reason"
+    def __init__(self, coordinator: RoomMindCoordinator, area_id: str) -> None:
+        super().__init__(coordinator, area_id, "heat_source_reason", "Heat Source Reason")
+
+
+class _GlobalSensor(CoordinatorEntity, SensorEntity):
+    _attr_has_entity_name = True
+    _key: str
+    def __init__(self, coordinator: RoomMindCoordinator, suffix: str, name: str) -> None:
+        super().__init__(coordinator)
+        self._attr_unique_id = f"{DOMAIN}_{suffix}"
+        self._attr_name = name
+        self.entity_id = f"sensor.{DOMAIN}_{suffix}"
+    @property
+    def native_value(self):
+        return (self.coordinator.data or {}).get(self._key)
+
+
+class RoomMindBoilerDemandSensor(_GlobalSensor):
+    _key = "boiler_demand"
+    def __init__(self, coordinator: RoomMindCoordinator) -> None:
+        super().__init__(coordinator, "boiler_demand", "Boiler Demand")
+
+
+class RoomMindAvailablePowerSensor(_GlobalSensor):
+    _key = "available_power"
+    _attr_native_unit_of_measurement = "W"
+    def __init__(self, coordinator: RoomMindCoordinator) -> None:
+        super().__init__(coordinator, "available_power", "Available Power")
+
+
+class RoomMindReservedPowerSensor(_GlobalSensor):
+    _key = "reserved_power"
+    _attr_native_unit_of_measurement = "W"
+    def __init__(self, coordinator: RoomMindCoordinator) -> None:
+        super().__init__(coordinator, "reserved_power", "Reserved Power")

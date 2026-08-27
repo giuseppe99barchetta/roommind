@@ -53,6 +53,7 @@ from .control.mpc_controller import (
 )
 from .control.solar import compute_q_solar_norm
 from .control.thermal_model import RoomModelManager
+from .managers.boiler_manager import BoilerManager
 from .managers.compressor_group_manager import (
     CompressorGroupConfig,
     CompressorGroupManager,
@@ -61,8 +62,9 @@ from .managers.compressor_group_manager import (
 )
 from .managers.cover_orchestrator import CoverOrchestrator, CoverResult
 from .managers.ekf_training_manager import EkfTrainingManager
-from .managers.heat_source_orchestrator import HeatSourcePlan, evaluate_heat_sources
+from .managers.heat_source_orchestrator import HeatSourcePlan, evaluate_heat_sources, evaluate_native_heat_sources
 from .managers.mold_manager import MoldManager
+from .managers.power_budget_manager import PowerBudgetManager
 from .managers.residual_heat_tracker import ResidualHeatTracker
 from .managers.valve_manager import ValveManager
 from .managers.weather_manager import WeatherManager
@@ -173,6 +175,9 @@ class RoomMindCoordinator(DataUpdateCoordinator):
         self._compressor_manager = CompressorGroupManager()
         # Heat source orchestration state (per room)
         self._heat_source_states: dict[str, str] = {}
+        self._heat_source_changed_at: dict[str, float] = {}
+        self._power_budget_manager = PowerBudgetManager()
+        self._boiler_manager = BoilerManager(hass)
         # Track which rooms already have entity platform entities registered
         self._entity_areas: set[str] = set()
         # Min-run enforcement: timestamp when current non-idle mode started
@@ -231,6 +236,12 @@ class RoomMindCoordinator(DataUpdateCoordinator):
 
         # Load compressor groups from settings (every cycle, cheap)
         self._compressor_manager.load_groups(settings.get("compressor_groups", []))
+        running_loads = {
+            area_id: float(room.get("heat_pump_power_watts", 0) or 0)
+            for area_id, room in rooms.items()
+            if self._heat_source_states.get(area_id) in ("heat_pump", "hybrid")
+        }
+        self._power_budget_manager.begin_cycle(self.hass, settings, running_loads)
 
         # Load thermal model and valve actuation data from store (once)
         if not self._model_loaded:
@@ -277,6 +288,13 @@ class RoomMindCoordinator(DataUpdateCoordinator):
 
         # Control master devices based on aggregate room demand
         await self._async_control_master_devices(room_states, rooms, settings)
+        boiler_demand = {
+            area_id
+            for area_id, state in room_states.items()
+            if state.get("commanded_mode") == MODE_HEATING
+            and self._heat_source_states.get(area_id) in ("boiler", "hybrid")
+        }
+        await self._boiler_manager.async_reconcile(settings, boiler_demand)
 
         # Record to history store (throttled)
         learning_disabled = set(settings.get("learning_disabled_rooms", []))
@@ -385,7 +403,15 @@ class RoomMindCoordinator(DataUpdateCoordinator):
             self._valve_manager.actuation_dirty = False
 
         self.rooms = room_states
-        return {"rooms": room_states}
+        budget = self._power_budget_manager.status()
+        return {
+            "rooms": room_states,
+            "boiler_demand": len(self._boiler_manager.demand_rooms),
+            "boiler_active": self._boiler_manager.state.value == "on",
+            "hydraulic_path_safe": self._boiler_manager.path_safe,
+            "available_power": budget.available_watts,
+            "reserved_power": budget.reserved_watts,
+        }
 
     def _read_room_sensors(
         self,
@@ -764,26 +790,50 @@ class RoomMindCoordinator(DataUpdateCoordinator):
             eid for eid in get_trv_eids(room.get("devices", [])) if self._valve_manager.is_entity_cycling(eid)
         }
 
-        # Heat source orchestration: smart routing for rooms with both TRVs and ACs
+        # Heat source orchestration: legacy routing plus native hybrid mode.
         heat_source_plan = None
         if (
             room.get("heat_source_orchestration", False)
             and mode == MODE_HEATING
             and has_external_sensor
-            and get_trv_eids(room.get("devices", []))
-            and get_ac_eids(room.get("devices", []))
+            and (room.get("native_heat_source", False) or (get_trv_eids(room.get("devices", [])) and get_ac_eids(room.get("devices", []))))
         ):
-            heat_source_plan = evaluate_heat_sources(
-                room_config=room,
-                mode=mode,
-                power_fraction=power_fraction,
-                current_temp=current_temp,
-                target_temp=targets.heat,
-                outdoor_temp=self.outdoor_temp_effective,
-                previous_active_sources=self._heat_source_states.get(area_id, "none"),
-                hass=self.hass,
-            )
+            previous_source = self._heat_source_states.get(area_id, "inactive")
+            if room.get("native_heat_source", False):
+                heat_source_plan = evaluate_native_heat_sources(
+                    room, mode, power_fraction, current_temp, targets.heat,
+                    self.outdoor_temp_effective, previous_source, self.hass,
+                )
+                if heat_source_plan and heat_source_plan.active_sources in ("heat_pump", "hybrid"):
+                    running = previous_source in ("heat_pump", "hybrid")
+                    if not self._power_budget_manager.request_heat_pump(
+                        area_id, float(room.get("heat_pump_power_watts", 0) or 0), running
+                    ):
+                        heat_source_plan = evaluate_native_heat_sources(
+                            room, mode, power_fraction, current_temp, targets.heat,
+                            self.outdoor_temp_effective, previous_source, self.hass, allow_heat_pump=False,
+                        )
+                # Source dwell complements compressor protection and avoids
+                # heat-pump/hybrid/boiler flapping on noisy sensor readings.
+                if heat_source_plan and previous_source not in ("inactive", "none") and heat_source_plan.active_sources != previous_source:
+                    dwell = float(room.get("heat_source_min_dwell_minutes", 10)) * 60
+                    if time.monotonic() - self._heat_source_changed_at.get(area_id, 0) < dwell:
+                        for command in heat_source_plan.commands:
+                            command.active = (command.device_type == "ac" and previous_source in ("heat_pump", "hybrid")) or (command.device_type == "thermostat" and previous_source in ("boiler", "hybrid"))
+                            command.power_fraction = power_fraction if command.active else 0.0
+                            command.reason = "minimum_dwell"
+                        heat_source_plan.active_sources = previous_source
+                        heat_source_plan.reason = "minimum_dwell"
+            else:
+                heat_source_plan = evaluate_heat_sources(
+                    room_config=room, mode=mode, power_fraction=power_fraction,
+                    current_temp=current_temp, target_temp=targets.heat,
+                    outdoor_temp=self.outdoor_temp_effective,
+                    previous_active_sources=previous_source, hass=self.hass,
+                )
             if heat_source_plan is not None:
+                if heat_source_plan.active_sources != previous_source:
+                    self._heat_source_changed_at[area_id] = time.monotonic()
                 self._heat_source_states[area_id] = heat_source_plan.active_sources
             else:
                 # Orchestrator returned None (e.g. missing current/target temp).
@@ -1283,6 +1333,8 @@ class RoomMindCoordinator(DataUpdateCoordinator):
             "cover_forced_reason": (cover_result.forced_reason if cover_eids else ""),
             "active_cover_schedule_index": (cover_result.active_cover_schedule_index if cover_eids else -1),
             "active_heat_sources": self._heat_source_states.get(area_id),
+            "heat_source": self._heat_source_states.get(area_id, "inactive"),
+            "heat_source_reason": heat_source_plan.reason if heat_source_plan else "inactive",
             "compressor_protection_active": compressor_protection_reason is not None,
             "compressor_protection_reason": compressor_protection_reason,
         }

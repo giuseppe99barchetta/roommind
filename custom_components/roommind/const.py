@@ -163,6 +163,10 @@ DEFAULT_HEAT_SOURCE_AC_MIN_OUTDOOR = -15.0  # °C hard-disable AC heating below 
 HEAT_SOURCE_HYSTERESIS = 0.3  # °C hysteresis band to prevent oscillation
 HEAT_SOURCE_LARGE_GAP_MULTIPLIER = 2.0  # activate both sources when gap > primary_delta * this
 HEAT_SOURCE_SECONDARY_POWER_SCALE = 0.7  # throttle secondary when both active (prevent overshoot)
+DEFAULT_HEAT_SOURCE_BOILER_OUTDOOR = 2.0
+DEFAULT_HEAT_SOURCE_HEAT_PUMP_OUTDOOR = 8.0
+DEFAULT_HEAT_SOURCE_HYBRID_DELTA = 1.5
+DEFAULT_HEAT_SOURCE_MIN_DWELL_MINUTES = 10
 
 # Compressor group defaults
 DEFAULT_COMPRESSOR_MIN_RUN_MINUTES = 15

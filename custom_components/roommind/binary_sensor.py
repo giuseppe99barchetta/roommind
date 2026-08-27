@@ -35,6 +35,7 @@ async def async_setup_entry(
         if room.get("covers"):
             entities.extend(_create_room_binary_sensors(coordinator, area_id))
             coordinator._binary_sensor_entity_areas.add(area_id)
+    entities.extend([RoomMindBoilerActiveSensor(coordinator), RoomMindHydraulicPathSafeSensor(coordinator)])
     if entities:
         async_add_entities(entities)
 
@@ -59,3 +60,28 @@ class RoomMindCoverPausedSensor(CoordinatorEntity, BinarySensorEntity):
             return False
         room = self.coordinator.data.get("rooms", {}).get(self._area_id)
         return bool(room.get("cover_auto_paused", False)) if room else False
+
+
+class _GlobalBinarySensor(CoordinatorEntity, BinarySensorEntity):
+    _attr_has_entity_name = True
+    _key: str
+    def __init__(self, coordinator: RoomMindCoordinator, suffix: str, name: str) -> None:
+        super().__init__(coordinator)
+        self._attr_unique_id = f"{DOMAIN}_{suffix}"
+        self._attr_name = name
+        self.entity_id = f"binary_sensor.{DOMAIN}_{suffix}"
+    @property
+    def is_on(self) -> bool:
+        return bool((self.coordinator.data or {}).get(self._key, False))
+
+
+class RoomMindBoilerActiveSensor(_GlobalBinarySensor):
+    _key = "boiler_active"
+    def __init__(self, coordinator: RoomMindCoordinator) -> None:
+        super().__init__(coordinator, "boiler_active", "Boiler Active")
+
+
+class RoomMindHydraulicPathSafeSensor(_GlobalBinarySensor):
+    _key = "hydraulic_path_safe"
+    def __init__(self, coordinator: RoomMindCoordinator) -> None:
+        super().__init__(coordinator, "hydraulic_path_safe", "Hydraulic Path Safe")

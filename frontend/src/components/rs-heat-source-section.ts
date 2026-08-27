@@ -10,6 +10,8 @@ import "./shared/rs-info-icon";
 export class RsHeatSourceSection extends LitElement {
   @property({ attribute: false }) public hass!: HomeAssistant;
   @property({ type: Boolean }) public enabled = false;
+  @property({ type: Boolean }) public native = false;
+  @property({ type: Number }) public heatPumpPower = 0;
   @property({ type: Number }) public primaryDelta = 1.5;
   @property({ type: Number }) public outdoorThreshold = 5.0;
   @property({ type: Number }) public acMinOutdoor = -15.0;
@@ -152,6 +154,34 @@ export class RsHeatSourceSection extends LitElement {
 
       ${this.enabled
         ? html`
+            <div class="feature-card">
+              <div class="feature-text">
+                <div class="feature-title">Heat pump / Hybrid / Boiler</div>
+                <div class="feature-description">
+                  Use RoomMind's native source selector, central power allocator and boiler demand
+                  aggregation.
+                </div>
+              </div>
+              <ha-switch
+                .checked=${this.native}
+                @change=${(e: Event) =>
+                  this._emit("native_heat_source", (e.target as HTMLInputElement).checked)}
+              ></ha-switch>
+            </div>
+            ${this.native
+              ? html`<div class="thresholds">
+                  <div class="threshold-cell">
+                    <div class="threshold-label"><span>Heat-pump estimated demand (W)</span></div>
+                    <ha-textfield
+                      .value=${String(this.heatPumpPower)}
+                      type="number"
+                      min="0"
+                      step="50"
+                      @input=${(e: Event) => this._onNumberInput("heat_pump_power_watts", e)}
+                    ></ha-textfield>
+                  </div>
+                </div>`
+              : nothing}
             <div class="thresholds">
               ${this._renderThresholdCell({
                 label: localize("heat_source.primary_delta", lang),
