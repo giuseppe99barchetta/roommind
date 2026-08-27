@@ -61,6 +61,49 @@ class TestRoomMindCoordinator:
         assert len(hvac_off_calls) >= 1
 
     @pytest.mark.asyncio
+    async def test_window_open_preserves_ac_fan_only(self, hass, mock_config_entry):
+        """An open window must not turn off an AC already in fan-only mode."""
+        ac_entity = "climate.living_room_ac"
+        room_with_window = {
+            **SAMPLE_ROOM,
+            "thermostats": [],
+            "acs": [ac_entity],
+            "devices": [{"entity_id": ac_entity, "type": "ac", "role": "auto", "heating_system_type": ""}],
+            "window_sensors": ["binary_sensor.living_room_window"],
+        }
+        store = _make_store_mock({"living_room_abc12345": room_with_window})
+        hass.data = {"roommind": {"store": store}}
+
+        hass.states.get = MagicMock(
+            side_effect=make_mock_states_get(
+                window_sensors={"binary_sensor.living_room_window": "on"},
+                extra={
+                    ac_entity: (
+                        "fan_only",
+                        {"hvac_modes": ["off", "cool", "fan_only"], "min_temp": 16.0, "max_temp": 30.0},
+                    )
+                },
+            )
+        )
+        hass.services.async_call = AsyncMock()
+
+        coordinator = _create_coordinator(hass, mock_config_entry)
+        data = await coordinator._async_update_data()
+
+        room_state = data["rooms"]["living_room_abc12345"]
+        assert room_state["mode"] == "idle"
+        assert room_state["window_open"] is True
+
+        calls = hass.services.async_call.call_args_list
+        assert call(
+            "climate",
+            "set_hvac_mode",
+            {"entity_id": ac_entity, "hvac_mode": "off"},
+            blocking=True,
+            context=ANY,
+        ) not in calls
+
+    @pytest.mark.asyncio
     async def test_window_closed_normal_operation(self, hass, mock_config_entry):
         """Test that a closed window sensor allows normal heating operation."""
         room_with_window = {

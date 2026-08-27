@@ -987,6 +987,7 @@ class RoomMindCoordinator(DataUpdateCoordinator):
                     compressor_forced_on=compressor_forced_on or None,
                     compressor_forced_off=compressor_forced_off or None,
                     force_off=force_off,
+                    window_open=window_open,
                 )
                 if requested_hvac_mode in ("dry", "fan_only"):
                     # Controller has safely idled every managed device; only

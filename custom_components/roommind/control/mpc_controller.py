@@ -376,6 +376,7 @@ async def async_idle_device(
     area_id: str = "unknown",
     targets: TargetTemps | None = None,
     force_off: bool = False,
+    preserve_fan_only: bool = False,
 ) -> None:
     """Idle a climate device per its configured idle_action.
 
@@ -396,6 +397,16 @@ async def async_idle_device(
     idle_action, idle_fan_mode = get_idle_action(devices, entity_id)
     if force_off and idle_action != IDLE_ACTION_LOW:
         idle_action = IDLE_ACTION_OFF
+
+    if preserve_fan_only and entity_id in get_ac_eids(devices):
+        state = hass.states.get(entity_id)
+        if state and state.state == "fan_only":
+            _LOGGER.debug(
+                "Area '%s': preserving fan_only on '%s' while idling",
+                area_id,
+                entity_id,
+            )
+            return
 
     # Fallback low setpoint (in HA display units) for devices where min_temp
     # is not effective (e.g. Wavin Sentio with min_temp=0 or high min_temp).
@@ -1229,6 +1240,7 @@ class MPCController:
         compressor_forced_on: set[str] | None = None,
         compressor_forced_off: set[str] | None = None,
         force_off: bool = False,
+        window_open: bool = False,
     ) -> None:
         """Apply the determined mode with proportional valve control.
 
@@ -1641,6 +1653,7 @@ class MPCController:
                     area_id=self._area_id,
                     targets=targets,
                     force_off=force_off,
+                    preserve_fan_only=window_open and not force_off,
                 )
 
     def _proportional_deadband(self, eid: str, current_temp: float | None, effective_target: float) -> float | None:
