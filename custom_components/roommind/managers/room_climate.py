@@ -7,7 +7,51 @@ from dataclasses import dataclass
 from homeassistant.core import HomeAssistant
 
 from ..const import make_roommind_context
+from ..control.mpc_controller import MPCController
 from ..utils.device_utils import get_ac_eids, get_trv_eids
+
+
+# The coordinator intentionally keeps dry/fan_only thermally idle.  Without a
+# dedicated routing guard, MPCController would idle the AC first (usually
+# hvac_mode=off) and only then room_climate would send the auxiliary mode.  Some
+# integrations/devices process that off asynchronously, so the later fan_only
+# command can be lost and the AC ends up off.  Keep the AC out of the normal
+# idle pass whenever the selected auxiliary mode is allowed, while still letting
+# the controller idle TRVs/other heat sources with its existing force_off rules.
+_auxiliary_allowed_by_area: dict[str, bool] = {}
+_original_mpc_async_apply = MPCController.async_apply
+
+
+async def _async_apply_with_auxiliary_routing(self: MPCController, *args, **kwargs) -> None:
+    requested_mode = self.room_config.get("room_hvac_mode")
+    window_open = bool(kwargs.get("window_open", False))
+    keep_fan_on_window_open = self.room_config.get("keep_fan_only_on_window_open", True)
+
+    auxiliary_allowed = (requested_mode == "dry" and not window_open) or (
+        requested_mode == "fan_only" and (not window_open or keep_fan_on_window_open)
+    )
+    _auxiliary_allowed_by_area[self._area_id] = auxiliary_allowed
+
+    if not auxiliary_allowed or not self.acs:
+        await _original_mpc_async_apply(self, *args, **kwargs)
+        return
+
+    # The coordinator has already forced MODE_IDLE for auxiliary modes.  Hide
+    # ACs from the controller for this apply only so they never receive the
+    # intermediate OFF command.  TRVs and other devices are still idled using
+    # the original force_off semantics.
+    original_acs = self.acs
+    self.acs = []
+    try:
+        await _original_mpc_async_apply(self, *args, **kwargs)
+    finally:
+        self.acs = original_acs
+
+
+# Patch the class once at module import. coordinator.py imports MPCController
+# before this module, so both references point to the same class object.
+if MPCController.async_apply is not _async_apply_with_auxiliary_routing:
+    MPCController.async_apply = _async_apply_with_auxiliary_routing
 
 
 @dataclass(frozen=True)
@@ -56,6 +100,15 @@ async def async_apply_ac_auxiliary_mode(hass: HomeAssistant, room: dict) -> None
         return
     entity_id = acs[0]
     mode = room.get("room_hvac_mode")
+
+    # Use the same debounced window decision computed by the controller wrapper.
+    # Default to allowed for direct/legacy callers that did not pass through the
+    # coordinator first.
+    area_id = room.get("area_id", "unknown")
+    auxiliary_allowed = _auxiliary_allowed_by_area.pop(area_id, True)
+    if mode in ("dry", "fan_only") and not auxiliary_allowed:
+        return
+
     if mode in ("dry", "fan_only"):
         await hass.services.async_call(
             "climate",
