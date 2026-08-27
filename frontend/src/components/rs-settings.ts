@@ -15,9 +15,9 @@ import type {
 import { localize } from "../utils/localize";
 import { fireSaveStatus } from "../utils/events";
 import {
+  finalizeHeatingSettingsPayload,
   normalizeBypassEntities,
   normalizePowerSensorMode,
-  serializeHeatingSettings,
 } from "../utils/heating-settings";
 import { VACATION_SENTINEL } from "../utils/constants";
 import "./settings/rs-settings-panel";
@@ -381,10 +381,9 @@ export class RsSettings extends LitElement {
 
   private async _doSave() {
     fireSaveStatus(this, "saving");
-    const heatingSettings = serializeHeatingSettings(this._bypassEntities, this._powerMode);
 
     try {
-      await this.hass.callWS({
+      const payload = finalizeHeatingSettingsPayload({
         type: "roommind/settings/save",
         group_by_floor: this._groupByFloor,
         climate_control_active: this._climateControlActive,
@@ -416,11 +415,11 @@ export class RsSettings extends LitElement {
         boiler_control_type: this._boilerControlType,
         boiler_startup_delay_seconds: this._startupDelay,
         boiler_shutdown_delay_seconds: this._shutdownDelay,
-        hydraulic_bypass_entities: heatingSettings.hydraulic_bypass_entities,
+        hydraulic_bypass_entities: this._bypassEntities,
         hydraulic_bypass_open_temperature: this._bypassTemperature,
         power_budget_enabled: this._budgetEnabled,
         power_sensor: this._powerSensor,
-        power_sensor_mode: heatingSettings.power_sensor_mode,
+        power_sensor_mode: this._powerMode,
         power_budget_max_watts: this._maxPower,
         power_budget_reserve_watts: this._reserve,
         power_budget_unavailable_behavior: "boiler",
@@ -437,6 +436,14 @@ export class RsSettings extends LitElement {
           ? this._moldNotificationTargets.filter((t) => t.entity_id)
           : [],
       });
+      console.debug("RoomMind heating settings save payload", payload);
+      console.debug(
+        "RoomMind heating settings save values",
+        typeof payload.hydraulic_bypass_entities,
+        payload.hydraulic_bypass_entities,
+        payload.power_sensor_mode,
+      );
+      await this.hass.callWS(payload);
       fireSaveStatus(this, "saved");
     } catch {
       fireSaveStatus(this, "error");

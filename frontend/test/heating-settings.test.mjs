@@ -2,11 +2,12 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import {
+  finalizeHeatingSettingsPayload,
   normalizeBypassEntities,
   normalizePowerSensorMode,
-  selectEventValue,
   serializeHeatingSettings,
 } from "../dist/utils/heating-settings.js";
+import { getSelectValue } from "../dist/utils/events.js";
 
 test("one bypass selection serializes as a one-item list", () => {
   assert.deepEqual(normalizeBypassEntities("climate.valvola_bagno"), ["climate.valvola_bagno"]);
@@ -25,7 +26,10 @@ test("existing bypass list loads without changing its selections", () => {
 });
 
 test("power sensor mode changes in both directions", () => {
-  const selectedConsumption = selectEventValue({ currentTarget: { value: "consumption" } });
+  const selectedConsumption = getSelectValue({
+    detail: { value: "consumption" },
+    target: { value: "available" },
+  });
   assert.equal(normalizePowerSensorMode(selectedConsumption), "consumption");
   assert.equal(normalizePowerSensorMode("available"), "available");
 });
@@ -35,6 +39,24 @@ test("save payload keeps the selected consumption mode and list-form bypasses", 
     hydraulic_bypass_entities: ["climate.valvola_bagno"],
     power_sensor_mode: "consumption",
   });
+});
+
+test("the final WebSocket payload converts a single bypass string to a list", () => {
+  const payload = finalizeHeatingSettingsPayload({
+    type: "roommind/settings/save",
+    hydraulic_bypass_entities: "climate.valvola_bagno",
+    power_sensor_mode: "available",
+  });
+  assert.deepEqual(payload.hydraulic_bypass_entities, ["climate.valvola_bagno"]);
+});
+
+test("the final WebSocket payload preserves consumption mode", () => {
+  const payload = finalizeHeatingSettingsPayload({
+    type: "roommind/settings/save",
+    hydraulic_bypass_entities: [],
+    power_sensor_mode: "consumption",
+  });
+  assert.equal(payload.power_sensor_mode, "consumption");
 });
 
 test("persisted heating settings render with supported values after reload", () => {

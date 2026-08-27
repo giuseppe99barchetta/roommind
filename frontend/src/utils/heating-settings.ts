@@ -15,15 +15,6 @@ export function normalizePowerSensorMode(value: unknown): PowerSensorMode {
   return value === "consumption" ? "consumption" : "available";
 }
 
-/** Read HA select events reliably across component implementations. */
-export function selectEventValue(event: Event): unknown {
-  const select = event.currentTarget as { value?: unknown } | null;
-  if (select?.value !== undefined) {
-    return select.value;
-  }
-  return (event as CustomEvent<{ value?: unknown }>).detail?.value;
-}
-
 export function serializeHeatingSettings(
   bypassEntities: unknown,
   powerMode: unknown,
@@ -31,5 +22,24 @@ export function serializeHeatingSettings(
   return {
     hydraulic_bypass_entities: normalizeBypassEntities(bypassEntities),
     power_sensor_mode: normalizePowerSensorMode(powerMode),
+  };
+}
+
+/**
+ * Apply the strict heating-settings contract at the final WebSocket boundary.
+ * This intentionally accepts the picker values emitted by multiple HA releases
+ * while guaranteeing a schema-compatible payload.
+ */
+export function finalizeHeatingSettingsPayload<
+  T extends { hydraulic_bypass_entities: unknown; power_sensor_mode: unknown },
+>(
+  payload: T,
+): Omit<T, "hydraulic_bypass_entities" | "power_sensor_mode"> & {
+  hydraulic_bypass_entities: string[];
+  power_sensor_mode: PowerSensorMode;
+} {
+  return {
+    ...payload,
+    ...serializeHeatingSettings(payload.hydraulic_bypass_entities, payload.power_sensor_mode),
   };
 }

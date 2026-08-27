@@ -1,11 +1,8 @@
 import { LitElement, html, css, nothing } from "lit";
 import { customElement, property } from "lit/decorators.js";
 import type { HomeAssistant } from "../../types";
-import {
-  normalizeBypassEntities,
-  normalizePowerSensorMode,
-  selectEventValue,
-} from "../../utils/heating-settings";
+import { normalizeBypassEntities, normalizePowerSensorMode } from "../../utils/heating-settings";
+import { getSelectValue } from "../../utils/events";
 
 /** Native central-boiler, hydraulic safety and electrical budget settings. */
 @customElement("rs-settings-heating-system")
@@ -38,6 +35,52 @@ export class RsSettingsHeatingSystem extends LitElement {
         .value=${String(value)}
         @change=${(e: Event) => fire(key, Number((e.target as HTMLInputElement).value))}
       ></ha-textfield>`;
+    const pickerValue = (e: CustomEvent): unknown => {
+      const detail = e.detail as unknown;
+      const target = e.target as { value?: unknown; values?: unknown; selected?: unknown } | null;
+      const currentTarget = e.currentTarget as {
+        value?: unknown;
+        values?: unknown;
+        selected?: unknown;
+      } | null;
+      if (typeof detail === "string" || Array.isArray(detail)) return detail;
+      if (detail && typeof detail === "object") {
+        const values = detail as { value?: unknown; values?: unknown; selected?: unknown };
+        return values.value ?? values.values ?? values.selected;
+      }
+      return (
+        target?.value ??
+        target?.values ??
+        target?.selected ??
+        currentTarget?.value ??
+        currentTarget?.values
+      );
+    };
+    const onBypassChanged = (e: CustomEvent) => {
+      const value = pickerValue(e);
+      // Diagnostic logging is intentionally limited to explicit user changes.
+      console.debug("RoomMind hydraulic bypass picker event", {
+        type: e.type,
+        detail: e.detail,
+        targetValue: (e.target as { value?: unknown } | null)?.value,
+        currentTargetValue: (e.currentTarget as { value?: unknown } | null)?.value,
+        value,
+      });
+      fire("bypassEntities", normalizeBypassEntities(value));
+    };
+    const onPowerModeSelected = (e: Event) => {
+      const value = getSelectValue(e);
+      // HA 2026.8 puts the selected option in detail.value; target.value may
+      // still be the previous selection while the event is being dispatched.
+      console.debug("RoomMind power sensor mode selected", {
+        type: e.type,
+        detail: (e as CustomEvent).detail,
+        targetValue: (e.target as { value?: unknown } | null)?.value,
+        currentTargetValue: (e.currentTarget as { value?: unknown } | null)?.value,
+        value,
+      });
+      fire("powerMode", normalizePowerSensorMode(value));
+    };
     return html`<div class="section">
         <b>Central boiler</b>
         <ha-entity-picker
@@ -65,8 +108,7 @@ export class RsSettingsHeatingSystem extends LitElement {
                 .multiple=${true}
                 .value=${this.bypassEntities}
                 label="Hydraulic bypass TRVs"
-                @value-changed=${(e: CustomEvent) =>
-                  fire("bypassEntities", normalizeBypassEntities(e.detail?.value))}
+                @value-changed=${onBypassChanged}
               ></ha-entity-picker>
               <label
                 >Forced bypass temperature
@@ -97,8 +139,7 @@ export class RsSettingsHeatingSystem extends LitElement {
               ><ha-select
                 .value=${this.powerMode}
                 label="Sensor reports"
-                @selected=${(e: Event) =>
-                  fire("powerMode", normalizePowerSensorMode(selectEventValue(e)))}
+                @selected=${onPowerModeSelected}
                 ><ha-list-item value="available">Available power</ha-list-item
                 ><ha-list-item value="consumption">House consumption</ha-list-item></ha-select
               >
