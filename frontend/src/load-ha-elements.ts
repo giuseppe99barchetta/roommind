@@ -47,7 +47,9 @@ export const loadHaElements = async (): Promise<void> => {
     }
   }
 
-  if (customElements.get("ha-entity-picker")) return;
+  // The hydraulic bypass control uses HA's multi-entity ha-selector. It is a
+  // separate lazy element from ha-entity-picker, so both must be available.
+  if (customElements.get("ha-entity-picker") && customElements.get("ha-selector")) return;
 
   // Step 1: Load base HA components via partial-panel-resolver.
   // Guard on ha-selector (not ha-card) because ha-card can be defined by

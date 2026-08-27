@@ -22,9 +22,18 @@ test("multiple bypass selections serialize as a list", () => {
   ]);
 });
 
-test("existing bypass list loads without changing its selections", () => {
+test("a persisted one-item bypass array remains a multi-entity selector value", () => {
+  const stored = ["climate.valvola_bagno"];
+  const selectorValue = normalizeBypassEntities(stored);
+  assert.ok(Array.isArray(selectorValue));
+  assert.deepEqual(selectorValue, stored);
+});
+
+test("a persisted multi-item bypass array remains a multi-entity selector value", () => {
   const stored = ["climate.valvola_bagno", "climate.valvola_sala"];
-  assert.deepEqual(normalizeBypassEntities(stored), stored);
+  const selectorValue = normalizeBypassEntities(stored);
+  assert.ok(Array.isArray(selectorValue));
+  assert.deepEqual(selectorValue, stored);
 });
 
 test("power sensor mode changes in both directions", () => {

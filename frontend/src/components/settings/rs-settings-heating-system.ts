@@ -9,6 +9,15 @@ import {
 } from "../../utils/heating-settings";
 import { getSelectValue } from "../../utils/events";
 
+// HA 2026.8's ha-entity-picker is single-value only. The entity selector
+// routes `multiple` values to ha-entities-picker, whose value is string[].
+const HYDRAULIC_BYPASS_SELECTOR = {
+  entity: {
+    multiple: true,
+    filter: [{ domain: "climate" }],
+  },
+};
+
 /** Native central-boiler, hydraulic safety and electrical budget settings. */
 @customElement("rs-settings-heating-system")
 export class RsSettingsHeatingSystem extends LitElement {
@@ -120,14 +129,13 @@ export class RsSettingsHeatingSystem extends LitElement {
                 <label>Startup delay ${number("startupDelay", this.startupDelay)}</label
                 ><label>Shutdown hold ${number("shutdownDelay", this.shutdownDelay)}</label>
               </div>
-              <ha-entity-picker
+              <ha-selector
                 .hass=${this.hass}
-                .includeDomains=${["climate"]}
-                .multiple=${true}
+                .selector=${HYDRAULIC_BYPASS_SELECTOR}
                 .value=${this.bypassEntities}
-                label="Hydraulic bypass TRVs"
+                .label=${"Hydraulic bypass TRVs"}
                 @value-changed=${onBypassChanged}
-              ></ha-entity-picker>
+              ></ha-selector>
               <label
                 >Forced bypass temperature
                 ${number("bypassTemperature", this.bypassTemperature)}</label
