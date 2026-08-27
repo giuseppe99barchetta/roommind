@@ -1618,7 +1618,10 @@ class MPCController:
                     continue
                 await self._call("set_hvac_mode", {"entity_id": eid, "hvac_mode": "off"})
         elif mode == MODE_IDLE:
-            for eid in thermostats + self.acs:
+            # Respect auxiliary-mode exclusions here as well.  fan_only/dry
+            # are thermally idle, but the AC must not receive an intermediate
+            # OFF before the auxiliary mode is applied.
+            for eid in [e for e in thermostats + self.acs if e not in _exclude]:
                 if eid in _forced_on:
                     # Compressor min-run: set target temp so device self-regulates
                     # instead of overshooting at the old boost setpoint.

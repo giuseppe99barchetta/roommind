@@ -26,6 +26,8 @@ class TestRoomMindCoordinator:
         room_with_window = {
             **SAMPLE_ROOM,
             "window_sensors": ["binary_sensor.living_room_window"],
+            "room_hvac_mode": "fan_only",
+            "keep_fan_only_on_window_open": True,
         }
         store = _make_store_mock({"living_room_abc12345": room_with_window})
         hass.data = {"roommind": {"store": store}}
@@ -102,6 +104,86 @@ class TestRoomMindCoordinator:
             blocking=True,
             context=ANY,
         ) not in calls
+
+    @pytest.mark.asyncio
+    async def test_persisted_fan_only_does_not_cycle_off_on_startup(self, hass, mock_config_entry):
+        """Persisted fan_only intent must not send OFF before FAN_ONLY on first refresh."""
+        ac_entity = "climate.living_room_ac"
+        room = {
+            **SAMPLE_ROOM,
+            "thermostats": [],
+            "acs": [ac_entity],
+            "devices": [{"entity_id": ac_entity, "type": "ac", "role": "auto", "heating_system_type": ""}],
+            "room_hvac_mode": "fan_only",
+            "keep_fan_only_on_window_open": True,
+            "window_sensors": [],
+        }
+        store = _make_store_mock({"living_room_abc12345": room})
+        hass.data = {"roommind": {"store": store}}
+        hass.states.get = MagicMock(
+            side_effect=make_mock_states_get(
+                extra={
+                    ac_entity: (
+                        "off",
+                        {"hvac_modes": ["off", "cool", "fan_only"], "min_temp": 16.0, "max_temp": 30.0},
+                    )
+                },
+            )
+        )
+        hass.services.async_call = AsyncMock()
+
+        coordinator = _create_coordinator(hass, mock_config_entry)
+        await coordinator._async_update_data()
+
+        calls = hass.services.async_call.call_args_list
+        assert call(
+            "climate",
+            "set_hvac_mode",
+            {"entity_id": ac_entity, "hvac_mode": "off"},
+            blocking=True,
+            context=ANY,
+        ) not in calls
+        assert call(
+            "climate",
+            "set_hvac_mode",
+            {"entity_id": ac_entity, "hvac_mode": "fan_only"},
+            blocking=True,
+            context=ANY,
+        ) in calls
+
+    @pytest.mark.asyncio
+    async def test_persisted_fan_only_already_active_is_not_reasserted(self, hass, mock_config_entry):
+        """Startup must not resend FAN_ONLY when the AC already reports fan_only."""
+        ac_entity = "climate.living_room_ac"
+        room = {
+            **SAMPLE_ROOM,
+            "thermostats": [],
+            "acs": [ac_entity],
+            "devices": [{"entity_id": ac_entity, "type": "ac", "role": "auto", "heating_system_type": ""}],
+            "room_hvac_mode": "fan_only",
+            "keep_fan_only_on_window_open": True,
+            "window_sensors": [],
+        }
+        store = _make_store_mock({"living_room_abc12345": room})
+        hass.data = {"roommind": {"store": store}}
+        hass.states.get = MagicMock(
+            side_effect=make_mock_states_get(
+                extra={
+                    ac_entity: (
+                        "fan_only",
+                        {"hvac_modes": ["off", "cool", "fan_only"], "min_temp": 16.0, "max_temp": 30.0},
+                    )
+                },
+            )
+        )
+        hass.services.async_call = AsyncMock()
+
+        coordinator = _create_coordinator(hass, mock_config_entry)
+        await coordinator._async_update_data()
+
+        hvac_calls = [c for c in hass.services.async_call.call_args_list if len(c.args) >= 2 and c.args[:2] == ("climate", "set_hvac_mode")]
+        assert not any(c.args[2].get("entity_id") == ac_entity for c in hvac_calls)
+
 
     @pytest.mark.asyncio
     async def test_window_closed_normal_operation(self, hass, mock_config_entry):
