@@ -1,7 +1,12 @@
-import { LitElement, html, css, nothing } from "lit";
-import { customElement, property } from "lit/decorators.js";
+import { LitElement, html, css, nothing, type PropertyValues } from "lit";
+import { customElement, property, state } from "lit/decorators.js";
 import type { HomeAssistant } from "../../types";
-import { normalizeBypassEntities, normalizePowerSensorMode } from "../../utils/heating-settings";
+import {
+  normalizeBypassEntities,
+  selectPowerSensorMode,
+  syncPowerSensorMode,
+  type PowerSensorModeState,
+} from "../../utils/heating-settings";
 import { getSelectValue } from "../../utils/events";
 
 /** Native central-boiler, hydraulic safety and electrical budget settings. */
@@ -19,6 +24,16 @@ export class RsSettingsHeatingSystem extends LitElement {
   @property({ type: String }) public powerMode: "available" | "consumption" = "available";
   @property({ type: Number }) public maxPower = 3300;
   @property({ type: Number }) public reserve = 200;
+  @state() private _powerModeState: PowerSensorModeState = {
+    value: "available",
+    hasLocalChange: false,
+  };
+
+  protected willUpdate(changedProperties: PropertyValues<this>) {
+    if (changedProperties.has("powerMode")) {
+      this._powerModeState = syncPowerSensorMode(this._powerModeState, this.powerMode);
+    }
+  }
 
   render() {
     const fire = (key: string, value: unknown) =>
@@ -81,7 +96,8 @@ export class RsSettingsHeatingSystem extends LitElement {
         currentTargetValue: (e.currentTarget as { value?: unknown } | null)?.value,
         value,
       });
-      fire("powerMode", normalizePowerSensorMode(value));
+      this._powerModeState = selectPowerSensorMode(value);
+      fire("powerMode", this._powerModeState.value);
     };
     return html`<div class="section">
         <b>Central boiler</b>
@@ -139,12 +155,14 @@ export class RsSettingsHeatingSystem extends LitElement {
                 @value-changed=${(e: CustomEvent) => fire("powerSensor", e.detail.value || "")}
               ></ha-entity-picker
               ><ha-select
-                .value=${this.powerMode}
+                .value=${this._powerModeState.value}
+                .options=${[
+                  { value: "available", label: "Available power" },
+                  { value: "consumption", label: "House consumption" },
+                ]}
                 label="Sensor reports"
                 @selected=${onPowerModeSelected}
-                ><ha-list-item value="available">Available power</ha-list-item
-                ><ha-list-item value="consumption">House consumption</ha-list-item></ha-select
-              >
+              ></ha-select>
               <div class="grid">
                 <label>Maximum house load (W) ${number("maxPower", this.maxPower)}</label
                 ><label>Safety reserve (W) ${number("reserve", this.reserve)}</label>

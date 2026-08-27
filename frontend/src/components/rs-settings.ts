@@ -81,6 +81,7 @@ export class RsSettings extends LitElement {
   @state() private _budgetEnabled = false;
   @state() private _powerSensor = "";
   @state() private _powerMode: "available" | "consumption" = "available";
+  @state() private _powerModeDirty = false;
   @state() private _maxPower = 3300;
   @state() private _reserve = 200;
   @state() private _loaded = false;
@@ -149,7 +150,9 @@ export class RsSettings extends LitElement {
       this._bypassTemperature = s.hydraulic_bypass_open_temperature ?? 28;
       this._budgetEnabled = s.power_budget_enabled ?? false;
       this._powerSensor = s.power_sensor ?? "";
-      this._powerMode = normalizePowerSensorMode(s.power_sensor_mode);
+      if (!this._powerModeDirty) {
+        this._powerMode = normalizePowerSensorMode(s.power_sensor_mode);
+      }
       this._maxPower = s.power_budget_max_watts ?? 3300;
       this._reserve = s.power_budget_reserve_watts ?? 200;
     } catch (err) {
@@ -362,6 +365,7 @@ export class RsSettings extends LitElement {
       this._bypassEntities = normalizeBypassEntities(value);
     } else if (key === "powerMode") {
       this._powerMode = normalizePowerSensorMode(value);
+      this._powerModeDirty = true;
     } else {
       (this as Record<string, unknown>)[`_${key}`] = value;
     }
@@ -461,6 +465,9 @@ export class RsSettings extends LitElement {
         fullPayload: payload,
       });
       await this.hass.callWS(payload);
+      if (this._powerMode === powerSensorMode) {
+        this._powerModeDirty = false;
+      }
       fireSaveStatus(this, "saved");
     } catch {
       fireSaveStatus(this, "error");

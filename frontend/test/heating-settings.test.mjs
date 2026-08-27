@@ -5,7 +5,9 @@ import {
   normalizeBypassEntities,
   normalizeHeatingSettingsForWebsocket,
   normalizePowerSensorMode,
+  selectPowerSensorMode,
   serializeHeatingSettings,
+  syncPowerSensorMode,
 } from "../dist/utils/heating-settings.js";
 import { getSelectValue } from "../dist/utils/events.js";
 
@@ -59,8 +61,28 @@ test("the settings model keeps consumption received from the get-settings respon
     bypassEntities: normalizeBypassEntities(response.settings.hydraulic_bypass_entities),
     powerMode: normalizePowerSensorMode(response.settings.power_sensor_mode),
   };
-  assert.deepEqual(settingsModel.bypassEntities, [
-    "climate.valvola_bagno",
-  ]);
+  assert.deepEqual(settingsModel.bypassEntities, ["climate.valvola_bagno"]);
   assert.equal(settingsModel.powerMode, "consumption");
+});
+
+test("consumption survives a controlled-select rerender before save", () => {
+  let selectState = { value: "available", hasLocalChange: false };
+
+  // render -> select consumption
+  selectState = selectPowerSensorMode("consumption");
+  assert.equal(selectState.value, "consumption");
+
+  // requestUpdate/rerender while the parent still has its old value
+  selectState = syncPowerSensorMode(selectState, "available");
+  assert.equal(selectState.value, "consumption");
+  assert.equal(selectState.hasLocalChange, true);
+
+  // Parent receives the event and acknowledges the controlled value.
+  selectState = syncPowerSensorMode(selectState, "consumption");
+  assert.equal(selectState.value, "consumption");
+  assert.equal(selectState.hasLocalChange, false);
+
+  // The final save serialization uses the same selected value.
+  const payload = normalizeHeatingSettingsForWebsocket([], selectState.value);
+  assert.equal(payload.powerSensorMode, "consumption");
 });
