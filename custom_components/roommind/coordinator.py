@@ -992,7 +992,7 @@ class RoomMindCoordinator(DataUpdateCoordinator):
                 if requested_hvac_mode in ("dry", "fan_only"):
                     # Controller has safely idled every managed device; only
                     # the AC is then allowed to receive the auxiliary mode.
-                    await async_apply_ac_auxiliary_mode(self.hass, room)
+                    await async_apply_ac_auxiliary_mode(self.hass, room, window_open=window_open)
             except Exception:  # noqa: BLE001
                 _LOGGER.warning(
                     "Room '%s': climate service call failed",

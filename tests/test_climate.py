@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import time
-from unittest.mock import AsyncMock, MagicMock
+from unittest.mock import ANY, AsyncMock, MagicMock
 
 import pytest
 from homeassistant.components.climate import ClimateEntityFeature, HVACMode
@@ -467,3 +467,79 @@ async def test_async_setup_entry_no_rooms():
     await async_setup_entry(hass, entry, async_add_entities)
 
     async_add_entities.assert_not_called()
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("global_enabled,room_enabled", [(False, True), (True, False), (False, False)])
+async def test_canonical_manual_fan_only_bypasses_automation_switches(
+    mock_coordinator, global_enabled, room_enabled
+):
+    """Explicit fan-only commands remain manual even when automation is disabled."""
+    coordinator, store = mock_coordinator
+    room = _canonical_room(
+        [{"entity_id": "climate.ac", "type": "ac"}],
+        room_hvac_mode="off",
+        climate_control_enabled=room_enabled,
+    )
+    store.get_room.return_value = room
+    store.get_settings.return_value = {"climate_control_active": global_enabled}
+    store.async_update_room = AsyncMock()
+    coordinator.hass.states.get.return_value = MagicMock(
+        state="off", attributes={"hvac_modes": ["off", "cool", "fan_only"]}
+    )
+    coordinator.hass.services.async_call = AsyncMock()
+
+    await RoomMindClimate(coordinator, "living_room").async_set_hvac_mode(HVACMode.FAN_ONLY)
+
+    coordinator.hass.services.async_call.assert_any_await(
+        "climate", "set_hvac_mode", {"entity_id": "climate.ac", "hvac_mode": "fan_only"}, blocking=True
+    )
+
+
+@pytest.mark.asyncio
+async def test_canonical_manual_cool_bypasses_global_automation_switch(mock_coordinator):
+    coordinator, store = mock_coordinator
+    store.get_room.return_value = _canonical_room(
+        [{"entity_id": "climate.ac", "type": "ac"}],
+        room_hvac_mode="off",
+        climate_control_enabled=False,
+    )
+    store.get_settings.return_value = {"climate_control_active": False}
+    store.async_update_room = AsyncMock()
+    coordinator.hass.states.get.return_value = MagicMock(
+        state="off", attributes={"hvac_modes": ["off", "cool", "fan_only"]}
+    )
+    coordinator.hass.services.async_call = AsyncMock()
+
+    await RoomMindClimate(coordinator, "living_room").async_set_hvac_mode(HVACMode.COOL)
+
+    coordinator.hass.services.async_call.assert_any_await(
+        "climate", "set_hvac_mode", {"entity_id": "climate.ac", "hvac_mode": "cool"}, blocking=True
+    )
+    assert any(call.args[:2] == ("climate", "set_temperature") for call in coordinator.hass.services.async_call.await_args_list)
+
+
+@pytest.mark.asyncio
+async def test_canonical_manual_off_bypasses_global_automation_switch(mock_coordinator):
+    coordinator, store = mock_coordinator
+    store.get_room.return_value = _canonical_room(
+        [{"entity_id": "climate.ac", "type": "ac"}],
+        room_hvac_mode="cool",
+        climate_control_enabled=False,
+    )
+    store.get_settings.return_value = {"climate_control_active": False}
+    store.async_update_room = AsyncMock()
+    coordinator.hass.states.get.return_value = MagicMock(
+        state="cool", attributes={"hvac_modes": ["off", "cool", "fan_only"], "min_temp": 16}
+    )
+    coordinator.hass.services.async_call = AsyncMock()
+
+    await RoomMindClimate(coordinator, "living_room").async_set_hvac_mode(HVACMode.OFF)
+
+    coordinator.hass.services.async_call.assert_any_await(
+        "climate",
+        "set_hvac_mode",
+        {"entity_id": "climate.ac", "hvac_mode": "off"},
+        blocking=True,
+        context=ANY,
+    )

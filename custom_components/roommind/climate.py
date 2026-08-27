@@ -25,8 +25,10 @@ from .const import (
     is_override_active,
 )
 from .coordinator import RoomMindCoordinator
+from .control.mpc_controller import async_turn_off_climate, resolve_hvac_mode
 from .managers.room_climate import room_capabilities
-from .utils.device_utils import get_ac_eids
+from .utils.device_utils import get_ac_eids, get_all_entity_ids, get_trv_eids
+from .utils.temp_utils import celsius_to_ha_temp
 
 
 def _create_room_climates(
@@ -369,7 +371,72 @@ class RoomMindClimate(RoomMindOverrideClimate):
         if mode == "off":
             updates.update({"override_heat": None, "override_cool": None, "override_type": None})
         await self.coordinator.hass.data[DOMAIN]["store"].async_update_room(self._area_id, updates)
+
+        # This entity is also RoomMind's manual/HomeKit control surface.  Manual
+        # commands must work even when global or per-room automatic climate
+        # control is disabled; those switches govern autonomous RoomMind logic,
+        # not explicit user intent.
+        await self._async_apply_manual_hvac_mode(mode, heat, cool)
         await self.coordinator.async_request_refresh()
+
+    async def _async_apply_manual_hvac_mode(self, mode: str, heat: float, cool: float) -> None:
+        room = self._room() or {}
+        devices = room.get("devices", [])
+        hass = self.coordinator.hass
+        acs = get_ac_eids(devices)
+        trvs = get_trv_eids(devices)
+
+        if mode == "off":
+            for entity_id in get_all_entity_ids(devices):
+                await async_turn_off_climate(hass, entity_id, area_id=self._area_id)
+            return
+
+        # TRVs only participate in heating-capable manual modes.
+        if mode in ("heat", "heat_cool", "auto"):
+            ha_heat = celsius_to_ha_temp(hass, heat)
+            for entity_id in trvs:
+                state = hass.states.get(entity_id)
+                modes = state.attributes.get("hvac_modes", []) if state else []
+                resolved = resolve_hvac_mode("heat", modes)
+                if resolved is not None:
+                    await hass.services.async_call(
+                        "climate", "set_hvac_mode",
+                        {"entity_id": entity_id, "hvac_mode": resolved},
+                        blocking=True,
+                    )
+                    await hass.services.async_call(
+                        "climate", "set_temperature",
+                        {"entity_id": entity_id, "temperature": ha_heat},
+                        blocking=True,
+                    )
+        else:
+            for entity_id in trvs:
+                await async_turn_off_climate(hass, entity_id, area_id=self._area_id)
+
+        if not acs:
+            return
+        entity_id = acs[0]
+        state = hass.states.get(entity_id)
+        supported = state.attributes.get("hvac_modes", []) if state else []
+        resolved = resolve_hvac_mode(mode, supported)
+        if resolved is None:
+            return
+        await hass.services.async_call(
+            "climate", "set_hvac_mode",
+            {"entity_id": entity_id, "hvac_mode": resolved},
+            blocking=True,
+        )
+        if mode in ("cool", "heat", "heat_cool", "auto"):
+            data = {"entity_id": entity_id}
+            if mode in ("heat_cool", "auto") and state and state.attributes.get("target_temp_low") is not None:
+                data.update(
+                    target_temp_low=celsius_to_ha_temp(hass, heat),
+                    target_temp_high=celsius_to_ha_temp(hass, cool),
+                )
+            else:
+                target = cool if mode == "cool" else heat
+                data["temperature"] = celsius_to_ha_temp(hass, target)
+            await hass.services.async_call("climate", "set_temperature", data, blocking=True)
 
     async def async_set_fan_mode(self, fan_mode: str) -> None:
         if fan_mode not in self._capabilities().fan_modes:

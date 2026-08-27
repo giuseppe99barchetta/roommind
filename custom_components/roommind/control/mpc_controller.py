@@ -1288,7 +1288,20 @@ class MPCController:
 
         can_heat, can_cool = self._get_can_heat_cool()
 
-        _exclude = exclude_eids or set()
+        _exclude = set(exclude_eids or set())
+
+        # Auxiliary AC modes are thermally idle but must not receive an
+        # intermediate OFF from the normal idle path.  Keep this routing here
+        # (rather than monkey-patching MPCController from room_climate.py) so
+        # the controller has a single explicit source of truth.
+        requested_hvac_mode = self.room_config.get("room_hvac_mode")
+        keep_fan_on_window_open = self.room_config.get("keep_fan_only_on_window_open", True)
+        auxiliary_allowed = (requested_hvac_mode == "dry" and not window_open) or (
+            requested_hvac_mode == "fan_only" and (not window_open or keep_fan_on_window_open)
+        )
+        if auxiliary_allowed:
+            _exclude.update(self.acs)
+
         thermostats = [e for e in self.thermostats if e not in _exclude]
 
         # Managed mode (no external sensor) with auto climate mode and
@@ -1315,7 +1328,7 @@ class MPCController:
                     )
                 else:
                     await self._call("set_hvac_mode", {"entity_id": eid, "hvac_mode": "off"})
-            for eid in self.acs:
+            for eid in [e for e in self.acs if e not in _exclude]:
                 if eid in _forced_off:
                     await async_idle_device(self.hass, eid, self._devices, area_id=self._area_id, targets=targets)
                     continue
@@ -1550,7 +1563,7 @@ class MPCController:
                 ac_heat_target = effective_target
             ha_ac_target = celsius_to_ha_temp(self.hass, ac_heat_target)
             ha_ac_direct = celsius_to_ha_temp(self.hass, effective_target)
-            for eid in self.acs:
+            for eid in [e for e in self.acs if e not in _exclude]:
                 if eid in _forced_off:
                     await async_idle_device(self.hass, eid, self._devices, area_id=self._area_id, targets=targets)
                     continue
@@ -1587,7 +1600,7 @@ class MPCController:
                 ac_cool_target = effective_target
             ha_target = celsius_to_ha_temp(self.hass, ac_cool_target)
             ha_cool_direct = celsius_to_ha_temp(self.hass, effective_target)
-            for eid in self.acs:
+            for eid in [e for e in self.acs if e not in _exclude]:
                 if eid in _forced_off:
                     await async_idle_device(self.hass, eid, self._devices, area_id=self._area_id, targets=targets)
                     continue
