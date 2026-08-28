@@ -79,7 +79,7 @@ def test_canonical_mixed_room_capabilities_and_logical_cooling_target(mock_coord
         [{"entity_id": "climate.ac", "type": "ac"}, {"entity_id": "climate.trv", "type": "trv"}]
     )
     entity = RoomMindClimate(coordinator, "living_room")
-    assert {mode.value for mode in entity.hvac_modes} == {"off", "heat", "cool", "heat_cool", "dry", "fan_only"}
+    assert {mode.value for mode in entity.hvac_modes} == {"off", "heat", "cool", "auto", "dry", "fan_only"}
     assert entity.hvac_mode == HVACMode.COOL
     assert entity.target_temperature == 26.0
     assert entity.fan_modes == ["low", "high"]
@@ -144,6 +144,7 @@ def test_canonical_mode_specific_temperature_features(mock_coordinator):
     coordinator.hass.states.get.return_value = ac
 
     for mode in ("heat", "cool", "dry"):
+        ac.state = "dry" if mode == "dry" else "cool"
         store.get_room.return_value = _canonical_room(
             [{"entity_id": "climate.ac", "type": "ac"}], room_hvac_mode=mode
         )
@@ -154,7 +155,7 @@ def test_canonical_mode_specific_temperature_features(mock_coordinator):
         assert entity.target_temperature_high is None
 
     store.get_room.return_value = _canonical_room(
-        [{"entity_id": "climate.ac", "type": "ac"}], room_hvac_mode="heat_cool"
+        [{"entity_id": "climate.ac", "type": "ac"}], room_hvac_mode="auto"
     )
     entity = RoomMindClimate(coordinator, "living_room")
     assert entity.supported_features & ClimateEntityFeature.TARGET_TEMPERATURE
@@ -652,7 +653,7 @@ async def test_canonical_heat_cool_single_setpoint_creates_two_degree_deadband(m
     coordinator.hass.states.get.return_value = ac
     store.get_room.return_value = _canonical_room(
         [{"entity_id": "climate.ac", "type": "ac"}],
-        room_hvac_mode="heat_cool",
+        room_hvac_mode="auto",
         logical_heat_target=21.0,
         logical_cool_target=25.0,
     )
@@ -666,7 +667,7 @@ async def test_canonical_heat_cool_single_setpoint_creates_two_degree_deadband(m
     assert written["logical_cool_target"] == 24.0
     assert written["override_heat"] == 22.0
     assert written["override_cool"] == 24.0
-    assert written["room_hvac_mode"] == "heat_cool"
+    assert written["room_hvac_mode"] == "auto"
 
 
 def test_canonical_heat_cool_target_is_midpoint_for_homekit(mock_coordinator):
@@ -678,7 +679,7 @@ def test_canonical_heat_cool_target_is_midpoint_for_homekit(mock_coordinator):
     coordinator.hass.states.get.return_value = ac
     store.get_room.return_value = _canonical_room(
         [{"entity_id": "climate.ac", "type": "ac"}],
-        room_hvac_mode="heat_cool",
+        room_hvac_mode="auto",
         logical_heat_target=22.0,
         logical_cool_target=24.0,
     )
@@ -689,3 +690,43 @@ def test_canonical_heat_cool_target_is_midpoint_for_homekit(mock_coordinator):
     assert entity.target_temperature_high is None
     assert entity.supported_features & ClimateEntityFeature.TARGET_TEMPERATURE
     assert not entity.supported_features & ClimateEntityFeature.TARGET_TEMPERATURE_RANGE
+
+
+def test_canonical_persisted_fan_only_reports_off_when_physical_ac_is_off(mock_coordinator):
+    coordinator, store = mock_coordinator
+    ac = MagicMock(state="off", attributes={"hvac_modes": ["off", "cool", "dry", "fan_only"]})
+    coordinator.hass.states.get.return_value = ac
+    store.get_room.return_value = _canonical_room(
+        [{"entity_id": "climate.ac", "type": "ac"}], room_hvac_mode="fan_only"
+    )
+    entity = RoomMindClimate(coordinator, "living_room")
+
+    assert entity.hvac_mode == HVACMode.OFF
+    assert entity.hvac_action is None
+
+
+def test_canonical_persisted_dry_reports_off_when_physical_ac_is_off(mock_coordinator):
+    coordinator, store = mock_coordinator
+    ac = MagicMock(state="off", attributes={"hvac_modes": ["off", "cool", "dry", "fan_only"]})
+    coordinator.hass.states.get.return_value = ac
+    store.get_room.return_value = _canonical_room(
+        [{"entity_id": "climate.ac", "type": "ac"}], room_hvac_mode="dry"
+    )
+    entity = RoomMindClimate(coordinator, "living_room")
+
+    assert entity.hvac_mode == HVACMode.OFF
+    assert entity.hvac_action is None
+
+
+def test_canonical_legacy_heat_cool_is_exposed_as_auto(mock_coordinator):
+    coordinator, store = mock_coordinator
+    ac = MagicMock(state="off", attributes={"hvac_modes": ["off", "heat", "cool", "fan_only"]})
+    coordinator.hass.states.get.return_value = ac
+    store.get_room.return_value = _canonical_room(
+        [{"entity_id": "climate.ac", "type": "ac"}], room_hvac_mode="heat_cool"
+    )
+    entity = RoomMindClimate(coordinator, "living_room")
+
+    assert HVACMode.AUTO in entity.hvac_modes
+    assert HVACMode.HEAT_COOL not in entity.hvac_modes
+    assert entity.hvac_mode == HVACMode.AUTO

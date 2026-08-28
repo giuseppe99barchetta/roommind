@@ -239,15 +239,34 @@ class RoomMindClimate(RoomMindOverrideClimate):
     def hvac_modes(self) -> list[HVACMode]:
         return [HVACMode(mode) for mode in self._capabilities().hvac_modes]
 
+    def _physical_ac_mode(self) -> str | None:
+        acs = get_ac_eids((self._room() or {}).get("devices", []))
+        if not acs:
+            return None
+        state = self.coordinator.hass.states.get(acs[0])
+        return state.state if state is not None else None
+
     @property
     def hvac_mode(self) -> HVACMode:
         room = self._room() or {}
         selected = room.get("room_hvac_mode")
+        # Backward compatibility for rooms persisted before AUTO replaced the
+        # misleading HEAT_COOL label on the canonical entity.
+        if selected == "heat_cool":
+            selected = "auto"
+
+        # FAN_ONLY and DRY are direct physical AC modes, not autonomous RoomMind
+        # control states. A persisted value must never make an AC that is really
+        # off look active after restart or an external power-off.
+        if selected in ("fan_only", "dry"):
+            return HVACMode(selected) if self._physical_ac_mode() == selected else HVACMode.OFF
+
         if selected in self._capabilities().hvac_modes:
             return HVACMode(selected)
-        # Existing users retain automatic RoomMind control without needing a
-        # migration write; capability rather than member state is authoritative.
-        return HVACMode.HEAT_COOL if HVACMode.HEAT_COOL in self.hvac_modes else self.hvac_modes[0]
+        # A configured room starts in logical AUTO when both directions are
+        # available; AUTO means RoomMind may choose heat/cool, not that either is
+        # currently running.
+        return HVACMode.AUTO if HVACMode.AUTO in self.hvac_modes else self.hvac_modes[0]
 
     @property
     def supported_features(self) -> ClimateEntityFeature:
@@ -258,7 +277,7 @@ class RoomMindClimate(RoomMindOverrideClimate):
         # Temperature controls must describe the currently selected operating
         # mode, not every capability the room happens to have. In particular,
         # OFF and FAN_ONLY have no meaningful temperature setpoint.
-        if mode in (HVACMode.HEAT_COOL, HVACMode.AUTO, HVACMode.HEAT, HVACMode.COOL, HVACMode.DRY):
+        if mode in (HVACMode.AUTO, HVACMode.HEAT, HVACMode.COOL, HVACMode.DRY):
             features |= ClimateEntityFeature.TARGET_TEMPERATURE
 
         if caps.fan_modes:
@@ -275,7 +294,7 @@ class RoomMindClimate(RoomMindOverrideClimate):
         if mode in (HVACMode.OFF, HVACMode.FAN_ONLY):
             return None
         heat, cool = self._logical_targets()
-        if mode in (HVACMode.HEAT_COOL, HVACMode.AUTO):
+        if mode == HVACMode.AUTO:
             return (heat + cool) / 2.0
         return cool if mode in (HVACMode.COOL, HVACMode.DRY) else heat
 
@@ -345,7 +364,7 @@ class RoomMindClimate(RoomMindOverrideClimate):
             kwargs.get(ATTR_TARGET_TEMP_HIGH),
             kwargs.get(ATTR_TEMPERATURE),
         )
-        if selected in (HVACMode.HEAT_COOL, HVACMode.AUTO):
+        if selected == HVACMode.AUTO:
             if single is not None:
                 center = float(single)
             elif low is not None or high is not None:
@@ -388,6 +407,8 @@ class RoomMindClimate(RoomMindOverrideClimate):
         await self.coordinator.async_request_refresh()
 
     async def async_set_hvac_mode(self, hvac_mode: HVACMode) -> None:
+        if hvac_mode == HVACMode.HEAT_COOL and HVACMode.AUTO in self.hvac_modes:
+            hvac_mode = HVACMode.AUTO
         if hvac_mode not in self.hvac_modes:
             raise ValueError(f"Unsupported room HVAC mode: {hvac_mode}")
         heat, cool = self._logical_targets()
@@ -399,11 +420,11 @@ class RoomMindClimate(RoomMindOverrideClimate):
             updates.update({"override_heat": None, "override_cool": None, "override_type": None})
         await self.coordinator.hass.data[DOMAIN]["store"].async_update_room(self._area_id, updates)
 
-        # This entity is also RoomMind's manual/HomeKit control surface.  Manual
-        # commands must work even when global or per-room automatic climate
-        # control is disabled; those switches govern autonomous RoomMind logic,
-        # not explicit user intent.
-        await self._async_apply_manual_hvac_mode(mode, heat, cool)
+        # Explicit HEAT/COOL/OFF/FAN_ONLY/DRY are direct manual commands. AUTO
+        # is different: it is permission for RoomMind to choose one direction,
+        # so it must never directly switch both heating and cooling hardware on.
+        if mode != "auto":
+            await self._async_apply_manual_hvac_mode(mode, heat, cool)
         await self.coordinator.async_request_refresh()
 
     async def _async_apply_manual_hvac_mode(self, mode: str, heat: float, cool: float) -> None:
@@ -492,7 +513,7 @@ class RoomMindClimate(RoomMindOverrideClimate):
         await self.async_set_hvac_mode(HVACMode.OFF)
 
     async def async_turn_on(self, **kwargs: Any) -> None:
-        fallback = HVACMode.HEAT_COOL if HVACMode.HEAT_COOL in self.hvac_modes else HVACMode.HEAT
+        fallback = HVACMode.AUTO if HVACMode.AUTO in self.hvac_modes else HVACMode.HEAT
         await self.async_set_hvac_mode(fallback)
 
     async def _set_ac_option(self, key: str, service: str, service_key: str, value: str) -> None:

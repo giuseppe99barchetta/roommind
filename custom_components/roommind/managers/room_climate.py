@@ -34,8 +34,6 @@ def room_capabilities(hass: HomeAssistant, room: dict) -> RoomClimateCapabilitie
     if can_cool:
         modes.append("cool")
     if can_heat and can_cool:
-        modes.append("heat_cool")
-    if "auto" in ac_modes:
         modes.append("auto")
     if "dry" in ac_modes:
         modes.append("dry")
