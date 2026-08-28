@@ -12,6 +12,7 @@ from homeassistant.core import HomeAssistant
 _MIN_ACTIVE_POWER_W = 10.0
 _MIN_SAMPLES_FOR_PREDICTION = 6
 _MAX_REASONABLE_POWER_W = 20000.0
+_LEARNABLE_ENERGY_MODES = ("heating", "cooling", "dry")
 
 
 @dataclass
@@ -115,8 +116,11 @@ class EnergyManager:
             return "cooling"
         if "heat" in states:
             return "heating"
+        # Fan-only moves air but does not heat, cool, or dehumidify the room.
+        # Treat it as idle for energy analytics so its small electrical draw
+        # never becomes a compressor-consumption learning sample or forecast.
         if "fan_only" in states:
-            return "fan_only"
+            return "idle"
         return fallback
 
     def read_power_breakdown(self, room: dict) -> tuple[float, int, dict[str, float]]:
@@ -174,10 +178,12 @@ class EnergyManager:
         nominal_w: float | None = None,
     ) -> tuple[float | None, int]:
         """Predict aggregate room AC power for analytics and live entities."""
+        if mode not in _LEARNABLE_ENERGY_MODES:
+            return None, 0
         state = self._rooms.get(area_id)
         features = self._features(room_temp, target_temp, outdoor_temp, humidity)
         prediction, samples = self._predict_stats(state.models.get(mode) if state else None, features)
-        if prediction is None and mode in ("heating", "cooling", "dry", "fan_only") and nominal_w and nominal_w > 0:
+        if prediction is None and mode in _LEARNABLE_ENERGY_MODES and nominal_w and nominal_w > 0:
             prediction = min(float(nominal_w), _MAX_REASONABLE_POWER_W)
         return prediction, samples
 
@@ -191,6 +197,8 @@ class EnergyManager:
         humidity: float | None,
     ) -> dict[str, float]:
         """Predict each configured AC from its own learned consumption model."""
+        if mode not in _LEARNABLE_ENERGY_MODES:
+            return {}
         state = self._rooms.get(area_id)
         if state is None:
             return {}
@@ -224,11 +232,11 @@ class EnergyManager:
             outdoor = self._safe_float(row.get("outdoor_temp"))
             humidity = self._safe_float(row.get("current_humidity"))
             features = self._features(room_temp, target, outdoor, humidity)
-            if power >= _MIN_ACTIVE_POWER_W and mode in ("heating", "cooling", "dry", "fan_only"):
+            if power >= _MIN_ACTIVE_POWER_W and mode in _LEARNABLE_ENERGY_MODES:
                 model = state.models.setdefault(mode, _LinearStats())
                 model.add(features, power)
             device_power = row.get("ac_device_power_w")
-            if isinstance(device_power, dict) and mode in ("heating", "cooling", "dry", "fan_only"):
+            if isinstance(device_power, dict) and mode in _LEARNABLE_ENERGY_MODES:
                 for entity_id, raw_power in device_power.items():
                     device_w = self._safe_float(raw_power)
                     if device_w is not None and device_w >= _MIN_ACTIVE_POWER_W:
@@ -280,9 +288,9 @@ class EnergyManager:
         target = self._safe_float(room_state.get("target_temp"))
         humidity = self._safe_float(room_state.get("current_humidity"))
         features = self._features(room_temp, target, outdoor_temp, humidity)
-        if power_w >= _MIN_ACTIVE_POWER_W and mode in ("heating", "cooling", "dry", "fan_only"):
+        if power_w >= _MIN_ACTIVE_POWER_W and mode in _LEARNABLE_ENERGY_MODES:
             state.models.setdefault(mode, _LinearStats()).add(features, power_w)
-        if mode in ("heating", "cooling", "dry", "fan_only"):
+        if mode in _LEARNABLE_ENERGY_MODES:
             for entity_id, measured_w in device_power.items():
                 if measured_w >= _MIN_ACTIVE_POWER_W:
                     state.device_models.setdefault(entity_id, {}).setdefault(mode, _LinearStats()).add(

@@ -355,7 +355,13 @@ class TestBuildAnalyticsData:
 
         store = MagicMock()
         store.get_settings.return_value = {"prediction_enabled": True}
-        store.get_room.return_value = {"temperature_sensor": "sensor.temp"}
+        store.get_room.return_value = {
+            "temperature_sensor": "sensor.temp",
+            "room_hvac_mode": "fan_only",
+            "devices": [
+                {"entity_id": "climate.ac", "type": "ac", "power_sensor_entity_id": "sensor.ac_power"}
+            ],
+        }
 
         est = MagicMock()
         est.get_model.return_value = MagicMock()
@@ -378,6 +384,9 @@ class TestBuildAnalyticsData:
         coordinator._weather_manager._outdoor_forecast = []
         coordinator._residual_tracker._off_since = {}
         coordinator._window_manager._paused = {}
+        coordinator._energy_manager = MagicMock()
+        coordinator._energy_manager.predict_power.return_value = (None, 0)
+        coordinator._energy_manager.predict_device_power.return_value = {}
 
         detail_rows = [
             {
@@ -427,6 +436,8 @@ class TestBuildAnalyticsData:
             # Forecast should still have entries but predicted_temp = None
             assert len(result["forecast"]) == 1
             assert result["forecast"][0]["predicted_temp"] is None
+            assert result["forecast"][0]["predicted_power_w"] is None
+            assert coordinator._energy_manager.predict_power.call_args.args[1] == "idle"
 
     @pytest.mark.asyncio
     async def test_residual_heat_state_passed_to_simulation(self):

@@ -425,7 +425,9 @@ async def build_analytics_data(
                 energy_mode = "cooling"
                 target_for_energy = cool_target or tf.get("target_temp")
             elif selected_mode == "fan_only":
-                energy_mode = "fan_only"
+                # Fan-only has no compressor demand model. Keep its energy
+                # analytics idle rather than fabricating a zero/nominal forecast.
+                energy_mode = "idle"
                 target_for_energy = tf.get("target_temp")
             elif selected_mode == "off":
                 energy_mode = "idle"
@@ -454,7 +456,7 @@ async def build_analytics_data(
                 humidity,
                 nominal,
             )
-            predicted_powers.append(round(power, 1) if power is not None else 0.0)
+            predicted_powers.append(round(power, 1) if power is not None else None)
             predicted_device_powers.append(
                 energy_manager.predict_device_power(
                     area_id,

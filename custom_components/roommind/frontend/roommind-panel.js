@@ -7267,7 +7267,7 @@
         --mdc-icon-size: 40px;
         font-size: 13px;
       }
-    `]}};k([v({attribute:!1})],Z.prototype,`hass`,void 0),k([v({attribute:!1})],Z.prototype,`data`,void 0),k([v({type:Number})],Z.prototype,`rangeStart`,void 0),k([v({type:Number})],Z.prototype,`rangeEnd`,void 0),k([v({type:Number})],Z.prototype,`chartAnchor`,void 0),k([v({type:String})],Z.prototype,`language`,void 0),k([v({type:Boolean})],Z.prototype,`isOutdoor`,void 0),k([y()],Z.prototype,`_hiddenSeries`,void 0),k([y()],Z.prototype,`_chartInfoExpanded`,void 0),Z=k([_(`rs-analytics-chart`)],Z),g(),b(),A();var Rn=[`#03a9f4`,`#ff9800`,`#8bc34a`,`#9c27b0`,`#009688`,`#f44336`],zn=class extends h{constructor(...e){super(...e),this.data=null,this.language=`en`}_points(){return this.data?[...this.data.history,...this.data.detail]:[]}_deviceIds(e,t){let n=new Set;for(let r of[...e,...t]){for(let e of Object.keys(r.ac_device_power_w??{}))n.add(e);for(let e of Object.keys(r.predicted_device_power_w??{}))n.add(e)}return[...n].sort()}_friendlyName(e){let t=this.hass.states[e]?.attributes?.friendly_name;return typeof t==`string`&&t?t:e.split(`.`).pop().replaceAll(`_`,` `)}_integrate(e){let t=e.filter(e=>e.value!=null).sort((e,t)=>e.ts-t.ts),n=0;for(let e=1;e<t.length;e++){let r=Math.min(Math.max(t[e].ts-t[e-1].ts,0),900)/3600;n+=(t[e-1].value+t[e].value)/2*r}return n/1e3}render(){let e=this._points(),t=this.data?.forecast??[];if(!(e.some(e=>e.ac_power_w!=null)||t.some(e=>e.predicted_power_w!=null)))return m;let n=this._deviceIds(e,t),r=e.filter(e=>e.ac_power_w!=null).map(e=>[e.ts*1e3,e.ac_power_w]),i=t.filter(e=>e.predicted_power_w!=null).map(e=>[e.ts*1e3,e.predicted_power_w]),a=[{id:`room_power`,name:x(`analytics.energy_room_power`,this.language),type:`line`,showSymbol:!1,data:r,color:`var(--primary-color)`,lineStyle:{width:2.5}},{id:`room_power_forecast`,name:x(`analytics.energy_forecast`,this.language),type:`line`,showSymbol:!1,data:i,color:`var(--primary-color)`,lineStyle:{width:2,type:`dashed`}}];n.forEach((n,r)=>{let i=Rn[r%Rn.length],o=e.filter(e=>e.ac_device_power_w?.[n]!=null).map(e=>[e.ts*1e3,e.ac_device_power_w[n]]),s=t.filter(e=>e.predicted_device_power_w?.[n]!=null).map(e=>[e.ts*1e3,e.predicted_device_power_w[n]]);a.push({id:`device_${n}`,name:this._friendlyName(n),type:`line`,showSymbol:!1,data:o,color:i,lineStyle:{width:1.5,opacity:.75}}),s.length&&a.push({id:`device_forecast_${n}`,name:`${this._friendlyName(n)} · ${x(`analytics.energy_forecast_short`,this.language)}`,type:`line`,showSymbol:!1,data:s,color:i,lineStyle:{width:1.5,type:`dashed`,opacity:.75}})});let o=[...e].reverse().find(e=>e.ac_power_w!=null),s=this._integrate(e.map(e=>({ts:e.ts,value:e.ac_power_w}))),c=this._integrate(t.map(e=>({ts:e.ts,value:e.predicted_power_w}))),l=[...e].reverse().find(e=>e.energy_learning_samples!=null)?.energy_learning_samples??0;return p`
+    `]}};k([v({attribute:!1})],Z.prototype,`hass`,void 0),k([v({attribute:!1})],Z.prototype,`data`,void 0),k([v({type:Number})],Z.prototype,`rangeStart`,void 0),k([v({type:Number})],Z.prototype,`rangeEnd`,void 0),k([v({type:Number})],Z.prototype,`chartAnchor`,void 0),k([v({type:String})],Z.prototype,`language`,void 0),k([v({type:Boolean})],Z.prototype,`isOutdoor`,void 0),k([y()],Z.prototype,`_hiddenSeries`,void 0),k([y()],Z.prototype,`_chartInfoExpanded`,void 0),Z=k([_(`rs-analytics-chart`)],Z),g(),b(),A();var Rn=[`#03a9f4`,`#ff9800`,`#8bc34a`,`#9c27b0`,`#009688`,`#f44336`],zn=class extends h{constructor(...e){super(...e),this.data=null,this.language=`en`}_points(){return this.data?[...this.data.history,...this.data.detail]:[]}_deviceIds(e,t){let n=new Set;for(let r of[...e,...t]){for(let e of Object.keys(r.ac_device_power_w??{}))n.add(e);for(let e of Object.keys(r.predicted_device_power_w??{}))n.add(e)}return[...n].sort()}_friendlyName(e){let t=this.hass.states[e]?.attributes?.friendly_name;return typeof t==`string`&&t?t:e.split(`.`).pop().replaceAll(`_`,` `)}_integrate(e){let t=e.filter(e=>e.value!=null).sort((e,t)=>e.ts-t.ts),n=0;for(let e=1;e<t.length;e++){let r=Math.min(Math.max(t[e].ts-t[e-1].ts,0),900)/3600;n+=(t[e-1].value+t[e].value)/2*r}return n/1e3}render(){let e=this._points(),t=this.data?.forecast??[];if(!(e.some(e=>e.ac_power_w!=null)||t.some(e=>e.predicted_power_w!=null)))return m;let n=this._deviceIds(e,t),r=e.filter(e=>e.ac_power_w!=null).map(e=>[e.ts*1e3,e.ac_power_w]),i=t.filter(e=>e.predicted_power_w!=null).map(e=>[e.ts*1e3,e.predicted_power_w]),a=getComputedStyle(this).getPropertyValue(`--primary-color`).trim()||`#03a9f4`,o=[{id:`room_power`,name:x(`analytics.energy_room_power`,this.language),type:`line`,showSymbol:!1,data:r,color:a,lineStyle:{width:2.5},emphasis:{disabled:!0}}];i.length>0&&o.push({id:`room_power_forecast`,name:x(`analytics.energy_forecast`,this.language),type:`line`,showSymbol:!1,data:i,color:a,lineStyle:{width:2,type:`dashed`},emphasis:{disabled:!0}}),n.forEach((n,r)=>{let i=Rn[r%Rn.length],a=e.filter(e=>e.ac_device_power_w?.[n]!=null).map(e=>[e.ts*1e3,e.ac_device_power_w[n]]),s=t.filter(e=>e.predicted_device_power_w?.[n]!=null).map(e=>[e.ts*1e3,e.predicted_device_power_w[n]]);o.push({id:`device_${n}`,name:this._friendlyName(n),type:`line`,showSymbol:!1,data:a,color:i,lineStyle:{width:1.5,opacity:.75},emphasis:{disabled:!0}}),s.length&&o.push({id:`device_forecast_${n}`,name:`${this._friendlyName(n)} · ${x(`analytics.energy_forecast_short`,this.language)}`,type:`line`,showSymbol:!1,data:s,color:i,lineStyle:{width:1.5,type:`dashed`,opacity:.75},emphasis:{disabled:!0}})});let s=[...e].reverse().find(e=>e.ac_power_w!=null),c=this._integrate(e.map(e=>({ts:e.ts,value:e.ac_power_w}))),l=this._integrate(t.map(e=>({ts:e.ts,value:e.predicted_power_w}))),u=[...e].reverse().find(e=>e.energy_learning_samples!=null)?.energy_learning_samples??0;return p`
       <ha-card>
         <div class="header">
           <div>
@@ -7277,31 +7277,108 @@
           <ha-icon icon="mdi:lightning-bolt-outline"></ha-icon>
         </div>
         <div class="stats">
-          <div class="stat"><span>${x(`analytics.energy_now`,this.language)}</span><strong>${o?.ac_power_w==null?`—`:`${Math.round(o.ac_power_w)} W`}</strong></div>
-          <div class="stat"><span>${x(`analytics.energy_period`,this.language)}</span><strong>${s.toFixed(2)} kWh</strong></div>
-          <div class="stat"><span>${x(`analytics.energy_next_3h`,this.language)}</span><strong>${c.toFixed(2)} kWh</strong></div>
-          <div class="stat"><span>${x(`analytics.energy_learning`,this.language)}</span><strong>${l}</strong></div>
+          <div class="stat">
+            <span>${x(`analytics.energy_now`,this.language)}</span
+            ><strong
+              >${s?.ac_power_w==null?`—`:`${Math.round(s.ac_power_w)} W`}</strong
+            >
+          </div>
+          <div class="stat">
+            <span>${x(`analytics.energy_period`,this.language)}</span
+            ><strong>${c.toFixed(2)} kWh</strong>
+          </div>
+          <div class="stat">
+            <span>${x(`analytics.energy_next_3h`,this.language)}</span
+            ><strong>${i.length>0?`${l.toFixed(2)} kWh`:`—`}</strong>
+          </div>
+          <div class="stat">
+            <span>${x(`analytics.energy_learning`,this.language)}</span
+            ><strong>${u}</strong>
+          </div>
         </div>
-        <ha-chart-base .hass=${this.hass} .data=${a} .options=${{animation:!1,grid:{left:55,right:20,top:24,bottom:42},tooltip:{trigger:`axis`,valueFormatter:e=>`${Math.round(e)} W`},xAxis:{type:`time`,axisLabel:{hideOverlap:!0}},yAxis:{type:`value`,min:0,name:`W`,nameGap:12,splitLine:{show:!0}}}} .height=${`280px`} style="height:280px"></ha-chart-base>
+        <ha-chart-base
+          .hass=${this.hass}
+          .data=${o}
+          .options=${{animation:!1,grid:{left:55,right:20,top:24,bottom:42},tooltip:{trigger:`axis`,axisPointer:{snap:!1},valueFormatter:e=>`${Math.round(e)} W`},xAxis:{type:`time`,axisLabel:{hideOverlap:!0}},yAxis:{type:`value`,min:0,name:`W`,nameGap:12,splitLine:{show:!0}}}}
+          .height=${`280px`}
+          style="height:280px"
+        ></ha-chart-base>
         <div class="legend">
-          ${a.map(e=>p`<span><i style="background:${e.color}"></i>${e.name}</span>`)}
+          ${o.map(e=>p`<span><i style="background:${e.color}"></i>${e.name}</span>`)}
         </div>
       </ha-card>
     `}static{this.styles=l`
-    :host { display:block; }
-    ha-card { margin-bottom:16px; padding-bottom:10px; }
-    .header { display:flex; justify-content:space-between; align-items:center; padding:16px 16px 8px; }
-    .title { font-size:16px; font-weight:500; }
-    .subtitle { font-size:12px; color:var(--secondary-text-color); margin-top:3px; }
-    .header ha-icon { color:var(--primary-color); }
-    .stats { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:8px; padding:6px 16px 4px; }
-    .stat { background:var(--secondary-background-color); border-radius:10px; padding:10px 12px; display:flex; flex-direction:column; gap:3px; }
-    .stat span { font-size:11px; color:var(--secondary-text-color); }
-    .stat strong { font-size:15px; font-weight:600; }
-    .legend { display:flex; justify-content:center; flex-wrap:wrap; gap:8px 14px; padding:2px 16px 8px; font-size:11px; color:var(--secondary-text-color); }
-    .legend span { display:inline-flex; align-items:center; gap:5px; }
-    .legend i { width:8px; height:8px; border-radius:50%; }
-    @media (max-width:700px) { .stats { grid-template-columns:repeat(2,minmax(0,1fr)); } }
+    :host {
+      display: block;
+    }
+    ha-card {
+      margin-bottom: 16px;
+      padding-bottom: 10px;
+    }
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 16px 16px 8px;
+    }
+    .title {
+      font-size: 16px;
+      font-weight: 500;
+    }
+    .subtitle {
+      font-size: 12px;
+      color: var(--secondary-text-color);
+      margin-top: 3px;
+    }
+    .header ha-icon {
+      color: var(--primary-color);
+    }
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 8px;
+      padding: 6px 16px 4px;
+    }
+    .stat {
+      background: var(--secondary-background-color);
+      border-radius: 10px;
+      padding: 10px 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+    }
+    .stat span {
+      font-size: 11px;
+      color: var(--secondary-text-color);
+    }
+    .stat strong {
+      font-size: 15px;
+      font-weight: 600;
+    }
+    .legend {
+      display: flex;
+      justify-content: center;
+      flex-wrap: wrap;
+      gap: 8px 14px;
+      padding: 2px 16px 8px;
+      font-size: 11px;
+      color: var(--secondary-text-color);
+    }
+    .legend span {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+    }
+    .legend i {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+    }
+    @media (max-width: 700px) {
+      .stats {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+    }
   `}};k([v({attribute:!1})],zn.prototype,`hass`,void 0),k([v({attribute:!1})],zn.prototype,`data`,void 0),k([v({type:String})],zn.prototype,`language`,void 0),zn=k([_(`rs-energy-analytics-chart`)],zn),g(),b(),A();var Bn=class extends h{constructor(...e){super(...e),this.data=null,this.language=`en`,this._expandedStat=null}render(){let e=this.language,t=!!this.data?.model?.model,n=this.data?.model,r=n?.model,i=n?.confidence??0,a=n?.n_samples??0,o=n?.n_heating??0,s=n?.n_cooling??0,c=n?.applicable_modes??[],l=n?.prediction_std_idle,u=n?.prediction_std_heating,d=n?.mpc_active??!1,ee=Math.round(i*100),f=new Set(c),te=f.has(`heating`),ne=f.has(`cooling`),re=o>=10,ie=s>=10,ae=a-o-s>=10,oe=n?.n_observations??a,se=[],ce=(t,n,r,i,a)=>{se.push({id:t,labelKey:r,infoKey:a});let o=this._expandedStat===t;return p`
         <div class="model-stat ${o?`active`:``}" @click=${()=>this._toggleStat(t)}>
           <div class="stat-content">

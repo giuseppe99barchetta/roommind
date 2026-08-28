@@ -52,6 +52,31 @@ def test_energy_manager_converts_kw_sensor():
     assert power == pytest.approx(720.0)
 
 
+def test_energy_manager_treats_fan_only_as_idle_without_learning_or_prediction():
+    states = {
+        "sensor.ac_power": _State("75", {"unit_of_measurement": "W"}),
+        "climate.ac": _State("fan_only", {"hvac_modes": ["off", "fan_only"]}),
+    }
+    manager = EnergyManager(_hass(states))
+    room = {
+        "heat_pump_power_watts": 900,
+        "devices": [{"entity_id": "climate.ac", "type": "ac", "power_sensor_entity_id": "sensor.ac_power"}],
+    }
+    room_state = {"current_temp": 25.0, "current_humidity": 55.0, "target_temp": 23.0, "mode": "idle"}
+
+    result = None
+    for index in range(8):
+        result = manager.update_room("studio", room, room_state, 30.0, now=1_700_000_000.0 + index * 60)
+
+    assert result is not None
+    assert result["energy_mode"] == "idle"
+    assert result["energy_learning_samples"] == 0
+    assert result["predicted_power_w"] is None
+    assert result["predicted_energy_1h_kwh"] is None
+    assert manager._rooms["studio"].models == {}
+    assert manager.predict_power("studio", "fan_only", 25.0, 23.0, 30.0, 55.0, 900)[0] is None
+
+
 @pytest.mark.asyncio
 async def test_mold_prevention_prefers_dry_in_warm_weather(monkeypatch):
     manager = MoldManager(MagicMock())
