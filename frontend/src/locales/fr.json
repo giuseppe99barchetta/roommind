@@ -538,6 +538,7 @@
   "devices.power_sensor_hint": "Capteur de consommation électrique instantanée de ce climatiseur. Les capteurs en W et kW servent à l’historique et aux prévisions adaptatives.",
   "analytics.energy_title": "Consommation d’énergie",
   "analytics.energy_subtitle": "Puissance mesurée des appareils et prévision apprise",
+  "analytics.energy_chart_info_body": "Les lignes continues montrent la puissance mesurée. Les segments pointillés prolongent la dernière mesure avec la prévision apprise à trois heures. Touchez un élément de légende pour masquer ou rétablir une série. Faites défiler horizontalement ou pincez pour zoomer ; la ligne verticale pointillée indique maintenant.",
   "analytics.energy_room_power": "Puissance de la pièce",
   "analytics.energy_forecast": "Prévision",
   "analytics.energy_forecast_short": "Prévision",

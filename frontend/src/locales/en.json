@@ -547,6 +547,7 @@
   "devices.power_sensor_hint": "Instantaneous electrical consumption sensor for this AC. W and kW sensors are supported and used for energy history and adaptive predictions.",
   "analytics.energy_title": "Energy consumption",
   "analytics.energy_subtitle": "Measured device power and learned forecast",
+  "analytics.energy_chart_info_body": "Solid lines show measured power. Dashed segments continue from the latest measurement with the learned three-hour forecast. Tap a legend item to hide or restore a series. Pinch or scroll horizontally to zoom; the vertical dashed line marks now.",
   "analytics.energy_room_power": "Room power",
   "analytics.energy_forecast": "Forecast",
   "analytics.energy_forecast_short": "Forecast",

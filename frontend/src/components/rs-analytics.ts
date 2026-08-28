@@ -107,6 +107,9 @@ export class RsAnalytics extends LitElement {
                     <rs-energy-analytics-chart
                       .hass=${this.hass}
                       .data=${this._data}
+                      .rangeStart=${this._rangeStart}
+                      .rangeEnd=${this._rangeEnd}
+                      .chartAnchor=${this._chartAnchor}
                       .language=${l}
                     ></rs-energy-analytics-chart>
                     ${this._comparison.length > 1

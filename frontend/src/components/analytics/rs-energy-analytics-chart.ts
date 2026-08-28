@@ -1,16 +1,25 @@
 /** Energy analytics card: measured room/device consumption + learned forecast. */
 import { LitElement, html, css, nothing } from "lit";
-import { customElement, property } from "lit/decorators.js";
+import { customElement, property, state } from "lit/decorators.js";
 import type { AnalyticsData, AnalyticsDataPoint, HomeAssistant } from "../../types";
 import { localize } from "../../utils/localize";
+import { infoIconStyles } from "../../styles/info-icon-styles";
 
 const PALETTE = ["#03a9f4", "#ff9800", "#8bc34a", "#9c27b0", "#009688", "#f44336"];
+const FORECAST_MS = 3 * 3600_000;
+type PowerPoint = [number, number];
 
 @customElement("rs-energy-analytics-chart")
 export class RsEnergyAnalyticsChart extends LitElement {
   @property({ attribute: false }) public hass!: HomeAssistant;
   @property({ attribute: false }) public data: AnalyticsData | null = null;
+  @property({ type: Number }) public rangeStart = 0;
+  @property({ type: Number }) public rangeEnd = 0;
+  @property({ type: Number }) public chartAnchor = 0;
   @property({ type: String }) public language = "en";
+
+  @state() private _hiddenSeries = new Set<string>();
+  @state() private _chartInfoExpanded = false;
 
   private _points(): AnalyticsDataPoint[] {
     return this.data ? [...this.data.history, ...this.data.detail] : [];
@@ -43,6 +52,22 @@ export class RsEnergyAnalyticsChart extends LitElement {
     return wh / 1000;
   }
 
+  private _connectForecast(measured: PowerPoint[], forecast: PowerPoint[]): PowerPoint[] {
+    if (measured.length === 0 || forecast.length === 0) return forecast;
+    const lastMeasured = measured.reduce((latest, point) => (point[0] > latest[0] ? point : latest));
+    return lastMeasured[0] < forecast[0][0] ? [lastMeasured, ...forecast] : forecast;
+  }
+
+  private _toggleSeries(id: string) {
+    const next = new Set(this._hiddenSeries);
+    if (next.has(id)) {
+      next.delete(id);
+    } else {
+      next.add(id);
+    }
+    this._hiddenSeries = next;
+  }
+
   render() {
     const points = this._points();
     const forecast = this.data?.forecast ?? [];
@@ -51,12 +76,12 @@ export class RsEnergyAnalyticsChart extends LitElement {
     if (!hasEnergy) return nothing;
 
     const deviceIds = this._deviceIds(points, forecast);
-    const measured = points
+    const measured: PowerPoint[] = points
       .filter((p) => p.ac_power_w != null)
-      .map((p) => [p.ts * 1000, p.ac_power_w]);
-    const predicted = forecast
+      .map((p) => [p.ts * 1000, p.ac_power_w!] as PowerPoint);
+    const predicted: PowerPoint[] = forecast
       .filter((p) => p.predicted_power_w != null)
-      .map((p) => [p.ts * 1000, p.predicted_power_w]);
+      .map((p) => [p.ts * 1000, p.predicted_power_w!] as PowerPoint);
     // ECharts draws on canvas and cannot resolve CSS custom properties. Passing
     // `var(--primary-color)` made the measured line black and unstable on hover.
     const primaryColor =
@@ -79,7 +104,7 @@ export class RsEnergyAnalyticsChart extends LitElement {
         name: localize("analytics.energy_forecast", this.language),
         type: "line",
         showSymbol: false,
-        data: predicted,
+        data: this._connectForecast(measured, predicted),
         color: primaryColor,
         lineStyle: { width: 2, type: "dashed" },
         emphasis: { disabled: true },
@@ -87,12 +112,12 @@ export class RsEnergyAnalyticsChart extends LitElement {
     }
     deviceIds.forEach((id, index) => {
       const color = PALETTE[index % PALETTE.length];
-      const actual = points
+      const actual: PowerPoint[] = points
         .filter((p) => p.ac_device_power_w?.[id] != null)
-        .map((p) => [p.ts * 1000, p.ac_device_power_w![id]]);
-      const future = forecast
+        .map((p) => [p.ts * 1000, p.ac_device_power_w![id]] as PowerPoint);
+      const future: PowerPoint[] = forecast
         .filter((p) => p.predicted_device_power_w?.[id] != null)
-        .map((p) => [p.ts * 1000, p.predicted_device_power_w![id]]);
+        .map((p) => [p.ts * 1000, p.predicted_device_power_w![id]] as PowerPoint);
       series.push({
         id: `device_${id}`,
         name: this._friendlyName(id),
@@ -109,7 +134,7 @@ export class RsEnergyAnalyticsChart extends LitElement {
           name: `${this._friendlyName(id)} · ${localize("analytics.energy_forecast_short", this.language)}`,
           type: "line",
           showSymbol: false,
-          data: future,
+          data: this._connectForecast(actual, future),
           color,
           lineStyle: { width: 1.5, type: "dashed", opacity: 0.75 },
           emphasis: { disabled: true },
@@ -130,27 +155,62 @@ export class RsEnergyAnalyticsChart extends LitElement {
         ?.energy_prediction_confidence;
     const cost = this.data?.energy_cost;
 
+    const visiblePower: number[] = [];
+    const displaySeries = series.map((s) => {
+      const id = s.id as string;
+      if (this._hiddenSeries.has(id)) {
+        return { ...s, lineStyle: { ...(s.lineStyle as object), width: 0, opacity: 0 } };
+      }
+      for (const point of s.data as PowerPoint[]) visiblePower.push(point[1]);
+      return s;
+    });
+    const maxPower = visiblePower.length > 0 ? Math.max(...visiblePower) : 0;
+    const isLive = Math.abs(this.rangeEnd - Date.now()) < 3600_000;
+    displaySeries.push({
+      id: "now_marker",
+      name: "",
+      type: "line",
+      color: "rgba(255,255,255,0.3)",
+      data: [[this.chartAnchor, -1], [this.chartAnchor, Math.max(maxPower * 1.1, 1)]],
+      showSymbol: false,
+      lineStyle: { width: 1, type: "dashed" },
+      tooltip: { show: false },
+      z: -2,
+    });
     const options = {
       animation: false,
-      grid: { left: 55, right: 20, top: 24, bottom: 42 },
+      grid: { top: 15, left: 10, right: 10, bottom: 5, containLabel: true },
       tooltip: {
         trigger: "axis",
         axisPointer: { snap: false },
         valueFormatter: (value: number) => `${Math.round(value)} W`,
       },
-      xAxis: { type: "time", axisLabel: { hideOverlap: true } },
+      xAxis: {
+        type: "time",
+        min: this.rangeStart,
+        max: isLive ? this.chartAnchor + FORECAST_MS : this.rangeEnd,
+      },
       yAxis: { type: "value", min: 0, name: "W", nameGap: 12, splitLine: { show: true } },
+      dataZoom: [{ type: "inside", xAxisIndex: 0, filterMode: "none" }],
     };
 
     return html`
       <ha-card>
-        <div class="header">
-          <div>
-            <div class="title">${localize("analytics.energy_title", this.language)}</div>
-            <div class="subtitle">${localize("analytics.energy_subtitle", this.language)}</div>
-          </div>
-          <ha-icon icon="mdi:lightning-bolt-outline"></ha-icon>
+        <div class="card-header">
+          <span>${localize("analytics.energy_title", this.language)}</span>
+          <ha-icon
+            class="info-icon chart-info-toggle ${this._chartInfoExpanded ? "info-active" : ""}"
+            icon="mdi:information-outline"
+            @click=${() => {
+              this._chartInfoExpanded = !this._chartInfoExpanded;
+            }}
+          ></ha-icon>
         </div>
+        ${this._chartInfoExpanded
+          ? html`<div class="chart-info-panel">
+              ${localize("analytics.energy_chart_info_body", this.language)}
+            </div>`
+          : nothing}
         <div class="stats">
           <div class="stat">
             <span>${localize("analytics.energy_now", this.language)}</span
@@ -197,52 +257,64 @@ export class RsEnergyAnalyticsChart extends LitElement {
         </div>
         <ha-chart-base
           .hass=${this.hass}
-          .data=${series}
+          .data=${displaySeries}
           .options=${options}
-          .height=${"280px"}
-          style="height:280px"
+          .height=${"300px"}
+          style="height: 300px"
         ></ha-chart-base>
-        <div class="legend">
-          ${series.map(
-            (s) =>
-              html`<span><i style="background:${s.color as string}"></i>${s.name as string}</span>`,
-          )}
+        <div class="series-legend">
+          ${series.map((s) => {
+            const id = s.id as string;
+            const hidden = this._hiddenSeries.has(id);
+            return html`
+              <button
+                class="legend-item ${hidden ? "legend-hidden" : ""}"
+                @click=${() => this._toggleSeries(id)}
+              >
+                <span class="legend-dot" style="background: ${s.color as string}"></span>
+                ${s.name as string}
+              </button>
+            `;
+          })}
         </div>
       </ha-card>
     `;
   }
 
-  static styles = css`
+  static styles = [
+    infoIconStyles,
+    css`
     :host {
       display: block;
     }
     ha-card {
       margin-bottom: 16px;
-      padding-bottom: 10px;
     }
-    .header {
+    .card-header {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      padding: 16px 16px 8px;
-    }
-    .title {
+      padding: 16px 16px 0;
       font-size: 16px;
       font-weight: 500;
     }
-    .subtitle {
-      font-size: 12px;
-      color: var(--secondary-text-color);
-      margin-top: 3px;
+    .chart-info-toggle {
+      --mdc-icon-size: 20px;
     }
-    .header ha-icon {
-      color: var(--primary-color);
+    .chart-info-panel {
+      margin: 8px 16px 4px;
+      padding: 12px 14px;
+      border-radius: 8px;
+      background: var(--secondary-background-color, rgba(128, 128, 128, 0.06));
+      font-size: 13px;
+      line-height: 1.6;
+      color: var(--secondary-text-color);
     }
     .stats {
       display: grid;
       grid-template-columns: repeat(4, minmax(0, 1fr));
       gap: 8px;
-      padding: 6px 16px 4px;
+      padding: 12px 16px 4px;
     }
     .stat {
       background: var(--secondary-background-color);
@@ -260,31 +332,46 @@ export class RsEnergyAnalyticsChart extends LitElement {
       font-size: 15px;
       font-weight: 600;
     }
-    .legend {
+    .series-legend {
       display: flex;
       justify-content: center;
       flex-wrap: wrap;
-      gap: 8px 14px;
-      padding: 2px 16px 8px;
-      font-size: 11px;
-      color: var(--secondary-text-color);
+      gap: 6px;
+      padding: 8px 16px 12px;
     }
-    .legend span {
-      display: inline-flex;
+    .legend-item {
+      display: flex;
       align-items: center;
-      gap: 5px;
+      gap: 6px;
+      padding: 4px 10px;
+      border: none;
+      border-radius: 12px;
+      background: transparent;
+      color: var(--primary-text-color);
+      font-size: 12px;
+      font-family: inherit;
+      cursor: pointer;
+      transition: opacity 0.2s;
     }
-    .legend i {
+    .legend-item:hover {
+      background: var(--secondary-background-color, rgba(128, 128, 128, 0.1));
+    }
+    .legend-item.legend-hidden {
+      opacity: 0.35;
+    }
+    .legend-dot {
       width: 8px;
       height: 8px;
       border-radius: 50%;
+      flex-shrink: 0;
     }
     @media (max-width: 700px) {
       .stats {
         grid-template-columns: repeat(2, minmax(0, 1fr));
       }
     }
-  `;
+    `,
+  ];
 }
 
 declare global {

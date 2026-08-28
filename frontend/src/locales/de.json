@@ -538,6 +538,7 @@
   "devices.power_sensor_hint": "Sensor für den momentanen Stromverbrauch dieser Klimaanlage. W- und kW-Sensoren werden für Energieverlauf und adaptive Prognosen unterstützt.",
   "analytics.energy_title": "Energieverbrauch",
   "analytics.energy_subtitle": "Gemessene Geräteleistung und gelernte Prognose",
+  "analytics.energy_chart_info_body": "Durchgezogene Linien zeigen die gemessene Leistung. Gestrichelte Segmente setzen an der letzten Messung mit der gelernten Drei-Stunden-Prognose fort. Tippe auf einen Legendeneintrag, um eine Reihe ein- oder auszublenden. Zum Zoomen horizontal scrollen oder zwei Finger verwenden; die vertikale gestrichelte Linie markiert jetzt.",
   "analytics.energy_room_power": "Raumleistung",
   "analytics.energy_forecast": "Prognose",
   "analytics.energy_forecast_short": "Prognose",
