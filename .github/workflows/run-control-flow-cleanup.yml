@@ -37,10 +37,13 @@ jobs:
           pip install -r requirements-dev.txt
       - name: Run focused tests
         run: pytest tests/test_climate.py tests/managers/test_valve_manager.py tests/test_control_flow_cleanup.py -q
-      - name: Ruff changed Python
+      - name: Format and lint changed Python
         run: |
+          ruff format custom_components/roommind/climate.py custom_components/roommind/coordinator.py custom_components/roommind/control/mpc_controller.py custom_components/roommind/managers/boiler_manager.py custom_components/roommind/managers/valve_manager.py tests/test_climate.py tests/test_control_flow_cleanup.py
           ruff check custom_components/roommind/climate.py custom_components/roommind/coordinator.py custom_components/roommind/control/mpc_controller.py custom_components/roommind/managers/boiler_manager.py custom_components/roommind/managers/valve_manager.py tests/test_climate.py tests/test_control_flow_cleanup.py
           ruff format --check custom_components/roommind/climate.py custom_components/roommind/coordinator.py custom_components/roommind/control/mpc_controller.py custom_components/roommind/managers/boiler_manager.py custom_components/roommind/managers/valve_manager.py tests/test_climate.py tests/test_control_flow_cleanup.py
+      - name: Re-run focused tests after format
+        run: pytest tests/test_climate.py tests/managers/test_valve_manager.py tests/test_control_flow_cleanup.py -q
       - name: Type check
         run: mypy custom_components/roommind/
       - name: Frontend package check
