@@ -364,6 +364,12 @@ async def websocket_list_rooms(
                     vol.Optional("heating_system_type", default=""): vol.In(["", "radiator", "underfloor"]),
                     vol.Optional("idle_action", default="off"): vol.In(["off", "fan_only", "setback", "low"]),
                     vol.Optional("idle_fan_mode", default="low"): str,
+                    vol.Optional("fan_only_only_after_cooling", default=False): bool,
+                    vol.Optional("fan_only_require_presence", default=False): bool,
+                    vol.Optional("fan_only_require_schedule", default=False): bool,
+                    vol.Optional("fan_only_seasons", default=[]): [
+                        vol.In(["spring", "summer", "autumn", "winter"])
+                    ],
                     vol.Optional("setpoint_mode", default="proportional"): vol.In(["proportional", "direct"]),
                     vol.Optional("power_sensor_entity_id", default=""): str,
                 },

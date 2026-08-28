@@ -2,7 +2,7 @@ import { LitElement, html, css, nothing, type PropertyValues } from "lit";
 import { customElement, property, state } from "lit/decorators.js";
 import type { HomeAssistant, HassArea, DeviceConfig, DeviceType } from "../types";
 import { getEntitiesForArea } from "../utils/room-state";
-import { localize } from "../utils/localize";
+import { localize, type TranslationKey } from "../utils/localize";
 import { getSelectValue, openEntityInfo } from "../utils/events";
 import { tempUnit } from "../utils/temperature";
 import { resolveHeatingSystemType } from "../utils/device-utils";
@@ -10,6 +10,15 @@ import { masterDetailStyles } from "../styles/master-detail-styles";
 import { inputStyles } from "../styles/input-styles";
 import "./shared/rs-master-detail";
 import "./shared/rs-info-icon";
+
+const FAN_ONLY_OPTIONS: Array<{
+  option: "fan_only_only_after_cooling" | "fan_only_require_presence" | "fan_only_require_schedule";
+  label: TranslationKey;
+}> = [
+  { option: "fan_only_only_after_cooling", label: "devices.fan_only_only_after_cooling" },
+  { option: "fan_only_require_presence", label: "devices.fan_only_require_presence" },
+  { option: "fan_only_require_schedule", label: "devices.fan_only_require_schedule" },
+];
 
 @customElement("rs-device-section")
 export class RsDeviceSection extends LitElement {
@@ -286,6 +295,32 @@ export class RsDeviceSection extends LitElement {
         padding: 2px 6px;
         border-radius: 8px;
         --mdc-icon-size: 12px;
+      }
+
+      .fan-only-conditions {
+        display: grid;
+        gap: 6px;
+        padding: 4px 0 8px;
+      }
+
+      .fan-only-condition {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 13px;
+        color: var(--secondary-text-color);
+      }
+
+      .fan-only-seasons {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 4px 12px;
+      }
+
+      .fan-only-hint {
+        font-size: 12px;
+        color: var(--secondary-text-color);
+        line-height: 1.4;
       }
 
       /* View mode styles */
@@ -733,6 +768,43 @@ export class RsDeviceSection extends LitElement {
                   </ha-select>
                 </div>`
               : nothing}
+            ${device.idle_action === "fan_only"
+              ? html`<div class="detail-field fan-only-conditions">
+                  <div class="section-subtitle">${localize("devices.fan_only_conditions", lang)}</div>
+                  ${FAN_ONLY_OPTIONS.map(
+                    ({ option, label }) => html`<label class="fan-only-condition">
+                      <ha-checkbox
+                        .checked=${Boolean(device[option])}
+                        @change=${(e: Event) =>
+                          this._onFanOnlyOptionChange(
+                            entityId,
+                            option,
+                            (e.target as HTMLElement & { checked: boolean }).checked,
+                          )}
+                      ></ha-checkbox>
+                      ${localize(label, lang)}
+                    </label>`,
+                  )}
+                  <div class="section-subtitle">${localize("devices.fan_only_seasons", lang)}</div>
+                  <div class="fan-only-seasons">
+                    ${(["spring", "summer", "autumn", "winter"] as const).map(
+                      (season) => html`<label class="fan-only-condition">
+                        <ha-checkbox
+                          .checked=${(device.fan_only_seasons ?? []).includes(season)}
+                          @change=${(e: Event) =>
+                            this._onFanOnlySeasonChange(
+                              entityId,
+                              season,
+                              (e.target as HTMLElement & { checked: boolean }).checked,
+                            )}
+                        ></ha-checkbox>
+                        ${localize(`devices.fan_only_season_${season}` as TranslationKey, lang)}
+                      </label>`,
+                    )}
+                  </div>
+                  <div class="fan-only-hint">${localize("devices.fan_only_season_hint", lang)}</div>
+                </div>`
+              : nothing}
           `
         : nothing}
       ${isThermostat
@@ -891,6 +963,38 @@ export class RsDeviceSection extends LitElement {
       d.entity_id === entityId ? { ...d, idle_fan_mode: fanMode } : d,
     );
     this._fireDeviceChanged(newDevices);
+  }
+
+  private _onFanOnlyOptionChange(
+    entityId: string,
+    option:
+      | "fan_only_only_after_cooling"
+      | "fan_only_require_presence"
+      | "fan_only_require_schedule",
+    enabled: boolean,
+  ): void {
+    this._fireDeviceChanged(
+      this.devices.map((d) => (d.entity_id === entityId ? { ...d, [option]: enabled } : d)),
+    );
+  }
+
+  private _onFanOnlySeasonChange(
+    entityId: string,
+    season: NonNullable<DeviceConfig["fan_only_seasons"]>[number],
+    enabled: boolean,
+  ): void {
+    this._fireDeviceChanged(
+      this.devices.map((d) => {
+        if (d.entity_id !== entityId) return d;
+        const seasons = new Set(d.fan_only_seasons ?? []);
+        if (enabled) {
+          seasons.add(season);
+        } else {
+          seasons.delete(season);
+        }
+        return { ...d, fan_only_seasons: [...seasons] };
+      }),
+    );
   }
 
   private _onPowerSensorChange(entityId: string, powerSensor: string): void {

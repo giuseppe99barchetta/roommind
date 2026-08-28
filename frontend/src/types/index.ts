@@ -92,6 +92,10 @@ export interface DeviceConfig {
   heating_system_type?: string;
   idle_action?: "off" | "fan_only" | "setback" | "low"; // default "off"
   idle_fan_mode?: string; // default "low"
+  fan_only_only_after_cooling?: boolean;
+  fan_only_require_presence?: boolean;
+  fan_only_require_schedule?: boolean;
+  fan_only_seasons?: Array<"spring" | "summer" | "autumn" | "winter">;
   setpoint_mode?: "proportional" | "direct"; // default "proportional"
   power_sensor_entity_id?: string; // instantaneous AC consumption sensor (W/kW)
 }

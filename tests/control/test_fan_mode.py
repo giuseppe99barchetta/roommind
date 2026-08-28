@@ -66,6 +66,97 @@ async def test_async_idle_device_fan_only():
 
 
 @pytest.mark.asyncio
+async def test_async_idle_device_fan_only_conditions_turn_off():
+    """A failed fan-only condition falls back to the safe off action."""
+    clear_command_cache()
+    hass = build_hass()
+    state = MagicMock()
+    state.state = "cool"
+    state.attributes = {"hvac_modes": ["cool", "fan_only", "off"], "fan_modes": ["low"]}
+    hass.states.get = MagicMock(return_value=state)
+
+    devices = [
+        {"entity_id": "climate.ac1", "type": "ac", "role": "auto", "idle_action": "fan_only", "idle_fan_mode": "low"}
+    ]
+    await async_idle_device(hass, "climate.ac1", devices, area_id="living_room", fan_only_conditions_met=False)
+
+    hass.services.async_call.assert_called_once_with(
+        "climate",
+        "set_hvac_mode",
+        {"entity_id": "climate.ac1", "hvac_mode": "off"},
+        blocking=True,
+        context=ANY,
+    )
+
+
+@pytest.mark.asyncio
+async def test_mpc_idle_fan_only_conditions_support_season_presence_and_schedule():
+    """Fan only needs every configured season, presence, and schedule condition."""
+    clear_command_cache()
+    hass = build_hass()
+    ac_state = MagicMock()
+    ac_state.state = "cool"
+    ac_state.attributes = {"hvac_modes": ["cool", "fan_only", "off"], "fan_modes": ["low"]}
+    summer_state = MagicMock()
+    summer_state.state = "summer"
+    hass.states.get = MagicMock(side_effect=lambda eid: summer_state if eid == "sensor.season" else ac_state)
+
+    room = make_room(thermostats=[], acs=["climate.ac1"])
+    room["devices"] = [
+        {
+            "entity_id": "climate.ac1",
+            "type": "ac",
+            "role": "auto",
+            "idle_action": "fan_only",
+            "idle_fan_mode": "low",
+            "fan_only_only_after_cooling": True,
+            "fan_only_require_presence": True,
+            "fan_only_require_schedule": True,
+            "fan_only_seasons": ["summer"],
+        }
+    ]
+    controller = MPCController(
+        hass,
+        room,
+        model_manager=RoomModelManager(),
+        outdoor_temp=30.0,
+        settings={},
+        has_external_sensor=True,
+    )
+    controller._fan_only_presence_home = True
+    controller._fan_only_schedule_active = True
+    assert controller._fan_only_conditions_met("climate.ac1") is True
+    controller._fan_only_presence_home = False
+    assert controller._fan_only_conditions_met("climate.ac1") is False
+    controller._fan_only_presence_home = True
+    controller._fan_only_schedule_active = False
+    assert controller._fan_only_conditions_met("climate.ac1") is False
+    controller._fan_only_schedule_active = True
+    await controller.async_apply(
+        MODE_IDLE,
+        TargetTemps(heat=None, cool=24.0),
+        fan_only_presence_home=True,
+        fan_only_schedule_active=True,
+    )
+
+    assert any(
+        call[0][1] == "set_hvac_mode" and call[0][2].get("hvac_mode") == "fan_only"
+        for call in hass.services.async_call.call_args_list
+    )
+    hass.services.async_call.reset_mock()
+    await controller.async_apply(
+        MODE_IDLE,
+        TargetTemps(heat=None, cool=24.0),
+        fan_only_presence_home=False,
+        fan_only_schedule_active=True,
+    )
+    assert any(
+        call[0][1] == "set_hvac_mode" and call[0][2].get("hvac_mode") == "off"
+        for call in hass.services.async_call.call_args_list
+    )
+
+
+@pytest.mark.asyncio
 async def test_async_idle_device_fan_only_unsupported():
     """Device with idle_action='fan_only' but fan_only NOT in hvac_modes falls back to off."""
     _last_commands.clear()

@@ -386,6 +386,7 @@ async def async_idle_device(
     targets: TargetTemps | None = None,
     force_off: bool = False,
     preserve_fan_only: bool = False,
+    fan_only_conditions_met: bool = True,
 ) -> None:
     """Idle a climate device per its configured idle_action.
 
@@ -405,6 +406,8 @@ async def async_idle_device(
     """
     idle_action, idle_fan_mode = get_idle_action(devices, entity_id)
     if force_off and idle_action != IDLE_ACTION_LOW:
+        idle_action = IDLE_ACTION_OFF
+    elif idle_action == IDLE_ACTION_FAN_ONLY and not fan_only_conditions_met:
         idle_action = IDLE_ACTION_OFF
 
     if preserve_fan_only:
@@ -783,6 +786,8 @@ class MPCController:
         self.q_occupancy = q_occupancy
         self._idle_targets: TargetTemps | None = None
         self._force_off = False
+        self._fan_only_presence_home = True
+        self._fan_only_schedule_active = True
 
         s = settings or {}
         self.outdoor_cooling_min = s.get("outdoor_cooling_min", DEFAULT_OUTDOOR_COOLING_MIN)
@@ -798,6 +803,25 @@ class MPCController:
             AC_BOOST_DELTA_MAX,
             AC_BOOST_DELTA_MIN + (AC_BOOST_DELTA_MAX - AC_BOOST_DELTA_MIN) * cw / DEFAULT_COMFORT_WEIGHT,
         )
+
+    def _fan_only_conditions_met(self, entity_id: str) -> bool:
+        """Return whether the configured fan-only filters permit this device."""
+        device = next((d for d in self._devices if d.get("entity_id") == entity_id), {})
+        if device.get("idle_action") != IDLE_ACTION_FAN_ONLY:
+            return True
+        if device.get("fan_only_require_presence", False) and not self._fan_only_presence_home:
+            return False
+        if device.get("fan_only_require_schedule", False) and not self._fan_only_schedule_active:
+            return False
+        if device.get("fan_only_only_after_cooling", False):
+            state = self.hass.states.get(entity_id)
+            if state is None or state.state not in ("cool", "fan_only"):
+                return False
+        seasons = device.get("fan_only_seasons", [])
+        if not seasons:
+            return True
+        season = self.hass.states.get("sensor.season")
+        return season is not None and season.state in seasons
 
     async def async_evaluate(
         self,
@@ -1250,6 +1274,8 @@ class MPCController:
         compressor_forced_off: set[str] | None = None,
         force_off: bool = False,
         window_open: bool = False,
+        fan_only_presence_home: bool = True,
+        fan_only_schedule_active: bool = True,
     ) -> None:
         """Apply the determined mode with proportional valve control.
 
@@ -1274,6 +1300,8 @@ class MPCController:
         # after backward-compat conversion so legacy callers get a TargetTemps.
         self._idle_targets = targets
         self._force_off = force_off
+        self._fan_only_presence_home = fan_only_presence_home
+        self._fan_only_schedule_active = fan_only_schedule_active
 
         # Resolve effective target_temp for the current mode
         if mode == MODE_HEATING:
@@ -1671,15 +1699,19 @@ class MPCController:
                         eid,
                     )
                     continue
-                preserve_physical_fan_only = not force_off and (not window_open or keep_fan_on_window_open)
+                fan_only_conditions_met = self._fan_only_conditions_met(eid)
+                preserve_physical_fan_only = (
+                    fan_only_conditions_met and not force_off and (not window_open or keep_fan_on_window_open)
+                )
                 await async_idle_device(
                     self.hass,
                     eid,
                     self._devices,
-                    area_id=self._area_id,
-                    targets=targets,
-                    force_off=force_off,
-                    preserve_fan_only=preserve_physical_fan_only,
+                area_id=self._area_id,
+                targets=targets,
+                force_off=force_off,
+                preserve_fan_only=preserve_physical_fan_only,
+                fan_only_conditions_met=fan_only_conditions_met,
                 )
 
     def _proportional_deadband(self, eid: str, current_temp: float | None, effective_target: float) -> float | None:
@@ -1710,6 +1742,7 @@ class MPCController:
                 area_id=self._area_id,
                 targets=self._idle_targets,
                 force_off=self._force_off,
+                fan_only_conditions_met=self._fan_only_conditions_met(eid),
             )
             return
 

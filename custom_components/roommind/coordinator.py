@@ -799,6 +799,8 @@ class RoomMindCoordinator(DataUpdateCoordinator):
             if schedule_entity_id
             else None
         )
+        schedule_state = self.hass.states.get(schedule_entity_id) if schedule_entity_id else None
+        fan_only_schedule_active = bool(schedule_state and schedule_state.state == SCHEDULE_STATE_ON)
 
         # Determine dual heat/cool target temperatures
         # Returns TargetTemps(heat, cool). None values mean "force off".
@@ -1239,6 +1241,8 @@ class RoomMindCoordinator(DataUpdateCoordinator):
                     compressor_forced_off=compressor_forced_off or None,
                     force_off=force_off,
                     window_open=window_open,
+                    fan_only_presence_home=bool(settings.get("presence_enabled", False) and not presence_away),
+                    fan_only_schedule_active=fan_only_schedule_active,
                 )
                 if mold_prevention_effective and mold_prevention_strategy == "dry" and not window_open:
                     # Unlike a persisted user DRY mode, prevention is an explicit
