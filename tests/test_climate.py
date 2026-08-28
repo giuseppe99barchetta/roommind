@@ -85,6 +85,32 @@ def test_canonical_mixed_room_capabilities_and_logical_cooling_target(mock_coord
     assert entity.fan_modes == ["low", "high"]
 
 
+def test_canonical_fan_only_and_off_hide_single_temperature_target(mock_coordinator):
+    """Modes without a thermal setpoint must not expose one in the HA climate card."""
+    coordinator, store = mock_coordinator
+    ac = MagicMock(
+        state="fan_only",
+        attributes={"hvac_modes": ["off", "cool", "dry", "fan_only"]},
+    )
+    coordinator.hass.states.get.return_value = ac
+    room = _canonical_room(
+        [{"entity_id": "climate.ac", "type": "ac"}],
+        logical_heat_target=19.3,
+        logical_cool_target=26.0,
+        room_hvac_mode="fan_only",
+    )
+    store.get_room.return_value = room
+    entity = RoomMindClimate(coordinator, "living_room")
+
+    assert entity.target_temperature is None
+
+    room["room_hvac_mode"] = "off"
+    assert entity.target_temperature is None
+
+    room["room_hvac_mode"] = "cool"
+    assert entity.target_temperature == 26.0
+
+
 def test_canonical_trv_only_does_not_expose_ac_modes(mock_coordinator):
     coordinator, store = mock_coordinator
     store.get_room.return_value = _canonical_room([{"entity_id": "climate.trv", "type": "trv"}], room_hvac_mode="heat")

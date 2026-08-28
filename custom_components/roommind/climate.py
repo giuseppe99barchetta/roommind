@@ -266,8 +266,11 @@ class RoomMindClimate(RoomMindOverrideClimate):
 
     @property
     def target_temperature(self) -> float | None:
+        mode = self.hvac_mode
+        if mode in (HVACMode.OFF, HVACMode.FAN_ONLY):
+            return None
         heat, cool = self._logical_targets()
-        return cool if self.hvac_mode in (HVACMode.COOL, HVACMode.DRY) else heat
+        return cool if mode in (HVACMode.COOL, HVACMode.DRY) else heat
 
     @property
     def target_temperature_low(self) -> float | None:
