@@ -315,6 +315,27 @@ def test_target_temperatures_none_when_no_override(mock_coordinator):
     assert entity.target_temperature_high is None
 
 
+def test_current_humidity_from_coordinator_data(mock_coordinator):
+    """current_humidity reads the room humidity from coordinator data."""
+    coordinator, store = mock_coordinator
+    store.get_room.return_value = {"override_heat": None, "override_cool": None}
+    coordinator.data = {"rooms": {"living_room": {"current_humidity": 58.7}}}
+    entity = RoomMindClimate(coordinator, "living_room")
+    assert entity.current_humidity == 58.7
+
+
+def test_current_humidity_missing_or_invalid_returns_none(mock_coordinator):
+    coordinator, store = mock_coordinator
+    store.get_room.return_value = {"override_heat": None, "override_cool": None}
+    entity = RoomMindClimate(coordinator, "living_room")
+
+    coordinator.data = {"rooms": {"living_room": {}}}
+    assert entity.current_humidity is None
+
+    coordinator.data = {"rooms": {"living_room": {"current_humidity": "unknown"}}}
+    assert entity.current_humidity is None
+
+
 def test_current_temperature_from_coordinator_data(mock_coordinator):
     """current_temperature reads from coordinator.data."""
     coordinator, store = mock_coordinator

@@ -158,6 +158,18 @@ class RoomMindOverrideClimate(CoordinatorEntity, ClimateEntity):
         val = room_data.get("current_temp")
         return float(val) if isinstance(val, (int, float)) else None
 
+    @property
+    def current_humidity(self) -> float | None:
+        """Return the room's current relative humidity from coordinator data."""
+        data = self.coordinator.data
+        if not data:
+            return None
+        room_data = data.get("rooms", {}).get(self._area_id)
+        if not room_data:
+            return None
+        val = room_data.get("current_humidity")
+        return float(val) if isinstance(val, (int, float)) else None
+
     async def async_set_temperature(self, **kwargs: Any) -> None:
         """Set override targets from range or single temperature."""
         store = self.coordinator.hass.data[DOMAIN]["store"]
