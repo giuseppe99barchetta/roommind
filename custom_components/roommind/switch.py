@@ -12,7 +12,7 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from .const import DOMAIN, VACATION_SENTINEL_UNTIL
-from .coordinator import RoomMindCoordinator
+from .coordinator import RoomMindCoordinator, _get_room_display_name
 
 
 def _create_room_switches(
@@ -56,7 +56,7 @@ class RoomMindCoverAutoSwitch(CoordinatorEntity, SwitchEntity):
         super().__init__(coordinator)
         self._area_id = area_id
         self._attr_unique_id = f"{DOMAIN}_{area_id}_cover_auto"
-        self._attr_name = f"{area_id} Cover Auto"
+        self._attr_name = f"{_get_room_display_name(coordinator.hass, area_id)} Cover Auto"
         self._attr_icon = "mdi:blinds-horizontal"
         self.entity_id = f"switch.{DOMAIN}_{area_id}_cover_auto"
 
@@ -87,7 +87,7 @@ class RoomMindClimateControlSwitch(CoordinatorEntity, SwitchEntity):
         super().__init__(coordinator)
         self._area_id = area_id
         self._attr_unique_id = f"{DOMAIN}_{area_id}_climate_control"
-        self._attr_name = f"{area_id} Climate Control"
+        self._attr_name = f"{_get_room_display_name(coordinator.hass, area_id)} Climate Control"
         self._attr_icon = "mdi:thermostat"
         self.entity_id = f"switch.{DOMAIN}_{area_id}_climate_control"
 

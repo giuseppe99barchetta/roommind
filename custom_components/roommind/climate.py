@@ -25,7 +25,7 @@ from .const import (
     is_override_active,
 )
 from .control.mpc_controller import async_turn_off_climate, resolve_hvac_mode
-from .coordinator import RoomMindCoordinator
+from .coordinator import RoomMindCoordinator, _get_room_display_name
 from .managers.room_climate import RoomClimateCapabilities, room_capabilities
 from .utils.device_utils import get_ac_eids, get_all_entity_ids, get_trv_eids
 from .utils.temp_utils import celsius_to_ha_temp, quantize_temperature_for_entity
@@ -76,7 +76,7 @@ class RoomMindOverrideClimate(CoordinatorEntity, ClimateEntity):
         super().__init__(coordinator)
         self._area_id = area_id
         self._attr_unique_id = f"{DOMAIN}_{area_id}_override"
-        self._attr_name = f"{area_id} Override"
+        self._attr_name = f"{_get_room_display_name(coordinator.hass, area_id)} Override"
         self.entity_id = f"climate.{DOMAIN}_{area_id}_override"
 
     def _room(self) -> dict | None:
@@ -267,7 +267,7 @@ class RoomMindClimate(RoomMindOverrideClimate):
         CoordinatorEntity.__init__(self, coordinator)
         self._area_id = area_id
         self._attr_unique_id = f"{DOMAIN}_{area_id}"
-        self._attr_name = area_id
+        self._attr_name = _get_room_display_name(coordinator.hass, area_id)
         self.entity_id = f"climate.{DOMAIN}_{area_id}"
 
     def _capabilities(self) -> RoomClimateCapabilities:
