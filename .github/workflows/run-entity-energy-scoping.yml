@@ -4,6 +4,7 @@ on:
     branches: [fix/entity-energy-scoping]
     paths:
       - scripts/apply_entity_energy_scoping.py
+      - scripts/fix_entity_energy_tests.py
       - .github/workflows/run-entity-energy-scoping.yml
 permissions:
   contents: write
@@ -19,7 +20,9 @@ jobs:
         with:
           python-version: '3.12'
       - name: Apply patch
-        run: python scripts/apply_entity_energy_scoping.py
+        run: |
+          python scripts/apply_entity_energy_scoping.py
+          python scripts/fix_entity_energy_tests.py
       - name: Install deps
         run: pip install -r requirements-dev.txt
       - name: Format and lint
@@ -34,6 +37,7 @@ jobs:
       - name: Commit result
         run: |
           rm scripts/apply_entity_energy_scoping.py
+          rm scripts/fix_entity_energy_tests.py
           rm .github/workflows/run-entity-energy-scoping.yml
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
