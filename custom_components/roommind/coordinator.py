@@ -1943,8 +1943,19 @@ class RoomMindCoordinator(DataUpdateCoordinator):
             self.async_add_entities(entities)
             self._entity_areas.add(area_id)
 
-        # Canonical room climate entity: always create
-        if (
+        # Outdoor areas are sensor/analytics-only and must never expose a
+        # canonical climate entity. If an existing room is converted to outdoor,
+        # remove its previously registered climate immediately.
+        if room.get("is_outdoor", False):
+            from homeassistant.helpers import entity_registry as er
+
+            registry = er.async_get(self.hass)
+            climate_uid = f"{DOMAIN}_{area_id}"
+            for entity_entry in list(registry.entities.values()):
+                if entity_entry.unique_id == climate_uid:
+                    registry.async_remove(entity_entry.entity_id)
+            self._climate_entity_areas.discard(area_id)
+        elif (
             area_id not in self._climate_entity_areas
             and hasattr(self, "async_add_climate_entities")
             and self.async_add_climate_entities
@@ -2063,6 +2074,10 @@ class RoomMindCoordinator(DataUpdateCoordinator):
                 continue
 
             area_id, suffix = match
+            if suffix == "" and rooms[area_id].get("is_outdoor", False):
+                # Canonical climate is invalid for outdoor areas.
+                to_remove.append(entity_entry.entity_id)
+                continue
             if suffix in COVER_ENTITY_SUFFIXES and not rooms[area_id].get("covers"):
                 # Cover entity for a room without covers configured — orphaned.
                 to_remove.append(entity_entry.entity_id)

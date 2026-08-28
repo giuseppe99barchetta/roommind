@@ -53,6 +53,25 @@ def test_create_room_climates(mock_coordinator):
     assert isinstance(climates[0], RoomMindClimate)
 
 
+@pytest.mark.asyncio
+async def test_setup_skips_outdoor_room(mock_coordinator):
+    coordinator, store = mock_coordinator
+    coordinator._climate_entity_areas = set()
+    store.get_rooms.return_value = {
+        "living_room": {"is_outdoor": False},
+        "terrace": {"is_outdoor": True},
+    }
+    coordinator.hass.data[DOMAIN]["entry"] = coordinator
+    entry = MagicMock(entry_id="entry")
+    add_entities = MagicMock()
+
+    await async_setup_entry(coordinator.hass, entry, add_entities)
+
+    created = add_entities.call_args.args[0]
+    assert [entity._area_id for entity in created] == ["living_room"]
+    assert coordinator._climate_entity_areas == {"living_room"}
+
+
 def _canonical_room(devices, **overrides):
     room = {
         "devices": devices,
