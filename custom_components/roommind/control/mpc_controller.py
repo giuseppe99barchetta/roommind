@@ -1662,6 +1662,10 @@ class MPCController:
                         eid,
                     )
                     continue
+                preserve_physical_fan_only = (
+                    not force_off
+                    and (not window_open or keep_fan_on_window_open)
+                )
                 await async_idle_device(
                     self.hass,
                     eid,
@@ -1669,7 +1673,7 @@ class MPCController:
                     area_id=self._area_id,
                     targets=targets,
                     force_off=force_off,
-                    preserve_fan_only=window_open and not force_off,
+                    preserve_fan_only=preserve_physical_fan_only,
                 )
 
     def _proportional_deadband(self, eid: str, current_temp: float | None, effective_target: float) -> float | None:

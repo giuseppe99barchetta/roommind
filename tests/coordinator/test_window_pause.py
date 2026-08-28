@@ -106,8 +106,8 @@ class TestRoomMindCoordinator:
         ) not in calls
 
     @pytest.mark.asyncio
-    async def test_persisted_fan_only_does_not_cycle_off_on_startup(self, hass, mock_config_entry):
-        """Persisted fan_only intent must not send OFF before FAN_ONLY on first refresh."""
+    async def test_persisted_fan_only_does_not_power_on_ac_at_startup(self, hass, mock_config_entry):
+        """Persisted fan_only intent must never power on an AC that is physically off."""
         ac_entity = "climate.living_room_ac"
         room = {
             **SAMPLE_ROOM,
@@ -149,7 +149,7 @@ class TestRoomMindCoordinator:
             {"entity_id": ac_entity, "hvac_mode": "fan_only"},
             blocking=True,
             context=ANY,
-        ) in calls
+        ) not in calls
 
     @pytest.mark.asyncio
     async def test_persisted_fan_only_already_active_is_not_reasserted(self, hass, mock_config_entry):
@@ -183,6 +183,54 @@ class TestRoomMindCoordinator:
 
         hvac_calls = [c for c in hass.services.async_call.call_args_list if len(c.args) >= 2 and c.args[:2] == ("climate", "set_hvac_mode")]
         assert not any(c.args[2].get("entity_id") == ac_entity for c in hvac_calls)
+
+
+    @pytest.mark.asyncio
+    async def test_physical_fan_only_is_preserved_during_normal_idle(self, hass, mock_config_entry):
+        """Thermal idle must not turn off a physical fan_only state that reflects manual user intent."""
+        ac_entity = "climate.living_room_ac"
+        room = {
+            **SAMPLE_ROOM,
+            "thermostats": [],
+            "acs": [ac_entity],
+            "devices": [{"entity_id": ac_entity, "type": "ac", "role": "auto", "heating_system_type": ""}],
+            "room_hvac_mode": "heat_cool",
+            "logical_heat_target": 20.0,
+            "logical_cool_target": 26.0,
+            "window_sensors": [],
+        }
+        store = _make_store_mock({"living_room_abc12345": room})
+        hass.data = {"roommind": {"store": store}}
+        hass.states.get = MagicMock(
+            side_effect=make_mock_states_get(
+                temp="23.0",
+                extra={
+                    ac_entity: (
+                        "fan_only",
+                        {
+                            "hvac_modes": ["off", "cool", "fan_only"],
+                            "hvac_action": "fan",
+                            "current_temperature": 23.0,
+                            "min_temp": 16.0,
+                            "max_temp": 30.0,
+                        },
+                    )
+                },
+            )
+        )
+        hass.services.async_call = AsyncMock()
+
+        coordinator = _create_coordinator(hass, mock_config_entry)
+        await coordinator._async_update_data()
+
+        calls = hass.services.async_call.call_args_list
+        assert call(
+            "climate",
+            "set_hvac_mode",
+            {"entity_id": ac_entity, "hvac_mode": "off"},
+            blocking=True,
+            context=ANY,
+        ) not in calls
 
 
     @pytest.mark.asyncio

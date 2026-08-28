@@ -69,18 +69,14 @@ async def async_apply_ac_auxiliary_mode(
         return
 
     if mode in ("dry", "fan_only"):
-        # Do not reassert an auxiliary mode that the physical device already
-        # reports.  This is especially important during HA startup, when the
-        # first coordinator refresh runs before RoomMind entities are created.
+        # Persisted RoomMind state is not an activation request. Auxiliary
+        # modes are activated only by an explicit climate.roommind_* command.
+        # The coordinator may preserve/configure them only while the physical
+        # AC already reports the same mode. This prevents HA startup or a
+        # periodic refresh from powering on an AC that the user left off.
         state = hass.states.get(entity_id)
         if state is None or state.state != mode:
-            await hass.services.async_call(
-                "climate",
-                "set_hvac_mode",
-                {"entity_id": entity_id, "hvac_mode": mode},
-                blocking=True,
-                context=make_roommind_context(),
-            )
+            return
     for service, key in (
         ("set_fan_mode", "room_fan_mode"),
         ("set_swing_mode", "room_swing_mode"),
