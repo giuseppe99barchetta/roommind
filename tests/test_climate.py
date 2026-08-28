@@ -497,9 +497,7 @@ async def test_async_setup_entry_no_rooms():
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize("global_enabled,room_enabled", [(False, True), (True, False), (False, False)])
-async def test_canonical_manual_fan_only_bypasses_automation_switches(
-    mock_coordinator, global_enabled, room_enabled
-):
+async def test_canonical_manual_fan_only_bypasses_automation_switches(mock_coordinator, global_enabled, room_enabled):
     """Explicit fan-only commands remain manual even when automation is disabled."""
     coordinator, store = mock_coordinator
     room = _canonical_room(
@@ -542,7 +540,9 @@ async def test_canonical_manual_cool_bypasses_global_automation_switch(mock_coor
     coordinator.hass.services.async_call.assert_any_await(
         "climate", "set_hvac_mode", {"entity_id": "climate.ac", "hvac_mode": "cool"}, blocking=True
     )
-    assert any(call.args[:2] == ("climate", "set_temperature") for call in coordinator.hass.services.async_call.await_args_list)
+    assert any(
+        call.args[:2] == ("climate", "set_temperature") for call in coordinator.hass.services.async_call.await_args_list
+    )
 
 
 @pytest.mark.asyncio

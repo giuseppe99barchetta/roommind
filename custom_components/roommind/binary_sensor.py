@@ -65,11 +65,13 @@ class RoomMindCoverPausedSensor(CoordinatorEntity, BinarySensorEntity):
 class _GlobalBinarySensor(CoordinatorEntity, BinarySensorEntity):
     _attr_has_entity_name = True
     _key: str
+
     def __init__(self, coordinator: RoomMindCoordinator, suffix: str, name: str) -> None:
         super().__init__(coordinator)
         self._attr_unique_id = f"{DOMAIN}_{suffix}"
         self._attr_name = name
         self.entity_id = f"binary_sensor.{DOMAIN}_{suffix}"
+
     @property
     def is_on(self) -> bool:
         return bool((self.coordinator.data or {}).get(self._key, False))
@@ -77,11 +79,13 @@ class _GlobalBinarySensor(CoordinatorEntity, BinarySensorEntity):
 
 class RoomMindBoilerActiveSensor(_GlobalBinarySensor):
     _key = "boiler_active"
+
     def __init__(self, coordinator: RoomMindCoordinator) -> None:
         super().__init__(coordinator, "boiler_active", "Boiler Active")
 
 
 class RoomMindHydraulicPathSafeSensor(_GlobalBinarySensor):
     _key = "hydraulic_path_safe"
+
     def __init__(self, coordinator: RoomMindCoordinator) -> None:
         super().__init__(coordinator, "hydraulic_path_safe", "Hydraulic Path Safe")

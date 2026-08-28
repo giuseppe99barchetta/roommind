@@ -56,7 +56,9 @@ class HeatSourcePlan:
     reason: str
 
 
-def _native_commands(thermostats: list[str], acs: list[str], active: str, power_fraction: float, reason: str) -> HeatSourcePlan:
+def _native_commands(
+    thermostats: list[str], acs: list[str], active: str, power_fraction: float, reason: str
+) -> HeatSourcePlan:
     """Build the shared device-command form used by the MPC controller."""
     commands: list[DeviceCommand] = []
     for eid in thermostats:
@@ -98,7 +100,13 @@ def evaluate_native_heat_sources(
     if not acs:
         return _native_commands(trvs, acs, "boiler" if trvs else "inactive", power_fraction, "heat_pump_unavailable")
     if not trvs:
-        return _native_commands(trvs, acs, "heat_pump" if allow_heat_pump else "inactive", power_fraction, "boiler_unavailable" if not allow_heat_pump else "heat_pump_only")
+        return _native_commands(
+            trvs,
+            acs,
+            "heat_pump" if allow_heat_pump else "inactive",
+            power_fraction,
+            "boiler_unavailable" if not allow_heat_pump else "heat_pump_only",
+        )
     if not allow_heat_pump:
         return _native_commands(trvs, acs, "boiler", power_fraction, "electrical_budget_limited")
     cold = float(room_config.get("heat_source_boiler_outdoor_threshold", DEFAULT_HEAT_SOURCE_BOILER_OUTDOOR))
@@ -115,7 +123,10 @@ def evaluate_native_heat_sources(
     elif gap >= hybrid_gap + (hysteresis if previous_source != "hybrid" else -hysteresis):
         choice, reason = "hybrid", "large_temperature_deficit"
     else:
-        choice, reason = (previous_source if previous_source in {"heat_pump", "hybrid", "boiler"} else "heat_pump"), "source_hysteresis"
+        choice, reason = (
+            (previous_source if previous_source in {"heat_pump", "hybrid", "boiler"} else "heat_pump"),
+            "source_hysteresis",
+        )
     return _native_commands(trvs, acs, choice, power_fraction, reason)
 
 

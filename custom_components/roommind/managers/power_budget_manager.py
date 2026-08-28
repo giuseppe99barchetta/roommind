@@ -50,7 +50,9 @@ class PowerBudgetManager:
             return
         max_power = float(settings.get("power_budget_max_watts", 0) or 0)
         reserve = float(settings.get("power_budget_reserve_watts", 0) or 0)
-        self._available = max(0.0, (max_power - value if settings.get("power_sensor_mode") == "consumption" else value) - reserve)
+        self._available = max(
+            0.0, (max_power - value if settings.get("power_sensor_mode") == "consumption" else value) - reserve
+        )
 
     def request_heat_pump(self, room_id: str, watts: float, already_running: bool) -> bool:
         """Grant a requested heat-pump allocation, without charging it twice."""

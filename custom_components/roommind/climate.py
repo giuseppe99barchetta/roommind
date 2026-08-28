@@ -24,9 +24,9 @@ from .const import (
     OVERRIDE_CUSTOM,
     is_override_active,
 )
-from .coordinator import RoomMindCoordinator
 from .control.mpc_controller import async_turn_off_climate, resolve_hvac_mode
-from .managers.room_climate import room_capabilities
+from .coordinator import RoomMindCoordinator
+from .managers.room_climate import RoomClimateCapabilities, room_capabilities
 from .utils.device_utils import get_ac_eids, get_all_entity_ids, get_trv_eids
 from .utils.temp_utils import celsius_to_ha_temp
 
@@ -193,6 +193,7 @@ class RoomMindOverrideClimate(CoordinatorEntity, ClimateEntity):
     async def async_set_hvac_mode(self, hvac_mode: HVACMode) -> None:
         """Legacy override endpoint behaviour retained for automations."""
         store = self.coordinator.hass.data[DOMAIN]["store"]
+        updates: dict[str, Any] | None
         if hvac_mode == HVACMode.OFF:
             updates = {"override_heat": None, "override_cool": None, "override_until": None, "override_type": None}
         elif not self._is_override_active():
@@ -224,7 +225,7 @@ class RoomMindClimate(RoomMindOverrideClimate):
         self._attr_name = area_id
         self.entity_id = f"climate.{DOMAIN}_{area_id}"
 
-    def _capabilities(self):
+    def _capabilities(self) -> RoomClimateCapabilities:
         return room_capabilities(self.coordinator.hass, self._room() or {})
 
     def _logical_targets(self) -> tuple[float, float]:
@@ -281,7 +282,7 @@ class RoomMindClimate(RoomMindOverrideClimate):
         return self._logical_targets()[1]
 
     @property
-    def hvac_action(self):
+    def hvac_action(self) -> Any:
         mode = self.hvac_mode
         if mode == HVACMode.OFF:
             return None
@@ -403,12 +404,14 @@ class RoomMindClimate(RoomMindOverrideClimate):
                 resolved = resolve_hvac_mode("heat", modes)
                 if resolved is not None:
                     await hass.services.async_call(
-                        "climate", "set_hvac_mode",
+                        "climate",
+                        "set_hvac_mode",
                         {"entity_id": entity_id, "hvac_mode": resolved},
                         blocking=True,
                     )
                     await hass.services.async_call(
-                        "climate", "set_temperature",
+                        "climate",
+                        "set_temperature",
                         {"entity_id": entity_id, "temperature": ha_heat},
                         blocking=True,
                     )
@@ -425,12 +428,13 @@ class RoomMindClimate(RoomMindOverrideClimate):
         if resolved is None:
             return
         await hass.services.async_call(
-            "climate", "set_hvac_mode",
+            "climate",
+            "set_hvac_mode",
             {"entity_id": entity_id, "hvac_mode": resolved},
             blocking=True,
         )
         if mode in ("cool", "heat", "heat_cool", "auto"):
-            data = {"entity_id": entity_id}
+            data: dict[str, Any] = {"entity_id": entity_id}
             if mode in ("heat_cool", "auto") and state and state.attributes.get("target_temp_low") is not None:
                 data.update(
                     target_temp_low=celsius_to_ha_temp(hass, heat),

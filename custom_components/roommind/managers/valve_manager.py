@@ -9,8 +9,8 @@ from homeassistant.core import HomeAssistant
 
 from ..const import (
     DEFAULT_COMFORT_HEAT,
-    DOMAIN,
     DEFAULT_VALVE_PROTECTION_INTERVAL,
+    DOMAIN,
     HEATING_BOOST_TARGET,
     VALVE_PROTECTION_CHECK_CYCLES,
     VALVE_PROTECTION_CYCLE_DURATION,

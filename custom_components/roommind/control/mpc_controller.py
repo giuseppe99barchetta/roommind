@@ -1662,10 +1662,7 @@ class MPCController:
                         eid,
                     )
                     continue
-                preserve_physical_fan_only = (
-                    not force_off
-                    and (not window_open or keep_fan_on_window_open)
-                )
+                preserve_physical_fan_only = not force_off and (not window_open or keep_fan_on_window_open)
                 await async_idle_device(
                     self.hass,
                     eid,

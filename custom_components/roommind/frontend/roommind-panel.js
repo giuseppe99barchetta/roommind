@@ -2626,10 +2626,32 @@
         margin-top: 1px;
       }
 
-      .fan-window-toggle { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 10px; padding: 9px 10px; border-radius: 9px; background: rgba(255,255,255,0.025); }
-      .fan-window-toggle-text { min-width: 0; }
-      .fan-window-toggle-label { display: block; color: var(--primary-text-color); font-size: 12.5px; font-weight: 500; }
-      .fan-window-toggle-hint { display: block; color: var(--secondary-text-color); font-size: 11px; line-height: 1.4; margin-top: 2px; }
+      .fan-window-toggle {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        margin-top: 10px;
+        padding: 9px 10px;
+        border-radius: 9px;
+        background: rgba(255, 255, 255, 0.025);
+      }
+      .fan-window-toggle-text {
+        min-width: 0;
+      }
+      .fan-window-toggle-label {
+        display: block;
+        color: var(--primary-text-color);
+        font-size: 12.5px;
+        font-weight: 500;
+      }
+      .fan-window-toggle-hint {
+        display: block;
+        color: var(--secondary-text-color);
+        font-size: 11px;
+        line-height: 1.4;
+        margin-top: 2px;
+      }
 
       .delay-view {
         font-size: 12px;
@@ -2811,10 +2833,17 @@
       </div>
       <div class="fan-window-toggle">
         <div class="fan-window-toggle-text">
-          <span class="fan-window-toggle-label">${S(`devices.keep_fan_only_window`,e)}</span>
-          <span class="fan-window-toggle-hint">${S(`devices.keep_fan_only_window_hint`,e)}</span>
+          <span class="fan-window-toggle-label"
+            >${S(`devices.keep_fan_only_window`,e)}</span
+          >
+          <span class="fan-window-toggle-hint"
+            >${S(`devices.keep_fan_only_window_hint`,e)}</span
+          >
         </div>
-        <ha-switch .checked=${this.keepFanOnlyOnWindowOpen} @change=${this._onKeepFanOnlyWindowChange}></ha-switch>
+        <ha-switch
+          .checked=${this.keepFanOnlyOnWindowOpen}
+          @change=${this._onKeepFanOnlyWindowChange}
+        ></ha-switch>
       </div>
       ${this.heatingSystemType===`underfloor`&&this.windowOpenDelay<300?m`
             <div class="delay-hint">

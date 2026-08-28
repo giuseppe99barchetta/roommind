@@ -97,13 +97,16 @@ class TestRoomMindCoordinator:
         assert room_state["window_open"] is True
 
         calls = hass.services.async_call.call_args_list
-        assert call(
-            "climate",
-            "set_hvac_mode",
-            {"entity_id": ac_entity, "hvac_mode": "off"},
-            blocking=True,
-            context=ANY,
-        ) not in calls
+        assert (
+            call(
+                "climate",
+                "set_hvac_mode",
+                {"entity_id": ac_entity, "hvac_mode": "off"},
+                blocking=True,
+                context=ANY,
+            )
+            not in calls
+        )
 
     @pytest.mark.asyncio
     async def test_persisted_fan_only_does_not_power_on_ac_at_startup(self, hass, mock_config_entry):
@@ -136,20 +139,26 @@ class TestRoomMindCoordinator:
         await coordinator._async_update_data()
 
         calls = hass.services.async_call.call_args_list
-        assert call(
-            "climate",
-            "set_hvac_mode",
-            {"entity_id": ac_entity, "hvac_mode": "off"},
-            blocking=True,
-            context=ANY,
-        ) not in calls
-        assert call(
-            "climate",
-            "set_hvac_mode",
-            {"entity_id": ac_entity, "hvac_mode": "fan_only"},
-            blocking=True,
-            context=ANY,
-        ) not in calls
+        assert (
+            call(
+                "climate",
+                "set_hvac_mode",
+                {"entity_id": ac_entity, "hvac_mode": "off"},
+                blocking=True,
+                context=ANY,
+            )
+            not in calls
+        )
+        assert (
+            call(
+                "climate",
+                "set_hvac_mode",
+                {"entity_id": ac_entity, "hvac_mode": "fan_only"},
+                blocking=True,
+                context=ANY,
+            )
+            not in calls
+        )
 
     @pytest.mark.asyncio
     async def test_persisted_fan_only_already_active_is_not_reasserted(self, hass, mock_config_entry):
@@ -181,9 +190,12 @@ class TestRoomMindCoordinator:
         coordinator = _create_coordinator(hass, mock_config_entry)
         await coordinator._async_update_data()
 
-        hvac_calls = [c for c in hass.services.async_call.call_args_list if len(c.args) >= 2 and c.args[:2] == ("climate", "set_hvac_mode")]
+        hvac_calls = [
+            c
+            for c in hass.services.async_call.call_args_list
+            if len(c.args) >= 2 and c.args[:2] == ("climate", "set_hvac_mode")
+        ]
         assert not any(c.args[2].get("entity_id") == ac_entity for c in hvac_calls)
-
 
     @pytest.mark.asyncio
     async def test_physical_fan_only_is_preserved_during_normal_idle(self, hass, mock_config_entry):
@@ -224,14 +236,16 @@ class TestRoomMindCoordinator:
         await coordinator._async_update_data()
 
         calls = hass.services.async_call.call_args_list
-        assert call(
-            "climate",
-            "set_hvac_mode",
-            {"entity_id": ac_entity, "hvac_mode": "off"},
-            blocking=True,
-            context=ANY,
-        ) not in calls
-
+        assert (
+            call(
+                "climate",
+                "set_hvac_mode",
+                {"entity_id": ac_entity, "hvac_mode": "off"},
+                blocking=True,
+                context=ANY,
+            )
+            not in calls
+        )
 
     @pytest.mark.asyncio
     async def test_physical_fan_only_is_preserved_with_stale_trv_classification(self, hass, mock_config_entry):
@@ -273,14 +287,16 @@ class TestRoomMindCoordinator:
         coordinator = _create_coordinator(hass, mock_config_entry)
         await coordinator._async_update_data()
 
-        assert call(
-            "climate",
-            "set_hvac_mode",
-            {"entity_id": ac_entity, "hvac_mode": "off"},
-            blocking=True,
-            context=ANY,
-        ) not in hass.services.async_call.call_args_list
-
+        assert (
+            call(
+                "climate",
+                "set_hvac_mode",
+                {"entity_id": ac_entity, "hvac_mode": "off"},
+                blocking=True,
+                context=ANY,
+            )
+            not in hass.services.async_call.call_args_list
+        )
 
     @pytest.mark.asyncio
     async def test_window_closed_normal_operation(self, hass, mock_config_entry):

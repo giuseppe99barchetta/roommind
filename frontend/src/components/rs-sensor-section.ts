@@ -263,10 +263,32 @@ export class RsSensorSection extends LitElement {
         margin-top: 1px;
       }
 
-      .fan-window-toggle { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 10px; padding: 9px 10px; border-radius: 9px; background: rgba(255,255,255,0.025); }
-      .fan-window-toggle-text { min-width: 0; }
-      .fan-window-toggle-label { display: block; color: var(--primary-text-color); font-size: 12.5px; font-weight: 500; }
-      .fan-window-toggle-hint { display: block; color: var(--secondary-text-color); font-size: 11px; line-height: 1.4; margin-top: 2px; }
+      .fan-window-toggle {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        margin-top: 10px;
+        padding: 9px 10px;
+        border-radius: 9px;
+        background: rgba(255, 255, 255, 0.025);
+      }
+      .fan-window-toggle-text {
+        min-width: 0;
+      }
+      .fan-window-toggle-label {
+        display: block;
+        color: var(--primary-text-color);
+        font-size: 12.5px;
+        font-weight: 500;
+      }
+      .fan-window-toggle-hint {
+        display: block;
+        color: var(--secondary-text-color);
+        font-size: 11px;
+        line-height: 1.4;
+        margin-top: 2px;
+      }
 
       .delay-view {
         font-size: 12px;
@@ -631,10 +653,17 @@ export class RsSensorSection extends LitElement {
       </div>
       <div class="fan-window-toggle">
         <div class="fan-window-toggle-text">
-          <span class="fan-window-toggle-label">${localize("devices.keep_fan_only_window", lang)}</span>
-          <span class="fan-window-toggle-hint">${localize("devices.keep_fan_only_window_hint", lang)}</span>
+          <span class="fan-window-toggle-label"
+            >${localize("devices.keep_fan_only_window", lang)}</span
+          >
+          <span class="fan-window-toggle-hint"
+            >${localize("devices.keep_fan_only_window_hint", lang)}</span
+          >
         </div>
-        <ha-switch .checked=${this.keepFanOnlyOnWindowOpen} @change=${this._onKeepFanOnlyWindowChange}></ha-switch>
+        <ha-switch
+          .checked=${this.keepFanOnlyOnWindowOpen}
+          @change=${this._onKeepFanOnlyWindowChange}
+        ></ha-switch>
       </div>
       ${this.heatingSystemType === "underfloor" && this.windowOpenDelay < 300
         ? html`
@@ -908,7 +937,13 @@ export class RsSensorSection extends LitElement {
 
   private _onKeepFanOnlyWindowChange = (e: Event) => {
     const value = (e.target as HTMLElement & { checked: boolean }).checked;
-    this.dispatchEvent(new CustomEvent("sensor-changed", { detail: { key: "keep_fan_only_on_window_open", value }, bubbles: true, composed: true }));
+    this.dispatchEvent(
+      new CustomEvent("sensor-changed", {
+        detail: { key: "keep_fan_only_on_window_open", value },
+        bubbles: true,
+        composed: true,
+      }),
+    );
   };
 
   private _onWindowOpenDelayChange = (e: Event) => {

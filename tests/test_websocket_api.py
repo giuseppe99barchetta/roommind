@@ -1115,9 +1115,7 @@ async def test_save_settings(ws_hass, store, connection):
         (["climate.valvola_bagno"], ["climate.valvola_bagno"]),
     ),
 )
-async def test_save_settings_normalizes_native_heating_fields(
-    ws_hass, store, connection, bypasses, expected_bypasses
-):
+async def test_save_settings_normalizes_native_heating_fields(ws_hass, store, connection, bypasses, expected_bypasses):
     """Save accepts legacy bypass scalars and persists the canonical list."""
     await store.async_load()
 
@@ -1158,9 +1156,9 @@ def test_save_settings_schema_normalizes_legacy_bypass_and_rejects_invalid_field
         }
     )["hydraulic_bypass_entities"] == ["climate.valvola_bagno"]
 
-    assert schema(
-        {"type": "roommind/settings/save", "hydraulic_bypass_entities": "climate.valvola_bagno"}
-    )["hydraulic_bypass_entities"] == ["climate.valvola_bagno"]
+    assert schema({"type": "roommind/settings/save", "hydraulic_bypass_entities": "climate.valvola_bagno"})[
+        "hydraulic_bypass_entities"
+    ] == ["climate.valvola_bagno"]
 
     with pytest.raises(vol.Invalid):
         schema({"type": "roommind/settings/save", "hydraulic_bypass_entities": ["climate.valvola_bagno", 1]})

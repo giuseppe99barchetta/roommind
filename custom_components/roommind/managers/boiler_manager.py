@@ -49,7 +49,13 @@ class BoilerManager:
             # the bypasses only after the boiler has been stopped and held.
             for entity_id in bypasses:
                 try:
-                    await self.hass.services.async_call("climate", "set_hvac_mode", {"entity_id": entity_id, "hvac_mode": "off"}, blocking=True, context=make_roommind_context())
+                    await self.hass.services.async_call(
+                        "climate",
+                        "set_hvac_mode",
+                        {"entity_id": entity_id, "hvac_mode": "off"},
+                        blocking=True,
+                        context=make_roommind_context(),
+                    )
                 except Exception:  # noqa: BLE001
                     _LOGGER.warning("Unable to release boiler bypass '%s'", entity_id, exc_info=True)
             return True
@@ -59,8 +65,20 @@ class BoilerManager:
             if not self._available(self.hass, entity_id):
                 continue
             try:
-                await self.hass.services.async_call("climate", "set_hvac_mode", {"entity_id": entity_id, "hvac_mode": "heat"}, blocking=True, context=make_roommind_context())
-                await self.hass.services.async_call("climate", "set_temperature", {"entity_id": entity_id, "temperature": target}, blocking=True, context=make_roommind_context())
+                await self.hass.services.async_call(
+                    "climate",
+                    "set_hvac_mode",
+                    {"entity_id": entity_id, "hvac_mode": "heat"},
+                    blocking=True,
+                    context=make_roommind_context(),
+                )
+                await self.hass.services.async_call(
+                    "climate",
+                    "set_temperature",
+                    {"entity_id": entity_id, "temperature": target},
+                    blocking=True,
+                    context=make_roommind_context(),
+                )
                 verified = True
             except Exception:  # noqa: BLE001
                 _LOGGER.warning("Unable to open boiler bypass '%s'", entity_id, exc_info=True)
@@ -72,7 +90,9 @@ class BoilerManager:
             return False
         control_type = settings.get("boiler_control_type", "climate")
         domain = "switch" if control_type == "switch" else "climate"
-        service = "turn_on" if on and domain == "switch" else "turn_off" if not on and domain == "switch" else "set_hvac_mode"
+        service = (
+            "turn_on" if on and domain == "switch" else "turn_off" if not on and domain == "switch" else "set_hvac_mode"
+        )
         data = {"entity_id": entity_id}
         if service == "set_hvac_mode":
             data["hvac_mode"] = "heat" if on else "off"

@@ -945,7 +945,9 @@ export class RsRoomDetail extends LitElement {
     this._autoSave();
   }
 
-  private _onSensorChanged(e: CustomEvent<{ key: string; value: string | string[] | number | boolean }>) {
+  private _onSensorChanged(
+    e: CustomEvent<{ key: string; value: string | string[] | number | boolean }>,
+  ) {
     const { key, value } = e.detail;
     if (key === "temperature_sensor") {
       this._selectedTempSensor = value as string;

@@ -644,81 +644,81 @@ def _normalize_hydraulic_bypass_entities(value: object) -> list[str]:
 # Schema is kept as a named value so its websocket compatibility contract is
 # tested directly. Storage remains canonical list[str].
 SETTINGS_SAVE_SCHEMA = {
-        vol.Required("type"): "roommind/settings/save",
-        vol.Optional("outdoor_temp_sensor"): str,
-        vol.Optional("outdoor_humidity_sensor"): str,
-        vol.Optional("outdoor_cooling_min"): vol.Coerce(float),
-        vol.Optional("outdoor_heating_max"): vol.Coerce(float),
-        vol.Optional("control_mode"): vol.In(["mpc", "bangbang"]),
-        vol.Optional("comfort_weight"): vol.Coerce(float),
-        vol.Optional("weather_entity"): str,
-        vol.Optional("outdoor_unavailable_notify"): bool,
-        vol.Optional("climate_control_active"): bool,
-        vol.Optional("learning_disabled_rooms"): [str],
-        vol.Optional("hidden_rooms"): [str],
-        vol.Optional("prediction_enabled"): bool,
-        vol.Optional("vacation_temp"): vol.Coerce(float),
-        vol.Optional("vacation_until"): vol.Any(vol.Coerce(float), None),
-        vol.Optional("presence_enabled"): bool,
-        vol.Optional("presence_persons"): [str],
-        vol.Optional("presence_away_action"): vol.In(["eco", "off"]),
-        vol.Optional("presence_clears_override"): bool,
-        vol.Optional("schedule_off_action"): vol.In(["eco", "off"]),
-        vol.Optional("valve_protection_enabled"): bool,
-        vol.Optional("valve_protection_interval_days"): vol.All(vol.Coerce(int), vol.Range(min=1, max=90)),
-        vol.Optional("mold_detection_enabled"): bool,
-        vol.Optional("mold_humidity_threshold"): vol.All(vol.Coerce(float), vol.Range(min=50, max=90)),
-        vol.Optional("mold_sustained_minutes"): vol.All(vol.Coerce(int), vol.Range(min=5, max=120)),
-        vol.Optional("mold_notification_cooldown"): vol.All(vol.Coerce(int), vol.Range(min=10, max=1440)),
-        vol.Optional("mold_notifications_enabled"): bool,
-        vol.Optional("mold_notification_targets"): [
-            {
-                vol.Required("entity_id"): str,
-                vol.Optional("person_entity", default=""): str,
-                vol.Optional("notify_when", default="always"): vol.In(["always", "home_only"]),
-            }
-        ],
-        vol.Optional("mold_prevention_enabled"): bool,
-        vol.Optional("mold_prevention_intensity"): vol.In(["light", "medium", "strong"]),
-        vol.Optional("mold_prevention_notify_enabled"): bool,
-        vol.Optional("mold_prevention_notify_targets"): [
-            {
-                vol.Required("entity_id"): str,
-                vol.Optional("person_entity", default=""): str,
-                vol.Optional("notify_when", default="always"): vol.In(["always", "home_only"]),
-            }
-        ],
-        vol.Optional("room_order"): [str],
-        vol.Optional("group_by_floor"): bool,
-        vol.Optional("compressor_groups"): [
-            {
-                vol.Required("id"): str,
-                vol.Required("name"): str,
-                vol.Required("members"): vol.All([str], vol.Length(min=1)),
-                vol.Optional("min_run_minutes", default=DEFAULT_COMPRESSOR_MIN_RUN_MINUTES): vol.All(
-                    vol.Coerce(int), vol.Range(min=1, max=60)
-                ),
-                vol.Optional("min_off_minutes", default=DEFAULT_COMPRESSOR_MIN_OFF_MINUTES): vol.All(
-                    vol.Coerce(int), vol.Range(min=1, max=30)
-                ),
-                vol.Optional("master_entity", default=""): str,
-                vol.Optional("conflict_resolution", default=DEFAULT_CONFLICT_RESOLUTION): vol.In(CONFLICT_RESOLUTIONS),
-                vol.Optional("action_script", default=""): str,
-                vol.Optional("enforce_uniform_mode", default=False): bool,
-            }
-        ],
-        vol.Optional("boiler_entity"): str,
-        vol.Optional("boiler_control_type"): vol.In(["climate", "switch"]),
-        vol.Optional("boiler_startup_delay_seconds"): vol.All(vol.Coerce(float), vol.Range(min=0, max=3600)),
-        vol.Optional("boiler_shutdown_delay_seconds"): vol.All(vol.Coerce(float), vol.Range(min=0, max=3600)),
-        vol.Optional("hydraulic_bypass_entities"): _normalize_hydraulic_bypass_entities,
-        vol.Optional("hydraulic_bypass_open_temperature"): vol.All(vol.Coerce(float), vol.Range(min=5, max=50)),
-        vol.Optional("power_budget_enabled"): bool,
-        vol.Optional("power_sensor"): str,
-        vol.Optional("power_sensor_mode"): vol.In(["available", "consumption"]),
-        vol.Optional("power_budget_max_watts"): vol.All(vol.Coerce(float), vol.Range(min=0, max=100000)),
-        vol.Optional("power_budget_reserve_watts"): vol.All(vol.Coerce(float), vol.Range(min=0, max=100000)),
-        vol.Optional("power_budget_unavailable_behavior"): vol.In(["boiler", "allow"]),
+    vol.Required("type"): "roommind/settings/save",
+    vol.Optional("outdoor_temp_sensor"): str,
+    vol.Optional("outdoor_humidity_sensor"): str,
+    vol.Optional("outdoor_cooling_min"): vol.Coerce(float),
+    vol.Optional("outdoor_heating_max"): vol.Coerce(float),
+    vol.Optional("control_mode"): vol.In(["mpc", "bangbang"]),
+    vol.Optional("comfort_weight"): vol.Coerce(float),
+    vol.Optional("weather_entity"): str,
+    vol.Optional("outdoor_unavailable_notify"): bool,
+    vol.Optional("climate_control_active"): bool,
+    vol.Optional("learning_disabled_rooms"): [str],
+    vol.Optional("hidden_rooms"): [str],
+    vol.Optional("prediction_enabled"): bool,
+    vol.Optional("vacation_temp"): vol.Coerce(float),
+    vol.Optional("vacation_until"): vol.Any(vol.Coerce(float), None),
+    vol.Optional("presence_enabled"): bool,
+    vol.Optional("presence_persons"): [str],
+    vol.Optional("presence_away_action"): vol.In(["eco", "off"]),
+    vol.Optional("presence_clears_override"): bool,
+    vol.Optional("schedule_off_action"): vol.In(["eco", "off"]),
+    vol.Optional("valve_protection_enabled"): bool,
+    vol.Optional("valve_protection_interval_days"): vol.All(vol.Coerce(int), vol.Range(min=1, max=90)),
+    vol.Optional("mold_detection_enabled"): bool,
+    vol.Optional("mold_humidity_threshold"): vol.All(vol.Coerce(float), vol.Range(min=50, max=90)),
+    vol.Optional("mold_sustained_minutes"): vol.All(vol.Coerce(int), vol.Range(min=5, max=120)),
+    vol.Optional("mold_notification_cooldown"): vol.All(vol.Coerce(int), vol.Range(min=10, max=1440)),
+    vol.Optional("mold_notifications_enabled"): bool,
+    vol.Optional("mold_notification_targets"): [
+        {
+            vol.Required("entity_id"): str,
+            vol.Optional("person_entity", default=""): str,
+            vol.Optional("notify_when", default="always"): vol.In(["always", "home_only"]),
+        }
+    ],
+    vol.Optional("mold_prevention_enabled"): bool,
+    vol.Optional("mold_prevention_intensity"): vol.In(["light", "medium", "strong"]),
+    vol.Optional("mold_prevention_notify_enabled"): bool,
+    vol.Optional("mold_prevention_notify_targets"): [
+        {
+            vol.Required("entity_id"): str,
+            vol.Optional("person_entity", default=""): str,
+            vol.Optional("notify_when", default="always"): vol.In(["always", "home_only"]),
+        }
+    ],
+    vol.Optional("room_order"): [str],
+    vol.Optional("group_by_floor"): bool,
+    vol.Optional("compressor_groups"): [
+        {
+            vol.Required("id"): str,
+            vol.Required("name"): str,
+            vol.Required("members"): vol.All([str], vol.Length(min=1)),
+            vol.Optional("min_run_minutes", default=DEFAULT_COMPRESSOR_MIN_RUN_MINUTES): vol.All(
+                vol.Coerce(int), vol.Range(min=1, max=60)
+            ),
+            vol.Optional("min_off_minutes", default=DEFAULT_COMPRESSOR_MIN_OFF_MINUTES): vol.All(
+                vol.Coerce(int), vol.Range(min=1, max=30)
+            ),
+            vol.Optional("master_entity", default=""): str,
+            vol.Optional("conflict_resolution", default=DEFAULT_CONFLICT_RESOLUTION): vol.In(CONFLICT_RESOLUTIONS),
+            vol.Optional("action_script", default=""): str,
+            vol.Optional("enforce_uniform_mode", default=False): bool,
+        }
+    ],
+    vol.Optional("boiler_entity"): str,
+    vol.Optional("boiler_control_type"): vol.In(["climate", "switch"]),
+    vol.Optional("boiler_startup_delay_seconds"): vol.All(vol.Coerce(float), vol.Range(min=0, max=3600)),
+    vol.Optional("boiler_shutdown_delay_seconds"): vol.All(vol.Coerce(float), vol.Range(min=0, max=3600)),
+    vol.Optional("hydraulic_bypass_entities"): _normalize_hydraulic_bypass_entities,
+    vol.Optional("hydraulic_bypass_open_temperature"): vol.All(vol.Coerce(float), vol.Range(min=5, max=50)),
+    vol.Optional("power_budget_enabled"): bool,
+    vol.Optional("power_sensor"): str,
+    vol.Optional("power_sensor_mode"): vol.In(["available", "consumption"]),
+    vol.Optional("power_budget_max_watts"): vol.All(vol.Coerce(float), vol.Range(min=0, max=100000)),
+    vol.Optional("power_budget_reserve_watts"): vol.All(vol.Coerce(float), vol.Range(min=0, max=100000)),
+    vol.Optional("power_budget_unavailable_behavior"): vol.In(["boiler", "allow"]),
 }
 
 
