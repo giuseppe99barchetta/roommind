@@ -5,6 +5,8 @@ on:
     branches: [main]
     paths:
       - scripts/apply_control_flow_cleanup.py
+      - scripts/apply_climate_cleanup_v2.py
+      - scripts/apply_control_flow_corrections.py
       - .github/workflows/run-control-flow-cleanup.yml
 
 permissions:
@@ -22,7 +24,11 @@ jobs:
         with:
           node-version: "20"
       - name: Apply cleanup patch
-        run: python scripts/apply_control_flow_cleanup.py
+        run: |
+          python scripts/apply_control_flow_cleanup.py
+          git checkout HEAD -- custom_components/roommind/climate.py
+          python scripts/apply_climate_cleanup_v2.py
+          python scripts/apply_control_flow_corrections.py
       - name: Install Python dependencies
         run: |
           python -m pip install --upgrade pip
@@ -43,7 +49,7 @@ jobs:
           npm run build
       - name: Commit result
         run: |
-          rm scripts/apply_control_flow_cleanup.py .github/workflows/run-control-flow-cleanup.yml
+          rm scripts/apply_control_flow_cleanup.py scripts/apply_climate_cleanup_v2.py scripts/apply_control_flow_corrections.py .github/workflows/run-control-flow-cleanup.yml
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add -A
