@@ -39,7 +39,7 @@ p.write_text(text, encoding="utf-8")
 
 p = ROOT / "tests/coordinator/test_entity_cleanup.py"
 text = p.read_text(encoding="utf-8")
-text += '''\n\ndef test_cleanup_removes_canonical_climate_for_outdoor_room(hass, mock_config_entry):\n    from homeassistant.helpers import entity_registry as er\n\n    coordinator = _create_coordinator(hass, mock_config_entry)\n    store = MagicMock()\n    store.get_rooms.return_value = {"terrace": {"area_id": "terrace", "is_outdoor": True}}\n    hass.data = {DOMAIN: {"store": store}}\n    registry = er.async_get(hass)\n    registry.async_get_or_create("climate", DOMAIN, f"{DOMAIN}_terrace", suggested_object_id="roommind_terrace")\n\n    coordinator.cleanup_orphaned_entities()\n\n    assert registry.async_get("climate.roommind_terrace") is None\n'''
+text += '''\n\ndef test_cleanup_removes_canonical_climate_for_outdoor_room(hass, mock_config_entry):\n    from homeassistant.helpers import entity_registry as er\n\n    coordinator = _create_coordinator(hass, mock_config_entry)\n    store = MagicMock()\n    store.get_rooms.return_value = {"terrace": {"area_id": "terrace", "is_outdoor": True}}\n    hass.data = {"roommind": {"store": store}}\n    registry = er.async_get(hass)\n    registry.async_get_or_create("climate", "roommind", "roommind_terrace", suggested_object_id="roommind_terrace")\n\n    coordinator.cleanup_orphaned_entities()\n\n    assert registry.async_get("climate.roommind_terrace") is None\n'''
 p.write_text(text, encoding="utf-8")
 
 print("outdoor climate exclusion applied")
