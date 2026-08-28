@@ -45,7 +45,12 @@ from ..utils.device_utils import (
     get_trv_eids,
     has_reliable_hvac_modes,
 )
-from ..utils.temp_utils import celsius_delta_to_ha, celsius_to_ha_temp
+from ..utils.temp_utils import (
+    celsius_delta_to_ha,
+    celsius_to_ha_temp,
+    get_temperature_rounding_mode,
+    quantize_temperature_to_step,
+)
 from .mpc_optimizer import MPCOptimizer, MPCPlan
 from .residual_heat import get_min_run_blocks
 from .thermal_model import RoomModelManager
@@ -90,10 +95,14 @@ def _should_use_cache(state: Any) -> bool:
     return state.state in ("unavailable", "unknown")
 
 
-def _snap_to_step(value: float, step: float | None) -> float:
-    if step is None or step <= 0:
-        return value
-    return round(round(value / step) * step, 2)
+def _snap_to_step(
+    value: float,
+    step: float | None,
+    hass: HomeAssistant | None = None,
+) -> float:
+    """Snap to a device step while preserving the legacy two-argument API."""
+    mode = get_temperature_rounding_mode(hass) if hass is not None else "nearest"
+    return quantize_temperature_to_step(value, step, mode)
 
 
 def clear_command_cache() -> None:
@@ -468,7 +477,7 @@ async def async_idle_device(
             ha_t = min(ha_t, float(max_t))
         step = state.attributes.get("target_temp_step")
         if step is not None:
-            ha_t = _snap_to_step(ha_t, float(step))
+            ha_t = _snap_to_step(ha_t, float(step), hass)
             if min_t is not None:
                 ha_t = max(ha_t, float(min_t))
             if max_t is not None:
@@ -1817,19 +1826,19 @@ class MPCController:
                 dev_min = state.attributes.get("min_temp")
                 dev_max = state.attributes.get("max_temp")
                 if "temperature" in data:
-                    t = _snap_to_step(data["temperature"], step)
+                    t = _snap_to_step(data["temperature"], step, self.hass)
                     if dev_max is not None and t > dev_max:
                         t = dev_max
                     if dev_min is not None and t < dev_min:
                         t = dev_min
                     data = {**data, "temperature": t}
                 if "target_temp_low" in data:
-                    lo = _snap_to_step(data["target_temp_low"], step)
+                    lo = _snap_to_step(data["target_temp_low"], step, self.hass)
                     if dev_min is not None and lo < dev_min:
                         lo = dev_min
                     data = {**data, "target_temp_low": lo}
                 if "target_temp_high" in data:
-                    hi = _snap_to_step(data["target_temp_high"], step)
+                    hi = _snap_to_step(data["target_temp_high"], step, self.hass)
                     if dev_max is not None and hi > dev_max:
                         hi = dev_max
                     data = {**data, "target_temp_high": hi}

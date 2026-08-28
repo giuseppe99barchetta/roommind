@@ -28,7 +28,7 @@ from .control.mpc_controller import async_turn_off_climate, resolve_hvac_mode
 from .coordinator import RoomMindCoordinator
 from .managers.room_climate import RoomClimateCapabilities, room_capabilities
 from .utils.device_utils import get_ac_eids, get_all_entity_ids, get_trv_eids
-from .utils.temp_utils import celsius_to_ha_temp
+from .utils.temp_utils import celsius_to_ha_temp, quantize_temperature_for_entity
 
 
 def _create_room_climates(
@@ -433,8 +433,9 @@ class RoomMindClimate(RoomMindOverrideClimate):
                 return
 
         if direction == "heat":
-            target = celsius_to_ha_temp(hass, heat)
+            raw_target = celsius_to_ha_temp(hass, heat)
             for entity_id in trvs:
+                target = quantize_temperature_for_entity(hass, entity_id, raw_target, fallback_step=0.5)
                 await hass.services.async_call(
                     "climate",
                     "set_temperature",
@@ -445,6 +446,7 @@ class RoomMindClimate(RoomMindOverrideClimate):
                 state = hass.states.get(entity_id)
                 modes = state.attributes.get("hvac_modes", []) if state else []
                 if resolve_hvac_mode("heat", modes) is not None:
+                    target = quantize_temperature_for_entity(hass, entity_id, raw_target, fallback_step=1.0)
                     await hass.services.async_call(
                         "climate",
                         "set_temperature",
@@ -454,8 +456,9 @@ class RoomMindClimate(RoomMindOverrideClimate):
             return
 
         if direction in ("cool", "dry"):
-            target = celsius_to_ha_temp(hass, cool)
+            raw_target = celsius_to_ha_temp(hass, cool)
             for entity_id in acs:
+                target = quantize_temperature_for_entity(hass, entity_id, raw_target, fallback_step=1.0)
                 await hass.services.async_call(
                     "climate",
                     "set_temperature",
@@ -510,10 +513,11 @@ class RoomMindClimate(RoomMindOverrideClimate):
                         {"entity_id": entity_id, "hvac_mode": resolved},
                         blocking=True,
                     )
+                    trv_target = quantize_temperature_for_entity(hass, entity_id, ha_heat, fallback_step=0.5)
                     await hass.services.async_call(
                         "climate",
                         "set_temperature",
-                        {"entity_id": entity_id, "temperature": ha_heat},
+                        {"entity_id": entity_id, "temperature": trv_target},
                         blocking=True,
                     )
         else:
@@ -538,12 +542,18 @@ class RoomMindClimate(RoomMindOverrideClimate):
             data: dict[str, Any] = {"entity_id": entity_id}
             if mode in ("heat_cool", "auto") and state and state.attributes.get("target_temp_low") is not None:
                 data.update(
-                    target_temp_low=celsius_to_ha_temp(hass, heat),
-                    target_temp_high=celsius_to_ha_temp(hass, cool),
+                    target_temp_low=quantize_temperature_for_entity(
+                        hass, entity_id, celsius_to_ha_temp(hass, heat), fallback_step=1.0
+                    ),
+                    target_temp_high=quantize_temperature_for_entity(
+                        hass, entity_id, celsius_to_ha_temp(hass, cool), fallback_step=1.0
+                    ),
                 )
             else:
                 target = cool if mode == "cool" else heat
-                data["temperature"] = celsius_to_ha_temp(hass, target)
+                data["temperature"] = quantize_temperature_for_entity(
+                    hass, entity_id, celsius_to_ha_temp(hass, target), fallback_step=1.0
+                )
             await hass.services.async_call("climate", "set_temperature", data, blocking=True)
 
     async def async_set_fan_mode(self, fan_mode: str) -> None:

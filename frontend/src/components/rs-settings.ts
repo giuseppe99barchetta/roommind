@@ -41,6 +41,7 @@ export class RsSettings extends LitElement {
 
   @state() private _groupByFloor = false;
   @state() private _climateControlActive = true;
+  @state() private _temperatureRoundingMode: "nearest" | "down" | "up" = "nearest";
   @state() private _learningDisabledRooms: string[] = [];
   @state() private _outdoorTempSensor = "";
   @state() private _outdoorHumiditySensor = "";
@@ -106,6 +107,7 @@ export class RsSettings extends LitElement {
       const s = result.settings;
       this._groupByFloor = s.group_by_floor ?? false;
       this._climateControlActive = s.climate_control_active ?? true;
+      this._temperatureRoundingMode = s.temperature_rounding_mode ?? "nearest";
       this._learningDisabledRooms = s.learning_disabled_rooms ?? [];
       this._outdoorTempSensor = s.outdoor_temp_sensor ?? "";
       this._outdoorHumiditySensor = s.outdoor_humidity_sensor ?? "";
@@ -201,6 +203,7 @@ export class RsSettings extends LitElement {
           .hass=${this.hass}
           .groupByFloor=${this._groupByFloor}
           .climateControlActive=${this._climateControlActive}
+          .temperatureRoundingMode=${this._temperatureRoundingMode}
           @setting-changed=${this._onSettingChanged}
         ></rs-settings-general>
       </rs-settings-panel>
@@ -399,6 +402,7 @@ export class RsSettings extends LitElement {
         type: "roommind/settings/save",
         group_by_floor: this._groupByFloor,
         climate_control_active: this._climateControlActive,
+        temperature_rounding_mode: this._temperatureRoundingMode,
         learning_disabled_rooms: this._learningDisabledRooms,
         outdoor_temp_sensor: this._outdoorTempSensor,
         outdoor_humidity_sensor: this._outdoorHumiditySensor,

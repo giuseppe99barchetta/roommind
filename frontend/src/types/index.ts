@@ -162,6 +162,7 @@ export interface GlobalSettings {
   weather_entity?: string;
   outdoor_unavailable_notify?: boolean;
   climate_control_active?: boolean;
+  temperature_rounding_mode?: "nearest" | "down" | "up";
   learning_disabled_rooms?: string[];
   hidden_rooms?: string[];
   prediction_enabled?: boolean;

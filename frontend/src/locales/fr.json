@@ -528,5 +528,10 @@
   "heat_source.ac_min_outdoor_suffix": "°C",
   "heat_source.summary_disabled": "La sélection intelligente de la source est désactivée",
   "devices.keep_fan_only_window": "Maintenir la ventilation seule si la fenêtre est ouverte",
-  "devices.keep_fan_only_window_hint": "Le chauffage et le refroidissement sont suspendus, mais un climatiseur en ventilation seule reste allumé."
+  "devices.keep_fan_only_window_hint": "Le chauffage et le refroidissement sont suspendus, mais un climatiseur en ventilation seule reste allumé.",
+  "settings.temperature_rounding": "Arrondi de la température physique",
+  "settings.temperature_rounding_hint": "Définit comment RoomMind arrondit vers le pas pris en charge par l'appareil climatique.",
+  "settings.temperature_rounding_nearest": "Valeur prise en charge la plus proche",
+  "settings.temperature_rounding_down": "Arrondir vers le bas (26,5° → 26°)",
+  "settings.temperature_rounding_up": "Arrondir vers le haut (26,5° → 27°)"
 }

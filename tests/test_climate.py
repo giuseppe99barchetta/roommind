@@ -804,3 +804,57 @@ async def test_canonical_auto_temperature_while_idle_does_not_wake_devices(mock_
     await RoomMindClimate(coordinator, "living_room").async_set_temperature(temperature=27.0)
 
     coordinator.hass.services.async_call.assert_not_awaited()
+
+
+@pytest.mark.asyncio
+async def test_canonical_manual_cool_temperature_respects_global_round_down(mock_coordinator):
+    coordinator, store = mock_coordinator
+    store.get_room.return_value = _canonical_room(
+        [{"entity_id": "climate.ac", "type": "ac"}],
+        room_hvac_mode="cool",
+        logical_heat_target=21.0,
+        logical_cool_target=26.0,
+    )
+    store.get_settings.return_value = {"temperature_rounding_mode": "down"}
+    store.async_update_room = AsyncMock()
+    coordinator.hass.states.get.return_value = MagicMock(
+        state="cool",
+        attributes={"hvac_modes": ["off", "cool"], "target_temp_step": 1.0},
+    )
+    coordinator.hass.services.async_call = AsyncMock()
+
+    await RoomMindClimate(coordinator, "living_room").async_set_temperature(temperature=26.5)
+
+    coordinator.hass.services.async_call.assert_any_await(
+        "climate",
+        "set_temperature",
+        {"entity_id": "climate.ac", "temperature": 26.0},
+        blocking=True,
+    )
+
+
+@pytest.mark.asyncio
+async def test_canonical_manual_trv_keeps_supported_half_degree(mock_coordinator):
+    coordinator, store = mock_coordinator
+    store.get_room.return_value = _canonical_room(
+        [{"entity_id": "climate.trv", "type": "trv"}],
+        room_hvac_mode="heat",
+        logical_heat_target=20.0,
+        logical_cool_target=25.0,
+    )
+    store.get_settings.return_value = {"temperature_rounding_mode": "down"}
+    store.async_update_room = AsyncMock()
+    coordinator.hass.states.get.return_value = MagicMock(
+        state="heat",
+        attributes={"hvac_modes": ["off", "heat"], "target_temp_step": 0.5},
+    )
+    coordinator.hass.services.async_call = AsyncMock()
+
+    await RoomMindClimate(coordinator, "living_room").async_set_temperature(temperature=20.5)
+
+    coordinator.hass.services.async_call.assert_any_await(
+        "climate",
+        "set_temperature",
+        {"entity_id": "climate.trv", "temperature": 20.5},
+        blocking=True,
+    )

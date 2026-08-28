@@ -528,5 +528,10 @@
   "heat_source.ac_min_outdoor_suffix": "°C",
   "heat_source.summary_disabled": "Intelligente Quellenwahl ist aus",
   "devices.keep_fan_only_window": "Nur Lüften bei offenem Fenster beibehalten",
-  "devices.keep_fan_only_window_hint": "Heizen und Kühlen werden pausiert, aber ein Klimagerät im Nur-Lüften-Modus bleibt eingeschaltet."
+  "devices.keep_fan_only_window_hint": "Heizen und Kühlen werden pausiert, aber ein Klimagerät im Nur-Lüften-Modus bleibt eingeschaltet.",
+  "settings.temperature_rounding": "Rundung der Gerätetemperatur",
+  "settings.temperature_rounding_hint": "Legt fest, wie RoomMind auf die vom Klimagerät unterstützte Schrittweite rundet.",
+  "settings.temperature_rounding_nearest": "Nächster unterstützter Wert",
+  "settings.temperature_rounding_down": "Abrunden (26,5° → 26°)",
+  "settings.temperature_rounding_up": "Aufrunden (26,5° → 27°)"
 }

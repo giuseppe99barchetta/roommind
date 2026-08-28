@@ -3,6 +3,8 @@
 from homeassistant.const import UnitOfTemperature
 from homeassistant.core import HomeAssistant
 
+from ..const import DOMAIN
+
 
 def _is_fahrenheit(hass: HomeAssistant, entity_id: str | None = None) -> bool:
     """Check if the value is in Fahrenheit.
@@ -56,3 +58,65 @@ def ha_temp_unit_str(hass: HomeAssistant) -> str:
     if hass.config.units.temperature_unit == UnitOfTemperature.FAHRENHEIT:
         return "°F"
     return "°C"
+
+
+TEMPERATURE_ROUNDING_MODES = {"nearest", "down", "up"}
+DEFAULT_TEMPERATURE_ROUNDING_MODE = "nearest"
+
+
+def get_temperature_rounding_mode(hass: HomeAssistant) -> str:
+    """Return the global physical-device temperature rounding preference."""
+    try:
+        store = hass.data.get(DOMAIN, {}).get("store")
+        mode = store.get_settings().get("temperature_rounding_mode") if store else None
+    except (AttributeError, TypeError):
+        mode = None
+    return mode if mode in TEMPERATURE_ROUNDING_MODES else DEFAULT_TEMPERATURE_ROUNDING_MODE
+
+
+def quantize_temperature_to_step(value: float, step: float | None, mode: str = "nearest") -> float:
+    """Quantize *value* to *step* using deterministic up/down/nearest rounding."""
+    import math
+
+    if step is None or step <= 0:
+        return float(value)
+    if mode not in TEMPERATURE_ROUNDING_MODES:
+        mode = DEFAULT_TEMPERATURE_ROUNDING_MODE
+
+    ratio = float(value) / float(step)
+    epsilon = 1e-9
+    if mode == "down":
+        units = math.floor(ratio + epsilon)
+    elif mode == "up":
+        units = math.ceil(ratio - epsilon)
+    else:
+        # Half-up instead of Python's bankers rounding: 26.5 -> 27 for step 1.
+        units = math.floor(ratio + 0.5 + epsilon)
+    return round(units * float(step), 3)
+
+
+def quantize_temperature_for_entity(
+    hass: HomeAssistant,
+    entity_id: str,
+    value: float,
+    *,
+    fallback_step: float | None = None,
+) -> float:
+    """Quantize an HA-unit setpoint to a climate entity's supported step."""
+    state = hass.states.get(entity_id)
+    attrs = state.attributes if state is not None else {}
+    raw_step = attrs.get("target_temp_step", fallback_step)
+    try:
+        step = float(raw_step) if raw_step is not None else None
+    except (TypeError, ValueError):
+        step = fallback_step
+
+    result = quantize_temperature_to_step(value, step, get_temperature_rounding_mode(hass))
+    for key, fn in (("min_temp", max), ("max_temp", min)):
+        raw = attrs.get(key)
+        if raw is not None:
+            try:
+                result = fn(result, float(raw))
+            except (TypeError, ValueError):
+                pass
+    return round(result, 3)

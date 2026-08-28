@@ -8,6 +8,7 @@ import pytest
 from homeassistant.const import UnitOfTemperature
 
 from custom_components.roommind.utils.temp_utils import (
+    quantize_temperature_to_step,
     _is_fahrenheit,
     celsius_delta_to_ha,
     celsius_to_ha_temp,
@@ -223,3 +224,11 @@ class TestEntityLevelUnitDetection:
 
         hass_c = _make_hass(UnitOfTemperature.CELSIUS)
         assert celsius_to_ha_temp(hass_c, 20.0) == 20.0
+
+
+def test_quantize_temperature_rounding_modes():
+    assert quantize_temperature_to_step(26.5, 1.0, "nearest") == 27.0
+    assert quantize_temperature_to_step(26.5, 1.0, "down") == 26.0
+    assert quantize_temperature_to_step(26.5, 1.0, "up") == 27.0
+    assert quantize_temperature_to_step(26.5, 0.5, "down") == 26.5
+    assert quantize_temperature_to_step(26.25, 0.5, "nearest") == 26.5

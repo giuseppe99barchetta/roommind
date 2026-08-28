@@ -3827,8 +3827,8 @@ async def test_apply_managed_mode_ac_unreliable_modes_preactivates():
     [
         (22.3, 1.0, 22.0),
         (22.7, 1.0, 23.0),
-        (22.5, 1.0, 22.0),  # banker's rounding: .5 rounds to even
-        (23.5, 1.0, 24.0),  # .5 rounds to even
+        (22.5, 1.0, 23.0),  # RoomMind nearest is deterministic half-up
+        (23.5, 1.0, 24.0),  # half-up
         (22.3, 0.5, 22.5),
         (22.1, 0.5, 22.0),
         (22.0, 0.5, 22.0),

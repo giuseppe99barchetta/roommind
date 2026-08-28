@@ -528,5 +528,10 @@
   "heat_source.ac_min_outdoor_suffix": "°C",
   "heat_source.summary_disabled": "Smart source selection is off",
   "devices.keep_fan_only_window": "Keep fan-only with open window",
-  "devices.keep_fan_only_window_hint": "Heating and cooling pause, but an AC already in fan-only mode stays on."
+  "devices.keep_fan_only_window_hint": "Heating and cooling pause, but an AC already in fan-only mode stays on.",
+  "settings.temperature_rounding": "Physical temperature rounding",
+  "settings.temperature_rounding_hint": "When a climate device cannot represent RoomMind's 0.5° setpoint, choose how the physical target is rounded.",
+  "settings.temperature_rounding_nearest": "Nearest supported value",
+  "settings.temperature_rounding_down": "Round down (26.5° → 26°)",
+  "settings.temperature_rounding_up": "Round up (26.5° → 27°)"
 }
