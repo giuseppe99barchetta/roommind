@@ -1820,9 +1820,10 @@ class MPCController:
 
         # Snap to device's target_temp_step (e.g. 1.0 for ACs that only accept integers)
         if service == "set_temperature" and state:
-            step = state.attributes.get("target_temp_step")
+            fallback_step = 1.0 if eid in self.acs else (0.5 if eid in self.thermostats else None)
+            raw_step = state.attributes.get("target_temp_step", fallback_step)
+            step = float(raw_step) if raw_step is not None else None
             if step is not None:
-                step = float(step)
                 dev_min = state.attributes.get("min_temp")
                 dev_max = state.attributes.get("max_temp")
                 if "temperature" in data:

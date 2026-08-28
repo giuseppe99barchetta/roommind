@@ -103,7 +103,6 @@ ROOM_ENTITY_SUFFIXES = (
     "",
     "_target_temp",
     "_mode",
-    "_override",
     "_climate_control",
     "_cover_auto",
     "_cover_paused",
@@ -666,11 +665,17 @@ class RoomMindCoordinator(DataUpdateCoordinator):
                 cool=float(logical_cool) if requested_hvac_mode in ("cool", "heat_cool", "auto") else None,
             )
 
-        # Apply mold prevention temperature delta (heating target only).
-        # Safety: mold prevention overrides "off" to prevent structural damage.
-        force_off = targets.heat is None and targets.cool is None or requested_hvac_mode in ("off", "dry", "fan_only")
-        if mold_prevention_active_room and mold_prevention_temp_delta > 0:
-            if force_off:
+        # Mold prevention may override autonomous schedule/presence OFF, but
+        # never an explicit manual OFF/FAN_ONLY/DRY selection on the canonical
+        # climate entity. Manual intent is authoritative; mold risk remains
+        # visible while prevention is reported active only when actually applied.
+        manual_aux_or_off = requested_hvac_mode in ("off", "dry", "fan_only")
+        force_off = targets.heat is None and targets.cool is None or manual_aux_or_off
+        mold_prevention_effective = bool(
+            mold_prevention_active_room and mold_prevention_temp_delta > 0 and not manual_aux_or_off
+        )
+        if mold_prevention_effective:
+            if targets.heat is None:
                 eco_heat = room.get("eco_heat", room.get("eco_temp", DEFAULT_ECO_HEAT))
                 eco_cool = room.get("eco_cool", DEFAULT_ECO_COOL)
                 targets = TargetTemps(
@@ -678,11 +683,12 @@ class RoomMindCoordinator(DataUpdateCoordinator):
                     cool=eco_cool,
                 )
                 force_off = False
-            elif targets.heat is not None:
+            else:
                 targets = TargetTemps(
                     heat=targets.heat + mold_prevention_temp_delta,
                     cool=targets.cool,
                 )
+        mold_prevention_active_room = mold_prevention_effective
         presence_away = not room.get("ignore_presence", False) and self._is_presence_away(room, settings)
         target_resolver = make_target_resolver(
             schedule_blocks,
@@ -1762,7 +1768,7 @@ class RoomMindCoordinator(DataUpdateCoordinator):
             self.async_add_entities(entities)
             self._entity_areas.add(area_id)
 
-        # Climate entities (override control): always create
+        # Canonical room climate entity: always create
         if (
             area_id not in self._climate_entity_areas
             and hasattr(self, "async_add_climate_entities")

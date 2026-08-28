@@ -119,9 +119,15 @@ class ValveManager:
         async_turn_off_climate for backward compatibility.
         """
         store = self.hass.data.get(DOMAIN, {}).get("store")
-        if store is not None and not store.get_settings().get("climate_control_active", True):
-            return
         if not self._cycling:
+            return
+        if store is not None and not store.get_settings().get("climate_control_active", True):
+            now = time.time()
+            for eid in list(self._cycling):
+                await self._async_close_valve(eid, rooms_devices, log_context="because climate control was disabled")
+                self._cycling.pop(eid, None)
+                self._last_actuation[eid] = now
+                self._actuation_dirty = True
             return
         now = time.time()
         finished = [eid for eid, start in self._cycling.items() if now - start >= VALVE_PROTECTION_CYCLE_DURATION]

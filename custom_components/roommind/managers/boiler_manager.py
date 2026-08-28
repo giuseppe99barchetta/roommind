@@ -106,7 +106,7 @@ class BoilerManager:
     async def async_reconcile(self, settings: dict, demand_rooms: set[str]) -> None:
         """Advance one safe transition. Missing safety configuration disables boiler."""
         if not settings.get("climate_control_active", True):
-            return
+            demand_rooms = set()
         self.demand_rooms = set(demand_rooms)
         if not settings.get("boiler_entity"):
             self.state = BoilerState.OFF
@@ -127,6 +127,9 @@ class BoilerManager:
         elif self.state == BoilerState.PREOPENING:
             self.path_safe = await self._set_bypass(settings, True)
             if not demand:
+                await self._set_boiler(settings, False)
+                await self._set_bypass(settings, False)
+                self.path_safe = False
                 self.state, self._state_since = BoilerState.OFF, now
             elif not self.path_safe:
                 self.state = BoilerState.FAULT

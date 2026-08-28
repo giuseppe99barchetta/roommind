@@ -49,9 +49,8 @@ def test_create_room_climates(mock_coordinator):
     """Factory creates exactly one climate entity per room."""
     coordinator, _ = mock_coordinator
     climates = _create_room_climates(coordinator, "living_room")
-    assert len(climates) == 2
+    assert len(climates) == 1
     assert isinstance(climates[0], RoomMindClimate)
-    assert isinstance(climates[1], RoomMindOverrideClimate)
 
 
 def _canonical_room(devices, **overrides):
@@ -111,7 +110,6 @@ def test_canonical_fan_only_and_off_hide_single_temperature_target(mock_coordina
     assert entity.target_temperature == 26.0
 
 
-
 def test_canonical_fan_only_hides_all_temperature_controls(mock_coordinator):
     coordinator, store = mock_coordinator
     ac = MagicMock(
@@ -145,18 +143,14 @@ def test_canonical_mode_specific_temperature_features(mock_coordinator):
 
     for mode in ("heat", "cool", "dry"):
         ac.state = "dry" if mode == "dry" else "cool"
-        store.get_room.return_value = _canonical_room(
-            [{"entity_id": "climate.ac", "type": "ac"}], room_hvac_mode=mode
-        )
+        store.get_room.return_value = _canonical_room([{"entity_id": "climate.ac", "type": "ac"}], room_hvac_mode=mode)
         entity = RoomMindClimate(coordinator, "living_room")
         assert entity.supported_features & ClimateEntityFeature.TARGET_TEMPERATURE
         assert not entity.supported_features & ClimateEntityFeature.TARGET_TEMPERATURE_RANGE
         assert entity.target_temperature_low is None
         assert entity.target_temperature_high is None
 
-    store.get_room.return_value = _canonical_room(
-        [{"entity_id": "climate.ac", "type": "ac"}], room_hvac_mode="auto"
-    )
+    store.get_room.return_value = _canonical_room([{"entity_id": "climate.ac", "type": "ac"}], room_hvac_mode="auto")
     entity = RoomMindClimate(coordinator, "living_room")
     assert entity.supported_features & ClimateEntityFeature.TARGET_TEMPERATURE
     assert not entity.supported_features & ClimateEntityFeature.TARGET_TEMPERATURE_RANGE
@@ -539,8 +533,8 @@ async def test_async_setup_entry_creates_entities_for_all_rooms():
     assert coordinator.async_add_climate_entities is async_add_entities
     async_add_entities.assert_called_once()
     entities = async_add_entities.call_args[0][0]
-    assert len(entities) == 4
-    assert sum(isinstance(e, RoomMindClimate) for e in entities) == 2
+    assert len(entities) == 2
+    assert all(isinstance(e, RoomMindClimate) for e in entities)
     assert "living_room" in coordinator._climate_entity_areas
     assert "bedroom" in coordinator._climate_entity_areas
 
@@ -709,9 +703,7 @@ def test_canonical_persisted_dry_reports_off_when_physical_ac_is_off(mock_coordi
     coordinator, store = mock_coordinator
     ac = MagicMock(state="off", attributes={"hvac_modes": ["off", "cool", "dry", "fan_only"]})
     coordinator.hass.states.get.return_value = ac
-    store.get_room.return_value = _canonical_room(
-        [{"entity_id": "climate.ac", "type": "ac"}], room_hvac_mode="dry"
-    )
+    store.get_room.return_value = _canonical_room([{"entity_id": "climate.ac", "type": "ac"}], room_hvac_mode="dry")
     entity = RoomMindClimate(coordinator, "living_room")
 
     assert entity.hvac_mode == HVACMode.OFF

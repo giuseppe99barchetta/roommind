@@ -38,7 +38,7 @@ def _create_room_climates(
     """Create climate entities for a room."""
     # The canonical entity has a stable, concise entity ID.  The old override
     # endpoint remains disabled by default for existing automations.
-    return [RoomMindClimate(coordinator, area_id), RoomMindOverrideClimate(coordinator, area_id)]
+    return [RoomMindClimate(coordinator, area_id)]
 
 
 async def async_setup_entry(
@@ -190,6 +190,49 @@ class RoomMindOverrideClimate(CoordinatorEntity, ClimateEntity):
         )
         await self.coordinator.async_request_refresh()
 
+    def _manual_activation_guard(self, mode: str) -> None:
+        """Reject manual thermal activation when a hard safety blocks it."""
+        if mode not in ("heat", "cool", "dry"):
+            return
+
+        room = self._room() or {}
+        hass = self.coordinator.hass
+        acs = get_ac_eids(room.get("devices", []))
+        if not acs:
+            return
+        store = hass.data[DOMAIN]["store"]
+        settings = store.get_settings()
+
+        compressor = self.coordinator._compressor_manager
+        compressor.load_groups(settings.get("compressor_groups", []))
+        for entity_id in acs:
+            state = hass.states.get(entity_id)
+            already_running = bool(state and state.state not in ("off", "unknown", "unavailable", "fan_only"))
+            if not already_running and not compressor.check_can_activate(entity_id):
+                raise ValueError(f"Compressor minimum-off protection blocks {entity_id}")
+
+        if not settings.get("power_budget_enabled", False):
+            return
+
+        running_loads: dict[str, float] = {}
+        for area_id, other in store.get_rooms().items():
+            other_acs = get_ac_eids(other.get("devices", []))
+            if any(
+                (state := hass.states.get(entity_id))
+                and state.state not in ("off", "unknown", "unavailable", "fan_only")
+                for entity_id in other_acs
+            ):
+                running_loads[area_id] = float(other.get("heat_pump_power_watts", 0) or 0)
+
+        budget = self.coordinator._power_budget_manager
+        budget.begin_cycle(hass, settings, running_loads)
+        if not budget.request_heat_pump(
+            self._area_id,
+            float(room.get("heat_pump_power_watts", 0) or 0),
+            self._area_id in running_loads,
+        ):
+            raise ValueError("RoomMind power budget blocks this climate activation")
+
     async def async_set_hvac_mode(self, hvac_mode: HVACMode) -> None:
         """Legacy override endpoint behaviour retained for automations."""
         store = self.coordinator.hass.data[DOMAIN]["store"]
@@ -239,12 +282,13 @@ class RoomMindClimate(RoomMindOverrideClimate):
     def hvac_modes(self) -> list[HVACMode]:
         return [HVACMode(mode) for mode in self._capabilities().hvac_modes]
 
-    def _physical_ac_mode(self) -> str | None:
-        acs = get_ac_eids((self._room() or {}).get("devices", []))
-        if not acs:
-            return None
-        state = self.coordinator.hass.states.get(acs[0])
-        return state.state if state is not None else None
+    def _physical_ac_modes(self) -> tuple[str, ...]:
+        modes: list[str] = []
+        for entity_id in get_ac_eids((self._room() or {}).get("devices", [])):
+            state = self.coordinator.hass.states.get(entity_id)
+            if state is not None and state.state not in ("unknown", "unavailable"):
+                modes.append(state.state)
+        return tuple(modes)
 
     @property
     def hvac_mode(self) -> HVACMode:
@@ -259,7 +303,7 @@ class RoomMindClimate(RoomMindOverrideClimate):
         # control states. A persisted value must never make an AC that is really
         # off look active after restart or an external power-off.
         if selected in ("fan_only", "dry"):
-            return HVACMode(selected) if self._physical_ac_mode() == selected else HVACMode.OFF
+            return HVACMode(selected) if selected in self._physical_ac_modes() else HVACMode.OFF
 
         if selected in self._capabilities().hvac_modes:
             return HVACMode(selected)
@@ -390,6 +434,8 @@ class RoomMindClimate(RoomMindOverrideClimate):
                 heat = float(single)
         if cool < heat:
             raise ValueError("Cooling target must be >= heating target")
+        if selected in (HVACMode.HEAT, HVACMode.COOL, HVACMode.DRY):
+            self._manual_activation_guard(selected.value)
         store = self.coordinator.hass.data[DOMAIN]["store"]
         mode = selected.value if selected != HVACMode.OFF else "heat_cool"
         await store.async_update_room(
@@ -410,9 +456,7 @@ class RoomMindClimate(RoomMindOverrideClimate):
         await self._async_apply_manual_temperature(selected, heat, cool)
         await self.coordinator.async_request_refresh()
 
-    async def _async_apply_manual_temperature(
-        self, selected: HVACMode, heat: float, cool: float
-    ) -> None:
+    async def _async_apply_manual_temperature(self, selected: HVACMode, heat: float, cool: float) -> None:
         room = self._room() or {}
         devices = room.get("devices", [])
         hass = self.coordinator.hass
@@ -478,13 +522,14 @@ class RoomMindClimate(RoomMindOverrideClimate):
         updates["override_cool"] = cool if mode in ("cool", "heat_cool", "auto") else None
         if mode == "off":
             updates.update({"override_heat": None, "override_cool": None, "override_type": None})
-        await self.coordinator.hass.data[DOMAIN]["store"].async_update_room(self._area_id, updates)
-
         # Explicit HEAT/COOL/OFF/FAN_ONLY/DRY are direct manual commands. AUTO
         # is different: it is permission for RoomMind to choose one direction,
         # so it must never directly switch both heating and cooling hardware on.
+        # Validate hard safety before persisting a mode that cannot be applied.
         if mode != "auto":
+            self._manual_activation_guard(mode)
             await self._async_apply_manual_hvac_mode(mode, heat, cool)
+        await self.coordinator.hass.data[DOMAIN]["store"].async_update_room(self._area_id, updates)
         await self.coordinator.async_request_refresh()
 
     async def _async_apply_manual_hvac_mode(self, mode: str, heat: float, cool: float) -> None:
@@ -497,6 +542,7 @@ class RoomMindClimate(RoomMindOverrideClimate):
         if mode == "off":
             for entity_id in get_all_entity_ids(devices):
                 await async_turn_off_climate(hass, entity_id, area_id=self._area_id)
+                self.coordinator._compressor_manager.update_member(entity_id, False)
             return
 
         # TRVs only participate in heating-capable manual modes.
@@ -526,35 +572,37 @@ class RoomMindClimate(RoomMindOverrideClimate):
 
         if not acs:
             return
-        entity_id = acs[0]
-        state = hass.states.get(entity_id)
-        supported = state.attributes.get("hvac_modes", []) if state else []
-        resolved = resolve_hvac_mode(mode, supported)
-        if resolved is None:
-            return
-        await hass.services.async_call(
-            "climate",
-            "set_hvac_mode",
-            {"entity_id": entity_id, "hvac_mode": resolved},
-            blocking=True,
-        )
-        if mode in ("cool", "heat", "heat_cool", "auto"):
-            data: dict[str, Any] = {"entity_id": entity_id}
-            if mode in ("heat_cool", "auto") and state and state.attributes.get("target_temp_low") is not None:
-                data.update(
-                    target_temp_low=quantize_temperature_for_entity(
-                        hass, entity_id, celsius_to_ha_temp(hass, heat), fallback_step=1.0
-                    ),
-                    target_temp_high=quantize_temperature_for_entity(
-                        hass, entity_id, celsius_to_ha_temp(hass, cool), fallback_step=1.0
-                    ),
-                )
-            else:
-                target = cool if mode == "cool" else heat
-                data["temperature"] = quantize_temperature_for_entity(
-                    hass, entity_id, celsius_to_ha_temp(hass, target), fallback_step=1.0
-                )
-            await hass.services.async_call("climate", "set_temperature", data, blocking=True)
+        compressor = self.coordinator._compressor_manager
+        for entity_id in acs:
+            state = hass.states.get(entity_id)
+            supported = state.attributes.get("hvac_modes", []) if state else []
+            resolved = resolve_hvac_mode(mode, supported)
+            if resolved is None:
+                continue
+            await hass.services.async_call(
+                "climate",
+                "set_hvac_mode",
+                {"entity_id": entity_id, "hvac_mode": resolved},
+                blocking=True,
+            )
+            if mode in ("cool", "heat", "heat_cool", "auto"):
+                data: dict[str, Any] = {"entity_id": entity_id}
+                if mode in ("heat_cool", "auto") and state and state.attributes.get("target_temp_low") is not None:
+                    data.update(
+                        target_temp_low=quantize_temperature_for_entity(
+                            hass, entity_id, celsius_to_ha_temp(hass, heat), fallback_step=1.0
+                        ),
+                        target_temp_high=quantize_temperature_for_entity(
+                            hass, entity_id, celsius_to_ha_temp(hass, cool), fallback_step=1.0
+                        ),
+                    )
+                else:
+                    target = cool if mode == "cool" else heat
+                    data["temperature"] = quantize_temperature_for_entity(
+                        hass, entity_id, celsius_to_ha_temp(hass, target), fallback_step=1.0
+                    )
+                await hass.services.async_call("climate", "set_temperature", data, blocking=True)
+            compressor.update_member(entity_id, mode in ("heat", "cool", "dry"))
 
     async def async_set_fan_mode(self, fan_mode: str) -> None:
         if fan_mode not in self._capabilities().fan_modes:
@@ -589,6 +637,7 @@ class RoomMindClimate(RoomMindOverrideClimate):
             raise ValueError("Room has no AC device")
         store = self.coordinator.hass.data[DOMAIN]["store"]
         await store.async_update_room(self._area_id, {key: value})
-        await self.coordinator.hass.services.async_call(
-            "climate", service, {"entity_id": acs[0], service_key: value}, blocking=True
-        )
+        for entity_id in acs:
+            await self.coordinator.hass.services.async_call(
+                "climate", service, {"entity_id": entity_id, service_key: value}, blocking=True
+            )
