@@ -76,6 +76,8 @@
   "hero.waiting": "Waiting for sensor data...",
   "hero.not_configured": "Not configured yet",
   "hero.mpc_learning_paused": "MPC learning paused",
+  "hero.temperature_sensor_unavailable": "Temperature sensor unavailable; climate control is paused",
+  "hero.mpc_learning_progress": "Thermal model learning: {confidence}% confidence",
   "hero.mpc_learning_paused.outdoor_unavailable": "RoomMind needs an outdoor temperature to learn this room's thermal model. The configured outdoor sensor is unavailable and no weather entity is set as a fallback. Configure either in Settings.",
   "hero.compressor_protection_min_off": "Compressor protection: waiting for min-off",
   "hero.compressor_protection_min_run": "Compressor protection: min-run active",
@@ -520,6 +522,8 @@
   "settings.intro.learning": "Manage thermal model training and accelerate re-learning after changes.",
   "settings.intro.reset": "Clear learned thermal model data. The model will start learning from scratch.",
   "notifications.title": "Notifications",
+  "notifications.window_open_after": "Window open alert after",
+  "notifications.window_open_after_hint": "Send an alert after this many minutes with the window open. Set 0 to disable.",
   "notifications.enabled": "Enable notifications",
   "notifications.enabled_hint": "When disabled, no notifications are sent — neither to devices nor to the HA sidebar.",
   "notifications.desc": "Choose which devices receive alerts. Without targets, alerts appear in the HA sidebar.",
@@ -588,5 +592,6 @@
   "hero.power_budget_blocked": "Climate start delayed by house power budget",
   "hero.preconditioning_active": "Pre-conditioning active for the next scheduled target",
   "hero.preconditioning_planned": "Pre-conditioning planned at {time}",
-  "hero.ac_efficiency_issue": "AC is using normal power but responding slowly"
+  "hero.ac_efficiency_issue": "AC is using normal power but responding slowly",
+  "hero.window_recovery": "Estimated recovery after closing: {minutes} min"
 }

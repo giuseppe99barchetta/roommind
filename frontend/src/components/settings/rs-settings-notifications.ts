@@ -17,6 +17,7 @@ export class RsSettingsNotifications extends RsSettingsBase {
   @property({ type: Number }) public notificationCooldown = 60;
   @property({ type: Boolean }) public moldPreventionEnabled = false;
   @property({ type: Boolean }) public moldPreventionNotify = false;
+  @property({ type: Number }) public windowOpenNotificationMinutes = 0;
 
   render() {
     const l = this.hass.language;
@@ -152,6 +153,23 @@ export class RsSettingsNotifications extends RsSettingsBase {
                     }}
                   ></ha-textfield>
                   <span class="field-hint">${localize("notifications.cooldown_hint", l)}</span>
+                </div>
+                <div class="threshold-field">
+                  <ha-textfield
+                    .value=${String(this.windowOpenNotificationMinutes)}
+                    .label=${localize("notifications.window_open_after", l)}
+                    .suffix=${"min"}
+                    type="number"
+                    step="5"
+                    min="0"
+                    max="1440"
+                    @change=${(e: Event) => {
+                      const v = parseInt((e.target as HTMLInputElement).value, 10);
+                      if (!isNaN(v) && v >= 0 && v <= 1440)
+                        this._fire("windowOpenNotificationMinutes", v);
+                    }}
+                  ></ha-textfield>
+                  <span class="field-hint">${localize("notifications.window_open_after_hint", l)}</span>
                 </div>
               </div>
 

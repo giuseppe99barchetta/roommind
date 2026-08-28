@@ -570,15 +570,23 @@ export class RsHeroStatus extends LitElement {
         ${live
           ? html`
               ${live.window_open && !this.isOutdoor
-                ? html`<div class="hero-window-open">
+                      ? html`<div class="hero-window-open">
                     <ha-icon icon="mdi:window-open-variant"></ha-icon>
                     ${live.window_open_minutes != null && live.window_impact_c != null
                       ? localize("hero.window_impact", this.hass?.language ?? "en", {
                           minutes: String(live.window_open_minutes),
                           impact: `${live.window_impact_c >= 0 ? "+" : ""}${live.window_impact_c.toFixed(1)}`,
                           unit: tempUnit(this.hass),
-                        })
-                      : localize("hero.window_open", this.hass?.language ?? "en")}
+                          })
+                        : localize("hero.window_open", this.hass?.language ?? "en")}
+                  </div>`
+                : nothing}
+              ${live.window_open && live.window_recovery_minutes != null && !this.isOutdoor
+                ? html`<div class="hero-metric info">
+                    <ha-icon icon="mdi:clock-fast"></ha-icon>
+                    ${localize("hero.window_recovery", this.hass?.language ?? "en", {
+                      minutes: String(live.window_recovery_minutes),
+                    })}
                   </div>`
                 : nothing}
               <div class="hero-temps">
@@ -696,6 +704,20 @@ export class RsHeroStatus extends LitElement {
                         this.hass?.language ?? "en",
                       )}
                     ></rs-info-icon>
+                  </div>`
+                : nothing}
+              ${this.config?.temperature_sensor && live.current_temp === null && !this.isOutdoor
+                ? html`<div class="hero-metric warning">
+                    <ha-icon icon="mdi:thermometer-alert"></ha-icon>
+                    ${localize("hero.temperature_sensor_unavailable", this.hass?.language ?? "en")}
+                  </div>`
+                : nothing}
+              ${live.confidence != null && live.confidence < 0.5 && !live.mpc_active && !this.isOutdoor
+                ? html`<div class="hero-metric info">
+                    <ha-icon icon="mdi:school-outline"></ha-icon>
+                    ${localize("hero.mpc_learning_progress", this.hass?.language ?? "en", {
+                      confidence: String(Math.round(live.confidence * 100)),
+                    })}
                   </div>`
                 : nothing}
               ${!this.climateControlActive && !this.isOutdoor

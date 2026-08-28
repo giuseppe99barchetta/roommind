@@ -155,6 +155,18 @@ class HistoryStore:
         with open(path, newline="") as f:
             reader = csv.DictReader(f)
             rows = list(reader)
+        # Keep the CSV compact, but restore per-device power maps for consumers
+        # that rebuild their learned models after a Home Assistant restart.
+        for row in rows:
+            for json_key, value_key in (
+                ("ac_device_power_w_json", "ac_device_power_w"),
+                ("predicted_device_power_w_json", "predicted_device_power_w"),
+            ):
+                try:
+                    value = json.loads(row.get(json_key, ""))
+                except (TypeError, ValueError, json.JSONDecodeError):
+                    value = {}
+                row[value_key] = value if isinstance(value, dict) else {}
         cutoff_start: float | None = None
         if start_ts is not None:
             cutoff_start = start_ts

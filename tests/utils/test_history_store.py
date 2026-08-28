@@ -123,6 +123,23 @@ def test_window_open_in_csv(history_dir):
     rows = store.read_detail("room_a")
     assert len(rows) == 2
     assert rows[0]["window_open"] == "True"
+
+
+def test_read_restores_per_device_power_maps(history_dir):
+    """Per-device maps survive the CSV round-trip used at restart."""
+    store = HistoryStore(history_dir)
+    store.record(
+        "room_a",
+        {
+            "ac_device_power_w": {"climate.ac": 420.0},
+            "predicted_device_power_w": {"climate.ac": 390.0},
+        },
+    )
+
+    row = store.read_detail("room_a")[0]
+
+    assert row["ac_device_power_w"] == {"climate.ac": 420.0}
+    assert row["predicted_device_power_w"] == {"climate.ac": 390.0}
     assert rows[1]["window_open"] == "False"
 
 

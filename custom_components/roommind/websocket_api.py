@@ -154,6 +154,7 @@ _SETTINGS_SAVE_FIELDS = (
     "mold_prevention_intensity",
     "mold_prevention_notify_enabled",
     "mold_prevention_notify_targets",
+    "window_open_notification_minutes",
     "room_order",
     "group_by_floor",
     "compressor_groups",
@@ -719,6 +720,7 @@ SETTINGS_SAVE_SCHEMA = {
             vol.Optional("notify_when", default="always"): vol.In(["always", "home_only"]),
         }
     ],
+    vol.Optional("window_open_notification_minutes"): vol.All(vol.Coerce(int), vol.Range(min=0, max=1440)),
     vol.Optional("room_order"): [str],
     vol.Optional("group_by_floor"): bool,
     vol.Optional("compressor_groups"): [

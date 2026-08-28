@@ -224,3 +224,33 @@ def test_energy_manager_tracks_and_predicts_device_breakdown():
     predicted, samples = manager.predict_power("sala", "cooling", 28, 25, 32, 60, 700)
     assert predicted is not None and predicted > 0
     assert samples >= 6
+
+
+def test_energy_manager_bootstraps_device_breakdown_from_history(tmp_path):
+    """Per-device learning is restored from RoomMind history after restart."""
+    from unittest.mock import MagicMock
+
+    from custom_components.roommind.managers.energy_manager import EnergyManager
+    from custom_components.roommind.utils.history_store import HistoryStore
+
+    store = HistoryStore(str(tmp_path / "history"))
+    for index in range(6):
+        store.record(
+            "sala",
+            {
+                "ac_power_w": 450,
+                "ac_device_power_w": {"climate.ac": 450},
+                "energy_mode": "cooling",
+                "room_temp": 28,
+                "target_temp": 25,
+                "outdoor_temp": 32,
+                "current_humidity": 60,
+            },
+            timestamp=1_000 + index * 60,
+        )
+
+    manager = EnergyManager(MagicMock())
+    manager.bootstrap("sala", store.read_detail("sala"))
+
+    prediction = manager.predict_device_power("sala", "cooling", 28, 25, 32, 60)
+    assert prediction["climate.ac"] > 0

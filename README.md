@@ -36,7 +36,7 @@
 - **Outdoor Areas** - Mark rooms as outdoor (e.g. balcony) to disable climate control while keeping monitoring.
 - **Analytics Dashboard** - Temperature charts with heating power, solar irradiance, and model predictions over 24h to 90 days.
 - **Mobile Ready** - Responsive layout with HA-native toolbar for the companion app.
-- **Multilingual** - English and German, auto-detected from your HA language setting.
+- **Multilingual** - English, German, and French, auto-detected from your HA language setting.
 
 ## Installation
 
@@ -84,7 +84,7 @@ RoomMind starts controlling immediately. If MPC is enabled (default), the therma
 
 ![Analytics](docs/images/page-analytics.png)
 
-Select a room and time range (24h / 7d / 30d / 90d / custom) to view temperature history, heating/cooling power, solar irradiance, and model predictions. Export as CSV or diagnostics report.
+Select a room and time range (24h / 7d / 30d / 90d / custom) to view temperature history, heating/cooling power, solar irradiance, and model predictions. Export the displayed data as CSV.
 
 ## How It Works
 

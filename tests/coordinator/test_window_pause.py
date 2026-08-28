@@ -21,6 +21,45 @@ class TestRoomMindCoordinator:
     """Tests for RoomMindCoordinator."""
 
     @pytest.mark.asyncio
+    async def test_window_open_notification_is_opt_in(self, hass, mock_config_entry):
+        """A zero threshold keeps window notifications disabled."""
+        coordinator = _create_coordinator(hass, mock_config_entry)
+        with patch("custom_components.roommind.coordinator.async_send_mold_notification", new_callable=AsyncMock) as send:
+            await coordinator._notify_window_open(
+                "living_room_abc12345",
+                True,
+                30,
+                -0.5,
+                {"window_open_notification_minutes": 0},
+            )
+
+        send.assert_not_awaited()
+
+    @pytest.mark.asyncio
+    async def test_window_open_notification_uses_configured_threshold(self, hass, mock_config_entry):
+        """An open window alerts once after its configured duration."""
+        coordinator = _create_coordinator(hass, mock_config_entry)
+        settings = {
+            "window_open_notification_minutes": 15,
+            "mold_notifications_enabled": True,
+            "mold_notification_targets": [{"entity_id": "notify.phone"}],
+        }
+        with (
+            patch("custom_components.roommind.coordinator._get_area_name", return_value="Living room"),
+            patch("custom_components.roommind.coordinator.async_send_mold_notification", new_callable=AsyncMock) as send,
+            patch("custom_components.roommind.coordinator.dismiss_mold_notification") as dismiss,
+        ):
+            await coordinator._notify_window_open("living_room_abc12345", True, 14, -0.5, settings)
+            send.assert_not_awaited()
+
+            await coordinator._notify_window_open("living_room_abc12345", True, 15, -0.5, settings)
+            send.assert_awaited_once()
+            assert "15 minutes" in send.await_args.kwargs["message"]
+
+            await coordinator._notify_window_open("living_room_abc12345", False, None, None, settings)
+            dismiss.assert_called_once_with(hass, "living_room_abc12345", "window_open")
+
+    @pytest.mark.asyncio
     async def test_window_open_overrides_to_idle(self, hass, mock_config_entry):
         """Test that an open window sensor forces mode to idle and turns off devices."""
         room_with_window = {

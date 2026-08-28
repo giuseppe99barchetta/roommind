@@ -89,6 +89,10 @@ jobs:
         working-directory: frontend
         run: npx tsc --noEmit
 
+      - name: Frontend unit tests
+        working-directory: frontend
+        run: npm test
+
       - name: ESLint
         working-directory: frontend
         run: npx eslint src/

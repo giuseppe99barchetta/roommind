@@ -71,6 +71,7 @@ export class RsSettings extends LitElement {
   @state() private _moldPreventionEnabled = false;
   @state() private _moldPreventionIntensity: "light" | "medium" | "strong" = "medium";
   @state() private _moldPreventionNotify = false;
+  @state() private _windowOpenNotificationMinutes = 0;
   @state() private _compressorGroups: CompressorGroup[] = [];
   @state() private _boostAppliedAt: Record<string, number> = {};
   @state() private _boilerEntity = "";
@@ -143,6 +144,7 @@ export class RsSettings extends LitElement {
       this._moldPreventionEnabled = s.mold_prevention_enabled ?? false;
       this._moldPreventionIntensity = s.mold_prevention_intensity ?? "medium";
       this._moldPreventionNotify = s.mold_prevention_notify_enabled ?? false;
+      this._windowOpenNotificationMinutes = s.window_open_notification_minutes ?? 0;
       this._compressorGroups = s.compressor_groups ?? [];
       this._boostAppliedAt = s.boost_applied_at ?? {};
       this._boilerEntity = s.boiler_entity ?? "";
@@ -327,6 +329,7 @@ export class RsSettings extends LitElement {
           .notificationCooldown=${this._moldNotificationCooldown}
           .moldPreventionEnabled=${this._moldPreventionEnabled}
           .moldPreventionNotify=${this._moldPreventionNotify}
+          .windowOpenNotificationMinutes=${this._windowOpenNotificationMinutes}
           @setting-changed=${this._onSettingChanged}
         ></rs-settings-notifications>
       </rs-settings-panel>
@@ -455,6 +458,7 @@ export class RsSettings extends LitElement {
         mold_prevention_notify_targets: this._moldPreventionNotify
           ? this._moldNotificationTargets.filter((t) => t.entity_id)
           : [],
+        window_open_notification_minutes: this._windowOpenNotificationMinutes,
       };
       // eslint-disable-next-line no-console
       console.debug("RoomMind heating settings save payload", payload);

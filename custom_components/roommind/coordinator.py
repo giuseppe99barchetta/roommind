@@ -82,6 +82,7 @@ from .utils.device_utils import (
 )
 from .utils.device_utils import room_has_power_sensor as _room_has_power_sensor
 from .utils.history_store import HistoryStore
+from .utils.notification_utils import NotificationThrottler, async_send_mold_notification, dismiss_mold_notification
 from .utils.schedule_utils import resolve_schedule_index
 from .utils.sensor_utils import read_sensor_value
 from .utils.temp_utils import celsius_delta_to_ha, ha_temp_to_celsius, ha_temp_unit_str
@@ -220,6 +221,7 @@ class RoomMindCoordinator(DataUpdateCoordinator):
         self._outdoor_warning_sent: bool = False
         self._window_manager = WindowManager()
         self._window_impact_manager = WindowImpactManager()
+        self._window_notification_throttler = NotificationThrottler()
         self._previous_modes: dict[str, str] = {}
         self._model_manager: RoomModelManager = RoomModelManager()
         self._model_loaded = False
@@ -463,8 +465,10 @@ class RoomMindCoordinator(DataUpdateCoordinator):
                             "current_humidity": rs.get("current_humidity"),
                             "energy_mode": rs.get("energy_mode"),
                             "ac_power_w": rs.get("ac_power_w"),
+                            "ac_device_power_w": rs.get("ac_device_power_w"),
                             "ac_energy_today_kwh": rs.get("ac_energy_today_kwh"),
                             "predicted_power_w": rs.get("predicted_power_w"),
+                            "predicted_device_power_w": rs.get("predicted_device_power_w"),
                             "predicted_energy_1h_kwh": rs.get("predicted_energy_1h_kwh"),
                             "energy_learning_samples": rs.get("energy_learning_samples"),
                             "energy_prediction_confidence": rs.get("energy_prediction_confidence"),
@@ -718,6 +722,71 @@ class RoomMindCoordinator(DataUpdateCoordinator):
             mold.prevention_strategy,
         )
 
+    async def _notify_window_open(
+        self,
+        area_id: str,
+        window_open: bool,
+        open_minutes: int | None,
+        impact_c: float | None,
+        settings: dict,
+    ) -> None:
+        """Send one actionable alert when a paused window remains open."""
+        key = f"window_open_{area_id}"
+        threshold = int(settings.get("window_open_notification_minutes", 0) or 0)
+        if not window_open:
+            self._window_notification_throttler.clear(key)
+            dismiss_mold_notification(self.hass, area_id, "window_open")
+            return
+        if (
+            threshold <= 0
+            or not settings.get("mold_notifications_enabled", True)
+            or open_minutes is None
+            or open_minutes < threshold
+            or not self._window_notification_throttler.should_send(key, 24 * 3600)
+        ):
+            return
+
+        area_name = _get_area_name(self.hass, area_id)
+        impact = f" Estimated temperature impact: {impact_c:+.1f}°C." if impact_c is not None else ""
+        await async_send_mold_notification(
+            self.hass,
+            area_id,
+            area_name,
+            settings.get("mold_notification_targets", []),
+            message=f"Window is still open in {area_name} after {open_minutes} minutes. Climate control is paused.{impact}",
+            title="RoomMind: Window Open",
+            tag_suffix="window_open",
+        )
+        self._window_notification_throttler.record_sent(key)
+
+    def _estimate_window_recovery_minutes(
+        self,
+        area_id: str,
+        current_temp: float | None,
+        targets: TargetTemps,
+        requested_mode: str,
+    ) -> int | None:
+        """Estimate time to return to the active target after closing a window."""
+        if current_temp is None or self.outdoor_temp_effective is None:
+            return None
+        if requested_mode == MODE_HEATING:
+            target, power, reaches_target = targets.heat, 1.0, lambda temp, goal: temp >= goal
+        elif requested_mode == MODE_COOLING:
+            target, power, reaches_target = targets.cool, -1.0, lambda temp, goal: temp <= goal
+        else:
+            return None
+        if target is None or reaches_target(current_temp, target):
+            return 0
+        try:
+            model = self._model_manager.get_model(area_id)
+            q_active = model.Q_heat * power if power > 0 else -model.Q_cool
+            for minutes in range(5, 181, 5):
+                if reaches_target(model.predict(current_temp, self.outdoor_temp_effective, q_active, minutes), target):
+                    return minutes
+        except Exception:  # noqa: BLE001
+            pass
+        return None
+
     async def _async_process_room(self, room: dict, settings: dict, outdoor_forecast: list[dict]) -> dict:
         """Process a single room: read sensor, evaluate schedule, apply control."""
         area_id = room.get("area_id", "unknown")
@@ -961,6 +1030,7 @@ class RoomMindCoordinator(DataUpdateCoordinator):
             power_fraction = 0.0
         window_impact_c: float | None = None
         window_open_minutes: int | None = None
+        window_recovery_minutes: int | None = None
         baseline = self._window_impact_manager.update(area_id, window_open, current_temp)
         if baseline is not None:
             window_open_minutes = int((time.time() - baseline.started_at) / 60)
@@ -975,6 +1045,8 @@ class RoomMindCoordinator(DataUpdateCoordinator):
                     window_impact_c = round(current_temp - expected, 2) if current_temp is not None else None
                 except Exception:  # noqa: BLE001
                     pass
+            window_recovery_minutes = self._estimate_window_recovery_minutes(area_id, current_temp, targets, mode)
+        await self._notify_window_open(area_id, window_open, window_open_minutes, window_impact_c, settings)
 
         climate_active = settings.get("climate_control_active", True) and room.get("climate_control_enabled", True)
         # Startup guard: Full Control room without any temperature reading yet —
@@ -1461,6 +1533,7 @@ class RoomMindCoordinator(DataUpdateCoordinator):
             room_state["preconditioning_started_at"] = None
         room_state["window_open_minutes"] = window_open_minutes
         room_state["window_impact_c"] = window_impact_c
+        room_state["window_recovery_minutes"] = window_recovery_minutes
         room_state["power_budget_blocked"] = bool(budget_blocked_acs)
         forecast = self._prediction_forecasts.get(area_id, [])
         room_state["predicted_temp"] = forecast[-1]["temp"] if forecast else None
