@@ -16,9 +16,22 @@ jobs:
         with:
           python-version: '3.12'
       - name: Apply fix
-        run: python .github/scripts/apply-climate-state-semantics.py
+        run: |
+          python .github/scripts/apply-climate-state-semantics.py
+          python - <<'PY'
+          from pathlib import Path
+          p = Path('tests/test_climate.py')
+          text = p.read_text()
+          marker = r'\n\ndef test_canonical_persisted_fan_only_reports_off_when_physical_ac_is_off'
+          if marker in text:
+              idx = text.index(marker)
+              text = text[:idx] + text[idx:].replace(r'\n', '\n')
+              p.write_text(text)
+          PY
       - name: Validate Python
-        run: python -m compileall -q custom_components/roommind
+        run: |
+          python -m compileall -q custom_components/roommind
+          python -m py_compile tests/test_climate.py
       - name: Install test dependencies
         run: pip install -r requirements-dev.txt
       - name: Run focused tests
