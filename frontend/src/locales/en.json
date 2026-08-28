@@ -573,6 +573,7 @@
   "analytics.energy_cost_7d": "Cost last 7 days",
   "analytics.energy_cost_next_3h": "Cost next 3h",
   "analytics.comparison_title": "Room comparison · last 7 days",
+  "analytics.comparison_info": "Compare the last seven days: kWh is measured climate energy, € is its estimated cost, Active is total heating/cooling time, ΔT/kWh shows temperature change per unit of energy, and To target is the average time to reach the scheduled temperature.",
   "analytics.comparison_room": "Room",
   "analytics.comparison_active": "Active",
   "analytics.comparison_efficiency": "ΔT/kWh",

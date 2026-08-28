@@ -564,6 +564,7 @@
   "analytics.energy_cost_7d": "Kosten letzte 7 Tage",
   "analytics.energy_cost_next_3h": "Kosten nächste 3 Std.",
   "analytics.comparison_title": "Raumvergleich · letzte 7 Tage",
+  "analytics.comparison_info": "Vergleicht die letzten sieben Tage: kWh ist die gemessene Klimaanlagenenergie, € die geschätzten Kosten, Aktiv die gesamte Heiz-/Kühlzeit, ΔT/kWh die Temperaturänderung pro Energieeinheit und Bis Ziel die durchschnittliche Zeit bis zur Solltemperatur.",
   "analytics.comparison_room": "Raum",
   "analytics.comparison_active": "Aktiv",
   "analytics.comparison_efficiency": "ΔT/kWh",

@@ -416,7 +416,8 @@ class RoomMindClimate(RoomMindOverrideClimate):
 
     @property
     def fan_mode(self) -> str | None:
-        return (self._room() or {}).get("room_fan_mode") or None
+        fan_mode = (self._room() or {}).get("room_fan_mode")
+        return fan_mode if fan_mode in self._capabilities().fan_modes else None
 
     @property
     def swing_modes(self) -> list[str] | None:

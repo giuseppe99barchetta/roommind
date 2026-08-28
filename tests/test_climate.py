@@ -994,7 +994,10 @@ async def test_stale_fan_mode_is_not_applied_when_turning_on_fan_only(mock_coord
     )
     coordinator.hass.services.async_call = AsyncMock()
 
-    await RoomMindClimate(coordinator, "living_room").async_set_hvac_mode(HVACMode.FAN_ONLY)
+    entity = RoomMindClimate(coordinator, "living_room")
+    assert entity.fan_mode is None
+
+    await entity.async_set_hvac_mode(HVACMode.FAN_ONLY)
 
     coordinator.hass.services.async_call.assert_awaited_once_with(
         "climate", "set_hvac_mode", {"entity_id": "climate.ac", "hvac_mode": "fan_only"}, blocking=True

@@ -26,6 +26,7 @@ export class RsAnalytics extends LitElement {
   @state() private _loading = false;
   @state() private _activeQuick: string | null = "24h";
   @state() private _comparison: Array<Record<string, string | number | null>> = [];
+  @state() private _comparisonInfoExpanded = false;
 
   private _refreshInterval?: ReturnType<typeof setInterval>;
 
@@ -114,7 +115,21 @@ export class RsAnalytics extends LitElement {
                     ></rs-energy-analytics-chart>
                     ${this._comparison.length > 1
                       ? html`<ha-card class="comparison">
-                          <h3>${localize("analytics.comparison_title", l)}</h3>
+                          <div class="comparison-header">
+                            <h3>${localize("analytics.comparison_title", l)}</h3>
+                            <ha-icon
+                              class="info-icon ${this._comparisonInfoExpanded ? "info-active" : ""}"
+                              icon="mdi:information-outline"
+                              @click=${() => {
+                                this._comparisonInfoExpanded = !this._comparisonInfoExpanded;
+                              }}
+                            ></ha-icon>
+                          </div>
+                          ${this._comparisonInfoExpanded
+                            ? html`<div class="info-panel comparison-info-panel">
+                                ${localize("analytics.comparison_info", l)}
+                              </div>`
+                            : nothing}
                           <table>
                             <thead><tr><th>${localize("analytics.comparison_room", l)}</th><th>kWh</th><th>€</th><th>${localize("analytics.comparison_active", l)}</th><th>${localize("analytics.comparison_efficiency", l)}</th><th>${localize("analytics.comparison_target", l)}</th></tr></thead>
                             <tbody>
@@ -257,7 +272,12 @@ export class RsAnalytics extends LitElement {
     }
 
     .comparison { margin: 0 0 16px; overflow-x: auto; padding: 12px 16px; }
-    .comparison h3 { margin: 0 0 10px; font-size: 16px; }
+    .comparison-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+    .comparison h3 { margin: 0; font-size: 16px; }
+    .comparison-info-panel { margin-bottom: 10px; }
+    .info-icon { --mdc-icon-size: 20px; color: var(--secondary-text-color); cursor: pointer; opacity: 0.5; }
+    .info-icon.info-active { color: var(--primary-color); opacity: 1; }
+    .info-panel { padding: 12px; border-radius: 8px; background: var(--secondary-background-color, rgba(128, 128, 128, 0.06)); font-size: 13px; line-height: 1.6; color: var(--secondary-text-color); }
     table { width: 100%; border-collapse: collapse; font-size: 13px; }
     th, td { padding: 8px; text-align: right; border-top: 1px solid var(--divider-color); white-space: nowrap; }
     th:first-child, td:first-child { text-align: left; }

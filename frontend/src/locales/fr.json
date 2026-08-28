@@ -564,6 +564,7 @@
   "analytics.energy_cost_7d": "Coût des 7 derniers jours",
   "analytics.energy_cost_next_3h": "Coût des 3 prochaines h",
   "analytics.comparison_title": "Comparaison des pièces · 7 derniers jours",
+  "analytics.comparison_info": "Compare les sept derniers jours : kWh est l’énergie climatique mesurée, € son coût estimé, Actif le temps total de chauffage/refroidissement, ΔT/kWh la variation de température par unité d’énergie et Vers cible le temps moyen pour atteindre la température programmée.",
   "analytics.comparison_room": "Pièce",
   "analytics.comparison_active": "Actif",
   "analytics.comparison_efficiency": "ΔT/kWh",
