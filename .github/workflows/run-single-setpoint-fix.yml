@@ -12,12 +12,18 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
       - name: Apply fix
         run: python .github/scripts/apply-single-setpoint.py
       - name: Validate Python
         run: python -m compileall -q custom_components/roommind
       - name: Install test dependencies
-        run: pip install -r requirements_test.txt
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements-dev.txt
       - name: Run focused climate tests
         run: pytest -q tests/test_climate.py
       - name: Commit result
