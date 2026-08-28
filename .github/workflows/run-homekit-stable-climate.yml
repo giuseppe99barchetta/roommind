@@ -1,0 +1,42 @@
+name: Validate HomeKit stable climate capabilities
+on:
+  push:
+    branches: [fix/homekit-stable-climate-capabilities]
+    paths:
+      - scripts/apply_homekit_stable_climate.py
+      - .github/workflows/run-homekit-stable-climate.yml
+permissions:
+  contents: write
+jobs:
+  patch:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: fix/homekit-stable-climate-capabilities
+          fetch-depth: 0
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+      - name: Apply patch
+        run: python scripts/apply_homekit_stable_climate.py
+      - name: Install deps
+        run: pip install -r requirements-dev.txt
+      - name: Format and lint
+        run: |
+          ruff format custom_components/roommind tests
+          ruff check --fix custom_components/roommind tests
+          ruff check custom_components/roommind tests
+      - name: Test
+        run: pytest -q
+      - name: Type check
+        run: mypy custom_components/roommind
+      - name: Commit result
+        run: |
+          rm scripts/apply_homekit_stable_climate.py
+          rm .github/workflows/run-homekit-stable-climate.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "fix: keep RoomMind climate capabilities stable for HomeKit"
+          git push origin HEAD:fix/homekit-stable-climate-capabilities
