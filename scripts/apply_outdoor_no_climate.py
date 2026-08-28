@@ -30,7 +30,7 @@ p.write_text(text.replace(old, new, 1), encoding="utf-8")
 # Tests.
 p = ROOT / "tests/test_climate.py"
 text = p.read_text(encoding="utf-8")
-insert = '''\n\n@pytest.mark.asyncio\nasync def test_setup_skips_outdoor_room(mock_coordinator):\n    coordinator, store = mock_coordinator\n    store.get_rooms.return_value = {\n        "living_room": {"is_outdoor": False},\n        "terrace": {"is_outdoor": True},\n    }\n    coordinator.hass.data[DOMAIN]["entry"] = coordinator\n    entry = MagicMock(entry_id="entry")\n    add_entities = MagicMock()\n\n    await async_setup_entry(coordinator.hass, entry, add_entities)\n\n    created = add_entities.call_args.args[0]\n    assert [entity._area_id for entity in created] == ["living_room"]\n    assert coordinator._climate_entity_areas == {"living_room"}\n'''
+insert = '''\n\n@pytest.mark.asyncio\nasync def test_setup_skips_outdoor_room(mock_coordinator):\n    coordinator, store = mock_coordinator\n    coordinator._climate_entity_areas = set()\n    store.get_rooms.return_value = {\n        "living_room": {"is_outdoor": False},\n        "terrace": {"is_outdoor": True},\n    }\n    coordinator.hass.data[DOMAIN]["entry"] = coordinator\n    entry = MagicMock(entry_id="entry")\n    add_entities = MagicMock()\n\n    await async_setup_entry(coordinator.hass, entry, add_entities)\n\n    created = add_entities.call_args.args[0]\n    assert [entity._area_id for entity in created] == ["living_room"]\n    assert coordinator._climate_entity_areas == {"living_room"}\n'''
 anchor = '\n\ndef _canonical_room(devices, **overrides):\n'
 if anchor not in text:
     raise SystemExit("test climate anchor not found")
@@ -39,7 +39,7 @@ p.write_text(text, encoding="utf-8")
 
 p = ROOT / "tests/coordinator/test_entity_cleanup.py"
 text = p.read_text(encoding="utf-8")
-text += '''\n\ndef test_cleanup_removes_canonical_climate_for_outdoor_room(hass, mock_config_entry):\n    from homeassistant.helpers import entity_registry as er\n\n    coordinator = _create_coordinator(hass, mock_config_entry)\n    store = MagicMock()\n    store.get_rooms.return_value = {"terrace": {"area_id": "terrace", "is_outdoor": True}}\n    hass.data = {"roommind": {"store": store}}\n    registry = er.async_get(hass)\n    registry.async_get_or_create("climate", "roommind", "roommind_terrace", suggested_object_id="roommind_terrace")\n\n    coordinator.cleanup_orphaned_entities()\n\n    assert registry.async_get("climate.roommind_terrace") is None\n'''
+text += '''\n\ndef test_cleanup_removes_canonical_climate_for_outdoor_room(hass, mock_config_entry):\n    from custom_components.roommind.const import DOMAIN\n\n    coordinator = _create_coordinator(hass, mock_config_entry)\n    store = MagicMock()\n    store.get_rooms.return_value = {"terrace": {"area_id": "terrace", "is_outdoor": True}}\n    hass.data = {DOMAIN: {"store": store}}\n\n    entry = MagicMock()\n    entry.unique_id = f"{DOMAIN}_terrace"\n    entry.entity_id = "climate.roommind_terrace"\n    mock_registry = MagicMock()\n    mock_registry.entities.values.return_value = [entry]\n\n    with patch(\n        "homeassistant.helpers.entity_registry.async_get",\n        return_value=mock_registry,\n    ):\n        coordinator.cleanup_orphaned_entities()\n\n    mock_registry.async_remove.assert_called_once_with("climate.roommind_terrace")\n'''
 p.write_text(text, encoding="utf-8")
 
 print("outdoor climate exclusion applied")
