@@ -1,0 +1,30 @@
+name: Run single-setpoint climate fix
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/scripts/apply-single-setpoint.py'
+      - '.github/workflows/run-single-setpoint-fix.yml'
+permissions:
+  contents: write
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Apply fix
+        run: python .github/scripts/apply-single-setpoint.py
+      - name: Validate Python
+        run: python -m compileall -q custom_components/roommind
+      - name: Install test dependencies
+        run: pip install -r requirements_test.txt
+      - name: Run focused climate tests
+        run: pytest -q tests/test_climate.py
+      - name: Commit result
+        run: |
+          rm .github/scripts/apply-single-setpoint.py .github/workflows/run-single-setpoint-fix.yml
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add custom_components/roommind/climate.py tests/test_climate.py .github/scripts/apply-single-setpoint.py .github/workflows/run-single-setpoint-fix.yml
+          git commit -m 'fix: use single target temperature for auto climate'
+          git push
