@@ -33,3 +33,4 @@ jobs:
           git add custom_components/roommind/climate.py tests/test_climate.py .github/scripts/fix-manual-temperature-routing.py .github/workflows/run-manual-temperature-routing-fix.yml
           git commit -m 'fix: forward manual climate setpoints to physical devices'
           git push
+# trigger
