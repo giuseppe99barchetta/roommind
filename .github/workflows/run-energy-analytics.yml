@@ -51,17 +51,20 @@ jobs:
       - name: Frontend install
         working-directory: frontend
         run: npm ci
-      - name: Frontend check and build
+      - name: Frontend lint test and build
         shell: bash
         working-directory: frontend
         run: |
           set +e
-          npm run check 2>&1 | tee ../frontend-output.log
-          check_code=${PIPESTATUS[0]}
-          if [ "$check_code" -ne 0 ]; then exit "$check_code"; fi
+          npm run lint 2>&1 | tee ../frontend-output.log
+          code=${PIPESTATUS[0]}
+          if [ "$code" -ne 0 ]; then exit "$code"; fi
+          npm run test 2>&1 | tee -a ../frontend-output.log
+          code=${PIPESTATUS[0]}
+          if [ "$code" -ne 0 ]; then exit "$code"; fi
           npm run build 2>&1 | tee -a ../frontend-output.log
-          build_code=${PIPESTATUS[0]}
-          exit "$build_code"
+          code=${PIPESTATUS[0]}
+          exit "$code"
       - name: Upload frontend output
         if: always()
         uses: actions/upload-artifact@v4
