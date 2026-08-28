@@ -258,9 +258,7 @@ class RoomMindClimate(RoomMindOverrideClimate):
         # Temperature controls must describe the currently selected operating
         # mode, not every capability the room happens to have. In particular,
         # OFF and FAN_ONLY have no meaningful temperature setpoint.
-        if mode in (HVACMode.HEAT_COOL, HVACMode.AUTO):
-            features |= ClimateEntityFeature.TARGET_TEMPERATURE_RANGE
-        elif mode in (HVACMode.HEAT, HVACMode.COOL, HVACMode.DRY):
+        if mode in (HVACMode.HEAT_COOL, HVACMode.AUTO, HVACMode.HEAT, HVACMode.COOL, HVACMode.DRY):
             features |= ClimateEntityFeature.TARGET_TEMPERATURE
 
         if caps.fan_modes:
@@ -277,19 +275,17 @@ class RoomMindClimate(RoomMindOverrideClimate):
         if mode in (HVACMode.OFF, HVACMode.FAN_ONLY):
             return None
         heat, cool = self._logical_targets()
+        if mode in (HVACMode.HEAT_COOL, HVACMode.AUTO):
+            return (heat + cool) / 2.0
         return cool if mode in (HVACMode.COOL, HVACMode.DRY) else heat
 
     @property
     def target_temperature_low(self) -> float | None:
-        if self.hvac_mode not in (HVACMode.HEAT_COOL, HVACMode.AUTO):
-            return None
-        return self._logical_targets()[0]
+        return None
 
     @property
     def target_temperature_high(self) -> float | None:
-        if self.hvac_mode not in (HVACMode.HEAT_COOL, HVACMode.AUTO):
-            return None
-        return self._logical_targets()[1]
+        return None
 
     @property
     def hvac_action(self) -> Any:
@@ -349,16 +345,30 @@ class RoomMindClimate(RoomMindOverrideClimate):
             kwargs.get(ATTR_TARGET_TEMP_HIGH),
             kwargs.get(ATTR_TEMPERATURE),
         )
-        if low is not None or high is not None:
-            heat = float(low if low is not None else heat)
-            cool = float(high if high is not None else cool)
-        elif single is not None:
+        if selected in (HVACMode.HEAT_COOL, HVACMode.AUTO):
+            if single is not None:
+                center = float(single)
+            elif low is not None or high is not None:
+                effective_low = float(low if low is not None else heat)
+                effective_high = float(high if high is not None else cool)
+                if effective_high < effective_low:
+                    raise ValueError("Cooling target must be >= heating target")
+                center = (effective_low + effective_high) / 2.0
+            else:
+                return
+            # The canonical RoomMind climate exposes one user-facing setpoint.
+            # Internally keep a 2 °C neutral band to avoid heat/cool cycling.
+            heat = center - 1.0
+            cool = center + 1.0
+        else:
+            if single is None:
+                single = high if selected in (HVACMode.COOL, HVACMode.DRY) else low
+            if single is None:
+                return
             if selected in (HVACMode.COOL, HVACMode.DRY):
                 cool = float(single)
             else:
                 heat = float(single)
-        else:
-            return
         if cool < heat:
             raise ValueError("Cooling target must be >= heating target")
         store = self.coordinator.hass.data[DOMAIN]["store"]

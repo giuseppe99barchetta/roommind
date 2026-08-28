@@ -157,10 +157,11 @@ def test_canonical_mode_specific_temperature_features(mock_coordinator):
         [{"entity_id": "climate.ac", "type": "ac"}], room_hvac_mode="heat_cool"
     )
     entity = RoomMindClimate(coordinator, "living_room")
-    assert entity.supported_features & ClimateEntityFeature.TARGET_TEMPERATURE_RANGE
-    assert not entity.supported_features & ClimateEntityFeature.TARGET_TEMPERATURE
-    assert entity.target_temperature_low == 21.0
-    assert entity.target_temperature_high == 26.0
+    assert entity.supported_features & ClimateEntityFeature.TARGET_TEMPERATURE
+    assert not entity.supported_features & ClimateEntityFeature.TARGET_TEMPERATURE_RANGE
+    assert entity.target_temperature == 23.5
+    assert entity.target_temperature_low is None
+    assert entity.target_temperature_high is None
 
 
 @pytest.mark.asyncio
@@ -639,3 +640,52 @@ async def test_canonical_manual_off_bypasses_global_automation_switch(mock_coord
         blocking=True,
         context=ANY,
     )
+
+
+@pytest.mark.asyncio
+async def test_canonical_heat_cool_single_setpoint_creates_two_degree_deadband(mock_coordinator):
+    coordinator, store = mock_coordinator
+    ac = MagicMock(
+        state="off",
+        attributes={"hvac_modes": ["off", "heat", "cool", "heat_cool"]},
+    )
+    coordinator.hass.states.get.return_value = ac
+    store.get_room.return_value = _canonical_room(
+        [{"entity_id": "climate.ac", "type": "ac"}],
+        room_hvac_mode="heat_cool",
+        logical_heat_target=21.0,
+        logical_cool_target=25.0,
+    )
+    store.async_update_room = AsyncMock()
+    entity = RoomMindClimate(coordinator, "living_room")
+
+    await entity.async_set_temperature(temperature=23.0)
+
+    written = store.async_update_room.await_args[0][1]
+    assert written["logical_heat_target"] == 22.0
+    assert written["logical_cool_target"] == 24.0
+    assert written["override_heat"] == 22.0
+    assert written["override_cool"] == 24.0
+    assert written["room_hvac_mode"] == "heat_cool"
+
+
+def test_canonical_heat_cool_target_is_midpoint_for_homekit(mock_coordinator):
+    coordinator, store = mock_coordinator
+    ac = MagicMock(
+        state="off",
+        attributes={"hvac_modes": ["off", "heat", "cool", "heat_cool"]},
+    )
+    coordinator.hass.states.get.return_value = ac
+    store.get_room.return_value = _canonical_room(
+        [{"entity_id": "climate.ac", "type": "ac"}],
+        room_hvac_mode="heat_cool",
+        logical_heat_target=22.0,
+        logical_cool_target=24.0,
+    )
+    entity = RoomMindClimate(coordinator, "living_room")
+
+    assert entity.target_temperature == 23.0
+    assert entity.target_temperature_low is None
+    assert entity.target_temperature_high is None
+    assert entity.supported_features & ClimateEntityFeature.TARGET_TEMPERATURE
+    assert not entity.supported_features & ClimateEntityFeature.TARGET_TEMPERATURE_RANGE
