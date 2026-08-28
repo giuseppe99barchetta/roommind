@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from homeassistant.components.sensor import SensorEntity
+from homeassistant.components.sensor import SensorDeviceClass, SensorEntity, SensorStateClass
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import UnitOfTemperature
 from homeassistant.core import HomeAssistant
@@ -22,6 +22,10 @@ def _create_room_entities(coordinator: RoomMindCoordinator, area_id: str) -> lis
         RoomMindModeSensor(coordinator, area_id),
         RoomMindHeatSourceSensor(coordinator, area_id),
         RoomMindHeatSourceReasonSensor(coordinator, area_id),
+        RoomMindPowerSensor(coordinator, area_id),
+        RoomMindEnergyTodaySensor(coordinator, area_id),
+        RoomMindPredictedPowerSensor(coordinator, area_id),
+        RoomMindPredictedEnergySensor(coordinator, area_id),
     ]
 
 
@@ -124,6 +128,46 @@ class RoomMindHeatSourceReasonSensor(_RoomMindBaseSensor):
 
     def __init__(self, coordinator: RoomMindCoordinator, area_id: str) -> None:
         super().__init__(coordinator, area_id, "heat_source_reason", "Heat Source Reason")
+
+
+class RoomMindPowerSensor(_RoomMindBaseSensor):
+    _data_key = "ac_power_w"
+    _attr_native_unit_of_measurement = "W"
+    _attr_device_class = SensorDeviceClass.POWER
+    _attr_state_class = SensorStateClass.MEASUREMENT
+
+    def __init__(self, coordinator: RoomMindCoordinator, area_id: str) -> None:
+        super().__init__(coordinator, area_id, "power", "AC Power")
+
+
+class RoomMindEnergyTodaySensor(_RoomMindBaseSensor):
+    _data_key = "ac_energy_today_kwh"
+    _attr_native_unit_of_measurement = "kWh"
+    _attr_device_class = SensorDeviceClass.ENERGY
+    _attr_state_class = SensorStateClass.TOTAL_INCREASING
+
+    def __init__(self, coordinator: RoomMindCoordinator, area_id: str) -> None:
+        super().__init__(coordinator, area_id, "energy_today", "AC Energy Today")
+
+
+class RoomMindPredictedPowerSensor(_RoomMindBaseSensor):
+    _data_key = "predicted_power_w"
+    _attr_native_unit_of_measurement = "W"
+    _attr_device_class = SensorDeviceClass.POWER
+    _attr_state_class = SensorStateClass.MEASUREMENT
+
+    def __init__(self, coordinator: RoomMindCoordinator, area_id: str) -> None:
+        super().__init__(coordinator, area_id, "predicted_power", "Predicted AC Power")
+
+
+class RoomMindPredictedEnergySensor(_RoomMindBaseSensor):
+    _data_key = "predicted_energy_1h_kwh"
+    _attr_native_unit_of_measurement = "kWh"
+    _attr_device_class = SensorDeviceClass.ENERGY
+    _attr_state_class = SensorStateClass.MEASUREMENT
+
+    def __init__(self, coordinator: RoomMindCoordinator, area_id: str) -> None:
+        super().__init__(coordinator, area_id, "predicted_energy_1h", "Predicted AC Energy 1h")
 
 
 class _GlobalSensor(CoordinatorEntity, SensorEntity):

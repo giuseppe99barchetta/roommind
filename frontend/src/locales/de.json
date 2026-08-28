@@ -533,5 +533,7 @@
   "settings.temperature_rounding_hint": "Legt fest, wie RoomMind auf die vom Klimagerät unterstützte Schrittweite rundet.",
   "settings.temperature_rounding_nearest": "Nächster unterstützter Wert",
   "settings.temperature_rounding_down": "Abrunden (26,5° → 26°)",
-  "settings.temperature_rounding_up": "Aufrunden (26,5° → 27°)"
+  "settings.temperature_rounding_up": "Aufrunden (26,5° → 27°)",
+  "devices.power_sensor": "Leistungssensor",
+  "devices.power_sensor_hint": "Sensor für den momentanen Stromverbrauch dieser Klimaanlage. W- und kW-Sensoren werden für Energieverlauf und adaptive Prognosen unterstützt."
 }

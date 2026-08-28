@@ -140,7 +140,10 @@ class TestRoomMindCoordinator:
         coordinator = _create_coordinator(hass, mock_config_entry)
         data = await coordinator._async_update_data()
 
-        assert data == {"rooms": {}}
+        assert data["rooms"] == {}
+        assert {"available_power", "reserved_power", "boiler_demand", "boiler_active", "hydraulic_path_safe"} <= set(
+            data
+        )
 
     @pytest.mark.asyncio
     async def test_update_climate_service_failure_does_not_crash(self, hass, mock_config_entry):
@@ -182,10 +185,9 @@ class TestRoomMindCoordinator:
         room = {"area_id": "bedroom_abc12345"}
         await coordinator.async_room_added(room)
 
-        # async_add_entities should be called with 3 entities
         mock_add_entities.assert_called_once()
         entities = mock_add_entities.call_args[0][0]
-        assert len(entities) == 2
+        assert len(entities) == 8
 
         # Verify entity types
         from custom_components.roommind.sensor import (

@@ -8,12 +8,12 @@ import pytest
 from homeassistant.const import UnitOfTemperature
 
 from custom_components.roommind.utils.temp_utils import (
-    quantize_temperature_to_step,
     _is_fahrenheit,
     celsius_delta_to_ha,
     celsius_to_ha_temp,
     ha_temp_to_celsius,
     ha_temp_unit_str,
+    quantize_temperature_to_step,
 )
 
 

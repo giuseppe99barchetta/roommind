@@ -52,7 +52,9 @@ async def async_setup_entry(
     coordinator.async_add_climate_entities = async_add_entities
     rooms = store.get_rooms()
     entities: list[ClimateEntity] = []
-    for area_id in rooms:
+    for area_id, room in rooms.items():
+        if room.get("is_outdoor", False):
+            continue
         entities.extend(_create_room_climates(coordinator, area_id))
         coordinator._climate_entity_areas.add(area_id)
     if entities:

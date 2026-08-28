@@ -692,6 +692,17 @@ export class RsDeviceSection extends LitElement {
                 >
               </ha-select>
             </div>
+            <div class="detail-field with-info">
+              <ha-entity-picker
+                .hass=${this.hass}
+                .includeDomains=${["sensor"]}
+                .value=${device.power_sensor_entity_id ?? ""}
+                .label=${localize("devices.power_sensor", lang)}
+                @value-changed=${(e: CustomEvent) =>
+                  this._onPowerSensorChange(entityId, (e.detail?.value as string) ?? "")}
+              ></ha-entity-picker>
+              <rs-info-icon .text=${localize("devices.power_sensor_hint", lang)}></rs-info-icon>
+            </div>
             ${device.idle_action === "fan_only"
               ? html`<div class="detail-field">
                   <ha-select
@@ -878,6 +889,13 @@ export class RsDeviceSection extends LitElement {
   private _onIdleFanModeChange(entityId: string, fanMode: string): void {
     const newDevices = this.devices.map((d) =>
       d.entity_id === entityId ? { ...d, idle_fan_mode: fanMode } : d,
+    );
+    this._fireDeviceChanged(newDevices);
+  }
+
+  private _onPowerSensorChange(entityId: string, powerSensor: string): void {
+    const newDevices = this.devices.map((d) =>
+      d.entity_id === entityId ? { ...d, power_sensor_entity_id: powerSensor } : d,
     );
     this._fireDeviceChanged(newDevices);
   }

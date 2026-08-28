@@ -37,6 +37,7 @@ class MoldResult:
     surface_rh: float | None = None
     prevention_active: bool = False
     prevention_delta: float = 0.0
+    prevention_strategy: str | None = None
 
 
 class MoldManager:
@@ -56,6 +57,9 @@ class MoldManager:
         current_humidity: float | None,
         outdoor_temp: float | None,
         settings: dict,
+        can_dry: bool = False,
+        can_cool: bool = False,
+        automation_enabled: bool = True,
         celsius_delta_to_ha_fn: Callable[[float], float] | None = None,
         ha_temp_unit_str_fn: Callable[[], str] | None = None,
     ) -> MoldResult:
@@ -131,9 +135,24 @@ class MoldManager:
                     self._throttler.record_sent(f"detect_{area_id}")
 
             # Activate prevention
-            if settings.get("mold_prevention_enabled") and risk_level in (MOLD_RISK_WARNING, MOLD_RISK_CRITICAL):
+            if (
+                settings.get("mold_prevention_enabled")
+                and automation_enabled
+                and risk_level in (MOLD_RISK_WARNING, MOLD_RISK_CRITICAL)
+            ):
                 intensity = settings.get("mold_prevention_intensity", "medium")
-                result.prevention_delta = mold_prevention_delta(intensity)
+                warm_weather = current_temp >= 23.0 or (
+                    outdoor_temp is not None and outdoor_temp >= 18.0 and current_temp >= 21.5
+                )
+                if can_dry and warm_weather:
+                    result.prevention_strategy = "dry"
+                    result.prevention_delta = 0.0
+                elif can_cool and current_temp >= 24.0:
+                    result.prevention_strategy = "cool"
+                    result.prevention_delta = 0.0
+                else:
+                    result.prevention_strategy = "heat"
+                    result.prevention_delta = mold_prevention_delta(intensity)
 
                 if not self._prevention_active.get(area_id):
                     self._prevention_active[area_id] = True
@@ -154,8 +173,12 @@ class MoldManager:
                             prev_targets,
                             message=(
                                 f"Mold prevention active in {area_name}: "
-                                f"temperature raised by "
-                                f"{celsius_delta_to_ha_fn(result.prevention_delta):.0f}{ha_temp_unit_str_fn()}"
+                                + (
+                                    f"AC dehumidification enabled ({result.prevention_strategy})"
+                                    if result.prevention_strategy in ("dry", "cool")
+                                    else f"temperature raised by "
+                                    f"{celsius_delta_to_ha_fn(result.prevention_delta):.0f}{ha_temp_unit_str_fn()}"
+                                )
                             ),
                             title="RoomMind: Mold Prevention",
                             tag_suffix="prevention",

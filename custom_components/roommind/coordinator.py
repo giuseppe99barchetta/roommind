@@ -62,6 +62,7 @@ from .managers.compressor_group_manager import (
 )
 from .managers.cover_orchestrator import CoverOrchestrator, CoverResult
 from .managers.ekf_training_manager import EkfTrainingManager
+from .managers.energy_manager import EnergyManager
 from .managers.heat_source_orchestrator import HeatSourcePlan, evaluate_heat_sources, evaluate_native_heat_sources
 from .managers.mold_manager import MoldManager
 from .managers.power_budget_manager import PowerBudgetManager
@@ -108,6 +109,10 @@ ROOM_ENTITY_SUFFIXES = (
     "_cover_paused",
     "_heat_source",
     "_heat_source_reason",
+    "_power",
+    "_energy_today",
+    "_predicted_power",
+    "_predicted_energy_1h",
 )
 # Suffixes only valid when the room has covers configured.
 COVER_ENTITY_SUFFIXES = ("_cover_auto", "_cover_paused")
@@ -183,6 +188,10 @@ class RoomMindCoordinator(DataUpdateCoordinator):
         self._valve_manager = ValveManager(hass)
         # Mold risk tracking
         self._mold_manager = MoldManager(hass)
+        # AC power history + adaptive consumption prediction
+        self._energy_manager = EnergyManager(hass)
+        self._mold_active_strategies: dict[str, str] = {}
+        self._mold_restore_modes: dict[str, str] = {}
         # Residual heat tracking (heating → idle transition)
         self._residual_tracker = ResidualHeatTracker()
         # EKF training accumulation
@@ -278,6 +287,23 @@ class RoomMindCoordinator(DataUpdateCoordinator):
         if self._history_store is None:
             self._history_store = HistoryStore(self.hass.config.path(".storage/roommind_history"))
 
+        # Rebuild energy-learning statistics from persisted RoomMind history after
+        # restart. Only rows written by versions with power fields contribute.
+        if self._history_store is not None:
+            for area_id in rooms:
+                if not self._energy_manager.needs_bootstrap(area_id):
+                    continue
+                try:
+                    detail = await self.hass.async_add_executor_job(
+                        self._history_store.read_detail, area_id, 14 * 24 * 3600
+                    )
+                    history = await self.hass.async_add_executor_job(
+                        self._history_store.read_history, area_id, 30 * 24 * 3600
+                    )
+                    self._energy_manager.bootstrap(area_id, history + detail)
+                except Exception:  # noqa: BLE001
+                    _LOGGER.warning("Energy history bootstrap failed for '%s'", area_id)
+
         room_states: dict[str, dict] = {}
 
         # Read weather forecast once for all rooms
@@ -306,6 +332,14 @@ class RoomMindCoordinator(DataUpdateCoordinator):
                 room_states[area_id] = room_state
             except Exception:  # noqa: BLE001
                 _LOGGER.exception("Room '%s': processing failed, skipping", area_id)
+
+        # Attach measured AC power, daily integrated energy and learned
+        # consumption forecasts to each room before entities/history consume it.
+        for area_id, room_state in room_states.items():
+            room = rooms.get(area_id, {})
+            if room.get("is_outdoor", False):
+                continue
+            room_state.update(self._energy_manager.update_room(area_id, room, room_state, self.outdoor_temp_effective))
 
         # Control master devices based on aggregate room demand
         await self._async_control_master_devices(room_states, rooms, settings)
@@ -349,6 +383,13 @@ class RoomMindCoordinator(DataUpdateCoordinator):
                             "cover_reason": rs.get("cover_reason", ""),
                             "device_setpoint": rs.get("device_setpoint"),
                             "occupancy": rs.get("q_occupancy", 0.0) > 0,
+                            "current_humidity": rs.get("current_humidity"),
+                            "energy_mode": rs.get("energy_mode"),
+                            "ac_power_w": rs.get("ac_power_w"),
+                            "ac_energy_today_kwh": rs.get("ac_energy_today_kwh"),
+                            "predicted_power_w": rs.get("predicted_power_w"),
+                            "predicted_energy_1h_kwh": rs.get("predicted_energy_1h_kwh"),
+                            "energy_learning_samples": rs.get("energy_learning_samples"),
                         },
                     )
                 except Exception:  # noqa: BLE001
@@ -563,11 +604,17 @@ class RoomMindCoordinator(DataUpdateCoordinator):
         current_temp: float | None,
         current_humidity: float | None,
         settings: dict,
-    ) -> tuple[str, float | None, bool, float]:
-        """Evaluate mold risk for a room.
-
-        Returns (mold_risk_level, mold_surface_rh, mold_prevention_active, mold_prevention_delta).
-        """
+        room: dict,
+    ) -> tuple[str, float | None, bool, float, str | None]:
+        """Evaluate mold risk and select an automatic prevention strategy."""
+        ac_modes: set[str] = set()
+        for eid in get_ac_eids(room.get("devices", [])):
+            state = self.hass.states.get(eid)
+            if state is not None:
+                ac_modes.update(state.attributes.get("hvac_modes", []) or [])
+        automation_enabled = bool(
+            settings.get("climate_control_active", True) and room.get("climate_control_enabled", True)
+        )
         mold = await self._mold_manager.evaluate(
             area_id,
             _get_area_name(self.hass, area_id),
@@ -575,10 +622,19 @@ class RoomMindCoordinator(DataUpdateCoordinator):
             current_humidity,
             self.outdoor_temp_effective,
             settings,
+            can_dry="dry" in ac_modes,
+            can_cool=bool(ac_modes & {"cool", "heat_cool", "auto"}),
+            automation_enabled=automation_enabled,
             celsius_delta_to_ha_fn=lambda d: celsius_delta_to_ha(self.hass, d),  # type: ignore[misc]
             ha_temp_unit_str_fn=lambda: ha_temp_unit_str(self.hass),  # type: ignore[misc]
         )
-        return mold.risk_level, mold.surface_rh, mold.prevention_active, mold.prevention_delta
+        return (
+            mold.risk_level,
+            mold.surface_rh,
+            mold.prevention_active,
+            mold.prevention_delta,
+            mold.prevention_strategy,
+        )
 
     async def _async_process_room(self, room: dict, settings: dict, outdoor_forecast: list[dict]) -> dict:
         """Process a single room: read sensor, evaluate schedule, apply control."""
@@ -633,7 +689,8 @@ class RoomMindCoordinator(DataUpdateCoordinator):
             mold_surface_rh,
             mold_prevention_active_room,
             mold_prevention_temp_delta,
-        ) = await self._evaluate_mold_risk(area_id, current_temp, current_humidity, settings)
+            mold_prevention_strategy,
+        ) = await self._evaluate_mold_risk(area_id, current_temp, current_humidity, settings, room)
 
         # Load schedule blocks once — used for both target temp resolution and MPC lookahead.
         from .utils.schedule_utils import (
@@ -665,29 +722,57 @@ class RoomMindCoordinator(DataUpdateCoordinator):
                 cool=float(logical_cool) if requested_hvac_mode in ("cool", "heat_cool", "auto") else None,
             )
 
-        # Mold prevention may override autonomous schedule/presence OFF, but
-        # never an explicit manual OFF/FAN_ONLY/DRY selection on the canonical
-        # climate entity. Manual intent is authoritative; mold risk remains
-        # visible while prevention is reported active only when actually applied.
-        manual_aux_or_off = requested_hvac_mode in ("off", "dry", "fan_only")
-        force_off = targets.heat is None and targets.cool is None or manual_aux_or_off
-        mold_prevention_effective = bool(
-            mold_prevention_active_room and mold_prevention_temp_delta > 0 and not manual_aux_or_off
+        # Mold prevention is an automatic safety policy. While RoomMind automatic
+        # control is enabled it temporarily supersedes OFF/FAN_ONLY/DRY, but the
+        # persisted room_hvac_mode is never overwritten. When risk clears the next
+        # tick therefore restores exactly the user's previous mode.
+        automation_enabled = bool(
+            settings.get("climate_control_active", True) and room.get("climate_control_enabled", True)
         )
+        mold_prevention_effective = bool(
+            mold_prevention_active_room and automation_enabled and mold_prevention_strategy
+        )
+        previous_mold_strategy = self._mold_active_strategies.get(area_id)
+        pending_restore = self._mold_restore_modes.get(area_id)
+        # A new explicit user mode selection always wins over a stale pending
+        # restore left by an earlier mold-prevention takeover.
+        if pending_restore is not None and pending_restore != requested_hvac_mode:
+            self._mold_restore_modes.pop(area_id, None)
+            pending_restore = None
+
+        if mold_prevention_effective and mold_prevention_strategy is not None:
+            self._mold_active_strategies[area_id] = mold_prevention_strategy
+            self._mold_restore_modes.pop(area_id, None)
+            pending_restore = None
+        elif previous_mold_strategy is not None:
+            self._mold_active_strategies.pop(area_id, None)
+            if requested_hvac_mode in ("fan_only", "dry"):
+                self._mold_restore_modes[area_id] = requested_hvac_mode
+                pending_restore = requested_hvac_mode
+
+        mold_restore_mode = pending_restore
+        effective_requested_hvac_mode = requested_hvac_mode
         if mold_prevention_effective:
-            if targets.heat is None:
-                eco_heat = room.get("eco_heat", room.get("eco_temp", DEFAULT_ECO_HEAT))
-                eco_cool = room.get("eco_cool", DEFAULT_ECO_COOL)
+            effective_requested_hvac_mode = mold_prevention_strategy
+            force_off = False
+            if mold_prevention_strategy == "heat":
+                base_heat = targets.heat
+                if base_heat is None:
+                    base_heat = room.get("eco_heat", room.get("eco_temp", DEFAULT_ECO_HEAT))
                 targets = TargetTemps(
-                    heat=eco_heat + mold_prevention_temp_delta,
-                    cool=eco_cool,
+                    heat=float(base_heat) + mold_prevention_temp_delta,
+                    cool=None,
                 )
-                force_off = False
-            else:
-                targets = TargetTemps(
-                    heat=targets.heat + mold_prevention_temp_delta,
-                    cool=targets.cool,
-                )
+            elif mold_prevention_strategy == "cool":
+                base_cool = targets.cool
+                if base_cool is None:
+                    base_cool = room.get("eco_cool", DEFAULT_ECO_COOL)
+                targets = TargetTemps(heat=None, cool=float(base_cool))
+            else:  # dry: no thermal setpoint; AC auxiliary routing owns actuation
+                targets = TargetTemps(heat=None, cool=None)
+        else:
+            manual_aux_or_off = requested_hvac_mode in ("off", "dry", "fan_only")
+            force_off = targets.heat is None and targets.cool is None or manual_aux_or_off
         mold_prevention_active_room = mold_prevention_effective
         presence_away = not room.get("ignore_presence", False) and self._is_presence_away(room, settings)
         target_resolver = make_target_resolver(
@@ -722,9 +807,14 @@ class RoomMindCoordinator(DataUpdateCoordinator):
             # unavailable/unknown/off → skip (conservative: no occupancy heat)
 
         # Determine and apply mode with MPC controller
+        control_room = room
+        if mold_prevention_effective and effective_requested_hvac_mode != requested_hvac_mode:
+            control_room = dict(room)
+            control_room["room_hvac_mode"] = effective_requested_hvac_mode
+
         controller = MPCController(
             self.hass,
-            room,
+            control_room,
             model_manager=self._model_manager,
             outdoor_temp=self.outdoor_temp_effective,
             outdoor_forecast=outdoor_forecast,
@@ -979,6 +1069,7 @@ class RoomMindCoordinator(DataUpdateCoordinator):
                 area_id,
             )
         else:
+            mold_aux_activated: set[str] = set()
             try:
                 await controller.async_apply(
                     mode,
@@ -995,9 +1086,88 @@ class RoomMindCoordinator(DataUpdateCoordinator):
                     force_off=force_off,
                     window_open=window_open,
                 )
-                if requested_hvac_mode in ("dry", "fan_only"):
-                    # Controller has safely idled every managed device; only
-                    # the AC is then allowed to receive the auxiliary mode.
+                if mold_prevention_effective and mold_prevention_strategy == "dry" and not window_open:
+                    # Unlike a persisted user DRY mode, prevention is an explicit
+                    # automatic activation request. Respect compressor min-off and
+                    # the cycle-scoped electrical budget before starting anything.
+                    dry_acs: list[str] = []
+                    already_running = False
+                    for ac_eid in get_ac_eids(room.get("devices", [])):
+                        ac_state = self.hass.states.get(ac_eid)
+                        if ac_state is None or "dry" not in (ac_state.attributes.get("hvac_modes") or []):
+                            continue
+                        is_running = ac_state.state not in ("off", "unknown", "unavailable", "fan_only")
+                        already_running = already_running or is_running
+                        if not is_running and not self._compressor_manager.check_can_activate(ac_eid):
+                            continue
+                        dry_acs.append(ac_eid)
+                    budget_ok = self._power_budget_manager.request_heat_pump(
+                        area_id,
+                        float(room.get("heat_pump_power_watts", 0) or 0),
+                        already_running,
+                    )
+                    if budget_ok:
+                        for ac_eid in dry_acs:
+                            await self.hass.services.async_call(
+                                "climate",
+                                "set_hvac_mode",
+                                {"entity_id": ac_eid, "hvac_mode": "dry"},
+                                blocking=True,
+                                context=make_roommind_context(),
+                            )
+                            mold_aux_activated.add(ac_eid)
+                elif mold_restore_mode is not None:
+                    # Prevention ended: restore the previous auxiliary state, but
+                    # keep the request pending when a window or hard safety blocks
+                    # it so the next coordinator tick can try again.
+                    fan_window_allowed = mold_restore_mode == "fan_only" and room.get(
+                        "keep_fan_only_on_window_open", True
+                    )
+                    restore_window_allowed = not window_open or fan_window_allowed
+                    restored = False
+                    if restore_window_allowed:
+                        restore_candidates: list[str] = []
+                        restore_already_running = False
+                        for ac_eid in get_ac_eids(room.get("devices", [])):
+                            ac_state = self.hass.states.get(ac_eid)
+                            if ac_state is None or mold_restore_mode not in (
+                                ac_state.attributes.get("hvac_modes") or []
+                            ):
+                                continue
+                            is_running = ac_state.state not in ("off", "unknown", "unavailable", "fan_only")
+                            restore_already_running = restore_already_running or is_running
+                            if (
+                                mold_restore_mode == "dry"
+                                and not is_running
+                                and not self._compressor_manager.check_can_activate(ac_eid)
+                            ):
+                                continue
+                            restore_candidates.append(ac_eid)
+
+                        budget_ok = True
+                        if mold_restore_mode == "dry" and restore_candidates:
+                            budget_ok = self._power_budget_manager.request_heat_pump(
+                                area_id,
+                                float(room.get("heat_pump_power_watts", 0) or 0),
+                                restore_already_running,
+                            )
+                        if budget_ok:
+                            for ac_eid in restore_candidates:
+                                await self.hass.services.async_call(
+                                    "climate",
+                                    "set_hvac_mode",
+                                    {"entity_id": ac_eid, "hvac_mode": mold_restore_mode},
+                                    blocking=True,
+                                    context=make_roommind_context(),
+                                )
+                                restored = True
+                                if mold_restore_mode == "dry":
+                                    mold_aux_activated.add(ac_eid)
+                    if restored:
+                        self._mold_restore_modes.pop(area_id, None)
+                elif requested_hvac_mode in ("dry", "fan_only"):
+                    # Persisted auxiliary state is preservation-only; it must not
+                    # power an AC back on after restart or an external power-off.
                     await async_apply_ac_auxiliary_mode(self.hass, room, window_open=window_open)
             except Exception:  # noqa: BLE001
                 _LOGGER.warning(
@@ -1023,6 +1193,8 @@ class RoomMindCoordinator(DataUpdateCoordinator):
                         "unknown",
                     )
                     self._compressor_manager.update_member(eid, actually_on)
+                elif eid in mold_aux_activated:
+                    self._compressor_manager.update_member(eid, True)
                 elif mode != MODE_IDLE:
                     self._compressor_manager.update_member(eid, True)
                 else:
@@ -1115,6 +1287,7 @@ class RoomMindCoordinator(DataUpdateCoordinator):
             mold_surface_rh=mold_surface_rh,
             mold_prevention_active_room=mold_prevention_active_room,
             mold_prevention_temp_delta=mold_prevention_temp_delta,
+            mold_prevention_strategy=mold_prevention_strategy if mold_prevention_effective else None,
             shading_factor=shading_factor,
             q_occupancy=q_occupancy,
             cover_eids=cover_eids,
@@ -1326,6 +1499,7 @@ class RoomMindCoordinator(DataUpdateCoordinator):
         mold_surface_rh: float | None,
         mold_prevention_active_room: bool,
         mold_prevention_temp_delta: float,
+        mold_prevention_strategy: str | None,
         shading_factor: float | None,
         q_occupancy: float,
         cover_eids: list[str],
@@ -1394,6 +1568,7 @@ class RoomMindCoordinator(DataUpdateCoordinator):
             "mold_surface_rh": (round(mold_surface_rh, 1) if mold_surface_rh is not None else None),
             "mold_prevention_active": mold_prevention_active_room,
             "mold_prevention_delta": mold_prevention_temp_delta,
+            "mold_prevention_strategy": mold_prevention_strategy,
             "shading_factor": shading_factor,
             "q_occupancy": q_occupancy,
             "n_observations": self._model_manager.get_n_observations(area_id),
@@ -1768,8 +1943,19 @@ class RoomMindCoordinator(DataUpdateCoordinator):
             self.async_add_entities(entities)
             self._entity_areas.add(area_id)
 
-        # Canonical room climate entity: always create
-        if (
+        # Outdoor areas are sensor/analytics-only and must never expose a
+        # canonical climate entity. If an existing room is converted to outdoor,
+        # remove its previously registered climate immediately.
+        if room.get("is_outdoor", False):
+            from homeassistant.helpers import entity_registry as er
+
+            registry = er.async_get(self.hass)
+            climate_uid = f"{DOMAIN}_{area_id}"
+            for entity_entry in list(registry.entities.values()):
+                if entity_entry.unique_id == climate_uid:
+                    registry.async_remove(entity_entry.entity_id)
+            self._climate_entity_areas.discard(area_id)
+        elif (
             area_id not in self._climate_entity_areas
             and hasattr(self, "async_add_climate_entities")
             and self.async_add_climate_entities
@@ -1850,6 +2036,9 @@ class RoomMindCoordinator(DataUpdateCoordinator):
         self._binary_sensor_entity_areas.discard(area_id)
         self._climate_entity_areas.discard(area_id)
         self._model_manager.remove_room(area_id)
+        self._energy_manager.remove_room(area_id)
+        self._mold_active_strategies.pop(area_id, None)
+        self._mold_restore_modes.pop(area_id, None)
         self._heat_source_states.pop(area_id, None)
         if self._history_store:
             await self.hass.async_add_executor_job(self._history_store.remove_room, area_id)
@@ -1885,6 +2074,10 @@ class RoomMindCoordinator(DataUpdateCoordinator):
                 continue
 
             area_id, suffix = match
+            if suffix == "" and rooms[area_id].get("is_outdoor", False):
+                # Canonical climate is invalid for outdoor areas.
+                to_remove.append(entity_entry.entity_id)
+                continue
             if suffix in COVER_ENTITY_SUFFIXES and not rooms[area_id].get("covers"):
                 # Cover entity for a room without covers configured — orphaned.
                 to_remove.append(entity_entry.entity_id)

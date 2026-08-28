@@ -163,8 +163,8 @@ class TestValveProtection:
         assert "climate.living_room" in coordinator._valve_manager._cycling
 
     @pytest.mark.asyncio
-    async def test_valve_protection_runs_when_climate_off(self, hass, mock_config_entry):
-        """Valve protection works even when climate_control_active is False."""
+    async def test_valve_protection_does_not_run_when_climate_off(self, hass, mock_config_entry):
+        """Climate Control OFF prevents starting new valve-protection cycles."""
         store = _make_store_mock({"living_room_abc12345": SAMPLE_ROOM})
         store.get_settings.return_value = {
             "climate_control_active": False,
@@ -181,7 +181,7 @@ class TestValveProtection:
         coordinator._valve_manager._check_count = 119
         await coordinator._async_update_data()
 
-        assert "climate.living_room" in coordinator._valve_manager._cycling
+        assert "climate.living_room" not in coordinator._valve_manager._cycling
 
     @pytest.mark.asyncio
     async def test_valve_protection_only_trvs(self, hass, mock_config_entry):
