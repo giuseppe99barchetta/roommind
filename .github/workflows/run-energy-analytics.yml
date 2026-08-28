@@ -34,7 +34,18 @@ jobs:
           ruff check --fix custom_components/roommind tests
           ruff check custom_components/roommind tests
       - name: Backend tests
-        run: pytest -q
+        shell: bash
+        run: |
+          set +e
+          pytest -q 2>&1 | tee pytest-output.log
+          code=${PIPESTATUS[0]}
+          exit $code
+      - name: Upload pytest output
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pytest-output
+          path: pytest-output.log
       - name: Type check
         run: mypy custom_components/roommind
       - name: Frontend install
