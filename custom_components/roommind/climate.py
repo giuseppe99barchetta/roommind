@@ -252,11 +252,17 @@ class RoomMindClimate(RoomMindOverrideClimate):
     @property
     def supported_features(self) -> ClimateEntityFeature:
         caps = self._capabilities()
+        mode = self.hvac_mode
         features = ClimateEntityFeature.TURN_ON | ClimateEntityFeature.TURN_OFF
-        if "heat_cool" in caps.hvac_modes or "auto" in caps.hvac_modes:
+
+        # Temperature controls must describe the currently selected operating
+        # mode, not every capability the room happens to have. In particular,
+        # OFF and FAN_ONLY have no meaningful temperature setpoint.
+        if mode in (HVACMode.HEAT_COOL, HVACMode.AUTO):
             features |= ClimateEntityFeature.TARGET_TEMPERATURE_RANGE
-        if any(mode in caps.hvac_modes for mode in ("heat", "cool")):
+        elif mode in (HVACMode.HEAT, HVACMode.COOL, HVACMode.DRY):
             features |= ClimateEntityFeature.TARGET_TEMPERATURE
+
         if caps.fan_modes:
             features |= ClimateEntityFeature.FAN_MODE
         if caps.swing_modes:
@@ -275,10 +281,14 @@ class RoomMindClimate(RoomMindOverrideClimate):
 
     @property
     def target_temperature_low(self) -> float | None:
+        if self.hvac_mode not in (HVACMode.HEAT_COOL, HVACMode.AUTO):
+            return None
         return self._logical_targets()[0]
 
     @property
     def target_temperature_high(self) -> float | None:
+        if self.hvac_mode not in (HVACMode.HEAT_COOL, HVACMode.AUTO):
+            return None
         return self._logical_targets()[1]
 
     @property
@@ -329,13 +339,16 @@ class RoomMindClimate(RoomMindOverrideClimate):
         return (self._room() or {}).get("room_swing_horizontal_mode") or None
 
     async def async_set_temperature(self, **kwargs: Any) -> None:
+        selected = self.hvac_mode
+        if selected in (HVACMode.OFF, HVACMode.FAN_ONLY):
+            raise ValueError(f"Temperature cannot be set while RoomMind is in {selected.value} mode")
+
         heat, cool = self._logical_targets()
         low, high, single = (
             kwargs.get(ATTR_TARGET_TEMP_LOW),
             kwargs.get(ATTR_TARGET_TEMP_HIGH),
             kwargs.get(ATTR_TEMPERATURE),
         )
-        selected = self.hvac_mode
         if low is not None or high is not None:
             heat = float(low if low is not None else heat)
             cool = float(high if high is not None else cool)

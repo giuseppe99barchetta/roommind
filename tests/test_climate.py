@@ -111,6 +111,76 @@ def test_canonical_fan_only_and_off_hide_single_temperature_target(mock_coordina
     assert entity.target_temperature == 26.0
 
 
+
+def test_canonical_fan_only_hides_all_temperature_controls(mock_coordinator):
+    coordinator, store = mock_coordinator
+    ac = MagicMock(
+        state="fan_only",
+        attributes={"hvac_modes": ["off", "cool", "dry", "fan_only"], "fan_modes": ["low", "high"]},
+    )
+    coordinator.hass.states.get.return_value = ac
+    store.get_room.return_value = _canonical_room(
+        [{"entity_id": "climate.ac", "type": "ac"}],
+        room_hvac_mode="fan_only",
+        logical_heat_target=19.3,
+        logical_cool_target=26.0,
+    )
+    entity = RoomMindClimate(coordinator, "living_room")
+
+    assert entity.target_temperature is None
+    assert entity.target_temperature_low is None
+    assert entity.target_temperature_high is None
+    assert not entity.supported_features & ClimateEntityFeature.TARGET_TEMPERATURE
+    assert not entity.supported_features & ClimateEntityFeature.TARGET_TEMPERATURE_RANGE
+    assert entity.supported_features & ClimateEntityFeature.FAN_MODE
+
+
+def test_canonical_mode_specific_temperature_features(mock_coordinator):
+    coordinator, store = mock_coordinator
+    ac = MagicMock(
+        state="cool",
+        attributes={"hvac_modes": ["off", "heat", "cool", "heat_cool", "dry", "fan_only"]},
+    )
+    coordinator.hass.states.get.return_value = ac
+
+    for mode in ("heat", "cool", "dry"):
+        store.get_room.return_value = _canonical_room(
+            [{"entity_id": "climate.ac", "type": "ac"}], room_hvac_mode=mode
+        )
+        entity = RoomMindClimate(coordinator, "living_room")
+        assert entity.supported_features & ClimateEntityFeature.TARGET_TEMPERATURE
+        assert not entity.supported_features & ClimateEntityFeature.TARGET_TEMPERATURE_RANGE
+        assert entity.target_temperature_low is None
+        assert entity.target_temperature_high is None
+
+    store.get_room.return_value = _canonical_room(
+        [{"entity_id": "climate.ac", "type": "ac"}], room_hvac_mode="heat_cool"
+    )
+    entity = RoomMindClimate(coordinator, "living_room")
+    assert entity.supported_features & ClimateEntityFeature.TARGET_TEMPERATURE_RANGE
+    assert not entity.supported_features & ClimateEntityFeature.TARGET_TEMPERATURE
+    assert entity.target_temperature_low == 21.0
+    assert entity.target_temperature_high == 26.0
+
+
+@pytest.mark.asyncio
+async def test_canonical_fan_only_rejects_temperature_changes(mock_coordinator):
+    coordinator, store = mock_coordinator
+    coordinator.hass.states.get.return_value = MagicMock(
+        state="fan_only",
+        attributes={"hvac_modes": ["off", "cool", "fan_only"]},
+    )
+    store.get_room.return_value = _canonical_room(
+        [{"entity_id": "climate.ac", "type": "ac"}], room_hvac_mode="fan_only"
+    )
+    store.async_update_room = AsyncMock()
+    entity = RoomMindClimate(coordinator, "living_room")
+
+    with pytest.raises(ValueError, match="fan_only"):
+        await entity.async_set_temperature(temperature=23.0)
+    store.async_update_room.assert_not_awaited()
+
+
 def test_canonical_trv_only_does_not_expose_ac_modes(mock_coordinator):
     coordinator, store = mock_coordinator
     store.get_room.return_value = _canonical_room([{"entity_id": "climate.trv", "type": "trv"}], room_hvac_mode="heat")
