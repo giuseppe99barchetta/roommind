@@ -12,6 +12,7 @@ _LOGGER = logging.getLogger(__name__)
 DETAIL_FIELDS = [
     "timestamp",
     "room_temp",
+    "current_humidity",
     "outdoor_temp",
     "target_temp",
     "mode",
@@ -23,6 +24,12 @@ DETAIL_FIELDS = [
     "cover_reason",
     "device_setpoint",
     "occupancy",
+    "energy_mode",
+    "ac_power_w",
+    "ac_energy_today_kwh",
+    "predicted_power_w",
+    "predicted_energy_1h_kwh",
+    "energy_learning_samples",
 ]
 DETAIL_MAX_AGE = 48 * 3600  # 48 hours
 HISTORY_MAX_AGE = 90 * 24 * 3600  # 90 days
@@ -77,6 +84,7 @@ class HistoryStore:
                 {
                     "timestamp": ts,
                     "room_temp": data.get("room_temp", ""),
+                    "current_humidity": data.get("current_humidity", ""),
                     "outdoor_temp": data.get("outdoor_temp", ""),
                     "target_temp": data.get("target_temp", ""),
                     "mode": data.get("mode", ""),
@@ -88,6 +96,12 @@ class HistoryStore:
                     "cover_reason": data.get("cover_reason", ""),
                     "device_setpoint": data.get("device_setpoint", ""),
                     "occupancy": data.get("occupancy", ""),
+                    "energy_mode": data.get("energy_mode", ""),
+                    "ac_power_w": data.get("ac_power_w", ""),
+                    "ac_energy_today_kwh": data.get("ac_energy_today_kwh", ""),
+                    "predicted_power_w": data.get("predicted_power_w", ""),
+                    "predicted_energy_1h_kwh": data.get("predicted_energy_1h_kwh", ""),
+                    "energy_learning_samples": data.get("energy_learning_samples", ""),
                 }
             )
 
@@ -199,6 +213,7 @@ class HistoryStore:
             avg_row = {
                 "timestamp": bucket_key * bucket_seconds,
                 "mode": bucket[0]["mode"],
+                "energy_mode": bucket[0].get("energy_mode", ""),
                 "window_open": bucket[0].get("window_open", ""),
                 "device_setpoint": bucket[0].get("device_setpoint", ""),
             }
@@ -210,6 +225,12 @@ class HistoryStore:
                 "heating_power",
                 "solar_irradiance",
                 "blind_position",
+                "current_humidity",
+                "ac_power_w",
+                "ac_energy_today_kwh",
+                "predicted_power_w",
+                "predicted_energy_1h_kwh",
+                "energy_learning_samples",
             ):
                 vals = []
                 for r in bucket:

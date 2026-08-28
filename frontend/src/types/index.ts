@@ -47,6 +47,12 @@ export interface RoomLiveData {
   mold_surface_rh: number | null;
   mold_prevention_active: boolean;
   mold_prevention_delta: number;
+  mold_prevention_strategy?: "heat" | "dry" | "cool" | null;
+  ac_power_w?: number | null;
+  ac_energy_today_kwh?: number | null;
+  predicted_power_w?: number | null;
+  predicted_energy_1h_kwh?: number | null;
+  energy_learning_samples?: number;
   blind_position: number | null;
   cover_auto_paused: boolean;
   cover_override_until?: number | null;
@@ -71,6 +77,7 @@ export interface DeviceConfig {
   idle_action?: "off" | "fan_only" | "setback" | "low"; // default "off"
   idle_fan_mode?: string; // default "low"
   setpoint_mode?: "proportional" | "direct"; // default "proportional"
+  power_sensor_entity_id?: string; // instantaneous AC consumption sensor (W/kW)
 }
 
 export type ConflictResolution =
@@ -266,6 +273,12 @@ export interface AnalyticsDataPoint {
   blind_position?: number | null;
   cover_reason?: string;
   device_setpoint?: number | null;
+  current_humidity?: number | null;
+  energy_mode?: string;
+  ac_power_w?: number | null;
+  ac_energy_today_kwh?: number | null;
+  predicted_power_w?: number | null;
+  predicted_energy_1h_kwh?: number | null;
 }
 
 export interface AnalyticsData {

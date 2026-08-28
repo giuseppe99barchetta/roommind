@@ -59,6 +59,7 @@ NORMAL_ROOM_KEYS = {
     "mold_surface_rh",
     "mold_prevention_active",
     "mold_prevention_delta",
+    "mold_prevention_strategy",
     "shading_factor",
     "q_occupancy",
     "n_observations",
@@ -69,6 +70,8 @@ NORMAL_ROOM_KEYS = {
     "cover_reason",
     "active_cover_schedule_index",
     "active_heat_sources",
+    "heat_source",
+    "heat_source_reason",
     "compressor_protection_active",
     "compressor_protection_reason",
 }

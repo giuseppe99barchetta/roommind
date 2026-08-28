@@ -533,5 +533,7 @@
   "settings.temperature_rounding_hint": "Définit comment RoomMind arrondit vers le pas pris en charge par l'appareil climatique.",
   "settings.temperature_rounding_nearest": "Valeur prise en charge la plus proche",
   "settings.temperature_rounding_down": "Arrondir vers le bas (26,5° → 26°)",
-  "settings.temperature_rounding_up": "Arrondir vers le haut (26,5° → 27°)"
+  "settings.temperature_rounding_up": "Arrondir vers le haut (26,5° → 27°)",
+  "devices.power_sensor": "Capteur de puissance",
+  "devices.power_sensor_hint": "Capteur de consommation électrique instantanée de ce climatiseur. Les capteurs en W et kW servent à l’historique et aux prévisions adaptatives."
 }

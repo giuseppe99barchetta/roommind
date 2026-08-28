@@ -94,11 +94,11 @@ async def test_async_setup_entry_creates_entities_for_rooms_with_covers():
 
     # Callback stored on coordinator
     assert coordinator.async_add_binary_sensor_entities is async_add_entities
-    # Only living_room has covers, so one entity created
+    # One room cover sensor plus the two global boiler safety sensors.
     async_add_entities.assert_called_once()
     entities = async_add_entities.call_args[0][0]
-    assert len(entities) == 1
-    assert isinstance(entities[0], RoomMindCoverPausedSensor)
+    room_entities = [e for e in entities if isinstance(e, RoomMindCoverPausedSensor)]
+    assert len(room_entities) == 1
     # Area tracked
     assert "living_room" in coordinator._binary_sensor_entity_areas
     assert "bedroom" not in coordinator._binary_sensor_entity_areas
@@ -123,4 +123,5 @@ async def test_async_setup_entry_no_covers_no_entities():
 
     await async_setup_entry(hass, entry, async_add_entities)
 
-    async_add_entities.assert_not_called()
+    async_add_entities.assert_called_once()
+    assert len(async_add_entities.call_args[0][0]) == 2

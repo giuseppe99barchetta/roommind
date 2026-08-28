@@ -533,5 +533,7 @@
   "settings.temperature_rounding_hint": "When a climate device cannot represent RoomMind's 0.5° setpoint, choose how the physical target is rounded.",
   "settings.temperature_rounding_nearest": "Nearest supported value",
   "settings.temperature_rounding_down": "Round down (26.5° → 26°)",
-  "settings.temperature_rounding_up": "Round up (26.5° → 27°)"
+  "settings.temperature_rounding_up": "Round up (26.5° → 27°)",
+  "devices.power_sensor": "Power sensor",
+  "devices.power_sensor_hint": "Instantaneous electrical consumption sensor for this AC. W and kW sensors are supported and used for energy history and adaptive predictions."
 }

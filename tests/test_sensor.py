@@ -8,7 +8,11 @@ import pytest
 
 from custom_components.roommind.const import DOMAIN
 from custom_components.roommind.sensor import (
+    RoomMindEnergyTodaySensor,
     RoomMindModeSensor,
+    RoomMindPowerSensor,
+    RoomMindPredictedEnergySensor,
+    RoomMindPredictedPowerSensor,
     RoomMindTargetTemperatureSensor,
     _create_room_entities,
     async_setup_entry,
@@ -39,10 +43,12 @@ async def test_setup_entry_creates_entities(hass, mock_config_entry, store):
 
     # Callback stored on coordinator
     assert coordinator.async_add_entities is add_entities
-    # 2 entities per room (target_temp + mode)
     add_entities.assert_called_once()
     entities = add_entities.call_args[0][0]
-    assert len(entities) == 2
+    room_entities = [e for e in entities if getattr(e, "_area_id", None) == "room_a"]
+    assert len(room_entities) == 8
+    assert any(isinstance(e, RoomMindPowerSensor) for e in room_entities)
+    assert any(isinstance(e, RoomMindEnergyTodaySensor) for e in room_entities)
 
 
 @pytest.mark.asyncio
@@ -60,7 +66,8 @@ async def test_setup_entry_no_rooms(hass, mock_config_entry, store):
     await async_setup_entry(hass, mock_config_entry, add_entities)
 
     assert coordinator.async_add_entities is add_entities
-    add_entities.assert_not_called()
+    add_entities.assert_called_once()
+    assert all(getattr(e, "_area_id", None) is None for e in add_entities.call_args[0][0])
 
 
 @pytest.mark.asyncio
@@ -80,16 +87,20 @@ async def test_setup_entry_multiple_rooms(hass, mock_config_entry, store):
     await async_setup_entry(hass, mock_config_entry, add_entities)
 
     entities = add_entities.call_args[0][0]
-    assert len(entities) == 4  # 2 per room
+    assert sum(getattr(e, "_area_id", None) in {"room_a", "room_b"} for e in entities) == 16
 
 
 def test_create_room_entities():
     """_create_room_entities returns target temp and mode sensors."""
     coordinator = _make_coordinator()
     entities = _create_room_entities(coordinator, "room_a")
-    assert len(entities) == 2
+    assert len(entities) == 8
     assert isinstance(entities[0], RoomMindTargetTemperatureSensor)
     assert isinstance(entities[1], RoomMindModeSensor)
+    assert any(isinstance(e, RoomMindPowerSensor) for e in entities)
+    assert any(isinstance(e, RoomMindEnergyTodaySensor) for e in entities)
+    assert any(isinstance(e, RoomMindPredictedPowerSensor) for e in entities)
+    assert any(isinstance(e, RoomMindPredictedEnergySensor) for e in entities)
 
 
 def test_target_temp_sensor_value():

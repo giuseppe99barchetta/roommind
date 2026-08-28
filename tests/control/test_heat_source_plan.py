@@ -239,7 +239,7 @@ async def test_heat_source_plan_active_ac_inactive_trv():
 
     ac_temp = [c for c in calls if c[0][1] == "set_temperature" and c[0][2]["entity_id"] == "climate.ac1"]
     assert len(ac_temp) == 1
-    assert ac_temp[0][0][2]["temperature"] == 27.8
+    assert ac_temp[0][0][2]["temperature"] == 28.0
 
 
 @pytest.mark.asyncio

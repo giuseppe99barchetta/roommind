@@ -184,7 +184,9 @@ class TestCoverageGaps:
         ):
             coordinator.cleanup_orphaned_entities()
 
-        mock_registry.async_remove.assert_not_called()
+        assert {call.args[0] for call in mock_registry.async_remove.call_args_list} == {
+            "climate.roommind_sala_override"
+        }
 
     def test_cleanup_removes_deleted_rooms_and_obsolete_entity_types(self, hass, mock_config_entry):
         """Cleanup removes IDs not present in the authoritative ownership inventory."""
@@ -293,7 +295,6 @@ class TestCoverageGaps:
             for suffix, domain in (
                 ("target_temp", "sensor"),
                 ("mode", "sensor"),
-                ("override", "climate"),
                 ("climate_control", "switch"),
             ):
                 e = MagicMock()
