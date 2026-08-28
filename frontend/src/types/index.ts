@@ -49,8 +49,10 @@ export interface RoomLiveData {
   mold_prevention_delta: number;
   mold_prevention_strategy?: "heat" | "dry" | "cool" | null;
   ac_power_w?: number | null;
+  ac_device_power_w?: Record<string, number>;
   ac_energy_today_kwh?: number | null;
   predicted_power_w?: number | null;
+  predicted_device_power_w?: Record<string, number>;
   predicted_energy_1h_kwh?: number | null;
   energy_learning_samples?: number;
   blind_position: number | null;
@@ -276,8 +278,11 @@ export interface AnalyticsDataPoint {
   current_humidity?: number | null;
   energy_mode?: string;
   ac_power_w?: number | null;
+  ac_device_power_w?: Record<string, number>;
   ac_energy_today_kwh?: number | null;
   predicted_power_w?: number | null;
+  energy_learning_samples?: number | null;
+  predicted_device_power_w?: Record<string, number>;
   predicted_energy_1h_kwh?: number | null;
 }
 

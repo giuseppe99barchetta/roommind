@@ -59,6 +59,7 @@ class _LinearStats:
 @dataclass
 class _RoomEnergyState:
     models: dict[str, _LinearStats] = field(default_factory=dict)
+    device_models: dict[str, dict[str, _LinearStats]] = field(default_factory=dict)
     last_ts: float | None = None
     last_power_w: float = 0.0
     day_key: str = ""
@@ -118,9 +119,11 @@ class EnergyManager:
             return "fan_only"
         return fallback
 
-    def read_power_w(self, room: dict) -> tuple[float, int]:
+    def read_power_breakdown(self, room: dict) -> tuple[float, int, dict[str, float]]:
+        """Read aggregate and per-AC instantaneous power in watts."""
         total = 0.0
         configured = 0
+        breakdown: dict[str, float] = {}
         for dev in room.get("devices", []):
             if dev.get("type") != "ac":
                 continue
@@ -139,8 +142,71 @@ class EnergyManager:
                 value *= 1000.0
             elif unit == "mw":
                 value /= 1000.0
-            total += max(0.0, value)
-        return min(total, _MAX_REASONABLE_POWER_W), configured
+            value = min(max(0.0, value), _MAX_REASONABLE_POWER_W)
+            entity_id = str(dev.get("entity_id") or power_eid)
+            breakdown[entity_id] = round(value, 1)
+            total += value
+        return min(total, _MAX_REASONABLE_POWER_W), configured, breakdown
+
+    def read_power_w(self, room: dict) -> tuple[float, int]:
+        total, configured, _ = self.read_power_breakdown(room)
+        return total, configured
+
+    @staticmethod
+    def _predict_stats(model: _LinearStats | None, features: list[float]) -> tuple[float | None, int]:
+        if model is None:
+            return None, 0
+        coeff = model.coefficients()
+        if coeff is None:
+            return None, model.n
+        prediction = sum(coeff[i] * features[i] for i in range(4))
+        ceiling = max(model.observed_max_w * 1.35, 250.0)
+        return max(0.0, min(prediction, ceiling, _MAX_REASONABLE_POWER_W)), model.n
+
+    def predict_power(
+        self,
+        area_id: str,
+        mode: str,
+        room_temp: float | None,
+        target_temp: float | None,
+        outdoor_temp: float | None,
+        humidity: float | None,
+        nominal_w: float | None = None,
+    ) -> tuple[float | None, int]:
+        """Predict aggregate room AC power for analytics and live entities."""
+        state = self._rooms.get(area_id)
+        features = self._features(room_temp, target_temp, outdoor_temp, humidity)
+        prediction, samples = self._predict_stats(state.models.get(mode) if state else None, features)
+        if prediction is None and mode in ("heating", "cooling", "dry", "fan_only") and nominal_w and nominal_w > 0:
+            prediction = min(float(nominal_w), _MAX_REASONABLE_POWER_W)
+        return prediction, samples
+
+    def predict_device_power(
+        self,
+        area_id: str,
+        mode: str,
+        room_temp: float | None,
+        target_temp: float | None,
+        outdoor_temp: float | None,
+        humidity: float | None,
+    ) -> dict[str, float]:
+        """Predict each configured AC from its own learned consumption model."""
+        state = self._rooms.get(area_id)
+        if state is None:
+            return {}
+        features = self._features(room_temp, target_temp, outdoor_temp, humidity)
+        result: dict[str, float] = {}
+        for entity_id, models in state.device_models.items():
+            model = models.get(mode)
+            prediction, _ = self._predict_stats(model, features)
+            # Before ridge regression has enough usable samples, keep analytics
+            # useful with a conservative observed-power fallback. The learned
+            # model replaces this automatically once coefficients are available.
+            if prediction is None and model is not None and model.n > 0:
+                prediction = model.observed_max_w
+            if prediction is not None:
+                result[entity_id] = round(prediction, 1)
+        return result
 
     def bootstrap(self, area_id: str, rows: list[dict]) -> None:
         state = self._rooms.setdefault(area_id, _RoomEnergyState())
@@ -157,9 +223,18 @@ class EnergyManager:
             target = self._safe_float(row.get("target_temp"))
             outdoor = self._safe_float(row.get("outdoor_temp"))
             humidity = self._safe_float(row.get("current_humidity"))
-            if power >= _MIN_ACTIVE_POWER_W and mode in ("heating", "cooling", "dry"):
+            features = self._features(room_temp, target, outdoor, humidity)
+            if power >= _MIN_ACTIVE_POWER_W and mode in ("heating", "cooling", "dry", "fan_only"):
                 model = state.models.setdefault(mode, _LinearStats())
-                model.add(self._features(room_temp, target, outdoor, humidity), power)
+                model.add(features, power)
+            device_power = row.get("ac_device_power_w")
+            if isinstance(device_power, dict) and mode in ("heating", "cooling", "dry", "fan_only"):
+                for entity_id, raw_power in device_power.items():
+                    device_w = self._safe_float(raw_power)
+                    if device_w is not None and device_w >= _MIN_ACTIVE_POWER_W:
+                        state.device_models.setdefault(str(entity_id), {}).setdefault(mode, _LinearStats()).add(
+                            features, device_w
+                        )
             ts = self._safe_float(row.get("timestamp"))
             if ts is not None and datetime.fromtimestamp(ts).astimezone().date() == today:
                 today_rows.append((ts, power))
@@ -186,7 +261,7 @@ class EnergyManager:
         now_ts = now or time.time()
         state = self._rooms.setdefault(area_id, _RoomEnergyState())
         state.bootstrapped = True
-        power_w, configured = self.read_power_w(room)
+        power_w, configured, device_power = self.read_power_breakdown(room)
         day_key = datetime.fromtimestamp(now_ts).astimezone().date().isoformat()
         if state.day_key != day_key:
             state.day_key = day_key
@@ -205,30 +280,27 @@ class EnergyManager:
         target = self._safe_float(room_state.get("target_temp"))
         humidity = self._safe_float(room_state.get("current_humidity"))
         features = self._features(room_temp, target, outdoor_temp, humidity)
-        if power_w >= _MIN_ACTIVE_POWER_W and mode in ("heating", "cooling", "dry"):
+        if power_w >= _MIN_ACTIVE_POWER_W and mode in ("heating", "cooling", "dry", "fan_only"):
             state.models.setdefault(mode, _LinearStats()).add(features, power_w)
+        if mode in ("heating", "cooling", "dry", "fan_only"):
+            for entity_id, measured_w in device_power.items():
+                if measured_w >= _MIN_ACTIVE_POWER_W:
+                    state.device_models.setdefault(entity_id, {}).setdefault(mode, _LinearStats()).add(
+                        features, measured_w
+                    )
 
-        prediction: float | None = None
-        samples = 0
-        model = state.models.get(mode)
-        if model is not None:
-            samples = model.n
-            coeff = model.coefficients()
-            if coeff is not None:
-                prediction = sum(coeff[i] * features[i] for i in range(4))
-                ceiling = max(model.observed_max_w * 1.35, 250.0)
-                prediction = max(0.0, min(prediction, ceiling, _MAX_REASONABLE_POWER_W))
-        if prediction is None and mode in ("heating", "cooling", "dry"):
-            nominal = self._safe_float(room.get("heat_pump_power_watts"))
-            if nominal and nominal > 0:
-                prediction = nominal
+        nominal = self._safe_float(room.get("heat_pump_power_watts"))
+        prediction, samples = self.predict_power(area_id, mode, room_temp, target, outdoor_temp, humidity, nominal)
+        predicted_devices = self.predict_device_power(area_id, mode, room_temp, target, outdoor_temp, humidity)
 
         return {
             "ac_power_w": round(power_w, 1) if configured else None,
+            "ac_device_power_w": device_power if configured else {},
             "ac_power_sensors": configured,
             "ac_energy_today_kwh": round(state.energy_today_kwh, 3) if configured else None,
             "energy_mode": mode,
             "predicted_power_w": round(prediction, 1) if prediction is not None else None,
+            "predicted_device_power_w": predicted_devices,
             "predicted_energy_1h_kwh": round(prediction / 1000.0, 3) if prediction is not None else None,
             "energy_learning_samples": samples,
         }
