@@ -137,6 +137,7 @@ ROOM_ENTITY_SUFFIXES = (
     "_target_temp",
     "_mode",
     "_climate_control",
+    "_fan",
     "_cover_auto",
     "_cover_paused",
     "_heat_source",
@@ -277,12 +278,14 @@ class RoomMindCoordinator(DataUpdateCoordinator):
         self._climate_control_switch_areas: set[str] = set()
         self._binary_sensor_entity_areas: set[str] = set()
         self._climate_entity_areas: set[str] = set()
+        self._fan_entity_areas: set[str] = set()
         # Per-entity cache of schedule blocks; fallback when schedule.get_schedule fails (#308)
         self._schedule_blocks_cache: dict[str, dict] = {}
         # Entity platform callbacks, set by platform async_setup_entry
         self.async_add_entities: Any = None
         self.async_add_switch_entities: Any = None
         self.async_add_climate_entities: Any = None
+        self.async_add_fan_entities: Any = None
         self.async_add_binary_sensor_entities: Any = None
 
     async def _async_update_data(self) -> dict:
@@ -2240,6 +2243,17 @@ class RoomMindCoordinator(DataUpdateCoordinator):
             self._climate_entity_areas.add(area_id)
 
         if (
+            not room.get("is_outdoor", False)
+            and get_ac_eids(room.get("devices", []))
+            and area_id not in self._fan_entity_areas
+            and self.async_add_fan_entities
+        ):
+            from .fan import RoomMindFan
+
+            self.async_add_fan_entities([RoomMindFan(self, area_id)])
+            self._fan_entity_areas.add(area_id)
+
+        if (
             area_id not in self._climate_control_switch_areas
             and hasattr(self, "async_add_switch_entities")
             and self.async_add_switch_entities
@@ -2312,6 +2326,7 @@ class RoomMindCoordinator(DataUpdateCoordinator):
         self._climate_control_switch_areas.discard(area_id)
         self._binary_sensor_entity_areas.discard(area_id)
         self._climate_entity_areas.discard(area_id)
+        self._fan_entity_areas.discard(area_id)
         self._model_manager.remove_room(area_id)
         self._energy_manager.remove_room(area_id)
         self._mold_active_strategies.pop(area_id, None)
@@ -2361,6 +2376,8 @@ class RoomMindCoordinator(DataUpdateCoordinator):
                 continue
             if suffix in ENERGY_ENTITY_SUFFIXES and not _room_has_power_sensor(rooms[area_id]):
                 # Energy sensors are invalid without an explicitly configured AC power sensor.
+                to_remove.append(entity_entry.entity_id)
+            if suffix == "_fan" and not get_ac_eids(rooms[area_id].get("devices", [])):
                 to_remove.append(entity_entry.entity_id)
 
         for eid in to_remove:

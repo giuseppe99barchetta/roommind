@@ -10,7 +10,7 @@ DOMAIN = "roommind"
 VERSION = "1.7.6"
 
 # Platforms
-PLATFORMS = [Platform.SENSOR, Platform.SWITCH, Platform.BINARY_SENSOR, Platform.CLIMATE]
+PLATFORMS = [Platform.SENSOR, Platform.SWITCH, Platform.BINARY_SENSOR, Platform.CLIMATE, Platform.FAN]
 
 # Climate modes
 CLIMATE_MODE_AUTO = "auto"
