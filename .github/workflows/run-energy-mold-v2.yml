@@ -5,6 +5,7 @@ on:
     branches: [energy-mold-v2]
     paths:
       - scripts/apply_energy_mold_v2.py
+      - scripts/apply_energy_mold_v2_corrections.py
       - .github/workflows/run-energy-mold-v2.yml
 
 permissions:
@@ -25,14 +26,16 @@ jobs:
         with:
           node-version: '20'
       - name: Apply patch
-        run: python scripts/apply_energy_mold_v2.py
+        run: |
+          python scripts/apply_energy_mold_v2.py
+          python scripts/apply_energy_mold_v2_corrections.py
       - name: Install Python dependencies
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements-dev.txt
       - name: Format changed Python
         run: |
-          ruff format custom_components/roommind/managers/energy_manager.py custom_components/roommind/managers/mold_manager.py custom_components/roommind/utils/history_store.py custom_components/roommind/coordinator.py custom_components/roommind/sensor.py custom_components/roommind/websocket_api.py tests/test_energy_mold_v2.py
+          ruff format custom_components/roommind tests
       - name: Run tests
         run: pytest -q
       - name: Ruff
@@ -47,6 +50,7 @@ jobs:
       - name: Commit result
         run: |
           rm scripts/apply_energy_mold_v2.py
+          rm scripts/apply_energy_mold_v2_corrections.py
           rm .github/workflows/run-energy-mold-v2.yml
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
