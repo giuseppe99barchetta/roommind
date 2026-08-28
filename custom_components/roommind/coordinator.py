@@ -97,6 +97,36 @@ def _get_area_name(hass: HomeAssistant, area_id: str) -> str:
         return area_id
 
 
+def _get_room_display_name(hass: HomeAssistant, area_id: str) -> str:
+    """Return the configured room label with a user-friendly capitalized fallback."""
+    name: str | None = None
+    try:
+        store = hass.data.get(DOMAIN, {}).get("store")
+        room = store.get_room(area_id) if store else None
+        if room:
+            configured = room.get("display_name")
+            if isinstance(configured, str) and configured.strip():
+                name = configured.strip()
+    except Exception:  # noqa: BLE001
+        pass
+    if not name:
+        name = _get_area_name(hass, area_id).strip() or area_id.replace("_", " ")
+    return name[:1].upper() + name[1:]
+
+
+def _room_has_power_sensor(room: dict) -> bool:
+    """Return whether the room has an AC with a configured consumption sensor."""
+    if room.get("is_outdoor", False):
+        return False
+    return any(
+        device.get("type") == "ac"
+        and isinstance(device.get("power_sensor_entity_id"), str)
+        and bool(device["power_sensor_entity_id"].strip())
+        for device in room.get("devices", [])
+        if isinstance(device, dict)
+    )
+
+
 # Authoritative inventory of RoomMind-owned entity unique IDs. Per-room IDs use
 # ``{DOMAIN}_{area_id}{suffix}``; the empty suffix is the canonical room climate.
 # Exact matching keeps area IDs such as ``bedroom`` and ``bedroom_2`` distinct.
@@ -116,6 +146,8 @@ ROOM_ENTITY_SUFFIXES = (
 )
 # Suffixes only valid when the room has covers configured.
 COVER_ENTITY_SUFFIXES = ("_cover_auto", "_cover_paused")
+# Energy entities exist only when an indoor room has an AC power sensor configured.
+ENERGY_ENTITY_SUFFIXES = ("_power", "_energy_today", "_predicted_power", "_predicted_energy_1h")
 
 # Global RoomMind entities do not belong to an individual room and therefore
 # must never be considered orphaned by the per-room cleanup pass.
@@ -210,6 +242,7 @@ class RoomMindCoordinator(DataUpdateCoordinator):
         self._boiler_manager = BoilerManager(hass)
         # Track which rooms already have entity platform entities registered
         self._entity_areas: set[str] = set()
+        self._energy_entity_areas: set[str] = set()
         # Min-run enforcement: timestamp when current non-idle mode started
         self._mode_on_since: dict[str, float] = {}
         # Sensor dropout fallback: last valid temperature per room
@@ -290,7 +323,9 @@ class RoomMindCoordinator(DataUpdateCoordinator):
         # Rebuild energy-learning statistics from persisted RoomMind history after
         # restart. Only rows written by versions with power fields contribute.
         if self._history_store is not None:
-            for area_id in rooms:
+            for area_id, room in rooms.items():
+                if not _room_has_power_sensor(room):
+                    continue
                 if not self._energy_manager.needs_bootstrap(area_id):
                     continue
                 try:
@@ -337,7 +372,7 @@ class RoomMindCoordinator(DataUpdateCoordinator):
         # consumption forecasts to each room before entities/history consume it.
         for area_id, room_state in room_states.items():
             room = rooms.get(area_id, {})
-            if room.get("is_outdoor", False):
+            if not _room_has_power_sensor(room):
                 continue
             room_state.update(self._energy_manager.update_room(area_id, room, room_state, self.outdoor_temp_effective))
 
@@ -1936,12 +1971,36 @@ class RoomMindCoordinator(DataUpdateCoordinator):
         area_id = room["area_id"]
         has_covers = bool(room.get("covers"))
 
+        has_energy_entities = _room_has_power_sensor(room)
         if area_id not in self._entity_areas and hasattr(self, "async_add_entities") and self.async_add_entities:
             from .sensor import _create_room_entities
 
-            entities = _create_room_entities(self, area_id)
+            entities = _create_room_entities(self, area_id, room)
             self.async_add_entities(entities)
             self._entity_areas.add(area_id)
+            if has_energy_entities:
+                self._energy_entity_areas.add(area_id)
+        elif (
+            has_energy_entities
+            and area_id not in self._energy_entity_areas
+            and hasattr(self, "async_add_entities")
+            and self.async_add_entities
+        ):
+            from .sensor import _create_room_energy_entities
+
+            self.async_add_entities(_create_room_energy_entities(self, area_id))
+            self._energy_entity_areas.add(area_id)
+
+        if not has_energy_entities and area_id in self._energy_entity_areas:
+            from homeassistant.helpers import entity_registry as er
+
+            registry = er.async_get(self.hass)
+            energy_uids = {f"{DOMAIN}_{area_id}{suffix}" for suffix in ENERGY_ENTITY_SUFFIXES}
+            for entity_entry in list(registry.entities.values()):
+                if entity_entry.unique_id in energy_uids:
+                    registry.async_remove(entity_entry.entity_id)
+            self._energy_entity_areas.discard(area_id)
+            self._energy_manager.remove_room(area_id)
 
         # Outdoor areas are sensor/analytics-only and must never expose a
         # canonical climate entity. If an existing room is converted to outdoor,
@@ -2030,6 +2089,7 @@ class RoomMindCoordinator(DataUpdateCoordinator):
         self._residual_tracker.remove_room(area_id)
         self._cover_orchestrator.remove_room(area_id)
         self._entity_areas.discard(area_id)
+        self._energy_entity_areas.discard(area_id)
         self._mode_on_since.pop(area_id, None)
         self._switch_entity_areas.discard(area_id)
         self._climate_control_switch_areas.discard(area_id)
@@ -2080,6 +2140,10 @@ class RoomMindCoordinator(DataUpdateCoordinator):
                 continue
             if suffix in COVER_ENTITY_SUFFIXES and not rooms[area_id].get("covers"):
                 # Cover entity for a room without covers configured — orphaned.
+                to_remove.append(entity_entry.entity_id)
+                continue
+            if suffix in ENERGY_ENTITY_SUFFIXES and not _room_has_power_sensor(rooms[area_id]):
+                # Energy sensors are invalid without an explicitly configured AC power sensor.
                 to_remove.append(entity_entry.entity_id)
 
         for eid in to_remove:

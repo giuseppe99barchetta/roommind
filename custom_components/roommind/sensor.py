@@ -12,21 +12,35 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from .const import DOMAIN
-from .coordinator import RoomMindCoordinator
+from .coordinator import RoomMindCoordinator, _get_room_display_name, _room_has_power_sensor
 
 
-def _create_room_entities(coordinator: RoomMindCoordinator, area_id: str) -> list[SensorEntity]:
-    """Create the standard set of sensor entities for a room."""
+def _create_room_energy_entities(coordinator: RoomMindCoordinator, area_id: str) -> list[SensorEntity]:
+    """Create sensors backed by a configured AC consumption sensor."""
     return [
-        RoomMindTargetTemperatureSensor(coordinator, area_id),
-        RoomMindModeSensor(coordinator, area_id),
-        RoomMindHeatSourceSensor(coordinator, area_id),
-        RoomMindHeatSourceReasonSensor(coordinator, area_id),
         RoomMindPowerSensor(coordinator, area_id),
         RoomMindEnergyTodaySensor(coordinator, area_id),
         RoomMindPredictedPowerSensor(coordinator, area_id),
         RoomMindPredictedEnergySensor(coordinator, area_id),
     ]
+
+
+def _create_room_entities(
+    coordinator: RoomMindCoordinator, area_id: str, room: dict | None = None
+) -> list[SensorEntity]:
+    """Create room sensors, adding energy entities only when they are meaningful."""
+    if room is None:
+        store = coordinator.hass.data[DOMAIN]["store"]
+        room = store.get_room(area_id) or {}
+    entities: list[SensorEntity] = [
+        RoomMindTargetTemperatureSensor(coordinator, area_id),
+        RoomMindModeSensor(coordinator, area_id),
+        RoomMindHeatSourceSensor(coordinator, area_id),
+        RoomMindHeatSourceReasonSensor(coordinator, area_id),
+    ]
+    if _room_has_power_sensor(room):
+        entities.extend(_create_room_energy_entities(coordinator, area_id))
+    return entities
 
 
 async def async_setup_entry(
@@ -44,9 +58,11 @@ async def async_setup_entry(
     # Create entities for rooms that already exist in the store
     rooms = store.get_rooms()
     entities: list[SensorEntity] = []
-    for area_id in rooms:
-        entities.extend(_create_room_entities(coordinator, area_id))
+    for area_id, room in rooms.items():
+        entities.extend(_create_room_entities(coordinator, area_id, room))
         coordinator._entity_areas.add(area_id)
+        if _room_has_power_sensor(room):
+            coordinator._energy_entity_areas.add(area_id)
     entities.extend(
         [
             RoomMindBoilerDemandSensor(coordinator),
@@ -75,7 +91,7 @@ class _RoomMindBaseSensor(CoordinatorEntity, SensorEntity):
         super().__init__(coordinator)
         self._area_id = area_id
         self._attr_unique_id = f"{DOMAIN}_{area_id}_{suffix}"
-        self._attr_name = f"{area_id} {name_label}"
+        self._attr_name = f"{_get_room_display_name(coordinator.hass, area_id)} {name_label}"
         self.entity_id = f"sensor.{DOMAIN}_{area_id}_{suffix}"
 
     @property
