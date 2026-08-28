@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import csv
+import json
 import logging
 import os
 import time
@@ -26,8 +27,10 @@ DETAIL_FIELDS = [
     "occupancy",
     "energy_mode",
     "ac_power_w",
+    "ac_device_power_w_json",
     "ac_energy_today_kwh",
     "predicted_power_w",
+    "predicted_device_power_w_json",
     "predicted_energy_1h_kwh",
     "energy_learning_samples",
 ]
@@ -98,8 +101,12 @@ class HistoryStore:
                     "occupancy": data.get("occupancy", ""),
                     "energy_mode": data.get("energy_mode", ""),
                     "ac_power_w": data.get("ac_power_w", ""),
+                    "ac_device_power_w_json": json.dumps(data.get("ac_device_power_w", {}), separators=(",", ":")),
                     "ac_energy_today_kwh": data.get("ac_energy_today_kwh", ""),
                     "predicted_power_w": data.get("predicted_power_w", ""),
+                    "predicted_device_power_w_json": json.dumps(
+                        data.get("predicted_device_power_w", {}), separators=(",", ":")
+                    ),
                     "predicted_energy_1h_kwh": data.get("predicted_energy_1h_kwh", ""),
                     "energy_learning_samples": data.get("energy_learning_samples", ""),
                 }
@@ -216,6 +223,8 @@ class HistoryStore:
                 "energy_mode": bucket[0].get("energy_mode", ""),
                 "window_open": bucket[0].get("window_open", ""),
                 "device_setpoint": bucket[0].get("device_setpoint", ""),
+                "ac_device_power_w_json": bucket[-1].get("ac_device_power_w_json", "{}"),
+                "predicted_device_power_w_json": bucket[-1].get("predicted_device_power_w_json", "{}"),
             }
             for field in (
                 "room_temp",

@@ -8,6 +8,7 @@ import type { HomeAssistant, RoomConfig, AnalyticsData } from "../types";
 import { localize } from "../utils/localize";
 import "./analytics/rs-analytics-toolbar";
 import "./analytics/rs-analytics-chart";
+import "./analytics/rs-energy-analytics-chart";
 import "./analytics/rs-analytics-model";
 
 @customElement("rs-analytics")
@@ -101,7 +102,13 @@ export class RsAnalytics extends LitElement {
                 .isOutdoor=${this.rooms[this._selectedRoom]?.is_outdoor ?? false}
               ></rs-analytics-chart>
               ${!this.rooms[this._selectedRoom]?.is_outdoor
-                ? html` <rs-analytics-model
+                ? html`
+                    <rs-energy-analytics-chart
+                      .hass=${this.hass}
+                      .data=${this._data}
+                      .language=${l}
+                    ></rs-energy-analytics-chart>
+                    <rs-analytics-model
                     .hass=${this.hass}
                     .data=${this._data}
                     .language=${l}

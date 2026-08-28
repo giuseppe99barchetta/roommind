@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 import logging
 import math
 import time
@@ -47,6 +48,29 @@ def _safe_int(value: str) -> int | None:
         return None
 
 
+def _safe_power_map(value: object) -> dict[str, float]:
+    """Decode compact per-device power maps from history CSV rows."""
+    if isinstance(value, dict):
+        raw = value
+    elif isinstance(value, str) and value:
+        try:
+            parsed = json.loads(value)
+        except (TypeError, ValueError, json.JSONDecodeError):
+            return {}
+        raw = parsed if isinstance(parsed, dict) else {}
+    else:
+        return {}
+    result: dict[str, float] = {}
+    for key, item in raw.items():
+        try:
+            number = float(item)
+        except (TypeError, ValueError):
+            continue
+        if math.isfinite(number) and number >= 0:
+            result[str(key)] = round(number, 1)
+    return result
+
+
 def _csv_to_points(rows: list[dict]) -> list[dict]:
     """Convert CSV rows (string values, 'timestamp' key) to typed points ('ts' key)."""
     result = []
@@ -68,6 +92,15 @@ def _csv_to_points(rows: list[dict]) -> list[dict]:
                 "blind_position": _safe_int(row.get("blind_position", "")),
                 "cover_reason": row.get("cover_reason", ""),
                 "device_setpoint": _safe_float(row.get("device_setpoint", "")),
+                "current_humidity": _safe_float(row.get("current_humidity", "")),
+                "energy_mode": row.get("energy_mode", ""),
+                "ac_power_w": _safe_float(row.get("ac_power_w", "")),
+                "ac_device_power_w": _safe_power_map(row.get("ac_device_power_w_json", "")),
+                "ac_energy_today_kwh": _safe_float(row.get("ac_energy_today_kwh", "")),
+                "predicted_power_w": _safe_float(row.get("predicted_power_w", "")),
+                "predicted_device_power_w": _safe_power_map(row.get("predicted_device_power_w_json", "")),
+                "predicted_energy_1h_kwh": _safe_float(row.get("predicted_energy_1h_kwh", "")),
+                "energy_learning_samples": _safe_int(row.get("energy_learning_samples", "")),
             }
         )
     return result
@@ -362,6 +395,77 @@ async def build_analytics_data(
                     ),
                 )
 
+    # Use the same future temperature/outdoor trajectory to predict electrical
+    # demand. This keeps the energy chart coupled to RoomMind's learned thermal
+    # forecast instead of extrapolating watts independently.
+    predicted_powers: list[float | None] = []
+    predicted_device_powers: list[dict[str, float]] = []
+    energy_manager = (
+        vars(coordinator).get("_energy_manager") if coordinator and hasattr(coordinator, "__dict__") else None
+    )
+    has_power_sensors = any(
+        dev.get("type") == "ac" and dev.get("power_sensor_entity_id") for dev in room_config.get("devices", [])
+    )
+    if energy_manager is not None and target_forecast and has_power_sensors:
+        live = coordinator.rooms.get(area_id, {})
+        humidity = _safe_float(str(live.get("current_humidity") or ""))
+        nominal = _safe_float(str(room_config.get("heat_pump_power_watts") or ""))
+        selected_mode = str(room_config.get("room_hvac_mode") or "auto")
+        for i, tf in enumerate(target_forecast):
+            predicted_t = pred_temps[i] if i < len(pred_temps) else None
+            heat_target = tf.get("heat_target")
+            cool_target = tf.get("cool_target")
+            if selected_mode == "dry":
+                energy_mode = "dry"
+                target_for_energy = cool_target or tf.get("target_temp")
+            elif selected_mode == "heat":
+                energy_mode = "heating"
+                target_for_energy = heat_target or tf.get("target_temp")
+            elif selected_mode == "cool":
+                energy_mode = "cooling"
+                target_for_energy = cool_target or tf.get("target_temp")
+            elif selected_mode == "fan_only":
+                energy_mode = "fan_only"
+                target_for_energy = tf.get("target_temp")
+            elif selected_mode == "off":
+                energy_mode = "idle"
+                target_for_energy = tf.get("target_temp")
+            else:
+                if predicted_t is not None and heat_target is not None and predicted_t < heat_target:
+                    energy_mode = "heating"
+                    target_for_energy = heat_target
+                elif predicted_t is not None and cool_target is not None and predicted_t > cool_target:
+                    energy_mode = "cooling"
+                    target_for_energy = cool_target
+                else:
+                    energy_mode = "idle"
+                    target_for_energy = tf.get("target_temp")
+            outdoor_for_energy = (
+                outdoor_series[i]
+                if "outdoor_series" in locals() and i < len(outdoor_series)
+                else coordinator.outdoor_temp_effective
+            )
+            power, _ = energy_manager.predict_power(
+                area_id,
+                energy_mode,
+                predicted_t,
+                target_for_energy,
+                outdoor_for_energy,
+                humidity,
+                nominal,
+            )
+            predicted_powers.append(round(power, 1) if power is not None else 0.0)
+            predicted_device_powers.append(
+                energy_manager.predict_device_power(
+                    area_id,
+                    energy_mode,
+                    predicted_t,
+                    target_for_energy,
+                    outdoor_for_energy,
+                    humidity,
+                )
+            )
+
     # Merge into unified forecast points on shared 5-min grid
     forecast: list[dict] = []
     grid = 300  # 5 minutes
@@ -377,6 +481,8 @@ async def build_analytics_data(
                 "predicted_temp": pred_temps[i] if i < len(pred_temps) else None,
                 "window_open": False,
                 "device_setpoint": None,
+                "predicted_power_w": predicted_powers[i] if i < len(predicted_powers) else None,
+                "predicted_device_power_w": (predicted_device_powers[i] if i < len(predicted_device_powers) else {}),
             }
         )
 

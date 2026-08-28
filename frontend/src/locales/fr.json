@@ -535,5 +535,14 @@
   "settings.temperature_rounding_down": "Arrondir vers le bas (26,5° → 26°)",
   "settings.temperature_rounding_up": "Arrondir vers le haut (26,5° → 27°)",
   "devices.power_sensor": "Capteur de puissance",
-  "devices.power_sensor_hint": "Capteur de consommation électrique instantanée de ce climatiseur. Les capteurs en W et kW servent à l’historique et aux prévisions adaptatives."
+  "devices.power_sensor_hint": "Capteur de consommation électrique instantanée de ce climatiseur. Les capteurs en W et kW servent à l’historique et aux prévisions adaptatives.",
+  "analytics.energy_title": "Consommation d’énergie",
+  "analytics.energy_subtitle": "Puissance mesurée des appareils et prévision apprise",
+  "analytics.energy_room_power": "Puissance de la pièce",
+  "analytics.energy_forecast": "Prévision",
+  "analytics.energy_forecast_short": "Prévision",
+  "analytics.energy_now": "Maintenant",
+  "analytics.energy_period": "Énergie sur la période",
+  "analytics.energy_next_3h": "3 prochaines heures",
+  "analytics.energy_learning": "Échantillons d’apprentissage"
 }

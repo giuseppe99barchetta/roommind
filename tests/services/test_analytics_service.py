@@ -851,3 +851,27 @@ class TestBuildAnalyticsOccupancy:
             await build_analytics_data(hass, "room1", "12h", store, coordinator)
             mock_sim.assert_called_once()
             assert mock_sim.call_args.kwargs["q_occupancy"] == 0.0
+
+
+def test_csv_to_points_includes_energy_fields():
+    from custom_components.roommind.services.analytics_service import _csv_to_points
+
+    points = _csv_to_points(
+        [
+            {
+                "timestamp": "1000",
+                "ac_power_w": "512.4",
+                "ac_device_power_w_json": '{"climate.ac_sala":312.4,"climate.ac_studio":200}',
+                "predicted_power_w": "540",
+                "predicted_device_power_w_json": '{"climate.ac_sala":330}',
+                "ac_energy_today_kwh": "1.25",
+                "energy_learning_samples": "42",
+            }
+        ]
+    )
+    assert points[0]["ac_power_w"] == 512.4
+    assert points[0]["ac_device_power_w"] == {"climate.ac_sala": 312.4, "climate.ac_studio": 200.0}
+    assert points[0]["predicted_power_w"] == 540.0
+    assert points[0]["predicted_device_power_w"] == {"climate.ac_sala": 330.0}
+    assert points[0]["ac_energy_today_kwh"] == 1.25
+    assert points[0]["energy_learning_samples"] == 42
