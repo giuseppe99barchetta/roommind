@@ -1,0 +1,50 @@
+name: Validate energy analytics
+on:
+  push:
+    branches: [feat/energy-analytics]
+    paths:
+      - scripts/apply_energy_analytics.py
+      - .github/workflows/run-energy-analytics.yml
+permissions:
+  contents: write
+jobs:
+  patch:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feat/energy-analytics
+          fetch-depth: 0
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+      - name: Apply patch
+        run: python scripts/apply_energy_analytics.py
+      - name: Install backend deps
+        run: pip install -r requirements-dev.txt
+      - name: Backend format and lint
+        run: |
+          ruff format custom_components/roommind tests
+          ruff check --fix custom_components/roommind tests
+          ruff check custom_components/roommind tests
+      - name: Backend tests
+        run: pytest -q
+      - name: Type check
+        run: mypy custom_components/roommind
+      - name: Frontend install
+        working-directory: frontend
+        run: npm ci
+      - name: Frontend check and build
+        working-directory: frontend
+        run: |
+          npm run check
+          npm run build
+      - name: Commit result
+        run: |
+          rm scripts/apply_energy_analytics.py
+          rm .github/workflows/run-energy-analytics.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "feat: add learned energy analytics and forecasts"
+          git push origin HEAD:feat/energy-analytics
