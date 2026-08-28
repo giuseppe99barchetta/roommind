@@ -888,3 +888,28 @@ def test_csv_to_points_includes_energy_fields():
     assert points[0]["ac_energy_today_kwh"] == 1.25
     assert points[0]["energy_learning_samples"] == 42
     assert points[0]["energy_prediction_confidence"] == "high"
+
+
+def test_integrate_energy_cost_power_series():
+    from custom_components.roommind.services.analytics_service import _integrate_forecast_kwh, _integrate_power_kwh
+
+    measured = [{"ts": 0, "ac_power_w": 1000}, {"ts": 3600, "ac_power_w": 1000}]
+    forecast = [{"ts": 0, "predicted_power_w": 500}, {"ts": 3600, "predicted_power_w": 500}]
+
+    assert _integrate_power_kwh(measured) == 1.0
+    assert _integrate_forecast_kwh(forecast) == 0.5
+
+
+def test_comparison_metrics_reports_efficiency_and_target_time():
+    from custom_components.roommind.services.analytics_service import _comparison_metrics
+
+    points = [
+        {"ts": 0, "ac_power_w": 1000, "energy_mode": "cooling", "room_temp": 28, "target_temp": 26},
+        {"ts": 3600, "ac_power_w": 1000, "energy_mode": "cooling", "room_temp": 26, "target_temp": 26},
+    ]
+    metrics = _comparison_metrics(points, 0.3)
+    assert metrics["energy_kwh"] == 1.0
+    assert metrics["cost_eur"] == 0.3
+    assert metrics["active_minutes"] == 60
+    assert metrics["delta_t_per_kwh"] == 2.0
+    assert metrics["target_reach_minutes"] == 60

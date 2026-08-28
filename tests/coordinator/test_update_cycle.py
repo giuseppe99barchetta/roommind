@@ -8,6 +8,7 @@ from unittest.mock import ANY, AsyncMock, MagicMock, call, patch
 import pytest
 
 from custom_components.roommind.const import MODE_IDLE
+from custom_components.roommind.coordinator import _coordination_priority
 
 from .conftest import (
     SAMPLE_ROOM,
@@ -38,6 +39,11 @@ class TestRoomMindCoordinator:
         assert coordinator._history_write_count == 0
         assert coordinator._pending_predictions == {}
         assert coordinator.outdoor_temp is None
+
+    def test_room_coordination_prioritizes_presence_and_target_gap(self):
+        occupied = {"current_temp": 28, "target_temp": 24, "q_occupancy": 1, "predicted_power_w": 900}
+        unoccupied = {"current_temp": 28, "target_temp": 24, "q_occupancy": 0, "predicted_power_w": 100}
+        assert _coordination_priority(occupied) > _coordination_priority(unoccupied)
 
     @pytest.mark.asyncio
     async def test_update_with_comfort_temp_and_heating(self, hass, mock_config_entry):

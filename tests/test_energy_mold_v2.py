@@ -38,6 +38,7 @@ def test_energy_manager_integrates_and_learns_power():
     assert result["energy_learning_samples"] >= 6
     assert result["predicted_power_w"] is not None
     assert result["energy_prediction_confidence"] == "medium"
+    assert 500 < manager.budget_power_w("studio", "cooling", 1000) < 1000
 
 
 def test_energy_manager_converts_kw_sensor():
@@ -89,6 +90,44 @@ def test_energy_prediction_confidence_tracks_learned_sample_count(samples, expec
 
 def test_energy_prediction_confidence_is_unavailable_without_a_prediction():
     assert EnergyManager.prediction_confidence(None, 42) is None
+
+
+def test_energy_manager_flags_sustained_low_thermal_response_at_expected_power():
+    states = {
+        "sensor.ac_power": _State("500", {"unit_of_measurement": "W"}),
+        "climate.ac": _State("cool", {"hvac_modes": ["off", "cool"]}),
+    }
+    manager = EnergyManager(_hass(states))
+    room = {"devices": [{"entity_id": "climate.ac", "type": "ac", "power_sensor_entity_id": "sensor.ac_power"}]}
+    now = 1_700_000_000.0
+    for index in range(14):
+        manager.update_room(
+            "studio", room, {"current_temp": 28 - index * 0.1, "target_temp": 24, "mode": "cooling"}, 32, now=now + index * 60
+        )
+    result = manager.update_room(
+        "studio", room, {"current_temp": 26.69, "target_temp": 24, "mode": "cooling"}, 32, now=now + 14 * 60
+    )
+    assert result["ac_efficiency_status"] == "possible_issue"
+    assert result["ac_efficiency_reason"] == "same_power_low_response"
+
+
+def test_energy_manager_compares_efficiency_at_similar_outdoor_conditions():
+    states = {
+        "sensor.ac_power": _State("500", {"unit_of_measurement": "W"}),
+        "climate.ac": _State("cool", {"hvac_modes": ["off", "cool"]}),
+    }
+    manager = EnergyManager(_hass(states))
+    room = {"devices": [{"entity_id": "climate.ac", "type": "ac", "power_sensor_entity_id": "sensor.ac_power"}]}
+    now = 1_700_000_000.0
+    for index in range(14):
+        manager.update_room(
+            "studio", room, {"current_temp": 28 - index * 0.1, "target_temp": 24, "mode": "cooling"}, 32, now=now + index * 60
+        )
+    result = manager.update_room(
+        "studio", room, {"current_temp": 26.69, "target_temp": 24, "mode": "cooling"}, 10, now=now + 14 * 60
+    )
+    assert result["ac_efficiency_status"] == "normal"
+    assert result["ac_efficiency_outdoor_delta_c"] == pytest.approx(16.7)
 
 
 @pytest.mark.asyncio

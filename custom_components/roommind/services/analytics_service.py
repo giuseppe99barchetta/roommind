@@ -6,6 +6,7 @@ import json
 import logging
 import math
 import time
+from datetime import datetime
 from typing import Any, cast
 
 from homeassistant.core import HomeAssistant
@@ -71,6 +72,95 @@ def _safe_power_map(value: object) -> dict[str, float]:
     return result
 
 
+def _integrate_power_kwh(points: list[dict], start_ts: float | None = None) -> float:
+    """Integrate measured or predicted watts using the trapezoidal rule."""
+    usable = sorted(
+        (point for point in points if point.get("ts") is not None and point.get("ac_power_w") is not None),
+        key=lambda point: point["ts"],
+    )
+    watt_hours = 0.0
+    for previous, current in zip(usable, usable[1:], strict=False):
+        if start_ts is not None and previous["ts"] < start_ts:
+            continue
+        hours = min(max(current["ts"] - previous["ts"], 0.0), 900.0) / 3600.0
+        watt_hours += (previous["ac_power_w"] + current["ac_power_w"]) * 0.5 * hours
+    return watt_hours / 1000.0
+
+
+def _integrate_forecast_kwh(points: list[dict]) -> float:
+    """Integrate forecast watts without conflating them with measured power."""
+    return _integrate_power_kwh(
+        [{"ts": point.get("ts"), "ac_power_w": point.get("predicted_power_w")} for point in points]
+    )
+
+
+def _comparison_metrics(points: list[dict], price: float) -> dict[str, float | int | None]:
+    """Summarize measured AC operation for a comparable room-level period."""
+    points = sorted(points, key=lambda point: point["ts"])
+    energy = _integrate_power_kwh(points)
+    active_minutes = 0.0
+    useful_delta = 0.0
+    reaches: list[float] = []
+    session_started: float | None = None
+    session_mode = ""
+    for previous, current in zip(points, points[1:], strict=False):
+        dt_minutes = min(max(current["ts"] - previous["ts"], 0.0), 900.0) / 60.0
+        mode = current.get("energy_mode") or current.get("mode")
+        active = mode in ("heating", "cooling")
+        if active:
+            active_minutes += dt_minutes
+            if previous.get("room_temp") is not None and current.get("room_temp") is not None:
+                change = current["room_temp"] - previous["room_temp"]
+                useful_delta += max(0.0, change if mode == "heating" else -change)
+            if session_started is None or session_mode != mode:
+                session_started, session_mode = previous["ts"], mode
+            target = current.get("target_temp")
+            temp = current.get("room_temp")
+            if session_started is not None and target is not None and temp is not None:
+                reached = temp >= target if mode == "heating" else temp <= target
+                if reached:
+                    reaches.append((current["ts"] - session_started) / 60.0)
+                    session_started = None
+        else:
+            session_started, session_mode = None, ""
+    return {
+        "energy_kwh": round(energy, 2),
+        "cost_eur": round(energy * price, 2) if price > 0 else None,
+        "active_minutes": round(active_minutes),
+        "delta_t_per_kwh": round(useful_delta / energy, 2) if energy > 0 else None,
+        "target_reach_minutes": round(sum(reaches) / len(reaches)) if reaches else None,
+    }
+
+
+async def build_comparison_data(hass: HomeAssistant, store: Any, coordinator: Any) -> dict:
+    """Build seven-day, cross-room AC analytics from RoomMind's own history."""
+    settings = store.get_settings()
+    price = max(0.0, float(settings.get("energy_price_per_kwh", 0) or 0))
+    history_store = getattr(coordinator, "_history_store", None)
+    result: list[dict] = []
+    for area_id, room in store.get_rooms().items():
+        if room.get("is_outdoor") or not room.get("devices"):
+            continue
+        points: list[dict] = []
+        if history_store:
+            week = 7 * 24 * 3600
+            points = _csv_to_points(
+                await hass.async_add_executor_job(history_store.read_history, area_id, week)
+            ) + _csv_to_points(await hass.async_add_executor_job(history_store.read_detail, area_id, week))
+        metrics = _comparison_metrics(points, price)
+        live = getattr(coordinator, "rooms", {}).get(area_id, {})
+        result.append(
+            {
+                "area_id": area_id,
+                "name": room.get("display_name") or area_id.replace("_", " ").title(),
+                **metrics,
+                "today_kwh": live.get("ac_energy_today_kwh"),
+                "today_cost_eur": live.get("energy_cost_today_eur"),
+            }
+        )
+    return {"rooms": result, "price_eur_kwh": price}
+
+
 def _csv_to_points(rows: list[dict]) -> list[dict]:
     """Convert CSV rows (string values, 'timestamp' key) to typed points ('ts' key)."""
     result = []
@@ -102,6 +192,9 @@ def _csv_to_points(rows: list[dict]) -> list[dict]:
                 "predicted_energy_1h_kwh": _safe_float(row.get("predicted_energy_1h_kwh", "")),
                 "energy_learning_samples": _safe_int(row.get("energy_learning_samples", "")),
                 "energy_prediction_confidence": row.get("energy_prediction_confidence") or None,
+                "window_open_minutes": _safe_int(row.get("window_open_minutes", "")),
+                "window_impact_c": _safe_float(row.get("window_impact_c", "")),
+                "ac_efficiency_status": row.get("ac_efficiency_status") or None,
             }
         )
     return result
@@ -494,9 +587,28 @@ async def build_analytics_data(
             }
         )
 
+    price = max(0.0, float(settings.get("energy_price_per_kwh", 0) or 0))
+    energy_cost: dict[str, float] | None = None
+    if price > 0:
+        cost_points = history + detail
+        if history_store:
+            week_age = 7 * 24 * 3600
+            cost_points = _csv_to_points(
+                await hass.async_add_executor_job(history_store.read_history, area_id, week_age)
+            ) + _csv_to_points(await hass.async_add_executor_job(history_store.read_detail, area_id, week_age))
+        now = time.time()
+        today_start = datetime.fromtimestamp(now).astimezone().replace(hour=0, minute=0, second=0, microsecond=0).timestamp()
+        energy_cost = {
+            "price_eur_kwh": price,
+            "today_eur": round(_integrate_power_kwh(cost_points, today_start) * price, 2),
+            "last_7d_eur": round(_integrate_power_kwh(cost_points, now - 7 * 24 * 3600) * price, 2),
+            "forecast_3h_eur": round(_integrate_forecast_kwh(forecast) * price, 2),
+        }
+
     return {
         "detail": detail,
         "history": history,
         "model": model_info,
         "forecast": forecast,
+        "energy_cost": energy_cost,
     }

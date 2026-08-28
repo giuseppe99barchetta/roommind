@@ -30,6 +30,7 @@ from .services.analytics_service import (
     _csv_to_points,  # noqa: F401 - re-exported for tests
     _safe_float,  # noqa: F401 - re-exported for tests
     build_analytics_data,
+    build_comparison_data,
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -168,6 +169,7 @@ _SETTINGS_SAVE_FIELDS = (
     "power_budget_max_watts",
     "power_budget_reserve_watts",
     "power_budget_unavailable_behavior",
+    "energy_price_per_kwh",
 )
 
 
@@ -286,6 +288,19 @@ async def websocket_list_rooms(
             "predicted_energy_1h_kwh": live.get("predicted_energy_1h_kwh"),
             "energy_learning_samples": live.get("energy_learning_samples", 0),
             "energy_prediction_confidence": live.get("energy_prediction_confidence"),
+            "energy_cost_today_eur": live.get("energy_cost_today_eur"),
+            "predicted_energy_cost_1h_eur": live.get("predicted_energy_cost_1h_eur"),
+            "preconditioning_active": live.get("preconditioning_active", False),
+            "preconditioning_started_at": live.get("preconditioning_started_at"),
+            "preconditioning_planned_at": live.get("preconditioning_planned_at"),
+            "ac_efficiency_status": live.get("ac_efficiency_status"),
+            "ac_thermal_rate_c_per_h": live.get("ac_thermal_rate_c_per_h"),
+            "ac_efficiency_reason": live.get("ac_efficiency_reason"),
+            "ac_efficiency_outdoor_delta_c": live.get("ac_efficiency_outdoor_delta_c"),
+            "ac_efficiency_target_delta_c": live.get("ac_efficiency_target_delta_c"),
+            "window_open_minutes": live.get("window_open_minutes"),
+            "window_impact_c": live.get("window_impact_c"),
+            "power_budget_blocked": live.get("power_budget_blocked", False),
             "n_observations": live.get("n_observations", 0),
             "blind_position": live.get("blind_position"),
             "cover_auto_paused": live.get("cover_auto_paused", False),
@@ -729,6 +744,7 @@ SETTINGS_SAVE_SCHEMA = {
     vol.Optional("power_budget_max_watts"): vol.All(vol.Coerce(float), vol.Range(min=0, max=100000)),
     vol.Optional("power_budget_reserve_watts"): vol.All(vol.Coerce(float), vol.Range(min=0, max=100000)),
     vol.Optional("power_budget_unavailable_behavior"): vol.In(["boiler", "allow"]),
+    vol.Optional("energy_price_per_kwh"): vol.All(vol.Coerce(float), vol.Range(min=0, max=100)),
 }
 
 
@@ -868,6 +884,18 @@ async def websocket_get_analytics(
         custom_end=msg.get("end_ts"),
     )
     connection.send_result(msg["id"], result)
+
+
+@websocket_api.websocket_command({vol.Required("type"): "roommind/analytics/compare"})
+@websocket_api.async_response
+async def websocket_get_analytics_comparison(
+    hass: HomeAssistant,
+    connection: ActiveConnection,
+    msg: dict,
+) -> None:
+    """Return seven-day comparative energy analytics for all configured rooms."""
+    store = hass.data[DOMAIN]["store"]
+    connection.send_result(msg["id"], await build_comparison_data(hass, store, _get_coordinator(hass)))
 
 
 # ---------------------------------------------------------------------------
@@ -1041,6 +1069,7 @@ def async_register_websocket_commands(hass: HomeAssistant) -> None:
     websocket_api.async_register_command(hass, websocket_get_settings)
     websocket_api.async_register_command(hass, websocket_save_settings)
     websocket_api.async_register_command(hass, websocket_get_analytics)
+    websocket_api.async_register_command(hass, websocket_get_analytics_comparison)
     websocket_api.async_register_command(hass, websocket_thermal_reset)
     websocket_api.async_register_command(hass, websocket_thermal_reset_all)
     websocket_api.async_register_command(hass, websocket_boost_learning)

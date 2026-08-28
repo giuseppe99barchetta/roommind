@@ -548,5 +548,20 @@
   "analytics.energy_confidence": "Prognosesicherheit",
   "analytics.energy_confidence_low": "Niedrig",
   "analytics.energy_confidence_medium": "Mittel",
-  "analytics.energy_confidence_high": "Hoch"
+  "analytics.energy_confidence_high": "Hoch",
+  "analytics.energy_cost_today": "Kosten heute",
+  "analytics.energy_cost_7d": "Kosten letzte 7 Tage",
+  "analytics.energy_cost_next_3h": "Kosten nächste 3 Std.",
+  "analytics.comparison_title": "Raumvergleich · letzte 7 Tage",
+  "analytics.comparison_room": "Raum",
+  "analytics.comparison_active": "Aktiv",
+  "analytics.comparison_efficiency": "ΔT/kWh",
+  "analytics.comparison_target": "Bis Ziel",
+  "settings.energy_price": "Energiepreis der Klimaanlage",
+  "settings.energy_price_hint": "Preis (EUR/kWh)",
+  "hero.window_impact": "Fenster seit {minutes} Min. offen: {impact}{unit} gegenüber Prognose",
+  "hero.power_budget_blocked": "Klimastart wegen Hausstrombudget verschoben",
+  "hero.preconditioning_active": "Vorkonditionierung für das nächste Zeitplan-Ziel aktiv",
+  "hero.preconditioning_planned": "Vorkonditionierung geplant um {time}",
+  "hero.ac_efficiency_issue": "Klimagerät verbraucht normal, reagiert aber langsam"
 }

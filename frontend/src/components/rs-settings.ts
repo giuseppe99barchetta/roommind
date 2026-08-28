@@ -85,6 +85,7 @@ export class RsSettings extends LitElement {
   @state() private _powerModeDirty = false;
   @state() private _maxPower = 3300;
   @state() private _reserve = 200;
+  @state() private _energyPricePerKwh = 0;
   @state() private _loaded = false;
 
   private _saveDebounce?: ReturnType<typeof setTimeout>;
@@ -157,6 +158,7 @@ export class RsSettings extends LitElement {
       }
       this._maxPower = s.power_budget_max_watts ?? 3300;
       this._reserve = s.power_budget_reserve_watts ?? 200;
+      this._energyPricePerKwh = s.energy_price_per_kwh ?? 0;
     } catch (err) {
       // eslint-disable-next-line no-console
       console.debug("[RoomMind] loadSettings:", err);
@@ -190,6 +192,7 @@ export class RsSettings extends LitElement {
           .powerMode=${this._powerMode}
           .maxPower=${this._maxPower}
           .reserve=${this._reserve}
+          .energyPricePerKwh=${this._energyPricePerKwh}
           @setting-changed=${this._onSettingChanged}
         ></rs-settings-heating-system>
       </rs-settings-panel>
@@ -439,6 +442,7 @@ export class RsSettings extends LitElement {
         power_budget_max_watts: this._maxPower,
         power_budget_reserve_watts: this._reserve,
         power_budget_unavailable_behavior: "boiler",
+        energy_price_per_kwh: this._energyPricePerKwh,
         mold_detection_enabled: this._moldDetectionEnabled,
         mold_humidity_threshold: this._moldHumidityThreshold,
         mold_sustained_minutes: this._moldSustainedMinutes,

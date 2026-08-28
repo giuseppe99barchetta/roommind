@@ -55,6 +55,20 @@ export interface RoomLiveData {
   predicted_device_power_w?: Record<string, number>;
   predicted_energy_1h_kwh?: number | null;
   energy_learning_samples?: number;
+  energy_prediction_confidence?: "low" | "medium" | "high" | null;
+  energy_cost_today_eur?: number | null;
+  predicted_energy_cost_1h_eur?: number | null;
+  preconditioning_active?: boolean;
+  preconditioning_started_at?: number | null;
+  preconditioning_planned_at?: number | null;
+  window_open_minutes?: number | null;
+  window_impact_c?: number | null;
+  ac_efficiency_status?: "normal" | "possible_issue" | null;
+  ac_efficiency_reason?: string | null;
+  ac_thermal_rate_c_per_h?: number | null;
+  ac_efficiency_outdoor_delta_c?: number | null;
+  ac_efficiency_target_delta_c?: number | null;
+  power_budget_blocked?: boolean;
   blind_position: number | null;
   cover_auto_paused: boolean;
   cover_override_until?: number | null;
@@ -209,6 +223,7 @@ export interface GlobalSettings {
   power_budget_max_watts?: number;
   power_budget_reserve_watts?: number;
   power_budget_unavailable_behavior?: "boiler" | "allow";
+  energy_price_per_kwh?: number;
   boost_applied_at?: Record<string, number>;
 }
 
@@ -291,6 +306,12 @@ export interface AnalyticsData {
   detail: AnalyticsDataPoint[];
   history: AnalyticsDataPoint[];
   forecast?: AnalyticsDataPoint[];
+  energy_cost?: {
+    price_eur_kwh: number;
+    today_eur: number;
+    last_7d_eur: number;
+    forecast_3h_eur: number;
+  } | null;
   model: {
     confidence: number;
     model: {

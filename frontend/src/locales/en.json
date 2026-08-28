@@ -557,5 +557,20 @@
   "analytics.energy_confidence": "Forecast confidence",
   "analytics.energy_confidence_low": "Low",
   "analytics.energy_confidence_medium": "Medium",
-  "analytics.energy_confidence_high": "High"
+  "analytics.energy_confidence_high": "High",
+  "analytics.energy_cost_today": "Cost today",
+  "analytics.energy_cost_7d": "Cost last 7 days",
+  "analytics.energy_cost_next_3h": "Cost next 3h",
+  "analytics.comparison_title": "Room comparison · last 7 days",
+  "analytics.comparison_room": "Room",
+  "analytics.comparison_active": "Active",
+  "analytics.comparison_efficiency": "ΔT/kWh",
+  "analytics.comparison_target": "To target",
+  "settings.energy_price": "Climate energy price",
+  "settings.energy_price_hint": "Price (EUR/kWh)",
+  "hero.window_impact": "Window open for {minutes} min: {impact}{unit} vs forecast",
+  "hero.power_budget_blocked": "Climate start delayed by house power budget",
+  "hero.preconditioning_active": "Pre-conditioning active for the next scheduled target",
+  "hero.preconditioning_planned": "Pre-conditioning planned at {time}",
+  "hero.ac_efficiency_issue": "AC is using normal power but responding slowly"
 }

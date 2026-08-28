@@ -59,6 +59,20 @@ class _LinearStats:
 
 
 @dataclass
+class _RateStats:
+    """Online average of delivered room-temperature change per hour."""
+
+    n: int = 0
+    mean: float = 0.0
+    mean_outdoor_delta: float = 0.0
+
+    def add(self, rate: float, outdoor_delta: float) -> None:
+        self.n += 1
+        self.mean += (rate - self.mean) / self.n
+        self.mean_outdoor_delta += (outdoor_delta - self.mean_outdoor_delta) / self.n
+
+
+@dataclass
 class _RoomEnergyState:
     models: dict[str, _LinearStats] = field(default_factory=dict)
     device_models: dict[str, dict[str, _LinearStats]] = field(default_factory=dict)
@@ -67,6 +81,10 @@ class _RoomEnergyState:
     day_key: str = ""
     energy_today_kwh: float = 0.0
     bootstrapped: bool = False
+    rate_models: dict[str, _RateStats] = field(default_factory=dict)
+    last_temp: float | None = None
+    last_temp_ts: float | None = None
+    last_temp_mode: str = "idle"
 
 
 class EnergyManager:
@@ -228,6 +246,20 @@ class EnergyManager:
                 result[entity_id] = round(prediction, 1)
         return result
 
+    def budget_power_w(self, area_id: str, mode: str, nominal_w: float) -> float:
+        """Return a cautiously learned AC allocation for the house power budget."""
+        nominal_w = max(0.0, float(nominal_w))
+        model = self._rooms.get(area_id, _RoomEnergyState()).models.get(mode)
+        if model is None or model.n < _MIN_SAMPLES_FOR_PREDICTION or model.observed_max_w <= 0:
+            return nominal_w
+        # Keep a margin above the largest observed draw, then blend it in over
+        # 18 usable samples. This never lowers a reservation abruptly.
+        learned_w = max(50.0, model.observed_max_w * 1.15)
+        if learned_w >= nominal_w:
+            return round(learned_w, 1)
+        blend = min((model.n - _MIN_SAMPLES_FOR_PREDICTION) / 18.0, 0.6)
+        return round(nominal_w + (learned_w - nominal_w) * blend, 1)
+
     def bootstrap(self, area_id: str, rows: list[dict]) -> None:
         state = self._rooms.setdefault(area_id, _RoomEnergyState())
         if state.bootstrapped:
@@ -299,7 +331,25 @@ class EnergyManager:
         room_temp = self._safe_float(room_state.get("current_temp"))
         target = self._safe_float(room_state.get("target_temp"))
         humidity = self._safe_float(room_state.get("current_humidity"))
+        outdoor_delta = abs(room_temp - outdoor_temp) if room_temp is not None and outdoor_temp is not None else None
+        target_delta = abs(room_temp - target) if room_temp is not None and target is not None else None
         features = self._features(room_temp, target, outdoor_temp, humidity)
+        rate: float | None = None
+        if (
+            room_temp is not None
+            and state.last_temp is not None
+            and state.last_temp_ts is not None
+            and mode == state.last_temp_mode
+            and mode in ("heating", "cooling")
+        ):
+            hours = min(max(now_ts - state.last_temp_ts, 0.0), 300.0) / 3600.0
+            if hours > 0:
+                rate = (room_temp - state.last_temp) / hours if mode == "heating" else (state.last_temp - room_temp) / hours
+                if rate > 0 and power_w >= _MIN_ACTIVE_POWER_W:
+                    state.rate_models.setdefault(mode, _RateStats()).add(rate, outdoor_delta or 0.0)
+        state.last_temp = room_temp
+        state.last_temp_ts = now_ts
+        state.last_temp_mode = mode
         if power_w >= _MIN_ACTIVE_POWER_W and mode in _LEARNABLE_ENERGY_MODES:
             state.models.setdefault(mode, _LinearStats()).add(features, power_w)
         if mode in _LEARNABLE_ENERGY_MODES:
@@ -313,6 +363,20 @@ class EnergyManager:
         prediction, samples = self.predict_power(area_id, mode, room_temp, target, outdoor_temp, humidity, nominal)
         predicted_devices = self.predict_device_power(area_id, mode, room_temp, target, outdoor_temp, humidity)
         confidence = self.prediction_confidence(prediction, samples)
+        rate_model = state.rate_models.get(mode)
+        expected_power = prediction or 0.0
+        comparable_outdoor = outdoor_delta is None or (
+            rate_model is not None and abs(outdoor_delta - rate_model.mean_outdoor_delta) <= 4.0
+        )
+        inefficient = bool(
+            rate is not None
+            and rate_model is not None
+            and rate_model.n >= 12
+            and expected_power > 0
+            and power_w >= expected_power * 0.8
+            and rate < rate_model.mean * 0.5
+            and comparable_outdoor
+        )
 
         return {
             "ac_power_w": round(power_w, 1) if configured else None,
@@ -325,4 +389,10 @@ class EnergyManager:
             "predicted_energy_1h_kwh": round(prediction / 1000.0, 3) if prediction is not None else None,
             "energy_learning_samples": samples,
             "energy_prediction_confidence": confidence,
+            "ac_thermal_rate_c_per_h": round(rate, 2) if rate is not None else None,
+            "ac_efficiency_status": "possible_issue" if inefficient else "normal",
+            "ac_efficiency_samples": rate_model.n if rate_model else 0,
+            "ac_efficiency_reason": "same_power_low_response" if inefficient else None,
+            "ac_efficiency_outdoor_delta_c": round(outdoor_delta, 1) if outdoor_delta is not None else None,
+            "ac_efficiency_target_delta_c": round(target_delta, 1) if target_delta is not None else None,
         }

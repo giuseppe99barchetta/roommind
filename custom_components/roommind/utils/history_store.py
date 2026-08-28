@@ -34,6 +34,10 @@ DETAIL_FIELDS = [
     "predicted_energy_1h_kwh",
     "energy_learning_samples",
     "energy_prediction_confidence",
+    "window_open_minutes",
+    "window_impact_c",
+    "ac_efficiency_status",
+    "ac_efficiency_reason",
 ]
 DETAIL_MAX_AGE = 48 * 3600  # 48 hours
 HISTORY_MAX_AGE = 90 * 24 * 3600  # 90 days
@@ -111,6 +115,10 @@ class HistoryStore:
                     "predicted_energy_1h_kwh": data.get("predicted_energy_1h_kwh", ""),
                     "energy_learning_samples": data.get("energy_learning_samples", ""),
                     "energy_prediction_confidence": data.get("energy_prediction_confidence", ""),
+                    "window_open_minutes": data.get("window_open_minutes", ""),
+                    "window_impact_c": data.get("window_impact_c", ""),
+                    "ac_efficiency_status": data.get("ac_efficiency_status", ""),
+                    "ac_efficiency_reason": data.get("ac_efficiency_reason", ""),
                 }
             )
 
@@ -242,6 +250,8 @@ class HistoryStore:
                 "predicted_power_w",
                 "predicted_energy_1h_kwh",
                 "energy_learning_samples",
+                "window_open_minutes",
+                "window_impact_c",
             ):
                 vals = []
                 for r in bucket:
@@ -253,6 +263,7 @@ class HistoryStore:
                             pass
                 avg_row[field] = round(sum(vals) / len(vals), 2) if vals else ""
             avg_row["energy_prediction_confidence"] = bucket[-1].get("energy_prediction_confidence", "")
+            avg_row["ac_efficiency_status"] = bucket[-1].get("ac_efficiency_status", "")
             result.append(avg_row)
         return result
 

@@ -25,6 +25,7 @@ export class RsAnalytics extends LitElement {
   @state() private _chartAnchor: number = Date.now();
   @state() private _loading = false;
   @state() private _activeQuick: string | null = "24h";
+  @state() private _comparison: Array<Record<string, string | number | null>> = [];
 
   private _refreshInterval?: ReturnType<typeof setInterval>;
 
@@ -108,6 +109,24 @@ export class RsAnalytics extends LitElement {
                       .data=${this._data}
                       .language=${l}
                     ></rs-energy-analytics-chart>
+                    ${this._comparison.length > 1
+                      ? html`<ha-card class="comparison">
+                          <h3>${localize("analytics.comparison_title", l)}</h3>
+                          <table>
+                            <thead><tr><th>${localize("analytics.comparison_room", l)}</th><th>kWh</th><th>€</th><th>${localize("analytics.comparison_active", l)}</th><th>${localize("analytics.comparison_efficiency", l)}</th><th>${localize("analytics.comparison_target", l)}</th></tr></thead>
+                            <tbody>
+                              ${this._comparison.map(
+                                (room) => html`<tr>
+                                  <td>${room.name}</td><td>${room.energy_kwh ?? "—"}</td><td>${room.cost_eur ?? "—"}</td>
+                                  <td>${room.active_minutes != null ? `${room.active_minutes} min` : "—"}</td>
+                                  <td>${room.delta_t_per_kwh ?? "—"}</td>
+                                  <td>${room.target_reach_minutes != null ? `${room.target_reach_minutes} min` : "—"}</td>
+                                </tr>`,
+                              )}
+                            </tbody>
+                          </table>
+                        </ha-card>`
+                      : nothing}
                     <rs-analytics-model
                     .hass=${this.hass}
                     .data=${this._data}
@@ -164,6 +183,15 @@ export class RsAnalytics extends LitElement {
     try {
       const result = await this.hass.callWS<AnalyticsData>(this._buildWsParams());
       this._data = result;
+      try {
+        const comparison = await this.hass.callWS<{ rooms: Array<Record<string, string | number | null>> }>({
+          type: "roommind/analytics/compare",
+        });
+        this._comparison = comparison.rooms;
+      } catch (err) {
+        // eslint-disable-next-line no-console
+        console.debug("[RoomMind] comparison:", err);
+      }
     } catch (err) {
       // eslint-disable-next-line no-console
       console.debug("[RoomMind] fetchData:", err);
@@ -178,6 +206,15 @@ export class RsAnalytics extends LitElement {
     try {
       const result = await this.hass.callWS<AnalyticsData>(this._buildWsParams());
       this._data = result;
+      try {
+        const comparison = await this.hass.callWS<{ rooms: Array<Record<string, string | number | null>> }>({
+          type: "roommind/analytics/compare",
+        });
+        this._comparison = comparison.rooms;
+      } catch (err) {
+        // eslint-disable-next-line no-console
+        console.debug("[RoomMind] comparison:", err);
+      }
       this._chartAnchor = Date.now();
     } catch (err) {
       // eslint-disable-next-line no-console
@@ -215,6 +252,12 @@ export class RsAnalytics extends LitElement {
       color: var(--secondary-text-color);
       font-size: 14px;
     }
+
+    .comparison { margin: 0 0 16px; overflow-x: auto; padding: 12px 16px; }
+    .comparison h3 { margin: 0 0 10px; font-size: 16px; }
+    table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    th, td { padding: 8px; text-align: right; border-top: 1px solid var(--divider-color); white-space: nowrap; }
+    th:first-child, td:first-child { text-align: left; }
   `;
 }
 

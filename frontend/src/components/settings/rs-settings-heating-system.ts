@@ -8,6 +8,7 @@ import {
   type PowerSensorModeState,
 } from "../../utils/heating-settings";
 import { getSelectValue } from "../../utils/events";
+import { localize } from "../../utils/localize";
 
 // HA 2026.8's ha-entity-picker is single-value only. The entity selector
 // routes `multiple` values to ha-entities-picker, whose value is string[].
@@ -33,6 +34,7 @@ export class RsSettingsHeatingSystem extends LitElement {
   @property({ type: String }) public powerMode: "available" | "consumption" = "available";
   @property({ type: Number }) public maxPower = 3300;
   @property({ type: Number }) public reserve = 200;
+  @property({ type: Number }) public energyPricePerKwh = 0;
   @state() private _powerModeState: PowerSensorModeState = {
     value: "available",
     hasLocalChange: false,
@@ -141,6 +143,13 @@ export class RsSettingsHeatingSystem extends LitElement {
                 ${number("bypassTemperature", this.bypassTemperature)}</label
               >`
           : nothing}
+      </div>
+      <div class="section">
+        <b>${localize("settings.energy_price", this.hass.language)}</b>
+        <label
+          >${localize("settings.energy_price_hint", this.hass.language)}
+          ${number("energyPricePerKwh", this.energyPricePerKwh)}</label
+        >
       </div>
       <div class="section">
         <div class="toggle">

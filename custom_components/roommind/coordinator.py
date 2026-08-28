@@ -70,6 +70,7 @@ from .managers.residual_heat_tracker import ResidualHeatTracker
 from .managers.room_climate import async_apply_ac_auxiliary_mode
 from .managers.valve_manager import ValveManager
 from .managers.weather_manager import WeatherManager
+from .managers.window_impact_manager import WindowImpactManager
 from .managers.window_manager import WindowManager
 from .utils.device_utils import (
     build_rooms_devices_map,
@@ -127,6 +128,18 @@ def _room_has_power_sensor(room: dict) -> bool:
     )
 
 
+def _coordination_priority(live: dict) -> float:
+    """Score a room's next-cycle admission priority for shared AC capacity."""
+    current = live.get("current_temp")
+    target = live.get("target_temp")
+    predicted = live.get("predicted_temp")
+    gap = abs(float(current) - float(target)) if current is not None and target is not None else 0.0
+    predicted_gap = abs(float(predicted) - float(target)) if predicted is not None and target is not None else 0.0
+    presence = 1.0 if live.get("q_occupancy", 0) else 0.0
+    expected_power = float(live.get("predicted_power_w") or 0)
+    return round(presence * 100 + gap * 10 + predicted_gap * 5 - min(expected_power / 1000, 5), 2)
+
+
 # Authoritative inventory of RoomMind-owned entity unique IDs. Per-room IDs use
 # ``{DOMAIN}_{area_id}{suffix}``; the empty suffix is the canonical room climate.
 # Exact matching keeps area IDs such as ``bedroom`` and ``bedroom_2`` distinct.
@@ -144,6 +157,9 @@ ROOM_ENTITY_SUFFIXES = (
     "_predicted_power",
     "_predicted_energy_1h",
     "_predicted_energy_confidence",
+    "_energy_cost_today",
+    "_predicted_energy_cost_1h",
+    "_ac_efficiency",
 )
 # Suffixes only valid when the room has covers configured.
 COVER_ENTITY_SUFFIXES = ("_cover_auto", "_cover_paused")
@@ -154,6 +170,9 @@ ENERGY_ENTITY_SUFFIXES = (
     "_predicted_power",
     "_predicted_energy_1h",
     "_predicted_energy_confidence",
+    "_energy_cost_today",
+    "_predicted_energy_cost_1h",
+    "_ac_efficiency",
 )
 
 # Global RoomMind entities do not belong to an individual room and therefore
@@ -212,6 +231,7 @@ class RoomMindCoordinator(DataUpdateCoordinator):
         self._outdoor_unavailable_cycles: int = 0
         self._outdoor_warning_sent: bool = False
         self._window_manager = WindowManager()
+        self._window_impact_manager = WindowImpactManager()
         self._previous_modes: dict[str, str] = {}
         self._model_manager: RoomModelManager = RoomModelManager()
         self._model_loaded = False
@@ -220,6 +240,7 @@ class RoomMindCoordinator(DataUpdateCoordinator):
         self._history_write_count: int = 0
         self._history_rotate_count: int = 0
         self._pending_predictions: dict[str, float] = {}
+        self._preconditioning_started_at: dict[str, float] = {}
         self._prediction_forecasts: dict[str, list[dict]] = {}
         self._weather_manager = WeatherManager(hass)
         self._current_q_solar: float = 0.0
@@ -306,11 +327,19 @@ class RoomMindCoordinator(DataUpdateCoordinator):
 
         # Load compressor groups from settings (every cycle, cheap)
         self._compressor_manager.load_groups(settings.get("compressor_groups", []))
-        running_loads = {
-            area_id: float(room.get("heat_pump_power_watts", 0) or 0)
-            for area_id, room in rooms.items()
-            if self._heat_source_states.get(area_id) in ("heat_pump", "hybrid")
-        }
+        # Reserve every AC compressor that is already running, not only ACs
+        # driven by native heat-source routing.  This makes the shared budget
+        # effective for normal cooling/heating rooms too.
+        running_loads: dict[str, float] = {}
+        for area_id, room in rooms.items():
+            nominal_w = float(room.get("heat_pump_power_watts", 0) or 0)
+            physical_mode = self._energy_manager._physical_mode(self.hass, room, "idle")
+            if physical_mode in ("heating", "cooling", "dry"):
+                running_loads[area_id] = self._energy_manager.budget_power_w(
+                    area_id, physical_mode, nominal_w
+                )
+            elif self._heat_source_states.get(area_id) in ("heat_pump", "hybrid"):
+                running_loads[area_id] = self._energy_manager.budget_power_w(area_id, "heating", nominal_w)
         self._power_budget_manager.begin_cycle(self.hass, settings, running_loads)
 
         # Load thermal model and valve actuation data from store (once)
@@ -368,9 +397,16 @@ class RoomMindCoordinator(DataUpdateCoordinator):
             cloud_coverage,
         )
 
-        for area_id, room in rooms.items():
+        room_order = sorted(
+            rooms,
+            key=lambda area_id: (-_coordination_priority(self.rooms.get(area_id, {})), area_id),
+        )
+        for rank, area_id in enumerate(room_order, start=1):
+            room = rooms[area_id]
             try:
                 room_state = await self._async_process_room(room, settings, outdoor_forecast)
+                room_state["coordination_priority"] = _coordination_priority(self.rooms.get(area_id, {}))
+                room_state["coordination_rank"] = rank
                 room_states[area_id] = room_state
             except Exception:  # noqa: BLE001
                 _LOGGER.exception("Room '%s': processing failed, skipping", area_id)
@@ -382,6 +418,17 @@ class RoomMindCoordinator(DataUpdateCoordinator):
             if not _room_has_power_sensor(room):
                 continue
             room_state.update(self._energy_manager.update_room(area_id, room, room_state, self.outdoor_temp_effective))
+            price = max(0.0, float(settings.get("energy_price_per_kwh", 0) or 0))
+            room_state["energy_cost_today_eur"] = (
+                round(room_state["ac_energy_today_kwh"] * price, 2)
+                if room_state.get("ac_energy_today_kwh") is not None and price > 0
+                else None
+            )
+            room_state["predicted_energy_cost_1h_eur"] = (
+                round(room_state["predicted_energy_1h_kwh"] * price, 2)
+                if room_state.get("predicted_energy_1h_kwh") is not None and price > 0
+                else None
+            )
 
         # Control master devices based on aggregate room demand
         await self._async_control_master_devices(room_states, rooms, settings)
@@ -433,6 +480,10 @@ class RoomMindCoordinator(DataUpdateCoordinator):
                             "predicted_energy_1h_kwh": rs.get("predicted_energy_1h_kwh"),
                             "energy_learning_samples": rs.get("energy_learning_samples"),
                             "energy_prediction_confidence": rs.get("energy_prediction_confidence"),
+                            "window_open_minutes": rs.get("window_open_minutes"),
+                            "window_impact_c": rs.get("window_impact_c"),
+                            "ac_efficiency_status": rs.get("ac_efficiency_status"),
+                            "ac_efficiency_reason": rs.get("ac_efficiency_reason"),
                         },
                     )
                 except Exception:  # noqa: BLE001
@@ -918,6 +969,22 @@ class RoomMindCoordinator(DataUpdateCoordinator):
         if window_open:
             mode = MODE_IDLE
             power_fraction = 0.0
+        window_impact_c: float | None = None
+        window_open_minutes: int | None = None
+        baseline = self._window_impact_manager.update(area_id, window_open, current_temp)
+        if baseline is not None:
+            window_open_minutes = int((time.time() - baseline.started_at) / 60)
+            if self.outdoor_temp_effective is not None:
+                try:
+                    expected = self._model_manager.get_model(area_id).predict(
+                        baseline.temp,
+                        self.outdoor_temp_effective,
+                        0.0,
+                        max(0.0, (time.time() - baseline.started_at) / 60),
+                    )
+                    window_impact_c = round(current_temp - expected, 2) if current_temp is not None else None
+                except Exception:  # noqa: BLE001
+                    pass
 
         climate_active = settings.get("climate_control_active", True) and room.get("climate_control_enabled", True)
         # Startup guard: Full Control room without any temperature reading yet —
@@ -989,7 +1056,11 @@ class RoomMindCoordinator(DataUpdateCoordinator):
                 if heat_source_plan and heat_source_plan.active_sources in ("heat_pump", "hybrid"):
                     running = previous_source in ("heat_pump", "hybrid")
                     if not self._power_budget_manager.request_heat_pump(
-                        area_id, float(room.get("heat_pump_power_watts", 0) or 0), running
+                        area_id,
+                        self._energy_manager.budget_power_w(
+                            area_id, "heating", float(room.get("heat_pump_power_watts", 0) or 0)
+                        ),
+                        running,
                     ):
                         heat_source_plan = evaluate_native_heat_sources(
                             room,
@@ -1044,6 +1115,46 @@ class RoomMindCoordinator(DataUpdateCoordinator):
             # Orchestration not active for this room — remove stale state
             # so re-enabling starts fresh.
             self._heat_source_states.pop(area_id, None)
+
+        # Shared electrical budget.  Native heat-source routing has already
+        # made this request above; every other AC start is admitted here in the
+        # stable, priority-sorted room order of this update cycle.
+        budget_blocked_acs: set[str] = set()
+        ac_eids = set(get_ac_eids(room.get("devices", [])))
+        native_budget_checked = bool(room.get("native_heat_source", False) and heat_source_plan is not None)
+        plan_uses_ac = heat_source_plan is None or any(
+            command.device_type == "ac" and command.active for command in heat_source_plan.commands
+        )
+        if (
+            ac_eids
+            and mode in (MODE_HEATING, MODE_COOLING)
+            and plan_uses_ac
+            and not native_budget_checked
+        ):
+            nominal_w = float(room.get("heat_pump_power_watts", 0) or 0)
+            # A zero nominal power preserves the previous opt-out behavior for
+            # rooms where the user has not supplied a safe AC rating.
+            if nominal_w > 0:
+                already_running = any(
+                    (state := self.hass.states.get(entity_id)) is not None
+                    and state.state in ("heat", "cool", "dry")
+                    for entity_id in ac_eids
+                )
+                if not self._power_budget_manager.request_heat_pump(
+                    area_id,
+                    self._energy_manager.budget_power_w(
+                        area_id,
+                        "heating" if mode == MODE_HEATING else "cooling",
+                        nominal_w,
+                    ),
+                    already_running,
+                ):
+                    budget_blocked_acs = ac_eids
+                    # Cooling has no non-AC fallback.  Heating may still be
+                    # served by TRVs, so only exclude the AC commands there.
+                    if mode == MODE_COOLING or not get_trv_eids(room.get("devices", [])):
+                        mode = MODE_IDLE
+                        power_fraction = 0.0
 
         # Compressor group constraints
         all_device_eids = get_all_entity_ids(room.get("devices", []))
@@ -1119,7 +1230,7 @@ class RoomMindCoordinator(DataUpdateCoordinator):
                     targets,
                     power_fraction=power_fraction,
                     current_temp=current_temp,
-                    exclude_eids=cycling_eids,
+                    exclude_eids=cycling_eids | budget_blocked_acs,
                     heating_boost_target=device_max_temp,
                     ac_heating_boost_target=ac_device_max_temp,
                     cooling_boost_target=device_min_temp,
@@ -1146,7 +1257,9 @@ class RoomMindCoordinator(DataUpdateCoordinator):
                         dry_acs.append(ac_eid)
                     budget_ok = self._power_budget_manager.request_heat_pump(
                         area_id,
-                        float(room.get("heat_pump_power_watts", 0) or 0),
+                        self._energy_manager.budget_power_w(
+                            area_id, "dry", float(room.get("heat_pump_power_watts", 0) or 0)
+                        ),
                         already_running,
                     )
                     if budget_ok:
@@ -1191,7 +1304,9 @@ class RoomMindCoordinator(DataUpdateCoordinator):
                         if mold_restore_mode == "dry" and restore_candidates:
                             budget_ok = self._power_budget_manager.request_heat_pump(
                                 area_id,
-                                float(room.get("heat_pump_power_watts", 0) or 0),
+                                self._energy_manager.budget_power_w(
+                                    area_id, "dry", float(room.get("heat_pump_power_watts", 0) or 0)
+                                ),
                                 restore_already_running,
                             )
                         if budget_ok:
@@ -1305,7 +1420,7 @@ class RoomMindCoordinator(DataUpdateCoordinator):
             climate_active=climate_active,
         )
 
-        return self._build_room_state_dict(
+        room_state = self._build_room_state_dict(
             area_id=area_id,
             room=room,
             settings=settings,
@@ -1338,6 +1453,33 @@ class RoomMindCoordinator(DataUpdateCoordinator):
             mpc_active=mpc_active,
             compressor_protection_reason=compressor_protection_reason,
         )
+        preconditioning = bool(
+            mpc_active
+            and current_temp is not None
+            and (
+                (mode == MODE_HEATING and targets.heat is not None and current_temp >= targets.heat)
+                or (mode == MODE_COOLING and targets.cool is not None and current_temp <= targets.cool)
+            )
+        )
+        room_state["preconditioning_active"] = preconditioning
+        if preconditioning:
+            room_state["preconditioning_started_at"] = self._preconditioning_started_at.setdefault(area_id, time.time())
+        else:
+            self._preconditioning_started_at.pop(area_id, None)
+            room_state["preconditioning_started_at"] = None
+        room_state["window_open_minutes"] = window_open_minutes
+        room_state["window_impact_c"] = window_impact_c
+        room_state["power_budget_blocked"] = bool(budget_blocked_acs)
+        forecast = self._prediction_forecasts.get(area_id, [])
+        room_state["predicted_temp"] = forecast[-1]["temp"] if forecast else None
+        planned_at: float | None = None
+        if controller.last_plan:
+            for index, action in enumerate(controller.last_plan.actions):
+                if action in (MODE_HEATING, MODE_COOLING):
+                    planned_at = time.time() + index * controller.last_plan.dt_minutes * 60
+                    break
+        room_state["preconditioning_planned_at"] = planned_at
+        return room_state
 
     async def _observe_and_train(
         self,
@@ -2088,12 +2230,14 @@ class RoomMindCoordinator(DataUpdateCoordinator):
 
         # Clean up in-memory state
         self._window_manager.remove_room(area_id)
+        self._window_impact_manager.remove_room(area_id)
         self._previous_modes.pop(area_id, None)
         self._last_valid_temps.pop(area_id, None)
         self._had_valid_temp.discard(area_id)
         self._startup_guard_warned.discard(area_id)
         self._ekf_training.remove_room(area_id)
         self._pending_predictions.pop(area_id, None)
+        self._preconditioning_started_at.pop(area_id, None)
         self._residual_tracker.remove_room(area_id)
         self._cover_orchestrator.remove_room(area_id)
         self._entity_areas.discard(area_id)

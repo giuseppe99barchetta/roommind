@@ -23,6 +23,9 @@ def _create_room_energy_entities(coordinator: RoomMindCoordinator, area_id: str)
         RoomMindPredictedPowerSensor(coordinator, area_id),
         RoomMindPredictedEnergySensor(coordinator, area_id),
         RoomMindPredictedEnergyConfidenceSensor(coordinator, area_id),
+        RoomMindEnergyCostTodaySensor(coordinator, area_id),
+        RoomMindPredictedEnergyCostSensor(coordinator, area_id),
+        RoomMindACEfficiencySensor(coordinator, area_id),
     ]
 
 
@@ -194,6 +197,43 @@ class RoomMindPredictedEnergyConfidenceSensor(_RoomMindBaseSensor):
 
     def __init__(self, coordinator: RoomMindCoordinator, area_id: str) -> None:
         super().__init__(coordinator, area_id, "predicted_energy_confidence", "Predicted AC Energy Confidence")
+
+
+class RoomMindEnergyCostTodaySensor(_RoomMindBaseSensor):
+    _data_key = "energy_cost_today_eur"
+    _attr_native_unit_of_measurement = "EUR"
+    _attr_state_class = SensorStateClass.TOTAL
+
+    def __init__(self, coordinator: RoomMindCoordinator, area_id: str) -> None:
+        super().__init__(coordinator, area_id, "energy_cost_today", "AC Cost Today")
+
+
+class RoomMindPredictedEnergyCostSensor(_RoomMindBaseSensor):
+    _data_key = "predicted_energy_cost_1h_eur"
+    _attr_native_unit_of_measurement = "EUR"
+    _attr_state_class = SensorStateClass.MEASUREMENT
+
+    def __init__(self, coordinator: RoomMindCoordinator, area_id: str) -> None:
+        super().__init__(coordinator, area_id, "predicted_energy_cost_1h", "Predicted AC Cost 1h")
+
+
+class RoomMindACEfficiencySensor(_RoomMindBaseSensor):
+    _data_key = "ac_efficiency_status"
+
+    def __init__(self, coordinator: RoomMindCoordinator, area_id: str) -> None:
+        super().__init__(coordinator, area_id, "ac_efficiency", "AC Efficiency")
+
+    @property
+    def extra_state_attributes(self) -> dict[str, float | int | str | None]:
+        """Expose the comparable operating conditions behind the diagnosis."""
+        room = self.coordinator.data.get("rooms", {}).get(self._area_id, {})
+        return {
+            "reason": room.get("ac_efficiency_reason"),
+            "thermal_rate_c_per_h": room.get("ac_thermal_rate_c_per_h"),
+            "outdoor_delta_c": room.get("ac_efficiency_outdoor_delta_c"),
+            "target_delta_c": room.get("ac_efficiency_target_delta_c"),
+            "learning_samples": room.get("ac_efficiency_samples", 0),
+        }
 
 
 class _GlobalSensor(CoordinatorEntity, SensorEntity):

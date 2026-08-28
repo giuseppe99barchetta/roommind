@@ -572,7 +572,13 @@ export class RsHeroStatus extends LitElement {
               ${live.window_open && !this.isOutdoor
                 ? html`<div class="hero-window-open">
                     <ha-icon icon="mdi:window-open-variant"></ha-icon>
-                    ${localize("hero.window_open", this.hass?.language ?? "en")}
+                    ${live.window_open_minutes != null && live.window_impact_c != null
+                      ? localize("hero.window_impact", this.hass?.language ?? "en", {
+                          minutes: String(live.window_open_minutes),
+                          impact: `${live.window_impact_c >= 0 ? "+" : ""}${live.window_impact_c.toFixed(1)}`,
+                          unit: tempUnit(this.hass),
+                        })
+                      : localize("hero.window_open", this.hass?.language ?? "en")}
                   </div>`
                 : nothing}
               <div class="hero-temps">
@@ -626,6 +632,34 @@ export class RsHeroStatus extends LitElement {
                         this.hass?.language ?? "en",
                       )}
                     ></rs-info-icon>
+                  </div>`
+                : nothing}
+              ${live.power_budget_blocked && !this.isOutdoor
+                ? html`<div class="hero-metric warning">
+                    <ha-icon icon="mdi:flash-alert"></ha-icon>
+                    ${localize("hero.power_budget_blocked", this.hass?.language ?? "en")}
+                  </div>`
+                : nothing}
+              ${live.preconditioning_active && !this.isOutdoor
+                ? html`<div class="hero-metric info">
+                    <ha-icon icon="mdi:calendar-clock"></ha-icon>
+                    ${localize("hero.preconditioning_active", this.hass?.language ?? "en")}
+                  </div>`
+                : live.preconditioning_planned_at && live.preconditioning_planned_at > Date.now() / 1000
+                  ? html`<div class="hero-metric info">
+                      <ha-icon icon="mdi:calendar-clock"></ha-icon>
+                      ${localize("hero.preconditioning_planned", this.hass?.language ?? "en", {
+                        time: new Intl.DateTimeFormat(this.hass?.language ?? "en", {
+                          hour: "2-digit",
+                          minute: "2-digit",
+                        }).format(new Date(live.preconditioning_planned_at * 1000)),
+                      })}
+                    </div>`
+                  : nothing}
+              ${live.ac_efficiency_status === "possible_issue" && !this.isOutdoor
+                ? html`<div class="hero-metric warning">
+                    <ha-icon icon="mdi:air-filter"></ha-icon>
+                    ${localize("hero.ac_efficiency_issue", this.hass?.language ?? "en")}
                   </div>`
                 : nothing}
               ${live.mold_surface_rh != null && !this.isOutdoor

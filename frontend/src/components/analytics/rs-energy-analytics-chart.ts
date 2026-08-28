@@ -128,6 +128,7 @@ export class RsEnergyAnalyticsChart extends LitElement {
     const latestConfidence =
       [...forecast, ...points].reverse().find((p) => p.energy_prediction_confidence != null)
         ?.energy_prediction_confidence;
+    const cost = this.data?.energy_cost;
 
     const options = {
       animation: false,
@@ -177,6 +178,22 @@ export class RsEnergyAnalyticsChart extends LitElement {
                 : "â€”"}</strong
             >
           </div>
+          ${cost
+            ? html`
+                <div class="stat">
+                  <span>${localize("analytics.energy_cost_today", this.language)}</span
+                  ><strong>€${cost.today_eur.toFixed(2)}</strong>
+                </div>
+                <div class="stat">
+                  <span>${localize("analytics.energy_cost_7d", this.language)}</span
+                  ><strong>€${cost.last_7d_eur.toFixed(2)}</strong>
+                </div>
+                <div class="stat">
+                  <span>${localize("analytics.energy_cost_next_3h", this.language)}</span
+                  ><strong>€${cost.forecast_3h_eur.toFixed(2)}</strong>
+                </div>
+              `
+            : nothing}
         </div>
         <ha-chart-base
           .hass=${this.hass}

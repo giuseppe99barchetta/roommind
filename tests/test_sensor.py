@@ -8,11 +8,14 @@ import pytest
 
 from custom_components.roommind.const import DOMAIN
 from custom_components.roommind.sensor import (
+    RoomMindACEfficiencySensor,
+    RoomMindEnergyCostTodaySensor,
     RoomMindEnergyTodaySensor,
     RoomMindModeSensor,
     RoomMindPowerSensor,
-    RoomMindPredictedEnergySensor,
     RoomMindPredictedEnergyConfidenceSensor,
+    RoomMindPredictedEnergyCostSensor,
+    RoomMindPredictedEnergySensor,
     RoomMindPredictedPowerSensor,
     RoomMindTargetTemperatureSensor,
     _create_room_entities,
@@ -181,7 +184,7 @@ def test_energy_entities_require_configured_ac_power_sensor():
     outdoor = {**measured, "is_outdoor": True}
 
     assert len(_create_room_entities(coordinator, "sala", plain)) == 4
-    assert len(_create_room_entities(coordinator, "sala", measured)) == 9
+    assert len(_create_room_entities(coordinator, "sala", measured)) == 12
     assert len(_create_room_entities(coordinator, "terrazzo", outdoor)) == 4
 
 
@@ -189,6 +192,35 @@ def test_energy_prediction_confidence_sensor_value():
     coordinator = _make_coordinator({"room_a": {"energy_prediction_confidence": "medium"}})
     sensor = RoomMindPredictedEnergyConfidenceSensor(coordinator, "room_a")
     assert sensor.native_value == "medium"
+
+
+def test_energy_cost_sensors_use_live_euro_values():
+    coordinator = _make_coordinator({"room_a": {"energy_cost_today_eur": 1.42, "predicted_energy_cost_1h_eur": 0.3}})
+    assert RoomMindEnergyCostTodaySensor(coordinator, "room_a").native_value == 1.42
+    assert RoomMindPredictedEnergyCostSensor(coordinator, "room_a").native_value == 0.3
+
+
+def test_ac_efficiency_sensor_exposes_diagnostic_context():
+    coordinator = _make_coordinator(
+        {
+            "room_a": {
+                "ac_efficiency_status": "possible_issue",
+                "ac_efficiency_reason": "same_power_low_response",
+                "ac_thermal_rate_c_per_h": 0.2,
+                "ac_efficiency_outdoor_delta_c": 6.0,
+                "ac_efficiency_target_delta_c": 2.0,
+                "ac_efficiency_samples": 14,
+            }
+        }
+    )
+    attrs = RoomMindACEfficiencySensor(coordinator, "room_a").extra_state_attributes
+    assert attrs["reason"] == "same_power_low_response"
+    assert attrs["learning_samples"] == 14
+
+
+def test_ac_efficiency_sensor_uses_live_status():
+    coordinator = _make_coordinator({"room_a": {"ac_efficiency_status": "possible_issue"}})
+    assert RoomMindACEfficiencySensor(coordinator, "room_a").native_value == "possible_issue"
 
 
 def test_room_entity_name_uses_display_name():
