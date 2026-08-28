@@ -234,6 +234,55 @@ class TestRoomMindCoordinator:
 
 
     @pytest.mark.asyncio
+    async def test_physical_fan_only_is_preserved_with_stale_trv_classification(self, hass, mock_config_entry):
+        """Manual fan_only must survive idle even if the AC was classified as a TRV."""
+        ac_entity = "climate.living_room_ac"
+        room = {
+            **SAMPLE_ROOM,
+            "thermostats": [ac_entity],
+            "acs": [],
+            # An AC that was added while it reported incomplete capabilities
+            # can have this stale classification in stored room data.
+            "devices": [{"entity_id": ac_entity, "type": "trv", "role": "auto", "heating_system_type": ""}],
+            "room_hvac_mode": "heat_cool",
+            "logical_heat_target": 20.0,
+            "logical_cool_target": 26.0,
+            "window_sensors": [],
+        }
+        store = _make_store_mock({"living_room_abc12345": room})
+        hass.data = {"roommind": {"store": store}}
+        hass.states.get = MagicMock(
+            side_effect=make_mock_states_get(
+                temp="23.0",
+                extra={
+                    ac_entity: (
+                        "fan_only",
+                        {
+                            "hvac_modes": ["off", "cool", "fan_only"],
+                            "hvac_action": "fan",
+                            "current_temperature": 23.0,
+                            "min_temp": 16.0,
+                            "max_temp": 30.0,
+                        },
+                    )
+                },
+            )
+        )
+        hass.services.async_call = AsyncMock()
+
+        coordinator = _create_coordinator(hass, mock_config_entry)
+        await coordinator._async_update_data()
+
+        assert call(
+            "climate",
+            "set_hvac_mode",
+            {"entity_id": ac_entity, "hvac_mode": "off"},
+            blocking=True,
+            context=ANY,
+        ) not in hass.services.async_call.call_args_list
+
+
+    @pytest.mark.asyncio
     async def test_window_closed_normal_operation(self, hass, mock_config_entry):
         """Test that a closed window sensor allows normal heating operation."""
         room_with_window = {

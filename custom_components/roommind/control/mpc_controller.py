@@ -398,11 +398,11 @@ async def async_idle_device(
     if force_off and idle_action != IDLE_ACTION_LOW:
         idle_action = IDLE_ACTION_OFF
 
-    if preserve_fan_only and entity_id in get_ac_eids(devices):
+    if preserve_fan_only:
         state = hass.states.get(entity_id)
         if state and state.state == "fan_only":
             _LOGGER.debug(
-                "Area '%s': preserving fan_only on '%s' while idling",
+                "Area '%s': preserving manual fan_only on '%s' while idling",
                 area_id,
                 entity_id,
             )
