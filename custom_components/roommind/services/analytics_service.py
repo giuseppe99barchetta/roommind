@@ -25,6 +25,7 @@ from ..control.mpc_controller import (
     get_can_heat_cool,
     is_mpc_active,
 )
+from ..utils.device_utils import room_has_power_sensor
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -158,7 +159,7 @@ async def build_comparison_data(
     history_store = getattr(coordinator, "_history_store", None)
     result: list[dict] = []
     for area_id, room in store.get_rooms().items():
-        if room.get("is_outdoor") or not room.get("devices"):
+        if not room_has_power_sensor(room):
             continue
         points: list[dict] = []
         if history_store:

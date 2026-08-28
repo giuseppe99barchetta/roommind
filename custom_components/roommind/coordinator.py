@@ -80,6 +80,7 @@ from .utils.device_utils import (
     get_trv_eids,
     room_contributes_to_group,
 )
+from .utils.device_utils import room_has_power_sensor as _room_has_power_sensor
 from .utils.history_store import HistoryStore
 from .utils.schedule_utils import resolve_schedule_index
 from .utils.sensor_utils import read_sensor_value
@@ -113,19 +114,6 @@ def _get_room_display_name(hass: HomeAssistant, area_id: str) -> str:
     if not name:
         name = _get_area_name(hass, area_id).strip() or area_id.replace("_", " ")
     return name[:1].upper() + name[1:]
-
-
-def _room_has_power_sensor(room: dict) -> bool:
-    """Return whether the room has an AC with a configured consumption sensor."""
-    if room.get("is_outdoor", False):
-        return False
-    return any(
-        device.get("type") == "ac"
-        and isinstance(device.get("power_sensor_entity_id"), str)
-        and bool(device["power_sensor_entity_id"].strip())
-        for device in room.get("devices", [])
-        if isinstance(device, dict)
-    )
 
 
 def _coordination_priority(live: dict) -> float:

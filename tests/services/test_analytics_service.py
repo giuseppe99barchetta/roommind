@@ -923,3 +923,24 @@ def test_comparison_data_quality_flags_missing_power_gaps_and_few_samples():
         "no_power_measurements",
         "history_gaps",
     ]
+
+
+@pytest.mark.asyncio
+async def test_comparison_excludes_rooms_without_configured_power_sensor():
+    """Rooms heated only by a boiler do not belong in AC energy comparisons."""
+    from custom_components.roommind.services.analytics_service import build_comparison_data
+
+    store = MagicMock()
+    store.get_settings.return_value = {}
+    store.get_rooms.return_value = {
+        "bathroom": {"devices": [{"entity_id": "climate.bathroom_valve", "type": "trv"}]},
+        "living_room": {
+            "devices": [
+                {"entity_id": "climate.living_room_ac", "type": "ac", "power_sensor_entity_id": "sensor.ac_power"}
+            ]
+        },
+    }
+
+    result = await build_comparison_data(MagicMock(), store, None)
+
+    assert [room["area_id"] for room in result["rooms"]] == ["living_room"]

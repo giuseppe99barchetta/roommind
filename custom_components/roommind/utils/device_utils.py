@@ -194,6 +194,17 @@ def get_ac_eids(devices: list[dict]) -> list[str]:
     return get_entity_ids_by_type(devices, DEVICE_TYPE_AC)
 
 
+def room_has_power_sensor(room: dict) -> bool:
+    """Return whether an indoor room has an AC power sensor configured."""
+    return not room.get("is_outdoor", False) and any(
+        device.get("type") == DEVICE_TYPE_AC
+        and isinstance(device.get("power_sensor_entity_id"), str)
+        and bool(device["power_sensor_entity_id"].strip())
+        for device in room.get("devices", [])
+        if isinstance(device, dict)
+    )
+
+
 def get_device_by_eid(devices: list[dict], entity_id: str) -> dict | None:
     """Find a single device by entity_id."""
     for d in devices:
