@@ -976,3 +976,26 @@ async def test_fan_option_edited_while_off_is_deferred(mock_coordinator):
 
     store.async_update_room.assert_awaited_once_with("living_room", {"room_fan_mode": "high"})
     coordinator.hass.services.async_call.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_stale_fan_mode_is_not_applied_when_turning_on_fan_only(mock_coordinator):
+    """A saved fan mode unsupported by the AC must not block fan-only mode."""
+    coordinator, store = mock_coordinator
+    store.get_room.return_value = _canonical_room(
+        [{"entity_id": "climate.ac", "type": "ac"}],
+        room_hvac_mode="off",
+        room_fan_mode="auto",
+    )
+    store.async_update_room = AsyncMock()
+    coordinator.hass.states.get.return_value = MagicMock(
+        state="off",
+        attributes={"hvac_modes": ["off", "cool", "fan_only"], "fan_modes": ["low", "high"]},
+    )
+    coordinator.hass.services.async_call = AsyncMock()
+
+    await RoomMindClimate(coordinator, "living_room").async_set_hvac_mode(HVACMode.FAN_ONLY)
+
+    coordinator.hass.services.async_call.assert_awaited_once_with(
+        "climate", "set_hvac_mode", {"entity_id": "climate.ac", "hvac_mode": "fan_only"}, blocking=True
+    )

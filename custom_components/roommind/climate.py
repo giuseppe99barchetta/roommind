@@ -714,15 +714,23 @@ class RoomMindClimate(RoomMindOverrideClimate):
         if not acs:
             return
         options = (
-            ("room_fan_mode", "set_fan_mode", "fan_mode"),
-            ("room_swing_mode", "set_swing_mode", "swing_mode"),
-            ("room_swing_horizontal_mode", "set_swing_horizontal_mode", "swing_horizontal_mode"),
+            ("room_fan_mode", "set_fan_mode", "fan_mode", "fan_modes"),
+            ("room_swing_mode", "set_swing_mode", "swing_mode", "swing_modes"),
+            (
+                "room_swing_horizontal_mode",
+                "set_swing_horizontal_mode",
+                "swing_horizontal_mode",
+                "swing_horizontal_modes",
+            ),
         )
-        for key, service, service_key in options:
+        for key, service, service_key, supported_key in options:
             value = room.get(key)
             if not value:
                 continue
             for entity_id in acs:
+                state = self.coordinator.hass.states.get(entity_id)
+                if state is None or value not in (state.attributes.get(supported_key) or []):
+                    continue
                 await self.coordinator.hass.services.async_call(
                     "climate", service, {"entity_id": entity_id, service_key: value}, blocking=True
                 )
