@@ -4,6 +4,7 @@ on:
     branches: [feat/energy-analytics]
     paths:
       - scripts/apply_energy_analytics.py
+      - scripts/prepare_energy_locale.py
       - .github/workflows/run-energy-analytics.yml
 permissions:
   contents: write
@@ -19,7 +20,10 @@ jobs:
         with:
           python-version: '3.12'
       - name: Apply patch
-        run: python scripts/apply_energy_analytics.py
+        run: |
+          python scripts/prepare_energy_locale.py
+          python scripts/apply_energy_analytics.py
+          python scripts/prepare_energy_locale.py cleanup
       - name: Install backend deps
         run: pip install -r requirements-dev.txt
       - name: Backend format and lint
@@ -42,6 +46,7 @@ jobs:
       - name: Commit result
         run: |
           rm scripts/apply_energy_analytics.py
+          rm scripts/prepare_energy_locale.py
           rm .github/workflows/run-energy-analytics.yml
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
