@@ -892,16 +892,31 @@ async def websocket_get_analytics(
     connection.send_result(msg["id"], result)
 
 
-@websocket_api.websocket_command({vol.Required("type"): "roommind/analytics/compare"})
+@websocket_api.websocket_command(
+    {
+        vol.Required("type"): "roommind/analytics/compare",
+        vol.Optional("start_ts"): vol.Coerce(float),
+        vol.Optional("end_ts"): vol.Coerce(float),
+    }
+)
 @websocket_api.async_response
 async def websocket_get_analytics_comparison(
     hass: HomeAssistant,
     connection: ActiveConnection,
     msg: dict,
 ) -> None:
-    """Return seven-day comparative energy analytics for all configured rooms."""
+    """Return comparative energy analytics for all configured rooms."""
     store = hass.data[DOMAIN]["store"]
-    connection.send_result(msg["id"], await build_comparison_data(hass, store, _get_coordinator(hass)))
+    connection.send_result(
+        msg["id"],
+        await build_comparison_data(
+            hass,
+            store,
+            _get_coordinator(hass),
+            custom_start=msg.get("start_ts"),
+            custom_end=msg.get("end_ts"),
+        ),
+    )
 
 
 # ---------------------------------------------------------------------------

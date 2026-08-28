@@ -132,8 +132,27 @@ def _comparison_metrics(points: list[dict], price: float) -> dict[str, float | i
     }
 
 
-async def build_comparison_data(hass: HomeAssistant, store: Any, coordinator: Any) -> dict:
-    """Build seven-day, cross-room AC analytics from RoomMind's own history."""
+def _comparison_data_quality(points: list[dict]) -> list[str]:
+    """Describe conditions that make comparison metrics less reliable."""
+    issues: list[str] = []
+    if len(points) < 10:
+        issues.append("insufficient_samples")
+    if not any(point.get("ac_power_w") is not None for point in points):
+        issues.append("no_power_measurements")
+    timestamps = sorted(point["ts"] for point in points if point.get("ts") is not None)
+    if any(current - previous > 900 for previous, current in zip(timestamps, timestamps[1:], strict=False)):
+        issues.append("history_gaps")
+    return issues
+
+
+async def build_comparison_data(
+    hass: HomeAssistant,
+    store: Any,
+    coordinator: Any,
+    custom_start: float | None = None,
+    custom_end: float | None = None,
+) -> dict:
+    """Build cross-room AC analytics for the selected history range."""
     settings = store.get_settings()
     price = max(0.0, float(settings.get("energy_price_per_kwh", 0) or 0))
     history_store = getattr(coordinator, "_history_store", None)
@@ -144,9 +163,16 @@ async def build_comparison_data(hass: HomeAssistant, store: Any, coordinator: An
         points: list[dict] = []
         if history_store:
             week = 7 * 24 * 3600
-            points = _csv_to_points(
-                await hass.async_add_executor_job(history_store.read_history, area_id, week)
-            ) + _csv_to_points(await hass.async_add_executor_job(history_store.read_detail, area_id, week))
+            if custom_start is not None:
+                points = _csv_to_points(
+                    await hass.async_add_executor_job(history_store.read_history, area_id, None, custom_start, custom_end)
+                ) + _csv_to_points(
+                    await hass.async_add_executor_job(history_store.read_detail, area_id, None, custom_start, custom_end)
+                )
+            else:
+                points = _csv_to_points(
+                    await hass.async_add_executor_job(history_store.read_history, area_id, week)
+                ) + _csv_to_points(await hass.async_add_executor_job(history_store.read_detail, area_id, week))
         metrics = _comparison_metrics(points, price)
         live = getattr(coordinator, "rooms", {}).get(area_id, {})
         result.append(
@@ -154,6 +180,7 @@ async def build_comparison_data(hass: HomeAssistant, store: Any, coordinator: An
                 "area_id": area_id,
                 "name": room.get("display_name") or area_id.replace("_", " ").title(),
                 **metrics,
+                "data_quality": _comparison_data_quality(points),
                 "today_kwh": live.get("ac_energy_today_kwh"),
                 "today_cost_eur": live.get("energy_cost_today_eur"),
             }

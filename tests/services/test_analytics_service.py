@@ -913,3 +913,13 @@ def test_comparison_metrics_reports_efficiency_and_target_time():
     assert metrics["active_minutes"] == 60
     assert metrics["delta_t_per_kwh"] == 2.0
     assert metrics["target_reach_minutes"] == 60
+
+
+def test_comparison_data_quality_flags_missing_power_gaps_and_few_samples():
+    from custom_components.roommind.services.analytics_service import _comparison_data_quality
+
+    assert _comparison_data_quality([{"ts": 0}, {"ts": 1200}]) == [
+        "insufficient_samples",
+        "no_power_measurements",
+        "history_gaps",
+    ]

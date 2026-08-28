@@ -103,6 +103,35 @@ def test_canonical_mixed_room_capabilities_and_logical_cooling_target(mock_coord
     assert entity.fan_modes == ["low", "high"]
 
 
+def test_canonical_multi_ac_uses_only_shared_fan_modes(mock_coordinator):
+    """A room never exposes a fan mode that one of its ACs cannot accept."""
+    coordinator, store = mock_coordinator
+    states = {
+        "climate.ac_1": MagicMock(
+            state="fan_only",
+            attributes={"hvac_modes": ["off", "cool", "fan_only"], "fan_modes": ["auto", "low", "high"]},
+        ),
+        "climate.ac_2": MagicMock(
+            state="fan_only",
+            attributes={"hvac_modes": ["off", "cool", "fan_only"], "fan_modes": ["low", "medium", "high"]},
+        ),
+    }
+    coordinator.hass.states.get.side_effect = states.get
+    store.get_room.return_value = _canonical_room(
+        [
+            {"entity_id": "climate.ac_1", "type": "ac"},
+            {"entity_id": "climate.ac_2", "type": "ac"},
+        ],
+        room_fan_mode="auto",
+    )
+
+    entity = RoomMindClimate(coordinator, "living_room")
+
+    assert entity.fan_modes == ["low", "high"]
+    assert entity.fan_mode is None
+    assert entity.extra_state_attributes == {"fan_mode_unavailable": "auto"}
+
+
 def test_canonical_fan_only_and_off_keep_last_temperature_target(mock_coordinator):
     """Inactive modes keep a stable thermal target for HA/HomeKit clients."""
     coordinator, store = mock_coordinator

@@ -5,11 +5,13 @@
 import { LitElement, html, css, nothing } from "lit";
 import { customElement, property, state } from "lit/decorators.js";
 import type { HomeAssistant, RoomConfig, AnalyticsData } from "../types";
-import { localize } from "../utils/localize";
+import { localize, type TranslationKey } from "../utils/localize";
 import "./analytics/rs-analytics-toolbar";
 import "./analytics/rs-analytics-chart";
 import "./analytics/rs-energy-analytics-chart";
 import "./analytics/rs-analytics-model";
+
+type ComparisonRoom = Record<string, string | number | null | string[]>;
 
 @customElement("rs-analytics")
 export class RsAnalytics extends LitElement {
@@ -25,10 +27,16 @@ export class RsAnalytics extends LitElement {
   @state() private _chartAnchor: number = Date.now();
   @state() private _loading = false;
   @state() private _activeQuick: string | null = "24h";
-  @state() private _comparison: Array<Record<string, string | number | null>> = [];
+  @state() private _comparison: ComparisonRoom[] = [];
   @state() private _comparisonInfoExpanded = false;
 
   private _refreshInterval?: ReturnType<typeof setInterval>;
+
+  private static readonly _comparisonQualityKeys: Record<string, TranslationKey> = {
+    insufficient_samples: "analytics.comparison_quality_insufficient_samples",
+    no_power_measurements: "analytics.comparison_quality_no_power_measurements",
+    history_gaps: "analytics.comparison_quality_history_gaps",
+  };
 
   connectedCallback() {
     super.connectedCallback();
@@ -135,7 +143,23 @@ export class RsAnalytics extends LitElement {
                             <tbody>
                               ${this._comparison.map(
                                 (room) => html`<tr>
-                                  <td>${room.name}</td><td>${room.energy_kwh ?? "—"}</td><td>${room.cost_eur ?? "—"}</td>
+                                  <td>
+                                    ${room.name}
+                                    ${Array.isArray(room.data_quality) && room.data_quality.length
+                                      ? html`<div class="comparison-quality">
+                                          ${localize("analytics.comparison_data_incomplete", l)}:
+                                          ${room.data_quality
+                                            .map((issue) =>
+                                              localize(
+                                                RsAnalytics._comparisonQualityKeys[issue] ??
+                                                  "analytics.comparison_data_incomplete",
+                                                l,
+                                              ),
+                                            )
+                                            .join(", ")}
+                                        </div>`
+                                      : nothing}
+                                  </td><td>${room.energy_kwh ?? "—"}</td><td>${room.cost_eur ?? "—"}</td>
                                   <td>${room.active_minutes != null ? `${room.active_minutes} min` : "—"}</td>
                                   <td>${room.delta_t_per_kwh ?? "—"}</td>
                                   <td>${room.target_reach_minutes != null ? `${room.target_reach_minutes} min` : "—"}</td>
@@ -202,8 +226,10 @@ export class RsAnalytics extends LitElement {
       const result = await this.hass.callWS<AnalyticsData>(this._buildWsParams());
       this._data = result;
       try {
-        const comparison = await this.hass.callWS<{ rooms: Array<Record<string, string | number | null>> }>({
+        const comparison = await this.hass.callWS<{ rooms: ComparisonRoom[] }>({
           type: "roommind/analytics/compare",
+          start_ts: this._rangeStart / 1000,
+          end_ts: this._rangeEnd / 1000,
         });
         this._comparison = comparison.rooms;
       } catch (err) {
@@ -225,8 +251,10 @@ export class RsAnalytics extends LitElement {
       const result = await this.hass.callWS<AnalyticsData>(this._buildWsParams());
       this._data = result;
       try {
-        const comparison = await this.hass.callWS<{ rooms: Array<Record<string, string | number | null>> }>({
+        const comparison = await this.hass.callWS<{ rooms: ComparisonRoom[] }>({
           type: "roommind/analytics/compare",
+          start_ts: this._rangeStart / 1000,
+          end_ts: this._rangeEnd / 1000,
         });
         this._comparison = comparison.rooms;
       } catch (err) {
@@ -275,6 +303,7 @@ export class RsAnalytics extends LitElement {
     .comparison-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
     .comparison h3 { margin: 0; font-size: 16px; }
     .comparison-info-panel { margin-bottom: 10px; }
+    .comparison-quality { margin-top: 3px; color: var(--warning-color, #ff9800); font-size: 11px; white-space: normal; }
     .info-icon { --mdc-icon-size: 20px; color: var(--secondary-text-color); cursor: pointer; opacity: 0.5; }
     .info-icon.info-active { color: var(--primary-color); opacity: 1; }
     .info-panel { padding: 12px; border-radius: 8px; background: var(--secondary-background-color, rgba(128, 128, 128, 0.06)); font-size: 13px; line-height: 1.6; color: var(--secondary-text-color); }

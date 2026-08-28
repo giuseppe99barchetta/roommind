@@ -420,6 +420,14 @@ class RoomMindClimate(RoomMindOverrideClimate):
         return fan_mode if fan_mode in self._capabilities().fan_modes else None
 
     @property
+    def extra_state_attributes(self) -> dict[str, str]:
+        """Expose a saved fan setting that cannot apply in the current HVAC mode."""
+        fan_mode = (self._room() or {}).get("room_fan_mode")
+        if fan_mode and fan_mode not in self._capabilities().fan_modes:
+            return {"fan_mode_unavailable": fan_mode}
+        return {}
+
+    @property
     def swing_modes(self) -> list[str] | None:
         return list(self._capabilities().swing_modes) or None
 

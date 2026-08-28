@@ -24,7 +24,8 @@ def room_capabilities(hass: HomeAssistant, room: dict) -> RoomClimateCapabilitie
     """Build a logical capability model; TRVs never contribute AC-only modes."""
     trvs = get_trv_eids(room.get("devices", []))
     acs = get_ac_eids(room.get("devices", []))
-    ac_state = hass.states.get(acs[0]) if acs else None
+    ac_states = [hass.states.get(entity_id) for entity_id in acs]
+    ac_state = ac_states[0] if ac_states else None
     ac_modes = set(ac_state.attributes.get("hvac_modes", []) if ac_state else [])
     can_heat = bool(trvs) or bool(ac_modes & {"heat", "heat_cool", "auto"})
     can_cool = bool(acs and ac_modes & {"cool", "heat_cool", "auto"})
@@ -39,11 +40,21 @@ def room_capabilities(hass: HomeAssistant, room: dict) -> RoomClimateCapabilitie
         modes.append("dry")
     if "fan_only" in ac_modes:
         modes.append("fan_only")
+
+    def shared_ac_modes(attribute: str) -> tuple[str, ...]:
+        """Return modes supported by every AC, preserving the first AC's order."""
+        if not ac_state or any(state is None for state in ac_states):
+            return ()
+        shared = set(ac_state.attributes.get(attribute, []))
+        for state in ac_states[1:]:
+            shared &= set(state.attributes.get(attribute, []))
+        return tuple(mode for mode in ac_state.attributes.get(attribute, []) if mode in shared)
+
     return RoomClimateCapabilities(
         tuple(modes),
-        tuple(ac_state.attributes.get("fan_modes", []) if ac_state else []),
-        tuple(ac_state.attributes.get("swing_modes", []) if ac_state else []),
-        tuple(ac_state.attributes.get("swing_horizontal_modes", []) if ac_state else []),
+        shared_ac_modes("fan_modes"),
+        shared_ac_modes("swing_modes"),
+        shared_ac_modes("swing_horizontal_modes"),
     )
 
 

@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from unittest.mock import AsyncMock, MagicMock
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
@@ -13,6 +13,7 @@ from custom_components.roommind.websocket_api import (
     websocket_covers_clear_override,
     websocket_delete_room,
     websocket_get_analytics,
+    websocket_get_analytics_comparison,
     websocket_get_diagnostics,
     websocket_get_settings,
     websocket_list_rooms,
@@ -38,6 +39,7 @@ _save_settings = websocket_save_settings.__wrapped__
 _thermal_reset = websocket_thermal_reset.__wrapped__
 _thermal_reset_all = websocket_thermal_reset_all.__wrapped__
 _get_analytics = websocket_get_analytics.__wrapped__
+_get_analytics_comparison = websocket_get_analytics_comparison.__wrapped__
 _get_diagnostics = websocket_get_diagnostics.__wrapped__
 _covers_clear_override = websocket_covers_clear_override.__wrapped__
 
@@ -1611,6 +1613,31 @@ async def test_analytics_with_custom_timestamps(ws_hass, store, connection):
         None,
         1000.0,
         2000.0,
+    )
+
+
+@pytest.mark.asyncio
+async def test_analytics_comparison_uses_selected_timestamps(ws_hass, store, connection):
+    """The comparison endpoint forwards the chart's selected date range."""
+    coordinator = MagicMock()
+    ws_hass.data[DOMAIN]["coordinator"] = coordinator
+    with patch(
+        "custom_components.roommind.websocket_api.build_comparison_data",
+        new_callable=AsyncMock,
+        return_value={"rooms": []},
+    ) as build_comparison:
+        await _get_analytics_comparison(
+            ws_hass,
+            connection,
+            {"id": 59, "type": "roommind/analytics/compare", "start_ts": 1000.0, "end_ts": 2000.0},
+        )
+
+    build_comparison.assert_awaited_once_with(
+        ws_hass,
+        store,
+        coordinator,
+        custom_start=1000.0,
+        custom_end=2000.0,
     )
 
 
