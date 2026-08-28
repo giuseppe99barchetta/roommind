@@ -17,6 +17,8 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
+      - name: Fix regression fixture
+        run: sed -i 's/room_temp=23.0/temp="23.0"/' scripts/apply_fan_only_semantics_fix.py
       - name: Apply fix
         run: python scripts/apply_fan_only_semantics_fix.py
       - name: Validate Python
