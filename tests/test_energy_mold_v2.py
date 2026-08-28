@@ -1,3 +1,4 @@
+import time
 from unittest.mock import MagicMock
 
 import pytest
@@ -234,6 +235,7 @@ def test_energy_manager_bootstraps_device_breakdown_from_history(tmp_path):
     from custom_components.roommind.utils.history_store import HistoryStore
 
     store = HistoryStore(str(tmp_path / "history"))
+    base = time.time()
     for index in range(6):
         store.record(
             "sala",
@@ -246,7 +248,7 @@ def test_energy_manager_bootstraps_device_breakdown_from_history(tmp_path):
                 "outdoor_temp": 32,
                 "current_humidity": 60,
             },
-            timestamp=1_000 + index * 60,
+            timestamp=base + index * 60,
         )
 
     manager = EnergyManager(MagicMock())

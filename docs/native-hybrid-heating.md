@@ -6,6 +6,8 @@ Enable **Smart source selection** in a room, then enable **Heat pump / Hybrid / 
 
 Configure the global **Heating system** section before enabling a central boiler. Select its climate or switch entity, at least one bypass TRV, and the pre-open/post-stop delays. Boiler operation is fail-closed: the boiler starts only after RoomMind has opened an available bypass; losing every usable bypass while active immediately turns the boiler off. Never configure a bypass that cannot provide a real open hydraulic path.
 
+A bypass TRV is held at the configured bypass-open temperature while the boiler needs a hydraulic path, then released after its post-stop delay. Do not also use that same TRV as a normally controlled room valve: its room target would be overridden whenever the boiler runs. Use a dedicated bypass circuit, or remove the bathroom TRV from the bypass list if the bathroom must be independently controlled.
+
 The same section optionally enables the house electrical budget. Select either an available-power or a consumption sensor, a contract limit and a reserve. Enter each room heat pump's estimated watts. Reservations are made by the single coordinator task, so simultaneous room decisions cannot oversubscribe a single sensor reading. Existing running heat pumps are already reserved and are never charged twice.
 
 Each room now exposes the canonical `climate.roommind_<area>` entity. It owns the logical HVAC mode and separate heating/cooling targets; it never reads a physical TRV frost target as a room cooling target. Expose this entity, and only this entity, to HomeKit. Physical TRVs, ACs and the boiler remain implementation details.
