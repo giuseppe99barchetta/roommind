@@ -37,6 +37,7 @@ def test_energy_manager_integrates_and_learns_power():
     assert result["energy_mode"] == "cooling"
     assert result["energy_learning_samples"] >= 6
     assert result["predicted_power_w"] is not None
+    assert result["energy_prediction_confidence"] == "medium"
 
 
 def test_energy_manager_converts_kw_sensor():
@@ -73,8 +74,21 @@ def test_energy_manager_treats_fan_only_as_idle_without_learning_or_prediction()
     assert result["energy_learning_samples"] == 0
     assert result["predicted_power_w"] is None
     assert result["predicted_energy_1h_kwh"] is None
+    assert result["energy_prediction_confidence"] is None
     assert manager._rooms["studio"].models == {}
     assert manager.predict_power("studio", "fan_only", 25.0, 23.0, 30.0, 55.0, 900)[0] is None
+
+
+@pytest.mark.parametrize(
+    ("samples", "expected"),
+    [(0, "low"), (5, "low"), (6, "medium"), (23, "medium"), (24, "high")],
+)
+def test_energy_prediction_confidence_tracks_learned_sample_count(samples, expected):
+    assert EnergyManager.prediction_confidence(500.0, samples) == expected
+
+
+def test_energy_prediction_confidence_is_unavailable_without_a_prediction():
+    assert EnergyManager.prediction_confidence(None, 42) is None
 
 
 @pytest.mark.asyncio

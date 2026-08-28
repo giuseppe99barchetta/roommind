@@ -22,6 +22,7 @@ def _create_room_energy_entities(coordinator: RoomMindCoordinator, area_id: str)
         RoomMindEnergyTodaySensor(coordinator, area_id),
         RoomMindPredictedPowerSensor(coordinator, area_id),
         RoomMindPredictedEnergySensor(coordinator, area_id),
+        RoomMindPredictedEnergyConfidenceSensor(coordinator, area_id),
     ]
 
 
@@ -184,6 +185,15 @@ class RoomMindPredictedEnergySensor(_RoomMindBaseSensor):
 
     def __init__(self, coordinator: RoomMindCoordinator, area_id: str) -> None:
         super().__init__(coordinator, area_id, "predicted_energy_1h", "Predicted AC Energy 1h")
+
+
+class RoomMindPredictedEnergyConfidenceSensor(_RoomMindBaseSensor):
+    """Reliability level of the learned one-hour AC energy forecast."""
+
+    _data_key = "energy_prediction_confidence"
+
+    def __init__(self, coordinator: RoomMindCoordinator, area_id: str) -> None:
+        super().__init__(coordinator, area_id, "predicted_energy_confidence", "Predicted AC Energy Confidence")
 
 
 class _GlobalSensor(CoordinatorEntity, SensorEntity):

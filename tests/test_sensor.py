@@ -12,6 +12,7 @@ from custom_components.roommind.sensor import (
     RoomMindModeSensor,
     RoomMindPowerSensor,
     RoomMindPredictedEnergySensor,
+    RoomMindPredictedEnergyConfidenceSensor,
     RoomMindPredictedPowerSensor,
     RoomMindTargetTemperatureSensor,
     _create_room_entities,
@@ -101,6 +102,7 @@ def test_create_room_entities():
     assert not any(isinstance(e, RoomMindEnergyTodaySensor) for e in entities)
     assert not any(isinstance(e, RoomMindPredictedPowerSensor) for e in entities)
     assert not any(isinstance(e, RoomMindPredictedEnergySensor) for e in entities)
+    assert not any(isinstance(e, RoomMindPredictedEnergyConfidenceSensor) for e in entities)
 
 
 def test_target_temp_sensor_value():
@@ -179,8 +181,14 @@ def test_energy_entities_require_configured_ac_power_sensor():
     outdoor = {**measured, "is_outdoor": True}
 
     assert len(_create_room_entities(coordinator, "sala", plain)) == 4
-    assert len(_create_room_entities(coordinator, "sala", measured)) == 8
+    assert len(_create_room_entities(coordinator, "sala", measured)) == 9
     assert len(_create_room_entities(coordinator, "terrazzo", outdoor)) == 4
+
+
+def test_energy_prediction_confidence_sensor_value():
+    coordinator = _make_coordinator({"room_a": {"energy_prediction_confidence": "medium"}})
+    sensor = RoomMindPredictedEnergyConfidenceSensor(coordinator, "room_a")
+    assert sensor.native_value == "medium"
 
 
 def test_room_entity_name_uses_display_name():

@@ -285,6 +285,7 @@ async def websocket_list_rooms(
             "predicted_power_w": live.get("predicted_power_w"),
             "predicted_energy_1h_kwh": live.get("predicted_energy_1h_kwh"),
             "energy_learning_samples": live.get("energy_learning_samples", 0),
+            "energy_prediction_confidence": live.get("energy_prediction_confidence"),
             "n_observations": live.get("n_observations", 0),
             "blind_position": live.get("blind_position"),
             "cover_auto_paused": live.get("cover_auto_paused", False),

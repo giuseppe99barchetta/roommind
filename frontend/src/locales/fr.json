@@ -544,5 +544,9 @@
   "analytics.energy_now": "Maintenant",
   "analytics.energy_period": "Énergie sur la période",
   "analytics.energy_next_3h": "3 prochaines heures",
-  "analytics.energy_learning": "Échantillons d’apprentissage"
+  "analytics.energy_learning": "Échantillons d’apprentissage",
+  "analytics.energy_confidence": "Fiabilité de la prévision",
+  "analytics.energy_confidence_low": "Faible",
+  "analytics.energy_confidence_medium": "Moyenne",
+  "analytics.energy_confidence_high": "Élevée"
 }

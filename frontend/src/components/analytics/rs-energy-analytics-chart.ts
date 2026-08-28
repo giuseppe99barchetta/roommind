@@ -125,6 +125,9 @@ export class RsEnergyAnalyticsChart extends LitElement {
     const latestSamples =
       [...points].reverse().find((p) => p.energy_learning_samples != null)
         ?.energy_learning_samples ?? 0;
+    const latestConfidence =
+      [...forecast, ...points].reverse().find((p) => p.energy_prediction_confidence != null)
+        ?.energy_prediction_confidence;
 
     const options = {
       animation: false,
@@ -165,6 +168,14 @@ export class RsEnergyAnalyticsChart extends LitElement {
           <div class="stat">
             <span>${localize("analytics.energy_learning", this.language)}</span
             ><strong>${latestSamples}</strong>
+          </div>
+          <div class="stat">
+            <span>${localize("analytics.energy_confidence", this.language)}</span
+            ><strong
+              >${latestConfidence
+                ? localize(`analytics.energy_confidence_${latestConfidence}`, this.language)
+                : "â€”"}</strong
+            >
           </div>
         </div>
         <ha-chart-base

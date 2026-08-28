@@ -143,11 +143,18 @@ ROOM_ENTITY_SUFFIXES = (
     "_energy_today",
     "_predicted_power",
     "_predicted_energy_1h",
+    "_predicted_energy_confidence",
 )
 # Suffixes only valid when the room has covers configured.
 COVER_ENTITY_SUFFIXES = ("_cover_auto", "_cover_paused")
 # Energy entities exist only when an indoor room has an AC power sensor configured.
-ENERGY_ENTITY_SUFFIXES = ("_power", "_energy_today", "_predicted_power", "_predicted_energy_1h")
+ENERGY_ENTITY_SUFFIXES = (
+    "_power",
+    "_energy_today",
+    "_predicted_power",
+    "_predicted_energy_1h",
+    "_predicted_energy_confidence",
+)
 
 # Global RoomMind entities do not belong to an individual room and therefore
 # must never be considered orphaned by the per-room cleanup pass.
@@ -425,6 +432,7 @@ class RoomMindCoordinator(DataUpdateCoordinator):
                             "predicted_power_w": rs.get("predicted_power_w"),
                             "predicted_energy_1h_kwh": rs.get("predicted_energy_1h_kwh"),
                             "energy_learning_samples": rs.get("energy_learning_samples"),
+                            "energy_prediction_confidence": rs.get("energy_prediction_confidence"),
                         },
                     )
                 except Exception:  # noqa: BLE001

@@ -33,6 +33,7 @@ DETAIL_FIELDS = [
     "predicted_device_power_w_json",
     "predicted_energy_1h_kwh",
     "energy_learning_samples",
+    "energy_prediction_confidence",
 ]
 DETAIL_MAX_AGE = 48 * 3600  # 48 hours
 HISTORY_MAX_AGE = 90 * 24 * 3600  # 90 days
@@ -109,6 +110,7 @@ class HistoryStore:
                     ),
                     "predicted_energy_1h_kwh": data.get("predicted_energy_1h_kwh", ""),
                     "energy_learning_samples": data.get("energy_learning_samples", ""),
+                    "energy_prediction_confidence": data.get("energy_prediction_confidence", ""),
                 }
             )
 
@@ -250,6 +252,7 @@ class HistoryStore:
                         except (ValueError, TypeError):
                             pass
                 avg_row[field] = round(sum(vals) / len(vals), 2) if vals else ""
+            avg_row["energy_prediction_confidence"] = bucket[-1].get("energy_prediction_confidence", "")
             result.append(avg_row)
         return result
 

@@ -282,6 +282,7 @@ export interface AnalyticsDataPoint {
   ac_energy_today_kwh?: number | null;
   predicted_power_w?: number | null;
   energy_learning_samples?: number | null;
+  energy_prediction_confidence?: "low" | "medium" | "high" | null;
   predicted_device_power_w?: Record<string, number>;
   predicted_energy_1h_kwh?: number | null;
 }

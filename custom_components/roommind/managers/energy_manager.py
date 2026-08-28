@@ -11,6 +11,7 @@ from homeassistant.core import HomeAssistant
 
 _MIN_ACTIVE_POWER_W = 10.0
 _MIN_SAMPLES_FOR_PREDICTION = 6
+_MIN_SAMPLES_FOR_HIGH_CONFIDENCE = 24
 _MAX_REASONABLE_POWER_W = 20000.0
 _LEARNABLE_ENERGY_MODES = ("heating", "cooling", "dry")
 
@@ -167,6 +168,17 @@ class EnergyManager:
         ceiling = max(model.observed_max_w * 1.35, 250.0)
         return max(0.0, min(prediction, ceiling, _MAX_REASONABLE_POWER_W)), model.n
 
+    @staticmethod
+    def prediction_confidence(prediction: float | None, samples: int) -> str | None:
+        """Classify consumption-prediction reliability from learned samples."""
+        if prediction is None:
+            return None
+        if samples < _MIN_SAMPLES_FOR_PREDICTION:
+            return "low"
+        if samples < _MIN_SAMPLES_FOR_HIGH_CONFIDENCE:
+            return "medium"
+        return "high"
+
     def predict_power(
         self,
         area_id: str,
@@ -300,6 +312,7 @@ class EnergyManager:
         nominal = self._safe_float(room.get("heat_pump_power_watts"))
         prediction, samples = self.predict_power(area_id, mode, room_temp, target, outdoor_temp, humidity, nominal)
         predicted_devices = self.predict_device_power(area_id, mode, room_temp, target, outdoor_temp, humidity)
+        confidence = self.prediction_confidence(prediction, samples)
 
         return {
             "ac_power_w": round(power_w, 1) if configured else None,
@@ -311,4 +324,5 @@ class EnergyManager:
             "predicted_device_power_w": predicted_devices,
             "predicted_energy_1h_kwh": round(prediction / 1000.0, 3) if prediction is not None else None,
             "energy_learning_samples": samples,
+            "energy_prediction_confidence": confidence,
         }

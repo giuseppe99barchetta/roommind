@@ -553,5 +553,9 @@
   "analytics.energy_now": "Now",
   "analytics.energy_period": "Period energy",
   "analytics.energy_next_3h": "Next 3 hours",
-  "analytics.energy_learning": "Learning samples"
+  "analytics.energy_learning": "Learning samples",
+  "analytics.energy_confidence": "Forecast confidence",
+  "analytics.energy_confidence_low": "Low",
+  "analytics.energy_confidence_medium": "Medium",
+  "analytics.energy_confidence_high": "High"
 }

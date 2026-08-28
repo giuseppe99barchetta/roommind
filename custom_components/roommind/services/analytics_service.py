@@ -101,6 +101,7 @@ def _csv_to_points(rows: list[dict]) -> list[dict]:
                 "predicted_device_power_w": _safe_power_map(row.get("predicted_device_power_w_json", "")),
                 "predicted_energy_1h_kwh": _safe_float(row.get("predicted_energy_1h_kwh", "")),
                 "energy_learning_samples": _safe_int(row.get("energy_learning_samples", "")),
+                "energy_prediction_confidence": row.get("energy_prediction_confidence") or None,
             }
         )
     return result
@@ -400,6 +401,7 @@ async def build_analytics_data(
     # forecast instead of extrapolating watts independently.
     predicted_powers: list[float | None] = []
     predicted_device_powers: list[dict[str, float]] = []
+    predicted_confidences: list[str | None] = []
     energy_manager = (
         vars(coordinator).get("_energy_manager") if coordinator and hasattr(coordinator, "__dict__") else None
     )
@@ -447,7 +449,7 @@ async def build_analytics_data(
                 if "outdoor_series" in locals() and i < len(outdoor_series)
                 else coordinator.outdoor_temp_effective
             )
-            power, _ = energy_manager.predict_power(
+            power, samples = energy_manager.predict_power(
                 area_id,
                 energy_mode,
                 predicted_t,
@@ -457,6 +459,7 @@ async def build_analytics_data(
                 nominal,
             )
             predicted_powers.append(round(power, 1) if power is not None else None)
+            predicted_confidences.append(energy_manager.prediction_confidence(power, samples))
             predicted_device_powers.append(
                 energy_manager.predict_device_power(
                     area_id,
@@ -485,6 +488,9 @@ async def build_analytics_data(
                 "device_setpoint": None,
                 "predicted_power_w": predicted_powers[i] if i < len(predicted_powers) else None,
                 "predicted_device_power_w": (predicted_device_powers[i] if i < len(predicted_device_powers) else {}),
+                "energy_prediction_confidence": (
+                    predicted_confidences[i] if i < len(predicted_confidences) else None
+                ),
             }
         )
 

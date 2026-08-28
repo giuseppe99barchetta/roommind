@@ -877,6 +877,7 @@ def test_csv_to_points_includes_energy_fields():
                 "predicted_device_power_w_json": '{"climate.ac_sala":330}',
                 "ac_energy_today_kwh": "1.25",
                 "energy_learning_samples": "42",
+                "energy_prediction_confidence": "high",
             }
         ]
     )
@@ -886,3 +887,4 @@ def test_csv_to_points_includes_energy_fields():
     assert points[0]["predicted_device_power_w"] == {"climate.ac_sala": 330.0}
     assert points[0]["ac_energy_today_kwh"] == 1.25
     assert points[0]["energy_learning_samples"] == 42
+    assert points[0]["energy_prediction_confidence"] == "high"
