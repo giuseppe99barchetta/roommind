@@ -404,7 +404,64 @@ class RoomMindClimate(RoomMindOverrideClimate):
                 "override_type": OVERRIDE_CUSTOM,
             },
         )
+        # A setpoint changed through the canonical entity is an explicit user
+        # command (HA/HomeKit). Persisting it is not enough: forward it to the
+        # physical device that is currently responsible for that direction.
+        await self._async_apply_manual_temperature(selected, heat, cool)
         await self.coordinator.async_request_refresh()
+
+    async def _async_apply_manual_temperature(
+        self, selected: HVACMode, heat: float, cool: float
+    ) -> None:
+        room = self._room() or {}
+        devices = room.get("devices", [])
+        hass = self.coordinator.hass
+        acs = get_ac_eids(devices)
+        trvs = get_trv_eids(devices)
+
+        direction = selected.value
+        if selected == HVACMode.AUTO:
+            live = (self.coordinator.data or {}).get("rooms", {}).get(self._area_id, {})
+            commanded = live.get("commanded_mode")
+            if commanded == "cooling":
+                direction = "cool"
+            elif commanded == "heating":
+                direction = "heat"
+            else:
+                # AUTO while idle only changes RoomMind's logical setpoint. Do
+                # not wake any physical climate device just to change a target.
+                return
+
+        if direction == "heat":
+            target = celsius_to_ha_temp(hass, heat)
+            for entity_id in trvs:
+                await hass.services.async_call(
+                    "climate",
+                    "set_temperature",
+                    {"entity_id": entity_id, "temperature": target},
+                    blocking=True,
+                )
+            for entity_id in acs:
+                state = hass.states.get(entity_id)
+                modes = state.attributes.get("hvac_modes", []) if state else []
+                if resolve_hvac_mode("heat", modes) is not None:
+                    await hass.services.async_call(
+                        "climate",
+                        "set_temperature",
+                        {"entity_id": entity_id, "temperature": target},
+                        blocking=True,
+                    )
+            return
+
+        if direction in ("cool", "dry"):
+            target = celsius_to_ha_temp(hass, cool)
+            for entity_id in acs:
+                await hass.services.async_call(
+                    "climate",
+                    "set_temperature",
+                    {"entity_id": entity_id, "temperature": target},
+                    blocking=True,
+                )
 
     async def async_set_hvac_mode(self, hvac_mode: HVACMode) -> None:
         if hvac_mode == HVACMode.HEAT_COOL and HVACMode.AUTO in self.hvac_modes:
