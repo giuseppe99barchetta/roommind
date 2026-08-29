@@ -115,6 +115,31 @@ async def test_dry_switch_controls_the_canonical_climate(mock_coordinator):
 
 
 @pytest.mark.asyncio
+async def test_async_setup_entry_creates_dry_switch_before_capabilities_arrive():
+    """A configured AC gets the Dry endpoint even before it reports dry."""
+    coordinator = MagicMock()
+    coordinator._switch_entity_areas = set()
+    coordinator._climate_control_switch_areas = set()
+    coordinator._dry_switch_entity_areas = set()
+
+    store = MagicMock()
+    store.get_rooms.return_value = {
+        "bedroom": {"devices": [{"entity_id": "climate.bedroom_ac", "type": "ac"}]}
+    }
+
+    entry = MagicMock()
+    entry.entry_id = "test_entry"
+    hass = MagicMock()
+    hass.data = {DOMAIN: {entry.entry_id: coordinator, "store": store}}
+    async_add_entities = MagicMock()
+
+    await async_setup_entry(hass, entry, async_add_entities)
+
+    entities = async_add_entities.call_args[0][0]
+    assert len([entity for entity in entities if isinstance(entity, RoomMindDrySwitch)]) == 1
+
+
+@pytest.mark.asyncio
 async def test_cover_auto_switch_turn_on_store_raises_keyerror(mock_coordinator):
     """Exception propagates when store raises KeyError for deleted room."""
     coordinator, store = mock_coordinator

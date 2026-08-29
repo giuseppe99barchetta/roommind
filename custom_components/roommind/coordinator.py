@@ -67,7 +67,7 @@ from .managers.heat_source_orchestrator import HeatSourcePlan, evaluate_heat_sou
 from .managers.mold_manager import MoldManager
 from .managers.power_budget_manager import PowerBudgetManager
 from .managers.residual_heat_tracker import ResidualHeatTracker
-from .managers.room_climate import async_apply_ac_auxiliary_mode, room_capabilities
+from .managers.room_climate import async_apply_ac_auxiliary_mode
 from .managers.valve_manager import ValveManager
 from .managers.weather_manager import WeatherManager
 from .managers.window_impact_manager import WindowImpactManager
@@ -2266,7 +2266,7 @@ class RoomMindCoordinator(DataUpdateCoordinator):
 
         if (
             not room.get("is_outdoor", False)
-            and "dry" in room_capabilities(self.hass, room).hvac_modes
+            and get_ac_eids(room.get("devices", []))
             and area_id not in self._dry_switch_entity_areas
             and self.async_add_switch_entities
         ):

@@ -16,6 +16,7 @@ from .climate import RoomMindClimate
 from .const import DOMAIN, VACATION_SENTINEL_UNTIL
 from .coordinator import RoomMindCoordinator, _get_room_display_name
 from .managers.room_climate import room_capabilities
+from .utils.device_utils import get_ac_eids
 
 
 def _create_room_switches(
@@ -28,6 +29,11 @@ def _create_room_switches(
 
 def _room_supports_dry(hass: HomeAssistant, room: dict) -> bool:
     return HVACMode.DRY.value in room_capabilities(hass, room).hvac_modes
+
+
+def _room_has_ac(room: dict) -> bool:
+    """Return whether the room is configured with an air conditioner."""
+    return bool(get_ac_eids(room.get("devices", [])))
 
 
 async def async_setup_entry(
@@ -47,7 +53,11 @@ async def async_setup_entry(
     for area_id, room in rooms.items():
         entities.append(RoomMindClimateControlSwitch(coordinator, area_id))
         coordinator._climate_control_switch_areas.add(area_id)
-        if _room_supports_dry(hass, room):
+        # Some controller integrations only expose ``dry`` after their first
+        # state update.  Create the endpoint from the configured AC so it is
+        # discoverable by HomeKit immediately; availability stays tied to the
+        # live dry capability.
+        if _room_has_ac(room):
             entities.append(RoomMindDrySwitch(coordinator, area_id))
             coordinator._dry_switch_entity_areas.add(area_id)
         if room.get("covers"):
