@@ -1887,9 +1887,9 @@ class RoomMindCoordinator(DataUpdateCoordinator):
         anomalies: list[dict[str, str]] = []
         sensor_id = room.get("temperature_sensor", "")
         sensor_state = self.hass.states.get(sensor_id) if sensor_id else None
-        updated_at = getattr(sensor_state, "last_updated", None)
+        updated_at = getattr(sensor_state, "last_reported", None) or getattr(sensor_state, "last_updated", None)
         timestamp = updated_at.timestamp() if updated_at is not None else None
-        stale = isinstance(timestamp, (int, float)) and (time.time() - timestamp) > MAX_SENSOR_STALENESS
+        stale = isinstance(timestamp, (int, float)) and (time.time() - timestamp) > MAX_SENSOR_STALENESS * 3
         if sensor_id and (sensor_state is None or sensor_state.state in ("unknown", "unavailable") or stale):
             anomalies.append({"type": "sensor_stale", "message": "Il sensore di temperatura non sta aggiornando i dati."})
         target = targets.heat if mode == MODE_HEATING else targets.cool if mode == MODE_COOLING else None
