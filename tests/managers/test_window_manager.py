@@ -115,6 +115,19 @@ def test_zero_delays_instant():
     assert result is False
 
 
+def test_window_recovery_progress_after_close():
+    """The optional recovery ramp starts only after the pause is cleared."""
+    mgr = WindowManager()
+    with patch("custom_components.roommind.managers.window_manager.time") as mock_time:
+        mock_time.time.return_value = 1000.0
+        assert mgr.update("room", True, 0, 0, recovery_minutes=10) is True
+        assert mgr.update("room", False, 0, 0, recovery_minutes=10) is False
+        assert mgr.recovery_progress("room") == 0.0
+
+        mock_time.time.return_value = 1300.0
+        assert mgr.recovery_progress("room") == 0.5
+
+
 def test_state_machine_open_close_open():
     """Window opens (paused), closes (unpaused), opens again (paused)."""
     mgr = WindowManager()

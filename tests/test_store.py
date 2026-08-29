@@ -742,3 +742,15 @@ async def test_new_rooms_get_safe_night_and_smart_ventilation_defaults(store):
     assert room["night_ramp_minutes"] == 60
     assert room["smart_ventilation_enabled"] is False
     assert room["smart_ventilation_minutes"] == 15
+
+
+@pytest.mark.asyncio
+async def test_new_rooms_get_comfort_feature_defaults(store):
+    """New rooms expose opt-in comfort automation safely."""
+    room = await store.async_save_room("room_comfort", {})
+
+    assert room["window_smart_recovery_enabled"] is False
+    assert room["preconditioning_enabled"] is True
+    assert room["humidity_comfort_enabled"] is False
+    assert room["active_profile"] == ""
+    assert room["anomaly_detection_enabled"] is True

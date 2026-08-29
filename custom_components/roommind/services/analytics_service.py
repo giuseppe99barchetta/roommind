@@ -25,6 +25,7 @@ from ..control.mpc_controller import (
     get_can_heat_cool,
     is_mpc_active,
 )
+from ..utils.comfort_insights import energy_suggestions
 from ..utils.device_utils import room_has_power_sensor
 
 _LOGGER = logging.getLogger(__name__)
@@ -657,11 +658,26 @@ async def build_analytics_data(
             "forecast_3h_eur": round(_integrate_forecast_kwh(forecast) * price, 2),
         }
 
+    operation_summary = _operation_summary(history + detail, has_power_sensors)
+    latest = (detail or history)[-1] if detail or history else {}
+    target_error = None
+    if latest.get("room_temp") is not None and latest.get("target_temp") is not None:
+        target_error = float(latest["room_temp"]) - float(latest["target_temp"])
+    energy_insights = {
+        "suggestions": energy_suggestions(
+            heating_minutes=float(operation_summary["heating_minutes"]),
+            cooling_minutes=float(operation_summary["cooling_minutes"]),
+            target_error_c=target_error,
+            has_power_sensor=has_power_sensors,
+        ),
+        "weekly_comparison_available": has_power_sensors,
+    }
     return {
         "detail": detail,
         "history": history,
         "model": model_info,
         "forecast": forecast,
         "energy_cost": energy_cost,
-        "operation_summary": _operation_summary(history + detail, has_power_sensors),
+        "operation_summary": operation_summary,
+        "energy_insights": energy_insights,
     }

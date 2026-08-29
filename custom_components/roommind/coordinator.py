@@ -72,6 +72,7 @@ from .managers.valve_manager import ValveManager
 from .managers.weather_manager import WeatherManager
 from .managers.window_impact_manager import WindowImpactManager
 from .managers.window_manager import WindowManager
+from .utils.comfort_insights import active_profile, calculate_comfort_score
 from .utils.device_utils import (
     build_rooms_devices_map,
     get_ac_eids,
@@ -956,6 +957,18 @@ class RoomMindCoordinator(DataUpdateCoordinator):
             presence_away=presence_away,
             mold_prevention_delta=mold_prevention_temp_delta,
         )
+        profile = active_profile(room)
+        if not room.get("preconditioning_enabled", True):
+            target_resolver = None
+        elif profile:
+            base_target_resolver = target_resolver
+
+            def target_resolver(timestamp: float) -> TargetTemps:
+                base = base_target_resolver(timestamp)
+                return TargetTemps(
+                    heat=float(profile.get("heat_target", base.heat)) if base.heat is not None else None,
+                    cool=float(profile.get("cool_target", base.cool)) if base.cool is not None else None,
+                )
 
         # --- Compute residual heat from previous cycle state ---
         system_type = room.get("heating_system_type", "")
@@ -1044,10 +1057,16 @@ class RoomMindCoordinator(DataUpdateCoordinator):
             raw_open,
             room.get("window_open_delay", 0),
             room.get("window_close_delay", 0),
+            room.get("window_recovery_ramp_minutes", 15)
+            if room.get("window_smart_recovery_enabled", False)
+            else 0,
         )
         if window_open:
             mode = MODE_IDLE
             power_fraction = 0.0
+        window_recovery_progress = self._window_manager.recovery_progress(area_id)
+        if not window_open and window_recovery_progress < 1:
+            power_fraction *= window_recovery_progress
         window_impact_c: float | None = None
         window_open_minutes: int | None = None
         window_recovery_minutes: int | None = None
@@ -1415,6 +1434,20 @@ class RoomMindCoordinator(DataUpdateCoordinator):
                                     mold_aux_activated.add(ac_eid)
                     if restored:
                         self._mold_restore_modes.pop(area_id, None)
+                elif self._humidity_dry_requested(room, current_humidity, mode, window_open, force_off):
+                    for ac_eid in get_ac_eids(room.get("devices", [])):
+                        ac_state = self.hass.states.get(ac_eid)
+                        if ac_state is None or "dry" not in (ac_state.attributes.get("hvac_modes") or []):
+                            continue
+                        if ac_state.state == "off" and not self._compressor_manager.check_can_activate(ac_eid):
+                            continue
+                        await self.hass.services.async_call(
+                            "climate",
+                            "set_hvac_mode",
+                            {"entity_id": ac_eid, "hvac_mode": "dry"},
+                            blocking=True,
+                            context=make_roommind_context(),
+                        )
                 elif requested_hvac_mode in ("dry", "fan_only"):
                     # Persisted auxiliary state is preservation-only; it must not
                     # power an AC back on after restart or an external power-off.
@@ -1562,6 +1595,7 @@ class RoomMindCoordinator(DataUpdateCoordinator):
         room_state["window_open_minutes"] = window_open_minutes
         room_state["window_impact_c"] = window_impact_c
         room_state["window_recovery_minutes"] = window_recovery_minutes
+        room_state["window_recovery_progress"] = round(window_recovery_progress, 2)
         room_state["night_mode_active"] = night_progress > 0
         room_state["night_setback_progress"] = round(night_progress, 2)
         room_state["smart_ventilation_active"] = self._smart_ventilation_until.get(area_id, 0) > time.monotonic()
@@ -1576,6 +1610,22 @@ class RoomMindCoordinator(DataUpdateCoordinator):
                     planned_at = time.time() + index * controller.last_plan.dt_minutes * 60
                     break
         room_state["preconditioning_planned_at"] = planned_at
+        anomalies = self._room_anomalies(area_id, room, current_temp, current_humidity, targets, mode)
+        room_state["anomalies"] = anomalies
+        room_state["humidity_action"] = (
+            "dehumidifying" if self._humidity_dry_requested(room, current_humidity, mode, window_open, force_off) else "idle"
+        )
+        room_state["active_profile"] = room.get("active_profile", "")
+        room_state["comfort_score"] = calculate_comfort_score(
+            current_temp=current_temp,
+            heat_target=targets.heat,
+            cool_target=targets.cool,
+            humidity=current_humidity,
+            humidity_target=self._humidity_target(room),
+            window_open=window_open,
+            mold_risk_level=mold_risk_level,
+            anomalies=anomalies,
+        )
         return room_state
 
     async def _observe_and_train(
@@ -1792,11 +1842,82 @@ class RoomMindCoordinator(DataUpdateCoordinator):
                 self._smart_ventilation_until[area_id] = until
         return until > now and not window_open and not force_off
 
+    @staticmethod
+    def _humidity_target(room: dict) -> float | None:
+        """Return the humidity target selected for the room/profile."""
+        if not room.get("humidity_comfort_enabled", False):
+            return None
+        profile = active_profile(room)
+        value = profile.get("humidity_target") if profile else room.get("humidity_target", 55.0)
+        try:
+            return float(value)
+        except (TypeError, ValueError):
+            return None
+
+    def _humidity_dry_requested(
+        self,
+        room: dict,
+        humidity: float | None,
+        mode: str,
+        window_open: bool,
+        force_off: bool,
+    ) -> bool:
+        """Request AC dry mode only when it does not conflict with thermal control."""
+        target = self._humidity_target(room)
+        if target is None or humidity is None or mode != MODE_IDLE or window_open or force_off:
+            return False
+        tolerance = max(0.0, float(room.get("humidity_tolerance", 5.0) or 0))
+        multiplier = {"comfort": 0.5, "balanced": 1.0, "energy": 1.5}.get(
+            room.get("humidity_priority", "balanced"), 1.0
+        )
+        return humidity >= target + tolerance * multiplier
+
+    def _room_anomalies(
+        self,
+        area_id: str,
+        room: dict,
+        current_temp: float | None,
+        humidity: float | None,
+        targets: TargetTemps,
+        mode: str,
+    ) -> list[dict[str, str]]:
+        """Detect actionable room anomalies without generating noisy alerts."""
+        if not room.get("anomaly_detection_enabled", True):
+            return []
+        anomalies: list[dict[str, str]] = []
+        sensor_id = room.get("temperature_sensor", "")
+        sensor_state = self.hass.states.get(sensor_id) if sensor_id else None
+        updated_at = getattr(sensor_state, "last_updated", None)
+        timestamp = updated_at.timestamp() if updated_at is not None else None
+        stale = isinstance(timestamp, (int, float)) and (time.time() - timestamp) > MAX_SENSOR_STALENESS
+        if sensor_id and (sensor_state is None or sensor_state.state in ("unknown", "unavailable") or stale):
+            anomalies.append({"type": "sensor_stale", "message": "Il sensore di temperatura non sta aggiornando i dati."})
+        target = targets.heat if mode == MODE_HEATING else targets.cool if mode == MODE_COOLING else None
+        error = abs(current_temp - target) if current_temp is not None and target is not None else 0.0
+        started_at = self._mode_on_since.get(area_id)
+        run_minutes = (time.time() - started_at) / 60 if started_at else 0.0
+        max_run = float(room.get("anomaly_max_run_minutes", 240) or 240)
+        if mode in (MODE_HEATING, MODE_COOLING) and run_minutes >= max_run:
+            anomalies.append({"type": "long_run", "message": "Il climatizzatore e attivo da molto tempo."})
+        if mode in (MODE_HEATING, MODE_COOLING) and run_minutes >= 30 and error >= float(
+            room.get("anomaly_target_error_c", 1.5) or 1.5
+        ):
+            anomalies.append({"type": "target_not_reached", "message": "La stanza non sta raggiungendo il setpoint."})
+        humidity_target = self._humidity_target(room)
+        if humidity_target is not None and humidity is not None and humidity > humidity_target + 15:
+            anomalies.append({"type": "humidity_high", "message": "Umidita molto sopra il valore desiderato."})
+        return anomalies
+
     async def _async_apply_night_fan_mode(self, area_id: str, room: dict, mode: str, night_active: bool) -> None:
-        """Apply the quieter fan setting once per night transition and restore it after."""
+        """Apply the night/profile fan setting once per transition and restore it after."""
         if mode not in (MODE_HEATING, MODE_COOLING):
             return
-        desired = str(room.get("night_fan_mode") if night_active else room.get("room_fan_mode") or "")
+        profile = active_profile(room)
+        desired = str(
+            room.get("night_fan_mode")
+            if night_active
+            else (profile or {}).get("fan_mode", room.get("room_fan_mode") or "")
+        )
         if not desired or self._night_fan_modes.get(area_id) == desired:
             return
         applied = False
@@ -2205,6 +2326,12 @@ class RoomMindCoordinator(DataUpdateCoordinator):
             )
 
         # 3. Schedule / comfort / eco
+        profile = active_profile(room)
+        if profile:
+            return TargetTemps(
+                heat=float(profile.get("heat_target", room.get("comfort_heat", DEFAULT_COMFORT_HEAT))),
+                cool=float(profile.get("cool_target", room.get("comfort_cool", DEFAULT_COMFORT_COOL))),
+            )
         comfort_heat = room.get("comfort_heat", room.get("comfort_temp", DEFAULT_COMFORT_HEAT))
         comfort_cool = room.get("comfort_cool", DEFAULT_COMFORT_COOL)
         eco_heat = room.get("eco_heat", room.get("eco_temp", DEFAULT_ECO_HEAT))

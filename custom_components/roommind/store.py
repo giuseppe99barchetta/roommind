@@ -87,6 +87,18 @@ def _migrate_room(room: dict) -> dict:
     room.setdefault("smart_ventilation_min_humidity", 55.0)
     room.setdefault("smart_ventilation_max_temp_delta", 0.5)
     room.setdefault("smart_ventilation_fan_mode", "low")
+    room.setdefault("window_smart_recovery_enabled", False)
+    room.setdefault("window_recovery_ramp_minutes", 15)
+    room.setdefault("preconditioning_enabled", True)
+    room.setdefault("humidity_comfort_enabled", False)
+    room.setdefault("humidity_target", 55.0)
+    room.setdefault("humidity_tolerance", 5.0)
+    room.setdefault("humidity_priority", "balanced")
+    room.setdefault("active_profile", "")
+    room.setdefault("comfort_profiles", {})
+    room.setdefault("anomaly_detection_enabled", True)
+    room.setdefault("anomaly_max_run_minutes", 240)
+    room.setdefault("anomaly_target_error_c", 1.5)
     return room
 
 
@@ -316,6 +328,18 @@ class RoomMindStore:
             "smart_ventilation_min_humidity": config.get("smart_ventilation_min_humidity", 55.0),
             "smart_ventilation_max_temp_delta": config.get("smart_ventilation_max_temp_delta", 0.5),
             "smart_ventilation_fan_mode": config.get("smart_ventilation_fan_mode", "low"),
+            "window_smart_recovery_enabled": config.get("window_smart_recovery_enabled", False),
+            "window_recovery_ramp_minutes": config.get("window_recovery_ramp_minutes", 15),
+            "preconditioning_enabled": config.get("preconditioning_enabled", True),
+            "humidity_comfort_enabled": config.get("humidity_comfort_enabled", False),
+            "humidity_target": config.get("humidity_target", 55.0),
+            "humidity_tolerance": config.get("humidity_tolerance", 5.0),
+            "humidity_priority": config.get("humidity_priority", "balanced"),
+            "active_profile": config.get("active_profile", ""),
+            "comfort_profiles": config.get("comfort_profiles", {}),
+            "anomaly_detection_enabled": config.get("anomaly_detection_enabled", True),
+            "anomaly_max_run_minutes": config.get("anomaly_max_run_minutes", 240),
+            "anomaly_target_error_c": config.get("anomaly_target_error_c", 1.5),
         }
         # Directional device sync for new rooms (truthiness check, not just presence)
         if "devices" in config and config["devices"]:

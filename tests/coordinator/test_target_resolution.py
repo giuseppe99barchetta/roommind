@@ -19,6 +19,20 @@ class TestRoomMindCoordinator:
     """Tests for RoomMindCoordinator."""
 
     @pytest.mark.asyncio
+    async def test_active_profile_supplies_room_targets(self, hass, mock_config_entry):
+        """A selected profile overrides the regular schedule/comfort target."""
+        room = {**SAMPLE_ROOM, "active_profile": "guests"}
+        store = _make_store_mock({"living_room_abc12345": room})
+        hass.data = {"roommind": {"store": store}}
+        hass.states.get = MagicMock(side_effect=make_mock_states_get(schedule_state="off"))
+        hass.services.async_call = AsyncMock()
+
+        coordinator = _create_coordinator(hass, mock_config_entry)
+        data = await coordinator._async_update_data()
+
+        assert data["rooms"]["living_room_abc12345"]["heat_target"] == 21.5
+
+    @pytest.mark.asyncio
     async def test_override_takes_priority_over_schedule(self, hass, mock_config_entry):
         """Test that an active override overrides the schedule target temp."""
         room_with_override = {
