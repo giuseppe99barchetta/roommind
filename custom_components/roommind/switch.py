@@ -5,14 +5,17 @@ from __future__ import annotations
 import time
 from typing import Any
 
+from homeassistant.components.climate import HVACMode
 from homeassistant.components.switch import SwitchEntity
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
+from .climate import RoomMindClimate
 from .const import DOMAIN, VACATION_SENTINEL_UNTIL
 from .coordinator import RoomMindCoordinator, _get_room_display_name
+from .managers.room_climate import room_capabilities
 
 
 def _create_room_switches(
@@ -21,6 +24,10 @@ def _create_room_switches(
 ) -> list[SwitchEntity]:
     """Create switch entities for a room."""
     return [RoomMindCoverAutoSwitch(coordinator, area_id)]
+
+
+def _room_supports_dry(hass: HomeAssistant, room: dict) -> bool:
+    return HVACMode.DRY.value in room_capabilities(hass, room).hvac_modes
 
 
 async def async_setup_entry(
@@ -40,6 +47,9 @@ async def async_setup_entry(
     for area_id, room in rooms.items():
         entities.append(RoomMindClimateControlSwitch(coordinator, area_id))
         coordinator._climate_control_switch_areas.add(area_id)
+        if _room_supports_dry(hass, room):
+            entities.append(RoomMindDrySwitch(coordinator, area_id))
+            coordinator._dry_switch_entity_areas.add(area_id)
         if room.get("covers"):
             entities.extend(_create_room_switches(coordinator, area_id))
             coordinator._switch_entity_areas.add(area_id)
@@ -106,6 +116,40 @@ class RoomMindClimateControlSwitch(CoordinatorEntity, SwitchEntity):
         store = self.coordinator.hass.data[DOMAIN]["store"]
         await store.async_update_room(self._area_id, {"climate_control_enabled": False})
         await self.coordinator.async_request_refresh()
+
+
+class RoomMindDrySwitch(CoordinatorEntity, SwitchEntity):
+    """Expose an AC's dry mode as a HomeKit-compatible switch."""
+
+    _attr_has_entity_name = True
+    _attr_icon = "mdi:water-percent"
+
+    def __init__(self, coordinator: RoomMindCoordinator, area_id: str) -> None:
+        super().__init__(coordinator)
+        self._area_id = area_id
+        self._attr_unique_id = f"{DOMAIN}_{area_id}_dehumidification"
+        self._attr_name = f"{_get_room_display_name(coordinator.hass, area_id)} Dehumidification"
+        self.entity_id = f"switch.{DOMAIN}_{area_id}_dehumidification"
+
+    def _climate(self) -> RoomMindClimate:
+        return RoomMindClimate(self.coordinator, self._area_id)
+
+    @property
+    def available(self) -> bool:
+        room = self.coordinator.hass.data[DOMAIN]["store"].get_room(self._area_id) or {}
+        return _room_supports_dry(self.coordinator.hass, room)
+
+    @property
+    def is_on(self) -> bool:
+        return self._climate().hvac_mode == HVACMode.DRY
+
+    async def async_turn_on(self, **kwargs: Any) -> None:
+        await self._climate().async_set_hvac_mode(HVACMode.DRY)
+
+    async def async_turn_off(self, **kwargs: Any) -> None:
+        room = self.coordinator.hass.data[DOMAIN]["store"].get_room(self._area_id) or {}
+        if room.get("room_hvac_mode") == HVACMode.DRY.value:
+            await self._climate().async_set_hvac_mode(HVACMode.OFF)
 
 
 class RoomMindVacationSwitch(CoordinatorEntity, SwitchEntity):

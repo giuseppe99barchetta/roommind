@@ -67,7 +67,7 @@ from .managers.heat_source_orchestrator import HeatSourcePlan, evaluate_heat_sou
 from .managers.mold_manager import MoldManager
 from .managers.power_budget_manager import PowerBudgetManager
 from .managers.residual_heat_tracker import ResidualHeatTracker
-from .managers.room_climate import async_apply_ac_auxiliary_mode
+from .managers.room_climate import async_apply_ac_auxiliary_mode, room_capabilities
 from .managers.valve_manager import ValveManager
 from .managers.weather_manager import WeatherManager
 from .managers.window_impact_manager import WindowImpactManager
@@ -276,6 +276,7 @@ class RoomMindCoordinator(DataUpdateCoordinator):
         self._startup_guard_warned: set[str] = set()
         self._switch_entity_areas: set[str] = set()
         self._climate_control_switch_areas: set[str] = set()
+        self._dry_switch_entity_areas: set[str] = set()
         self._binary_sensor_entity_areas: set[str] = set()
         self._climate_entity_areas: set[str] = set()
         self._fan_entity_areas: set[str] = set()
@@ -2263,6 +2264,17 @@ class RoomMindCoordinator(DataUpdateCoordinator):
             self.async_add_switch_entities([RoomMindClimateControlSwitch(self, area_id)])
             self._climate_control_switch_areas.add(area_id)
 
+        if (
+            not room.get("is_outdoor", False)
+            and "dry" in room_capabilities(self.hass, room).hvac_modes
+            and area_id not in self._dry_switch_entity_areas
+            and self.async_add_switch_entities
+        ):
+            from .switch import RoomMindDrySwitch
+
+            self.async_add_switch_entities([RoomMindDrySwitch(self, area_id)])
+            self._dry_switch_entity_areas.add(area_id)
+
         # Cover entities: only create when covers are configured.
         # Not removed on save — cleanup_orphaned_entities() handles that at startup
         # so brief config changes don't break user automations.
@@ -2324,6 +2336,7 @@ class RoomMindCoordinator(DataUpdateCoordinator):
         self._mode_on_since.pop(area_id, None)
         self._switch_entity_areas.discard(area_id)
         self._climate_control_switch_areas.discard(area_id)
+        self._dry_switch_entity_areas.discard(area_id)
         self._binary_sensor_entity_areas.discard(area_id)
         self._climate_entity_areas.discard(area_id)
         self._fan_entity_areas.discard(area_id)
