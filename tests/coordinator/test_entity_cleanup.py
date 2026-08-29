@@ -149,7 +149,9 @@ class TestCoverageGaps:
 
         coordinator = _create_coordinator(hass, mock_config_entry)
         store = MagicMock()
-        store.get_rooms.return_value = {"sala": {}}
+        store.get_rooms.return_value = {
+            "sala": {"devices": [{"entity_id": "climate.sala_ac", "type": "ac"}]}
+        }
         hass.data = {DOMAIN: {"store": store}}
 
         entries = []
@@ -161,6 +163,7 @@ class TestCoverageGaps:
                 f"{DOMAIN}_sala_heat_source_reason",
                 "sensor.roommind_sala_heat_source_reason",
             ),
+            (f"{DOMAIN}_sala_dehumidification", "switch.roommind_sala_dehumidification"),
             (f"{DOMAIN}_vacation", "switch.roommind_vacation"),
             (f"{DOMAIN}_boiler_demand", "sensor.roommind_boiler_demand"),
             (f"{DOMAIN}_available_power", "sensor.roommind_available_power"),

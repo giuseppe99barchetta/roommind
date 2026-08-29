@@ -137,6 +137,7 @@ ROOM_ENTITY_SUFFIXES = (
     "_target_temp",
     "_mode",
     "_climate_control",
+    "_dehumidification",
     "_fan",
     "_cover_auto",
     "_cover_paused",
@@ -2390,7 +2391,7 @@ class RoomMindCoordinator(DataUpdateCoordinator):
             if suffix in ENERGY_ENTITY_SUFFIXES and not _room_has_power_sensor(rooms[area_id]):
                 # Energy sensors are invalid without an explicitly configured AC power sensor.
                 to_remove.append(entity_entry.entity_id)
-            if suffix == "_fan" and not get_ac_eids(rooms[area_id].get("devices", [])):
+            if suffix in ("_dehumidification", "_fan") and not get_ac_eids(rooms[area_id].get("devices", [])):
                 to_remove.append(entity_entry.entity_id)
 
         for eid in to_remove:

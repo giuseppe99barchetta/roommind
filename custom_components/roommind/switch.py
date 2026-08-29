@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import logging
 import time
 from typing import Any
 
@@ -18,8 +17,6 @@ from .const import DOMAIN, VACATION_SENTINEL_UNTIL
 from .coordinator import RoomMindCoordinator, _get_room_display_name
 from .managers.room_climate import room_capabilities
 from .utils.device_utils import get_ac_eids
-
-_LOGGER = logging.getLogger(__name__)
 
 
 def _create_room_switches(
@@ -67,10 +64,6 @@ async def async_setup_entry(
             entities.extend(_create_room_switches(coordinator, area_id))
             coordinator._switch_entity_areas.add(area_id)
 
-    _LOGGER.debug(
-        "Registering RoomMind switch entities: %s",
-        [entity.entity_id for entity in entities],
-    )
     async_add_entities(entities)
 
 
