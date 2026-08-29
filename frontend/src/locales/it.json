@@ -29,5 +29,11 @@
   "insights.readiness.item.schedule.recommended": "Aggiungi una programmazione per automatizzare temperature comfort ed eco",
   "insights.readiness.item.predictive_control.ready": "Gli input per il controllo predittivo sono disponibili",
   "insights.readiness.item.predictive_control.recommended": "Aggiungi la temperatura esterna per sbloccare il controllo predittivo",
-  "insights.readiness.item.climate_control.missing": "Abilita il controllo climatico per questa stanza"
+  "insights.readiness.item.climate_control.missing": "Abilita il controllo climatico per questa stanza",
+  "card.comfort_score": "Comfort {score}%",
+  "card.comfort_excellent": "Comfort eccellente",
+  "card.comfort_good": "Comfort buono",
+  "card.comfort_fair": "Il comfort richiede attenzione",
+  "card.comfort_poor": "Comfort scarso",
+  "card.issues": "{count} problema/i attivo/i nella stanza"
 }

@@ -3,7 +3,7 @@ import { customElement, property } from "lit/decorators.js";
 import type { HomeAssistant, HassArea, RoomConfig } from "../types";
 import { getModeClass, formatMode } from "../utils/room-state";
 import { modeStyles } from "../styles/shared-mode-styles";
-import { localize } from "../utils/localize";
+import { localize, type TranslationKey } from "../utils/localize";
 import { mdiEyeOff } from "../utils/icons";
 import { formatTemp, tempUnit, toDisplayDelta } from "../utils/temperature";
 
@@ -205,6 +205,35 @@ export class RsAreaCard extends LitElement {
       .mpc-badge.learning {
         color: var(--secondary-text-color);
         background: rgba(158, 158, 158, 0.1);
+      }
+
+      .comfort-badge,
+      .issue-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        font-size: 11px;
+        font-weight: 500;
+        padding: 2px 8px 2px 6px;
+        border-radius: 10px;
+        --mdc-icon-size: 14px;
+      }
+
+      .comfort-badge.excellent,
+      .comfort-badge.good {
+        color: var(--success-color, #4caf50);
+        background: rgba(76, 175, 80, 0.12);
+      }
+
+      .comfort-badge.fair {
+        color: var(--warning-color, #ff9800);
+        background: rgba(255, 152, 0, 0.12);
+      }
+
+      .comfort-badge.poor,
+      .issue-badge {
+        color: var(--error-color, #db4437);
+        background: rgba(219, 68, 55, 0.12);
       }
 
       .mold-badge {
@@ -478,6 +507,7 @@ export class RsAreaCard extends LitElement {
             : nothing}
         </span>
         <span class="badge-row">
+          ${this._renderComfortStatus(live)}
           ${live.mold_risk_level && live.mold_risk_level !== "ok"
             ? html`<span class="mold-badge ${live.mold_risk_level}">
                 <ha-icon icon="mdi:water-alert"></ha-icon>
@@ -509,6 +539,34 @@ export class RsAreaCard extends LitElement {
         ? html`<div class="uncontrolled-hint">
             ${localize("card.not_controlled", this.hass.language)}
           </div>`
+        : nothing}
+    `;
+  }
+
+  private _renderComfortStatus(live: NonNullable<RoomConfig["live"]>) {
+    const score = live.comfort_score;
+    const anomalies = live.anomalies ?? [];
+    return html`
+      ${score
+        ? html`<span
+            class="comfort-badge ${score.label}"
+            title=${localize(`card.comfort_${score.label}` as TranslationKey, this.hass.language)}
+          >
+            <ha-icon
+              icon=${score.label === "excellent" || score.label === "good"
+                ? "mdi:heart"
+                : "mdi:heart-half-full"}
+            ></ha-icon>
+            ${localize("card.comfort_score", this.hass.language, { score: score.score })}
+          </span>`
+        : nothing}
+      ${anomalies.length
+        ? html`<span
+            class="issue-badge"
+            title=${localize("card.issues", this.hass.language, { count: anomalies.length })}
+          >
+            <ha-icon icon="mdi:alert-circle"></ha-icon>${anomalies.length}
+          </span>`
         : nothing}
     `;
   }

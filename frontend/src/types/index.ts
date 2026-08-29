@@ -64,6 +64,12 @@ export interface RoomLiveData {
   window_open_minutes?: number | null;
   window_impact_c?: number | null;
   window_recovery_minutes?: number | null;
+  comfort_score?: {
+    score: number;
+    label: "excellent" | "good" | "fair" | "poor";
+    factors: Record<string, number>;
+  };
+  anomalies?: Array<{ type: string; message: string }>;
   ac_efficiency_status?: "normal" | "possible_issue" | null;
   ac_efficiency_reason?: string | null;
   ac_thermal_rate_c_per_h?: number | null;

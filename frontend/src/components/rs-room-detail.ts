@@ -400,14 +400,6 @@ export class RsRoomDetail extends LitElement {
           @display-name-changed=${this._onDisplayNameChanged}
         ></rs-hero-status>
 
-        ${!this._isOutdoor && this.config
-          ? html`<rs-room-insights
-              .hass=${this.hass}
-              .readiness=${this.config.readiness}
-              .decisionReasons=${this.config.live?.decision_reasons ?? []}
-            ></rs-room-insights>`
-          : nothing}
-
         <div class="detail-grid">
           ${!this._isOutdoor
             ? html`
@@ -620,6 +612,13 @@ export class RsRoomDetail extends LitElement {
             @toggle-changed=${this._onOutdoorToggle}
           ></rs-toggle-card>
         </div>
+        ${!this._isOutdoor && this.config
+          ? html`<rs-room-insights
+              .hass=${this.hass}
+              .readiness=${this.config.readiness}
+              .decisionReasons=${this.config.live?.decision_reasons ?? []}
+            ></rs-room-insights>`
+          : nothing}
         ${this._error ? html`<div class="error">${this._error}</div>` : nothing}
         ${this._renderEditDialog()}
       </div>
