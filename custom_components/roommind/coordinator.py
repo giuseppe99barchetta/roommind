@@ -569,6 +569,9 @@ class RoomMindCoordinator(DataUpdateCoordinator):
             self._valve_manager.actuation_dirty = False
 
         self.rooms = room_states
+        from .repairs import async_sync_room_issues
+
+        await async_sync_room_issues(self.hass, room_states, rooms)
         budget = self._power_budget_manager.status()
         return {
             "rooms": room_states,

@@ -1,4 +1,26 @@
 {
+  "issues": {
+    "sensor_stale": {
+      "title": "{room}: il sensore di temperatura non si sta aggiornando",
+      "description": "RoomMind non riceve una temperatura ambiente aggiornata. Verifica che il sensore configurato sia disponibile e stia trasmettendo dati."
+    },
+    "long_run": {
+      "title": "{room}: il dispositivo clima è attivo da molto tempo",
+      "description": "Controlla la temperatura della stanza, le finestre aperte e la configurazione del dispositivo. È stata superata la soglia di funzionamento configurata."
+    },
+    "target_not_reached": {
+      "title": "{room}: il setpoint non viene raggiunto",
+      "description": "Controlla il sensore di temperatura, la disponibilità del dispositivo e che la stanza abbia sufficiente potenza di riscaldamento o raffrescamento."
+    },
+    "humidity_high": {
+      "title": "{room}: umidità molto sopra il valore di comfort",
+      "description": "Controlla la ventilazione, il sensore di umidità e la disponibilità di un deumidificatore."
+    },
+    "ac_efficiency": {
+      "title": "{room}: il condizionatore potrebbe avere prestazioni ridotte",
+      "description": "RoomMind ha osservato una bassa risposta termica rispetto alla potenza misurata. Controlla filtri, condizioni esterne e dispositivo."
+    }
+  },
   "entity": {
     "climate": {
       "room_climate": {

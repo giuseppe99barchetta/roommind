@@ -987,6 +987,43 @@ async def test_list_rooms_includes_compressor_protection_status(ws_hass, store, 
 
 
 @pytest.mark.asyncio
+async def test_list_rooms_includes_readiness_and_ordered_decision_reasons(ws_hass, store, connection):
+    """Room list returns setup guidance and human-readable decision inputs."""
+    await store.async_load()
+    await _save_room(
+        ws_hass,
+        connection,
+        {
+            "id": 2,
+            "type": "roommind/rooms/save",
+            "area_id": "studio",
+            "thermostats": ["climate.studio_trv"],
+            "temperature_sensor": "sensor.studio_temp",
+        },
+    )
+    connection.send_result.reset_mock()
+    coordinator = MagicMock()
+    coordinator.rooms = {
+        "studio": {
+            "current_temp": 20.0,
+            "mode": "heating",
+            "window_open": True,
+            "power_budget_blocked": True,
+        }
+    }
+    coordinator.outdoor_temp_effective = 7.0
+    coordinator.outdoor_humidity = None
+    coordinator.async_request_refresh = AsyncMock()
+    ws_hass.data[DOMAIN]["coordinator"] = coordinator
+
+    await _list_rooms(ws_hass, connection, {"id": 3, "type": "roommind/rooms/list"})
+
+    room = connection.send_result.call_args[0][1]["rooms"]["studio"]
+    assert room["readiness"]["level"] == "ready"
+    assert room["live"]["decision_reasons"] == ["window_open", "power_budget"]
+
+
+@pytest.mark.asyncio
 async def test_list_rooms_includes_cover_override_until(ws_hass, store, connection):
     """Verify cover_override_until appears in live data from list_rooms."""
     await store.async_load()

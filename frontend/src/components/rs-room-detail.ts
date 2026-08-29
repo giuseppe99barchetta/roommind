@@ -13,6 +13,7 @@ import type {
   DeviceRole,
 } from "../types";
 import "./rs-hero-status";
+import "./rs-room-insights";
 import "./rs-climate-mode-selector";
 import "./rs-schedule-settings";
 import "./rs-device-section";
@@ -398,6 +399,14 @@ export class RsRoomDetail extends LitElement {
           .climateControlActive=${this.climateControlActive && this._climateControlEnabled}
           @display-name-changed=${this._onDisplayNameChanged}
         ></rs-hero-status>
+
+        ${!this._isOutdoor && this.config
+          ? html`<rs-room-insights
+              .hass=${this.hass}
+              .readiness=${this.config.readiness}
+              .decisionReasons=${this.config.live?.decision_reasons ?? []}
+            ></rs-room-insights>`
+          : nothing}
 
         <div class="detail-grid">
           ${!this._isOutdoor

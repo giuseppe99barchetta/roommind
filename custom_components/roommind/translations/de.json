@@ -21,6 +21,26 @@
           }
         }
       }
+    },
+    "sensor_stale": {
+      "title": "{room}: Temperatursensor aktualisiert sich nicht",
+      "description": "RoomMind erhält keine aktuelle Raumtemperatur. Prüfe, ob der konfigurierte Sensor verfügbar ist und Werte sendet."
+    },
+    "long_run": {
+      "title": "{room}: Klimagerät läuft schon lange",
+      "description": "Prüfe Raumtemperatur, offene Fenster und Gerätekonfiguration. Die konfigurierte Laufzeitschwelle wurde überschritten."
+    },
+    "target_not_reached": {
+      "title": "{room}: Zieltemperatur wird nicht erreicht",
+      "description": "Prüfe Temperatursensor, Geräteverfügbarkeit und die Heiz- oder Kühlleistung des Raums."
+    },
+    "humidity_high": {
+      "title": "{room}: Luftfeuchte liegt weit über dem Komfortziel",
+      "description": "Prüfe Lüftung, Feuchtigkeitssensor und ob ein Entfeuchter verfügbar ist."
+    },
+    "ac_efficiency": {
+      "title": "{room}: Klimagerät arbeitet möglicherweise schwächer",
+      "description": "RoomMind hat bei gemessener Leistung eine geringe Temperaturreaktion festgestellt. Prüfe Filter, Außenbedingungen und das Gerät."
     }
   },
   "entity": {

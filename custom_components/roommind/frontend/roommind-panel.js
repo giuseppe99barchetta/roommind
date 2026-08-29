@@ -1,5 +1,5 @@
-(function(){var e=Object.defineProperty,t=(e,t,n)=>()=>{if(n)throw n[0];try{return e&&(t=e(e=0)),t}catch(e){throw n=[e],e}},n=(t,n)=>{let r={};for(var i in t)e(r,i,{get:t[i],enumerable:!0});return n||e(r,Symbol.toStringTag,{value:`Module`}),r},r,i,a,o,s,c,l,u,d,f=t((()=>{r=globalThis,i=r.ShadowRoot&&(r.ShadyCSS===void 0||r.ShadyCSS.nativeShadow)&&`adoptedStyleSheets`in Document.prototype&&`replace`in CSSStyleSheet.prototype,a=Symbol(),o=new WeakMap,s=class{constructor(e,t,n){if(this._$cssResult$=!0,n!==a)throw Error("CSSResult is not constructable. Use `unsafeCSS` or `css` instead.");this.cssText=e,this.t=t}get styleSheet(){let e=this.o,t=this.t;if(i&&e===void 0){let n=t!==void 0&&t.length===1;n&&(e=o.get(t)),e===void 0&&((this.o=e=new CSSStyleSheet).replaceSync(this.cssText),n&&o.set(t,e))}return e}toString(){return this.cssText}},c=e=>new s(typeof e==`string`?e:e+``,void 0,a),l=(e,...t)=>{let n=e.length===1?e[0]:t.reduce((t,n,r)=>t+(e=>{if(!0===e._$cssResult$)return e.cssText;if(typeof e==`number`)return e;throw Error(`Value passed to 'css' function must be a 'css' function result: `+e+`. Use 'unsafeCSS' to pass non-literal values, but take care to ensure page security.`)})(n)+e[r+1],e[0]);return new s(n,e,a)},u=(e,t)=>{if(i)e.adoptedStyleSheets=t.map(e=>e instanceof CSSStyleSheet?e:e.styleSheet);else for(let n of t){let t=document.createElement(`style`),i=r.litNonce;i!==void 0&&t.setAttribute(`nonce`,i),t.textContent=n.cssText,e.appendChild(t)}},d=i?e=>e:e=>e instanceof CSSStyleSheet?(e=>{let t=``;for(let n of e.cssRules)t+=n.cssText;return c(t)})(e):e})),p,m,ee,te,ne,re,ie,ae,oe,se,ce,le,ue,de,fe,pe=t((()=>{f(),{is:p,defineProperty:m,getOwnPropertyDescriptor:ee,getOwnPropertyNames:te,getOwnPropertySymbols:ne,getPrototypeOf:re}=Object,ie=globalThis,ae=ie.trustedTypes,oe=ae?ae.emptyScript:``,se=ie.reactiveElementPolyfillSupport,ce=(e,t)=>e,le={toAttribute(e,t){switch(t){case Boolean:e=e?oe:null;break;case Object:case Array:e=e==null?e:JSON.stringify(e)}return e},fromAttribute(e,t){let n=e;switch(t){case Boolean:n=e!==null;break;case Number:n=e===null?null:Number(e);break;case Object:case Array:try{n=JSON.parse(e)}catch{n=null}}return n}},ue=(e,t)=>!p(e,t),de={attribute:!0,type:String,converter:le,reflect:!1,useDefault:!1,hasChanged:ue},Symbol.metadata??=Symbol(`metadata`),ie.litPropertyMetadata??=new WeakMap,fe=class extends HTMLElement{static addInitializer(e){this._$Ei(),(this.l??=[]).push(e)}static get observedAttributes(){return this.finalize(),this._$Eh&&[...this._$Eh.keys()]}static createProperty(e,t=de){if(t.state&&(t.attribute=!1),this._$Ei(),this.prototype.hasOwnProperty(e)&&((t=Object.create(t)).wrapped=!0),this.elementProperties.set(e,t),!t.noAccessor){let n=Symbol(),r=this.getPropertyDescriptor(e,n,t);r!==void 0&&m(this.prototype,e,r)}}static getPropertyDescriptor(e,t,n){let{get:r,set:i}=ee(this.prototype,e)??{get(){return this[t]},set(e){this[t]=e}};return{get:r,set(t){let a=r?.call(this);i?.call(this,t),this.requestUpdate(e,a,n)},configurable:!0,enumerable:!0}}static getPropertyOptions(e){return this.elementProperties.get(e)??de}static _$Ei(){if(this.hasOwnProperty(ce(`elementProperties`)))return;let e=re(this);e.finalize(),e.l!==void 0&&(this.l=[...e.l]),this.elementProperties=new Map(e.elementProperties)}static finalize(){if(this.hasOwnProperty(ce(`finalized`)))return;if(this.finalized=!0,this._$Ei(),this.hasOwnProperty(ce(`properties`))){let e=this.properties,t=[...te(e),...ne(e)];for(let n of t)this.createProperty(n,e[n])}let e=this[Symbol.metadata];if(e!==null){let t=litPropertyMetadata.get(e);if(t!==void 0)for(let[e,n]of t)this.elementProperties.set(e,n)}this._$Eh=new Map;for(let[e,t]of this.elementProperties){let n=this._$Eu(e,t);n!==void 0&&this._$Eh.set(n,e)}this.elementStyles=this.finalizeStyles(this.styles)}static finalizeStyles(e){let t=[];if(Array.isArray(e)){let n=new Set(e.flat(1/0).reverse());for(let e of n)t.unshift(d(e))}else e!==void 0&&t.push(d(e));return t}static _$Eu(e,t){let n=t.attribute;return!1===n?void 0:typeof n==`string`?n:typeof e==`string`?e.toLowerCase():void 0}constructor(){super(),this._$Ep=void 0,this.isUpdatePending=!1,this.hasUpdated=!1,this._$Em=null,this._$Ev()}_$Ev(){this._$ES=new Promise(e=>this.enableUpdating=e),this._$AL=new Map,this._$E_(),this.requestUpdate(),this.constructor.l?.forEach(e=>e(this))}addController(e){(this._$EO??=new Set).add(e),this.renderRoot!==void 0&&this.isConnected&&e.hostConnected?.()}removeController(e){this._$EO?.delete(e)}_$E_(){let e=new Map,t=this.constructor.elementProperties;for(let n of t.keys())this.hasOwnProperty(n)&&(e.set(n,this[n]),delete this[n]);e.size>0&&(this._$Ep=e)}createRenderRoot(){let e=this.shadowRoot??this.attachShadow(this.constructor.shadowRootOptions);return u(e,this.constructor.elementStyles),e}connectedCallback(){this.renderRoot??=this.createRenderRoot(),this.enableUpdating(!0),this._$EO?.forEach(e=>e.hostConnected?.())}enableUpdating(e){}disconnectedCallback(){this._$EO?.forEach(e=>e.hostDisconnected?.())}attributeChangedCallback(e,t,n){this._$AK(e,n)}_$ET(e,t){let n=this.constructor.elementProperties.get(e),r=this.constructor._$Eu(e,n);if(r!==void 0&&!0===n.reflect){let i=(n.converter?.toAttribute===void 0?le:n.converter).toAttribute(t,n.type);this._$Em=e,i==null?this.removeAttribute(r):this.setAttribute(r,i),this._$Em=null}}_$AK(e,t){let n=this.constructor,r=n._$Eh.get(e);if(r!==void 0&&this._$Em!==r){let e=n.getPropertyOptions(r),i=typeof e.converter==`function`?{fromAttribute:e.converter}:e.converter?.fromAttribute===void 0?le:e.converter;this._$Em=r;let a=i.fromAttribute(t,e.type);this[r]=a??this._$Ej?.get(r)??a,this._$Em=null}}requestUpdate(e,t,n,r=!1,i){if(e!==void 0){let a=this.constructor;if(!1===r&&(i=this[e]),n??=a.getPropertyOptions(e),!((n.hasChanged??ue)(i,t)||n.useDefault&&n.reflect&&i===this._$Ej?.get(e)&&!this.hasAttribute(a._$Eu(e,n))))return;this.C(e,t,n)}!1===this.isUpdatePending&&(this._$ES=this._$EP())}C(e,t,{useDefault:n,reflect:r,wrapped:i},a){n&&!(this._$Ej??=new Map).has(e)&&(this._$Ej.set(e,a??t??this[e]),!0!==i||a!==void 0)||(this._$AL.has(e)||(this.hasUpdated||n||(t=void 0),this._$AL.set(e,t)),!0===r&&this._$Em!==e&&(this._$Eq??=new Set).add(e))}async _$EP(){this.isUpdatePending=!0;try{await this._$ES}catch(e){Promise.reject(e)}let e=this.scheduleUpdate();return e!=null&&await e,!this.isUpdatePending}scheduleUpdate(){return this.performUpdate()}performUpdate(){if(!this.isUpdatePending)return;if(!this.hasUpdated){if(this.renderRoot??=this.createRenderRoot(),this._$Ep){for(let[e,t]of this._$Ep)this[e]=t;this._$Ep=void 0}let e=this.constructor.elementProperties;if(e.size>0)for(let[t,n]of e){let{wrapped:e}=n,r=this[t];!0!==e||this._$AL.has(t)||r===void 0||this.C(t,void 0,n,r)}}let e=!1,t=this._$AL;try{e=this.shouldUpdate(t),e?(this.willUpdate(t),this._$EO?.forEach(e=>e.hostUpdate?.()),this.update(t)):this._$EM()}catch(t){throw e=!1,this._$EM(),t}e&&this._$AE(t)}willUpdate(e){}_$AE(e){this._$EO?.forEach(e=>e.hostUpdated?.()),this.hasUpdated||(this.hasUpdated=!0,this.firstUpdated(e)),this.updated(e)}_$EM(){this._$AL=new Map,this.isUpdatePending=!1}get updateComplete(){return this.getUpdateComplete()}getUpdateComplete(){return this._$ES}shouldUpdate(e){return!0}update(e){this._$Eq&&=this._$Eq.forEach(e=>this._$ET(e,this[e])),this._$EM()}updated(e){}firstUpdated(e){}},fe.elementStyles=[],fe.shadowRootOptions={mode:`open`},fe[ce(`elementProperties`)]=new Map,fe[ce(`finalized`)]=new Map,se?.({ReactiveElement:fe}),(ie.reactiveElementVersions??=[]).push(`2.1.2`)}));function me(e,t){if(!De(e)||!e.hasOwnProperty(`raw`))throw Error(`invalid template strings array`);return ye===void 0?t:ye.createHTML(t)}function he(e,t,n=e,r){if(t===Re)return t;let i=r===void 0?n._$Cl:n._$Co?.[r],a=Ee(t)?void 0:t._$litDirective$;return i?.constructor!==a&&(i?._$AO?.(!1),a===void 0?i=void 0:(i=new a(e),i._$AT(e,n,r)),r===void 0?n._$Cl=i:(n._$Co??=[])[r]=i),i!==void 0&&(t=he(e,i._$AS(e,t.values),i,r)),t}var ge,_e,ve,ye,be,xe,Se,Ce,we,Te,Ee,De,Oe,ke,Ae,je,Me,Ne,Pe,Fe,Ie,Le,h,Re,g,ze,Be,Ve,He,Ue,We,Ge,Ke,qe,Je,Ye,Xe,Ze,Qe=t((()=>{ge=globalThis,_e=e=>e,ve=ge.trustedTypes,ye=ve?ve.createPolicy(`lit-html`,{createHTML:e=>e}):void 0,be=`$lit$`,xe=`lit$${Math.random().toFixed(9).slice(2)}$`,Se=`?`+xe,Ce=`<${Se}>`,we=document,Te=()=>we.createComment(``),Ee=e=>e===null||typeof e!=`object`&&typeof e!=`function`,De=Array.isArray,Oe=e=>De(e)||typeof e?.[Symbol.iterator]==`function`,ke=`[ 	
-\f\r]`,Ae=/<(?:(!--|\/[^a-zA-Z])|(\/?[a-zA-Z][^>\s]*)|(\/?$))/g,je=/-->/g,Me=/>/g,Ne=RegExp(`>|${ke}(?:([^\\s"'>=/]+)(${ke}*=${ke}*(?:[^ \t\n\f\r"'\`<>=]|("|')|))|$)`,`g`),Pe=/'/g,Fe=/"/g,Ie=/^(?:script|style|textarea|title)$/i,Le=e=>(t,...n)=>({_$litType$:e,strings:t,values:n}),h=Le(1),Le(2),Le(3),Re=Symbol.for(`lit-noChange`),g=Symbol.for(`lit-nothing`),ze=new WeakMap,Be=we.createTreeWalker(we,129),Ve=(e,t)=>{let n=e.length-1,r=[],i,a=t===2?`<svg>`:t===3?`<math>`:``,o=Ae;for(let t=0;t<n;t++){let n=e[t],s,c,l=-1,u=0;for(;u<n.length&&(o.lastIndex=u,c=o.exec(n),c!==null);)u=o.lastIndex,o===Ae?c[1]===`!--`?o=je:c[1]===void 0?c[2]===void 0?c[3]!==void 0&&(o=Ne):(Ie.test(c[2])&&(i=RegExp(`</`+c[2],`g`)),o=Ne):o=Me:o===Ne?c[0]===`>`?(o=i??Ae,l=-1):c[1]===void 0?l=-2:(l=o.lastIndex-c[2].length,s=c[1],o=c[3]===void 0?Ne:c[3]===`"`?Fe:Pe):o===Fe||o===Pe?o=Ne:o===je||o===Me?o=Ae:(o=Ne,i=void 0);let d=o===Ne&&e[t+1].startsWith(`/>`)?` `:``;a+=o===Ae?n+Ce:l>=0?(r.push(s),n.slice(0,l)+be+n.slice(l)+xe+d):n+xe+(l===-2?t:d)}return[me(e,a+(e[n]||`<?>`)+(t===2?`</svg>`:t===3?`</math>`:``)),r]},He=class e{constructor({strings:t,_$litType$:n},r){let i;this.parts=[];let a=0,o=0,s=t.length-1,c=this.parts,[l,u]=Ve(t,n);if(this.el=e.createElement(l,r),Be.currentNode=this.el.content,n===2||n===3){let e=this.el.content.firstChild;e.replaceWith(...e.childNodes)}for(;(i=Be.nextNode())!==null&&c.length<s;){if(i.nodeType===1){if(i.hasAttributes())for(let e of i.getAttributeNames())if(e.endsWith(be)){let t=u[o++],n=i.getAttribute(e).split(xe),r=/([.?@])?(.*)/.exec(t);c.push({type:1,index:a,name:r[2],strings:n,ctor:r[1]===`.`?Ke:r[1]===`?`?qe:r[1]===`@`?Je:Ge}),i.removeAttribute(e)}else e.startsWith(xe)&&(c.push({type:6,index:a}),i.removeAttribute(e));if(Ie.test(i.tagName)){let e=i.textContent.split(xe),t=e.length-1;if(t>0){i.textContent=ve?ve.emptyScript:``;for(let n=0;n<t;n++)i.append(e[n],Te()),Be.nextNode(),c.push({type:2,index:++a});i.append(e[t],Te())}}}else if(i.nodeType===8){if(i.data===Se)c.push({type:2,index:a});else{let e=-1;for(;(e=i.data.indexOf(xe,e+1))!==-1;)c.push({type:7,index:a}),e+=xe.length-1}}a++}}static createElement(e,t){let n=we.createElement(`template`);return n.innerHTML=e,n}},Ue=class{constructor(e,t){this._$AV=[],this._$AN=void 0,this._$AD=e,this._$AM=t}get parentNode(){return this._$AM.parentNode}get _$AU(){return this._$AM._$AU}u(e){let{el:{content:t},parts:n}=this._$AD,r=(e?.creationScope??we).importNode(t,!0);Be.currentNode=r;let i=Be.nextNode(),a=0,o=0,s=n[0];for(;s!==void 0;){if(a===s.index){let t;s.type===2?t=new We(i,i.nextSibling,this,e):s.type===1?t=new s.ctor(i,s.name,s.strings,this,e):s.type===6&&(t=new Ye(i,this,e)),this._$AV.push(t),s=n[++o]}a!==s?.index&&(i=Be.nextNode(),a++)}return Be.currentNode=we,r}p(e){let t=0;for(let n of this._$AV)n!==void 0&&(n.strings===void 0?n._$AI(e[t]):(n._$AI(e,n,t),t+=n.strings.length-2)),t++}},We=class e{get _$AU(){return this._$AM?._$AU??this._$Cv}constructor(e,t,n,r){this.type=2,this._$AH=g,this._$AN=void 0,this._$AA=e,this._$AB=t,this._$AM=n,this.options=r,this._$Cv=r?.isConnected??!0}get parentNode(){let e=this._$AA.parentNode,t=this._$AM;return t!==void 0&&e?.nodeType===11&&(e=t.parentNode),e}get startNode(){return this._$AA}get endNode(){return this._$AB}_$AI(e,t=this){e=he(this,e,t),Ee(e)?e===g||e==null||e===``?(this._$AH!==g&&this._$AR(),this._$AH=g):e!==this._$AH&&e!==Re&&this._(e):e._$litType$===void 0?e.nodeType===void 0?Oe(e)?this.k(e):this._(e):this.T(e):this.$(e)}O(e){return this._$AA.parentNode.insertBefore(e,this._$AB)}T(e){this._$AH!==e&&(this._$AR(),this._$AH=this.O(e))}_(e){this._$AH!==g&&Ee(this._$AH)?this._$AA.nextSibling.data=e:this.T(we.createTextNode(e)),this._$AH=e}$(e){let{values:t,_$litType$:n}=e,r=typeof n==`number`?this._$AC(e):(n.el===void 0&&(n.el=He.createElement(me(n.h,n.h[0]),this.options)),n);if(this._$AH?._$AD===r)this._$AH.p(t);else{let e=new Ue(r,this),n=e.u(this.options);e.p(t),this.T(n),this._$AH=e}}_$AC(e){let t=ze.get(e.strings);return t===void 0&&ze.set(e.strings,t=new He(e)),t}k(t){De(this._$AH)||(this._$AH=[],this._$AR());let n=this._$AH,r,i=0;for(let a of t)i===n.length?n.push(r=new e(this.O(Te()),this.O(Te()),this,this.options)):r=n[i],r._$AI(a),i++;i<n.length&&(this._$AR(r&&r._$AB.nextSibling,i),n.length=i)}_$AR(e=this._$AA.nextSibling,t){for(this._$AP?.(!1,!0,t);e!==this._$AB;){let t=_e(e).nextSibling;_e(e).remove(),e=t}}setConnected(e){this._$AM===void 0&&(this._$Cv=e,this._$AP?.(e))}},Ge=class{get tagName(){return this.element.tagName}get _$AU(){return this._$AM._$AU}constructor(e,t,n,r,i){this.type=1,this._$AH=g,this._$AN=void 0,this.element=e,this.name=t,this._$AM=r,this.options=i,n.length>2||n[0]!==``||n[1]!==``?(this._$AH=Array(n.length-1).fill(new String),this.strings=n):this._$AH=g}_$AI(e,t=this,n,r){let i=this.strings,a=!1;if(i===void 0)e=he(this,e,t,0),a=!Ee(e)||e!==this._$AH&&e!==Re,a&&(this._$AH=e);else{let r=e,o,s;for(e=i[0],o=0;o<i.length-1;o++)s=he(this,r[n+o],t,o),s===Re&&(s=this._$AH[o]),a||=!Ee(s)||s!==this._$AH[o],s===g?e=g:e!==g&&(e+=(s??``)+i[o+1]),this._$AH[o]=s}a&&!r&&this.j(e)}j(e){e===g?this.element.removeAttribute(this.name):this.element.setAttribute(this.name,e??``)}},Ke=class extends Ge{constructor(){super(...arguments),this.type=3}j(e){this.element[this.name]=e===g?void 0:e}},qe=class extends Ge{constructor(){super(...arguments),this.type=4}j(e){this.element.toggleAttribute(this.name,!!e&&e!==g)}},Je=class extends Ge{constructor(e,t,n,r,i){super(e,t,n,r,i),this.type=5}_$AI(e,t=this){if((e=he(this,e,t,0)??g)===Re)return;let n=this._$AH,r=e===g&&n!==g||e.capture!==n.capture||e.once!==n.once||e.passive!==n.passive,i=e!==g&&(n===g||r);r&&this.element.removeEventListener(this.name,this,n),i&&this.element.addEventListener(this.name,this,e),this._$AH=e}handleEvent(e){typeof this._$AH==`function`?this._$AH.call(this.options?.host??this.element,e):this._$AH.handleEvent(e)}},Ye=class{constructor(e,t,n){this.element=e,this.type=6,this._$AN=void 0,this._$AM=t,this.options=n}get _$AU(){return this._$AM._$AU}_$AI(e){he(this,e)}},Xe=ge.litHtmlPolyfillSupport,Xe?.(He,We),(ge.litHtmlVersions??=[]).push(`3.3.2`),Ze=(e,t,n)=>{let r=n?.renderBefore??t,i=r._$litPart$;if(i===void 0){let e=n?.renderBefore??null;r._$litPart$=i=new We(t.insertBefore(Te(),e),e,void 0,n??{})}return i._$AI(e),i}})),$e,_,et,tt=t((()=>{pe(),pe(),Qe(),Qe(),$e=globalThis,_=class extends fe{constructor(){super(...arguments),this.renderOptions={host:this},this._$Do=void 0}createRenderRoot(){let e=super.createRenderRoot();return this.renderOptions.renderBefore??=e.firstChild,e}update(e){let t=this.render();this.hasUpdated||(this.renderOptions.isConnected=this.isConnected),super.update(e),this._$Do=Ze(t,this.renderRoot,this.renderOptions)}connectedCallback(){super.connectedCallback(),this._$Do?.setConnected(!0)}disconnectedCallback(){super.disconnectedCallback(),this._$Do?.setConnected(!1)}render(){return Re}},_._$litElement$=!0,_.finalized=!0,$e.litElementHydrateSupport?.({LitElement:_}),et=$e.litElementPolyfillSupport,et?.({LitElement:_}),($e.litElementVersions??=[]).push(`4.2.2`)})),nt=t((()=>{})),v=t((()=>{pe(),Qe(),tt(),nt()})),y,rt=t((()=>{y=e=>(t,n)=>{n===void 0?customElements.define(e,t):n.addInitializer(()=>{customElements.define(e,t)})}}));function b(e){return(t,n)=>typeof n==`object`?at(e,t,n):((e,t,n)=>{let r=t.hasOwnProperty(n);return t.constructor.createProperty(n,e),r?Object.getOwnPropertyDescriptor(t,n):void 0})(e,t,n)}var it,at,ot=t((()=>{pe(),it={attribute:!0,type:String,converter:le,reflect:!1,hasChanged:ue},at=(e=it,t,n)=>{let{kind:r,metadata:i}=n,a=globalThis.litPropertyMetadata.get(i);if(a===void 0&&globalThis.litPropertyMetadata.set(i,a=new Map),r===`setter`&&((e=Object.create(e)).wrapped=!0),a.set(n.name,e),r===`accessor`){let{name:r}=n;return{set(n){let i=t.get.call(this);t.set.call(this,n),this.requestUpdate(r,i,e,!0,n)},init(t){return t!==void 0&&this.C(r,void 0,e,t),t}}}if(r===`setter`){let{name:r}=n;return function(n){let i=this[r];t.call(this,n),this.requestUpdate(r,i,e,!0,n)}}throw Error(`Unsupported decorator location: `+r)}}));function x(e){return b({...e,state:!0,attribute:!1})}var st=t((()=>{ot()})),ct=t((()=>{})),lt,ut=t((()=>{lt=(e,t,n)=>(n.configurable=!0,n.enumerable=!0,Reflect.decorate&&typeof t!=`object`&&Object.defineProperty(e,t,n),n)}));function dt(e,t){return(n,r,i)=>{let a=t=>t.renderRoot?.querySelector(e)??null;if(t){let{get:e,set:t}=typeof r==`object`?n:i??(()=>{let e=Symbol();return{get(){return this[e]},set(t){this[e]=t}}})();return lt(n,r,{get(){let n=e.call(this);return n===void 0&&(n=a(this),(n!==null||this.hasUpdated)&&t.call(this,n)),n}})}return lt(n,r,{get(){return a(this)}})}}var ft=t((()=>{ut()})),pt=t((()=>{})),mt=t((()=>{})),ht=t((()=>{})),gt=t((()=>{})),S=t((()=>{rt(),ot(),st(),ct(),ft(),pt(),mt(),ht(),gt()}));v(),S();var _t={en:{"panel.title":`RoomMind`,"panel.subtitle":`Climate management`,"panel.tab.rooms":`Rooms`,"panel.edit":`Edit room`,"panel.tab.settings":`Settings`,"panel.loading":`Loading...`,"panel.no_areas":`No areas configured in Home Assistant.`,"panel.no_areas_hint":`Add areas in HA settings to get started.`,"badge.beta":`Beta`,"badge.beta_hint":`This feature is in beta and may change or be restructured in future updates.`,"common.learn_more":`Learn more`,"panel.stat.rooms":`Rooms`,"panel.stat.heating":`Heating`,"panel.stat.cooling":`Cooling`,"panel.stat.vacation":`Vacation`,"panel.stat.away":`Away`,"panel.stat.mold":`Mold`,"panel.hide_room":`Hide`,"panel.unhide":`Show`,"panel.hidden_rooms":`Hidden rooms`,"panel.floor_other":`Other`,"panel.reorder":`Reorder rooms`,"panel.reorder_done":`Done`,"room.back":`Back to rooms`,"room.section.climate_mode":`Climate Mode`,"room.section.schedule":`Schedule & Temperatures`,"room.section.control_mode":`Control Mode`,"room.section.devices":`Devices`,"room.section.sensors":`Sensors`,"room.section.windows":`Window Sensors`,"room.control_mode.full_control":`Full Control`,"room.control_mode.managed":`Managed`,"room.control_mode.external_sensor":`External sensor: {sensor}`,"room.control_mode.no_sensor":`No external temperature sensor assigned`,"room.control_mode.mpc_active":`MPC active`,"room.control_mode.mpc_learning":`Learning`,"room.control_mode.device_setpoint":`Device setpoint: {temp}`,"room.control_mode.power":`Power: {power}%`,"room.control_mode.full_control_info":`RoomMind has full control over your climate devices. An external temperature sensor provides the actual room temperature, enabling proportional setpoint calculation. The device setpoint is dynamically adjusted based on MPC power output. The thermal model (EKF) learns your room's behavior for optimal comfort and energy efficiency.`,"room.control_mode.managed_info":`RoomMind sets the target temperature on your device (from schedule, override, or vacation settings), but the device self-regulates using its own internal sensor. No proportional boost, no thermal model learning, and no MPC optimization. For more precise control, assign an external temperature sensor in the Devices section.`,"room.delete":`Delete room`,"room.deleting":`Deleting...`,"room.saving":`Saving...`,"room.saved":`Saved`,"room.error_saving":`Error saving`,"room.confirm_delete":`Remove RoomMind configuration for "{name}"?`,"room.error_save_fallback":`Failed to save configuration`,"room.error_delete_fallback":`Failed to delete configuration`,"room.climate_control_toggle":`Climate control`,"room.climate_control_hint":`When disabled, RoomMind stops controlling devices in this room. They keep their current settings and may continue heating or cooling on their own. RoomMind will not turn them off.`,"room.outdoor_toggle":`Outdoor area`,"room.outdoor_hint":`Disables climate control, mold detection, and model training. Sensor monitoring continues.`,"room.alias.placeholder":`Custom display name`,"room.alias.clear":`Reset to area name`,"override.label":`Temporary Override`,"override.comfort":`Comfort`,"override.eco":`Eco`,"override.custom":`Custom`,"override.target":`Target:`,"override.heat_to":`Heat to:`,"override.cool_above":`Cool above:`,"override.invalid_band":`Cooling target must be at or above the heating target`,"override.activate_for":`Activate for:`,"override.error_set":`Failed to set override`,"override.error_clear":`Failed to clear override`,"hero.target":`Target`,"hero.override":`Override`,"hero.remaining":`{time} remaining`,"hero.humidity":`{value}% humidity`,"hero.device_setpoint":`Device set to {value}{unit}`,"hero.heat_source_primary":`Heating: TRV`,"hero.heat_source_secondary":`Heating: AC`,"hero.heat_source_both":`Heating: TRV + AC`,"hero.permanent":`Permanent`,"hero.waiting":`Waiting for sensor data...`,"hero.not_configured":`Not configured yet`,"hero.mpc_learning_paused":`MPC learning paused`,"hero.mpc_learning_paused.outdoor_unavailable":`RoomMind needs an outdoor temperature to learn this room's thermal model. The configured outdoor sensor is unavailable and no weather entity is set as a fallback. Configure either in Settings.`,"hero.compressor_protection_min_off":`Compressor protection: waiting for min-off`,"hero.compressor_protection_min_run":`Compressor protection: min-run active`,"hero.compressor_protection_info":`This room shares an outdoor compressor with other rooms. To prevent short-cycling, the shared compressor group enforces a minimum run time and a minimum off time before this device is allowed to switch again.`,"card.target":`Target`,"card.waiting":`Waiting for data...`,"card.humidity":`{value}% humidity`,"card.thermostat":`Thermostat`,"card.thermostats":`Thermostats`,"card.ac":`AC`,"card.acs":`ACs`,"card.climate_device":`climate device`,"card.climate_devices":`climate devices`,"card.temp_sensor":`temp sensor`,"card.temp_sensors":`temp sensors`,"card.no_climate":`No climate devices`,"card.outdoor":`Outdoor`,"card.tap_configure":`Tap to configure`,"card.mpc_active":`MPC active`,"card.mpc_learning":`MPC learning`,"card.not_controlled":`Not controlled by RoomMind`,"mode.auto":`Auto`,"mode.auto_desc":`Heats & cools automatically based on target temperature`,"mode.heat_only":`Heat Only`,"mode.heat_only_desc":`Only uses thermostats, ACs stay off`,"mode.cool_only":`Cool Only`,"mode.cool_only_desc":`Only uses ACs, thermostats stay off`,"mode.heating":`Heating`,"mode.cooling":`Cooling`,"mode.idle":`Standby`,"schedule.add_schedule":`Add schedule`,"schedule.select_schedule":`Select schedule helper`,"schedule.create_helper_hint":`Create new schedule helper in HA settings`,"schedule.selector_label":`Schedule selector entity`,"schedule.selector_value_boolean":`Current: {value}`,"schedule.selector_value_number":`Current value: {value}`,"schedule.selector_warning":`Multiple schedules but no selector set. Only the first will be used.`,"schedule.off_action_label":`Action when schedule is off`,"schedule.off_action_eco":`Use eco temperature`,"schedule.off_action_off":`Turn off devices`,"schedule.state_active":`Active`,"schedule.state_inactive":`Inactive`,"schedule.state_unreachable":`Unreachable`,"schedule.no_schedules":`No schedules configured`,"schedule.done":`Done`,"schedule.view_comfort":`Comfort: {temp}{unit}`,"schedule.view_eco":`Eco: {temp}{unit}`,"schedule.view_selector":`Active schedule selected by: {name}`,"schedule.view_selector_prefix":`Active schedule selected by:`,"schedule.help_header":`How do schedules work?`,"schedule.help_temps_title":`How is the target temperature determined?`,"schedule.help_temps":`The target temperature follows this priority chain:`,"schedule.help_temps_1":`<strong>Manual override</strong> – A temporary boost/eco/custom override always takes highest priority.`,"schedule.help_temps_2":`<strong>Block temperature</strong> – If the active schedule block has a <code>temperature</code> value in its data, that value is used.`,"schedule.help_temps_3":`<strong>Comfort temperature</strong> – If the schedule is "on" but the block has no temperature, the comfort fallback temperature below is used.`,"schedule.help_temps_4":`<strong>Eco temperature</strong> – When the schedule is "off" (outside all time blocks), the eco temperature is used.`,"schedule.help_block_title":`Setting temperature per time block`,"schedule.help_block":`You can set a specific temperature for each time block by adding a <code>temperature</code> value in the schedule's YAML configuration:`,"schedule.help_block_note":`If a block has no <code>temperature</code> data, the comfort fallback temperature is used instead.`,"schedule.help_split_title":`Separate heating/cooling targets per block`,"schedule.help_split":`For auto-mode rooms, you can set separate heating and cooling targets per time block using <code>heat_temperature</code> and <code>cool_temperature</code>:`,"schedule.help_split_note":`If only one is set, the other falls back to the room's comfort temperature. These keys take priority over <code>temperature</code> when present.`,"schedule.help_multi_title":`Multiple schedules`,"schedule.help_multi":`You can add multiple schedules and switch between them using a <strong>selector entity</strong>. This can be an <code>input_boolean</code> (toggles between schedule 1 and 2) or an <code>input_number</code> (selects by number). Without a selector entity, only the first schedule is used.`,"schedule.column_comfort":`Comfort`,"schedule.column_eco":`Eco`,"schedule.row_heat":`Heat`,"schedule.row_cool":`Cool`,"schedule.view_heat":`Heat: {comfort} / {eco}{unit}`,"schedule.view_cool":`Cool: {comfort} / {eco}{unit}`,"schedule.comfort_hint_auto":`Comfort: target when schedule is on. Eco: target when schedule is off. Rows set the target for heating and cooling.`,"schedule.comfort_label":`Fallback comfort temperature`,"schedule.eco_label":`Eco temperature`,"schedule.comfort_hint":`Used when schedule is "on" but no temperature is set in the block`,"schedule.from_schedule":`{temp}{unit} from schedule`,"schedule.from_schedule_split":`{heat}{unit} / {cool}{unit} from schedule`,"schedule.fallback":`{temp}{unit} (fallback)`,"schedule.eco_detail":`{temp}{unit} (eco)`,"devices.climate_entities":`Climate entities`,"devices.temp_sensors":`Temperature sensors`,"devices.humidity_sensors":`Humidity sensors`,"devices.no_climate":`No climate entities found in this area.`,"devices.no_temp_sensors":`No temperature sensors found in this area.`,"devices.no_humidity_sensors":`No humidity sensors found in this area.`,"devices.occupancy_sensors":`Occupancy Sensors`,"devices.no_occupancy_sensors":`No occupancy sensors found in this area`,"devices.occupancy_sensor_hint":`Improves thermal model accuracy by tracking room occupancy`,"devices.window_sensors":`Window / door sensors`,"devices.no_window_sensors":`No window/door sensors found in this area.`,"devices.window_open_delay":`Delay before pausing`,"devices.window_close_delay":`Delay before resuming`,"devices.add_entity":`Add entity`,"devices.done":`Done`,"devices.other_area":`Other area`,"devices.type_thermostat":`Thermostat`,"devices.type_ac":`Climate Device`,"devices.type_label":`Type`,"devices.select_to_configure":`Select a device to configure`,"devices.heating_system_type":`Heating System Type`,"devices.heating_system_type_info":`After heating stops, radiators and especially underfloor systems continue to release stored heat. RoomMind accounts for this residual heat to avoid overshooting and improve model accuracy. Underfloor rooms also get longer minimum run times.`,"devices.system_type_none":`Standard (no residual heat)`,"devices.system_type_radiator":`Radiator`,"devices.system_type_underfloor":`Underfloor Heating`,"devices.underfloor_delay_hint":`Underfloor heating has long restart times. A window-open delay of at least 5 minutes is recommended to avoid unnecessary shutoffs.`,"devices.heating_system_type_boost_hint":`Tip: If the heating system has changed, you can accelerate re-learning under Settings.`,"devices.idle_action":`When idle`,"devices.idle_action_off":`Turn off`,"devices.idle_action_fan_only":`Fan only`,"devices.idle_action_setback":`Setback`,"devices.idle_action_low":`Low setpoint (keep awake)`,"devices.idle_action_low_hint":`Lowers the setpoint to the device minimum instead of sending off. Prevents TRVs that hibernate in off mode from losing later commands.`,"devices.idle_fan_mode":`Fan speed`,"devices.idle_fan_mode_keep":`Don't change`,"devices.fan_only_conditions":`Fan-only conditions`,"devices.fan_only_only_after_cooling":`Only after cooling`,"devices.fan_only_require_presence":`Only when tracked people are home`,"devices.fan_only_require_schedule":`Only during an active schedule`,"devices.fan_only_seasons":`Allowed seasons`,"devices.fan_only_season_spring":`Spring`,"devices.fan_only_season_summer":`Summer`,"devices.fan_only_season_autumn":`Autumn`,"devices.fan_only_season_winter":`Winter`,"devices.fan_only_season_hint":`Season filters require Home Assistant's Season integration, which provides sensor.season. If it is unavailable, fan-only stays off.`,"devices.setpoint_mode":`Setpoint mode`,"devices.setpoint_mode_proportional":`Proportional (valve control)`,"devices.setpoint_mode_direct":`Direct (device regulates)`,"devices.setpoint_mode_hint":`Direct sends the actual room target to the device — best for thermostats and space heaters that regulate themselves. Proportional sends a boosted setpoint toward the device max_temp — best for radiator valves (TRVs).`,"devices.valve_protection_excluded":`Excluded from valve protection`,"devices.valve_protection_exclude_hint":`This entity will not be cycled by valve protection (e.g. virtual boiler entities)`,"devices.info.types_title":`Device types`,"devices.info.types_body":`Thermostat means a radiator thermostat / TRV. Climate Device means an AC, heat pump, or other climate entity used for cooling or forced-air heating. Both are Home Assistant climate entities; the distinction is how RoomMind controls them.`,"devices.info.control_title":`How RoomMind controls them`,"devices.info.control_body":`Setpoint mode only applies to thermostats in Full Control rooms with an external temperature sensor. Use Proportional when RoomMind should drive heating output by sending boosted setpoints. Use Direct when the device should regulate itself around the real target temperature.`,"devices.info.modes_title":`Idle behavior`,"devices.info.modes_body":`When idle only applies to Climate Devices. Turn off powers the device down. Fan only keeps airflow without heating or cooling. Setback keeps the current mode active but moves the target 2°C away from the room target. This setback offset is currently fixed. For Thermostats, Low keeps the TRV active at its minimum setpoint instead of off, useful for battery-powered Zigbee TRVs that sleep when set to off.`,"devices.info.heat_source_title":`Smart source selection`,"devices.info.heat_source_body":`This appears only when a room has both a thermostat/TRV and a Climate Device plus an external temperature sensor. RoomMind can then choose which source should handle heating based on temperature gap and outdoor conditions.`,"hero.window_open":`Window open – paused`,"card.window_open":`Window open`,"room.section.covers":`Covers & Blinds`,"covers.section_title":`Covers & Blinds`,"covers.auto_control":`Automatic blind control`,"covers.auto_control_hint":`RoomMind closes blinds when solar gain is predicted to overheat the room.`,"covers.deploy_threshold":`Deploy threshold`,"covers.deploy_threshold_hint":`Close blinds when predicted temperature exceeds target by this amount.`,"covers.min_position":`Minimum open position`,"covers.min_position_hint":`Blinds will never close further than this (0 = fully closed allowed).`,"covers.override_minutes":`Override pause duration`,"covers.override_minutes_hint":`How long to pause automatic control after manual cover movement. Set to 0 for no pause.`,"covers.no_covers":`No cover entities configured.`,"covers.no_covers_in_area":`No cover entities found in this area.`,"covers.add_cover":`Add cover entity...`,"covers.shading_active":`Shading active`,"covers.auto_paused":`Auto paused (manual override)`,"covers.auto_paused_until":`Auto control paused until`,"covers.resume_auto":`Resume automatic control`,"covers.done":`Done`,"covers.night_close":`Close at night`,"covers.night_close_hint":`Automatically close covers at sunset and open at sunrise.`,"covers.night_close_active":`Night closing active`,"covers.schedule_group_title":`Schedule`,"covers.solar_group_title":`Solar control`,"covers.schedule_section":`Cover schedules`,"covers.schedule_section_hint":`Define time windows for cover control using HA schedule helpers. In Force position mode the schedule's position overrides solar/thermal logic. In Allow solar protection mode RoomMind decides the position within the active window.`,"covers.add_schedule":`Add cover schedule...`,"covers.schedule_mode_force":`Force position`,"covers.schedule_mode_gate":`Allow solar protection`,"covers.schedule_mode_gate_short":`Solar gate`,"covers.schedule_position":`Position`,"covers.schedule_position_hint":`Cover position when this schedule is active (0% = fully closed, 100% = fully open).`,"covers.schedule_selector":`Schedule selector entity`,"covers.schedule_selector_hint":`Choose which schedule is active. input_boolean: off=#1, on=#2. input_number: value selects schedule number.`,"covers.schedule_selector_warning":`Multiple schedules configured but no selector set. Only the first schedule will be used.`,"covers.schedule_state_active":`Active`,"covers.schedule_state_inactive":`Inactive`,"covers.schedule_state_unreachable":`Unreachable`,"covers.schedule_active":`Schedule active`,"covers.schedule_create_link":`Create schedule helper`,"covers.night_position":`Night position`,"covers.night_position_hint":`Cover position when night close is active (0% = fully closed). Covers with an individual min. position will never go below that.`,"covers.night_close_advanced":`Advanced`,"covers.night_close_elevation":`Sun position threshold`,"covers.night_close_elevation_hint":`How far below or above the horizon the sun must be. 0° = exactly at sunset/sunrise. Negative = darker (e.g. -6° = dusk, when it's noticeably dark). Positive = still bright (e.g. 5° = sun still visible above horizon).`,"covers.night_close_offset":`Time offset`,"covers.night_close_offset_hint":`Additional shift relative to the sun position threshold. Positive = close later (e.g. +20 = 20 min after threshold is reached), negative = close earlier.`,"covers.outdoor_min_temp":`Min. outdoor temperature`,"covers.outdoor_min_temp_hint":`Don't close covers for solar protection below this outdoor temperature. Solar heat gain is welcome when it's cold.`,"covers.per_cover_title":`Per-cover settings`,"covers.per_cover_hint":`Set the compass direction each cover faces and optional individual minimum positions.`,"covers.per_cover_min_short":`Min`,"covers.per_cover_min_position":`Min. position`,"covers.per_cover_min_position_hint":`Individual minimum position per cover. Covers will never close further than this. Useful when blinds are physically fully closed at a position > 0%.`,"covers.snap_deploy":`Snap to minimum position`,"covers.snap_deploy_hint":`Close covers directly to the minimum position instead of gradually closing. Recommended for triple-pane windows where intermediate positions can cause thermal stress.`,"covers.info.selection_title":`Cover selection`,"covers.info.selection_body":`Select covers/blinds from this area or add entities from other areas. RoomMind tracks their position and can control them automatically.`,"covers.info.schedule_title":`Schedule control`,"covers.info.schedule_body":`Use HA schedule helpers to define times when covers should close (e.g. privacy in the evening). The schedule's position attribute determines how far they close. Schedules override all other automatic logic.`,"covers.info.solar_title":`Solar/thermal control`,"covers.info.solar_body":`When automatic control is enabled, RoomMind predicts whether solar radiation will overheat the room and closes blinds preventively. It uses learned thermal data when available, otherwise a conservative default. The deploy threshold controls how much predicted overshoot is needed before blinds close.`,"covers.info.night_title":`Night closing`,"covers.info.night_body":`Closes covers at sunset and opens them at sunrise. You can set a custom night position (e.g. 10% = almost closed but not fully).`,"covers.info.override_title":`Manual override`,"covers.info.override_body":`If you manually move a cover, RoomMind detects this and pauses automatic control for the configured duration. This prevents fighting with the user.`,"covers.info.priority_title":`Priority order`,"covers.info.priority_body":`Manual override > Schedule > Night close > Solar/thermal control. Higher priority rules always win. When no rule applies, covers stay open.`,"covers.info.entities_title":`HA entities`,"covers.info.entities_body":`RoomMind creates two entities per room for external use: switch.roommind_{area}_cover_auto (enable/disable automatic cover control — usable in automations or dashboards) and binary_sensor.roommind_{area}_cover_paused (on when manual override is active, e.g. after manually moving a cover).`,"covers.orientation_group_title":`Cover orientation`,"covers.orientation_hint":`Set the compass direction each cover faces. RoomMind uses this to skip solar deployment when the sun is not shining on that side of the building.`,"covers.orientation_none":`Any direction`,"covers.orientation_N":`N`,"covers.orientation_NE":`NE`,"covers.orientation_E":`E`,"covers.orientation_SE":`SE`,"covers.orientation_S":`S`,"covers.orientation_SW":`SW`,"covers.orientation_W":`W`,"covers.orientation_NW":`NW`,"covers.orientation_N_full":`North`,"covers.orientation_NE_full":`Northeast`,"covers.orientation_E_full":`East`,"covers.orientation_SE_full":`Southeast`,"covers.orientation_S_full":`South`,"covers.orientation_SW_full":`Southwest`,"covers.orientation_W_full":`West`,"covers.orientation_NW_full":`Northwest`,"settings.general_title":`General`,"settings.group_by_floor":`Group rooms by floor`,"settings.climate_control_active":`Climate control active`,"settings.climate_control_hint":`When disabled, RoomMind continues to monitor all sensors and train the model, but sends no commands to your heating or cooling devices. Your devices keep their current mode and setpoint and may continue heating or cooling on their own. RoomMind will not turn them off.`,"settings.learning_title":`Model Training`,"settings.learning_hint":`When paused, RoomMind stops collecting new measurement data and training the thermal model. Existing model data is preserved.`,"settings.learning_exceptions":`Exceptions`,"settings.learning_room_paused":`room paused`,"settings.learning_rooms_paused":`rooms paused`,"settings.sensors_title":`Sensors & Data Sources`,"settings.control_title":`Control`,"settings.outdoor_sensor":`Outdoor Temperature`,"settings.outdoor_sensor_label":`Outdoor temperature sensor`,"settings.outdoor_current":`Currently {temp}{unit} outside`,"settings.outdoor_waiting":`Waiting for sensor data...`,"settings.outdoor_humidity_sensor":`Outdoor Humidity`,"settings.outdoor_humidity_label":`Outdoor humidity sensor`,"settings.outdoor_humidity_current":`Currently {value}% outside`,"settings.smart_control":`Smart Climate Control`,"settings.smart_control_hint":`Configure outdoor temperature limits for heating and cooling.`,"settings.outdoor_cooling_min":`Minimum outdoor temp for cooling`,"settings.outdoor_cooling_min_hint":`AC stays off when outdoor temperature is below this value`,"settings.outdoor_heating_max":`Maximum outdoor temp for heating`,"settings.outdoor_heating_max_hint":`Heating stays off when outdoor temperature exceeds this value`,"settings.saving":`Saving...`,"settings.saved":`Saved`,"settings.error":`Error saving`,"devices.using_builtin_sensor":`Using thermostat's built-in sensor`,"settings.climate_intelligence":`Climate Intelligence`,"settings.control_mode":`Control Mode`,"settings.control_mode_simple":`Simple (Bang-Bang)`,"settings.control_mode_mpc":`Intelligent (MPC)`,"settings.control_mode_hint":`MPC learns your room's thermal behavior for optimal control`,"settings.comfort_weight":`Priority`,"settings.comfort_weight_comfort":`Comfort`,"settings.comfort_weight_efficiency":`Efficiency`,"settings.comfort_weight_hint":`Balances temperature precision against energy use. Comfort reacts earlier and stays closer to target. Efficiency allows more drift to reduce heating/cooling runtime.`,"settings.weather_entity":`Weather Forecast`,"settings.weather_entity_hint":`Optional: enables predictive outdoor temperature planning, and acts as a fallback when the outdoor sensor is unavailable`,"settings.outdoor_unavailable_notify":`Notify when outdoor temperature is unavailable`,"settings.outdoor_unavailable_notify_hint":`Show a Home Assistant notification when neither the outdoor sensor nor the weather entity has reported a temperature for 30 minutes. While this is the case, RoomMind pauses thermal model learning to avoid corruption.`,"settings.prediction_enabled":`Temperature prediction`,"settings.prediction_enabled_hint":`Show predicted temperature trend in analytics charts. Disable if you experience slow performance.`,"vacation.title":`Vacation Mode`,"vacation.hint":`Sets all rooms to a setback temperature until the end date.`,"vacation.active_label":`Vacation mode active`,"vacation.end_date":`End date & time`,"vacation.setback_temp":`Setback temperature`,"vacation.no_end_date":`No end date`,"vacation.deactivate":`Deactivate`,"tabs.analytics":`Analytics`,"analytics.select_room":`Select Room`,"analytics.temperature":`Temperature`,energy_title:`Energy consumption`,energy_subtitle:`Measured AC demand and learned 3-hour forecast`,energy_room_power:`Room total`,energy_forecast:`Room forecast`,energy_forecast_short:`forecast`,energy_now:`Power now`,energy_period:`Energy in range`,energy_next_3h:`Forecast next 3h`,energy_learning:`Learning samples`,"analytics.target":`Target`,"analytics.prediction":`Prediction`,"analytics.outdoor":`Outdoor`,"analytics.model_status":`Model Status`,"analytics.confidence":`Confidence`,"analytics.heating_rate":`Heating Strength`,"analytics.cooling_rate":`Cooling Strength`,"analytics.solar_gain":`Solar Gain`,"analytics.occupancy_gain":`Occupancy Gain`,"analytics.time_constant":`Time Constant`,"analytics.samples":`Samples`,"analytics.prediction_accuracy":`Prediction Accuracy`,"analytics.avg_deviation":`Avg. Deviation`,"analytics.data_sources":`Data Sources`,"analytics.data_points":`Data Points`,"analytics.control_mode":`Control Mode`,"analytics.control_mode_mpc":`MPC active`,"analytics.control_mode_bangbang":`MPC learning`,"analytics.last_model_update":`Last Model Update`,"analytics.accuracy_idle":`Accuracy (Idle)`,"analytics.accuracy_heating":`Accuracy (Heating)`,"analytics.info.accuracy_idle":`How precisely the model predicts temperature when neither heating nor cooling is active. A lower value means the model understands your room's natural heat loss well. This is the first value to improve because idle data is collected continuously.`,"analytics.info.accuracy_heating":`How precisely the model predicts temperature during active heating. This value stays high initially because the model needs real heating cycles to learn from. Once your heating has run a few times, this value will drop and MPC control becomes available.`,"analytics.info.confidence":`Overall model readiness for intelligent MPC control, combining two factors: data quantity (how many idle and active-mode samples have been collected) and prediction accuracy (how precise the temperature forecasts are). Confidence starts at 0% and rises as the model collects data and learns. Around 50% means enough idle data but still waiting for heating/cooling cycles. Above 80% means the model has enough data and accurate predictions — MPC control becomes available. 100% is the theoretical maximum when predictions are as accurate as physically possible.`,"analytics.info.time_constant":`How long it takes your room to naturally cool down halfway toward the outdoor temperature when heating is off. A longer time constant means better insulation — the room holds warmth longer. A short time constant means the room cools quickly. The model learns this by observing temperature drops during idle periods.`,"analytics.info.heating_rate":`How strongly your heating affects the room temperature. A higher value means your heating system warms the room faster relative to its thermal mass. The model learns this by observing how quickly the temperature rises during active heating, and uses it to predict how long heating needs to run.`,"analytics.info.cooling_rate":`How strongly your AC affects the room temperature. A higher value means the AC cools the room faster relative to its thermal mass. The model learns this by observing how quickly the temperature drops during active cooling, and uses it to predict how long the AC needs to run.`,"analytics.info.solar_gain":`The estimated effect of solar radiation through windows on room temperature. The model learns this by observing how the room warms during sunny periods when heating is off. Rooms with large south-facing windows will have higher values. The model uses this to reduce heating when solar gain is expected.`,"analytics.info.occupancy_gain":`The estimated heat contribution from occupancy (people, pets, computers) while the room is occupied. The model learns this by observing temperature changes when the configured occupancy sensors are active. Separating this from solar gain prevents body heat from being misattributed to sunlight. Only shown when at least one occupancy sensor is configured for this room.`,"analytics.info.data_sources":`Number of measurement samples used for model training.`,"analytics.info.data_points":`Total number of observations the model has been trained on. More data points generally lead to better predictions. The model collects a new data point roughly every 3 minutes while RoomMind is running.`,"analytics.no_data":`No data yet — model is learning`,"analytics.loading":`Loading analytics...`,"settings.reset_title":`Reset Thermal Data`,"settings.reset_hint":`Clear learned thermal model data and history. The model will start learning from scratch.`,"settings.reset_all_label":`All rooms`,"settings.reset_all_hint":`Clear thermal data and history for all rooms at once.`,"settings.reset_all_btn":`Reset all`,"settings.reset_all_confirm":`Clear all learned thermal data and history for ALL rooms? All models will start learning from scratch.`,"settings.reset_room_label":`Individual room`,"settings.reset_room_hint":`Select a room to clear its thermal data and history.`,"settings.reset_room_confirm":`Clear all learned thermal data and history for this room? The model will start learning from scratch.`,"settings.reset_room_select":`Select room`,"settings.reset_btn":`Reset`,"settings.reset_no_rooms":`No configured rooms.`,"settings.boost_title":`Accelerate Learning`,"settings.boost_hint":`The thermal model learns your room's heating and cooling behavior over time. After major changes (new radiator, AC, insulation, furniture), the model may be inaccurate. This increases the model's uncertainty so it adapts faster to new conditions.`,"settings.boost_label":`Accelerate learning`,"settings.boost_room_select":`Select room`,"settings.boost_btn":`Accelerate`,"settings.boost_cooldown":`Active – re-learning in progress`,"settings.boost_no_rooms":`No configured rooms.`,"analytics.range_1d":`Today`,"analytics.range_2d":`2 days`,"analytics.range_7d":`Week`,"analytics.range_30d":`Month`,"analytics.export":`Measurements`,"analytics.heating_period":`Heating`,"analytics.cooling_period":`Cooling`,"analytics.blind_position":`Blind position`,"analytics.window_open_period":`Window open`,"analytics.chart_info_title":`How to read this chart`,"analytics.exported":`Exported!`,"analytics.copy_diagnostics":`Diagnostics`,"analytics.export_download":`Download file`,"analytics.export_clipboard":`Copy to clipboard`,"analytics.copied_to_clipboard":`Copied!`,"analytics.range_from":`From`,"analytics.range_to":`To`,"analytics.chart_info_body":`**Lines:** The solid orange line shows the measured room temperature. The green dashed line is the target temperature from your schedule. The blue dotted line is the model's temperature prediction.
+(function(){var e=Object.defineProperty,t=(e,t,n)=>()=>{if(n)throw n[0];try{return e&&(t=e(e=0)),t}catch(e){throw n=[e],e}},n=(t,n)=>{let r={};for(var i in t)e(r,i,{get:t[i],enumerable:!0});return n||e(r,Symbol.toStringTag,{value:`Module`}),r},r,i,a,o,s,c,l,u,d,f=t((()=>{r=globalThis,i=r.ShadowRoot&&(r.ShadyCSS===void 0||r.ShadyCSS.nativeShadow)&&`adoptedStyleSheets`in Document.prototype&&`replace`in CSSStyleSheet.prototype,a=Symbol(),o=new WeakMap,s=class{constructor(e,t,n){if(this._$cssResult$=!0,n!==a)throw Error("CSSResult is not constructable. Use `unsafeCSS` or `css` instead.");this.cssText=e,this.t=t}get styleSheet(){let e=this.o,t=this.t;if(i&&e===void 0){let n=t!==void 0&&t.length===1;n&&(e=o.get(t)),e===void 0&&((this.o=e=new CSSStyleSheet).replaceSync(this.cssText),n&&o.set(t,e))}return e}toString(){return this.cssText}},c=e=>new s(typeof e==`string`?e:e+``,void 0,a),l=(e,...t)=>{let n=e.length===1?e[0]:t.reduce((t,n,r)=>t+(e=>{if(!0===e._$cssResult$)return e.cssText;if(typeof e==`number`)return e;throw Error(`Value passed to 'css' function must be a 'css' function result: `+e+`. Use 'unsafeCSS' to pass non-literal values, but take care to ensure page security.`)})(n)+e[r+1],e[0]);return new s(n,e,a)},u=(e,t)=>{if(i)e.adoptedStyleSheets=t.map(e=>e instanceof CSSStyleSheet?e:e.styleSheet);else for(let n of t){let t=document.createElement(`style`),i=r.litNonce;i!==void 0&&t.setAttribute(`nonce`,i),t.textContent=n.cssText,e.appendChild(t)}},d=i?e=>e:e=>e instanceof CSSStyleSheet?(e=>{let t=``;for(let n of e.cssRules)t+=n.cssText;return c(t)})(e):e})),p,ee,te,ne,re,ie,ae,oe,se,ce,le,ue,de,fe,pe,me=t((()=>{f(),{is:p,defineProperty:ee,getOwnPropertyDescriptor:te,getOwnPropertyNames:ne,getOwnPropertySymbols:re,getPrototypeOf:ie}=Object,ae=globalThis,oe=ae.trustedTypes,se=oe?oe.emptyScript:``,ce=ae.reactiveElementPolyfillSupport,le=(e,t)=>e,ue={toAttribute(e,t){switch(t){case Boolean:e=e?se:null;break;case Object:case Array:e=e==null?e:JSON.stringify(e)}return e},fromAttribute(e,t){let n=e;switch(t){case Boolean:n=e!==null;break;case Number:n=e===null?null:Number(e);break;case Object:case Array:try{n=JSON.parse(e)}catch{n=null}}return n}},de=(e,t)=>!p(e,t),fe={attribute:!0,type:String,converter:ue,reflect:!1,useDefault:!1,hasChanged:de},Symbol.metadata??=Symbol(`metadata`),ae.litPropertyMetadata??=new WeakMap,pe=class extends HTMLElement{static addInitializer(e){this._$Ei(),(this.l??=[]).push(e)}static get observedAttributes(){return this.finalize(),this._$Eh&&[...this._$Eh.keys()]}static createProperty(e,t=fe){if(t.state&&(t.attribute=!1),this._$Ei(),this.prototype.hasOwnProperty(e)&&((t=Object.create(t)).wrapped=!0),this.elementProperties.set(e,t),!t.noAccessor){let n=Symbol(),r=this.getPropertyDescriptor(e,n,t);r!==void 0&&ee(this.prototype,e,r)}}static getPropertyDescriptor(e,t,n){let{get:r,set:i}=te(this.prototype,e)??{get(){return this[t]},set(e){this[t]=e}};return{get:r,set(t){let a=r?.call(this);i?.call(this,t),this.requestUpdate(e,a,n)},configurable:!0,enumerable:!0}}static getPropertyOptions(e){return this.elementProperties.get(e)??fe}static _$Ei(){if(this.hasOwnProperty(le(`elementProperties`)))return;let e=ie(this);e.finalize(),e.l!==void 0&&(this.l=[...e.l]),this.elementProperties=new Map(e.elementProperties)}static finalize(){if(this.hasOwnProperty(le(`finalized`)))return;if(this.finalized=!0,this._$Ei(),this.hasOwnProperty(le(`properties`))){let e=this.properties,t=[...ne(e),...re(e)];for(let n of t)this.createProperty(n,e[n])}let e=this[Symbol.metadata];if(e!==null){let t=litPropertyMetadata.get(e);if(t!==void 0)for(let[e,n]of t)this.elementProperties.set(e,n)}this._$Eh=new Map;for(let[e,t]of this.elementProperties){let n=this._$Eu(e,t);n!==void 0&&this._$Eh.set(n,e)}this.elementStyles=this.finalizeStyles(this.styles)}static finalizeStyles(e){let t=[];if(Array.isArray(e)){let n=new Set(e.flat(1/0).reverse());for(let e of n)t.unshift(d(e))}else e!==void 0&&t.push(d(e));return t}static _$Eu(e,t){let n=t.attribute;return!1===n?void 0:typeof n==`string`?n:typeof e==`string`?e.toLowerCase():void 0}constructor(){super(),this._$Ep=void 0,this.isUpdatePending=!1,this.hasUpdated=!1,this._$Em=null,this._$Ev()}_$Ev(){this._$ES=new Promise(e=>this.enableUpdating=e),this._$AL=new Map,this._$E_(),this.requestUpdate(),this.constructor.l?.forEach(e=>e(this))}addController(e){(this._$EO??=new Set).add(e),this.renderRoot!==void 0&&this.isConnected&&e.hostConnected?.()}removeController(e){this._$EO?.delete(e)}_$E_(){let e=new Map,t=this.constructor.elementProperties;for(let n of t.keys())this.hasOwnProperty(n)&&(e.set(n,this[n]),delete this[n]);e.size>0&&(this._$Ep=e)}createRenderRoot(){let e=this.shadowRoot??this.attachShadow(this.constructor.shadowRootOptions);return u(e,this.constructor.elementStyles),e}connectedCallback(){this.renderRoot??=this.createRenderRoot(),this.enableUpdating(!0),this._$EO?.forEach(e=>e.hostConnected?.())}enableUpdating(e){}disconnectedCallback(){this._$EO?.forEach(e=>e.hostDisconnected?.())}attributeChangedCallback(e,t,n){this._$AK(e,n)}_$ET(e,t){let n=this.constructor.elementProperties.get(e),r=this.constructor._$Eu(e,n);if(r!==void 0&&!0===n.reflect){let i=(n.converter?.toAttribute===void 0?ue:n.converter).toAttribute(t,n.type);this._$Em=e,i==null?this.removeAttribute(r):this.setAttribute(r,i),this._$Em=null}}_$AK(e,t){let n=this.constructor,r=n._$Eh.get(e);if(r!==void 0&&this._$Em!==r){let e=n.getPropertyOptions(r),i=typeof e.converter==`function`?{fromAttribute:e.converter}:e.converter?.fromAttribute===void 0?ue:e.converter;this._$Em=r;let a=i.fromAttribute(t,e.type);this[r]=a??this._$Ej?.get(r)??a,this._$Em=null}}requestUpdate(e,t,n,r=!1,i){if(e!==void 0){let a=this.constructor;if(!1===r&&(i=this[e]),n??=a.getPropertyOptions(e),!((n.hasChanged??de)(i,t)||n.useDefault&&n.reflect&&i===this._$Ej?.get(e)&&!this.hasAttribute(a._$Eu(e,n))))return;this.C(e,t,n)}!1===this.isUpdatePending&&(this._$ES=this._$EP())}C(e,t,{useDefault:n,reflect:r,wrapped:i},a){n&&!(this._$Ej??=new Map).has(e)&&(this._$Ej.set(e,a??t??this[e]),!0!==i||a!==void 0)||(this._$AL.has(e)||(this.hasUpdated||n||(t=void 0),this._$AL.set(e,t)),!0===r&&this._$Em!==e&&(this._$Eq??=new Set).add(e))}async _$EP(){this.isUpdatePending=!0;try{await this._$ES}catch(e){Promise.reject(e)}let e=this.scheduleUpdate();return e!=null&&await e,!this.isUpdatePending}scheduleUpdate(){return this.performUpdate()}performUpdate(){if(!this.isUpdatePending)return;if(!this.hasUpdated){if(this.renderRoot??=this.createRenderRoot(),this._$Ep){for(let[e,t]of this._$Ep)this[e]=t;this._$Ep=void 0}let e=this.constructor.elementProperties;if(e.size>0)for(let[t,n]of e){let{wrapped:e}=n,r=this[t];!0!==e||this._$AL.has(t)||r===void 0||this.C(t,void 0,n,r)}}let e=!1,t=this._$AL;try{e=this.shouldUpdate(t),e?(this.willUpdate(t),this._$EO?.forEach(e=>e.hostUpdate?.()),this.update(t)):this._$EM()}catch(t){throw e=!1,this._$EM(),t}e&&this._$AE(t)}willUpdate(e){}_$AE(e){this._$EO?.forEach(e=>e.hostUpdated?.()),this.hasUpdated||(this.hasUpdated=!0,this.firstUpdated(e)),this.updated(e)}_$EM(){this._$AL=new Map,this.isUpdatePending=!1}get updateComplete(){return this.getUpdateComplete()}getUpdateComplete(){return this._$ES}shouldUpdate(e){return!0}update(e){this._$Eq&&=this._$Eq.forEach(e=>this._$ET(e,this[e])),this._$EM()}updated(e){}firstUpdated(e){}},pe.elementStyles=[],pe.shadowRootOptions={mode:`open`},pe[le(`elementProperties`)]=new Map,pe[le(`finalized`)]=new Map,ce?.({ReactiveElement:pe}),(ae.reactiveElementVersions??=[]).push(`2.1.2`)}));function he(e,t){if(!Oe(e)||!e.hasOwnProperty(`raw`))throw Error(`invalid template strings array`);return be===void 0?t:be.createHTML(t)}function ge(e,t,n=e,r){if(t===ze)return t;let i=r===void 0?n._$Cl:n._$Co?.[r],a=De(t)?void 0:t._$litDirective$;return i?.constructor!==a&&(i?._$AO?.(!1),a===void 0?i=void 0:(i=new a(e),i._$AT(e,n,r)),r===void 0?n._$Cl=i:(n._$Co??=[])[r]=i),i!==void 0&&(t=ge(e,i._$AS(e,t.values),i,r)),t}var _e,ve,ye,be,xe,Se,Ce,we,Te,Ee,De,Oe,ke,Ae,je,Me,Ne,Pe,Fe,Ie,Le,Re,m,ze,h,Be,Ve,He,Ue,We,Ge,Ke,qe,Je,Ye,Xe,Ze,Qe,$e=t((()=>{_e=globalThis,ve=e=>e,ye=_e.trustedTypes,be=ye?ye.createPolicy(`lit-html`,{createHTML:e=>e}):void 0,xe=`$lit$`,Se=`lit$${Math.random().toFixed(9).slice(2)}$`,Ce=`?`+Se,we=`<${Ce}>`,Te=document,Ee=()=>Te.createComment(``),De=e=>e===null||typeof e!=`object`&&typeof e!=`function`,Oe=Array.isArray,ke=e=>Oe(e)||typeof e?.[Symbol.iterator]==`function`,Ae=`[ 	
+\f\r]`,je=/<(?:(!--|\/[^a-zA-Z])|(\/?[a-zA-Z][^>\s]*)|(\/?$))/g,Me=/-->/g,Ne=/>/g,Pe=RegExp(`>|${Ae}(?:([^\\s"'>=/]+)(${Ae}*=${Ae}*(?:[^ \t\n\f\r"'\`<>=]|("|')|))|$)`,`g`),Fe=/'/g,Ie=/"/g,Le=/^(?:script|style|textarea|title)$/i,Re=e=>(t,...n)=>({_$litType$:e,strings:t,values:n}),m=Re(1),Re(2),Re(3),ze=Symbol.for(`lit-noChange`),h=Symbol.for(`lit-nothing`),Be=new WeakMap,Ve=Te.createTreeWalker(Te,129),He=(e,t)=>{let n=e.length-1,r=[],i,a=t===2?`<svg>`:t===3?`<math>`:``,o=je;for(let t=0;t<n;t++){let n=e[t],s,c,l=-1,u=0;for(;u<n.length&&(o.lastIndex=u,c=o.exec(n),c!==null);)u=o.lastIndex,o===je?c[1]===`!--`?o=Me:c[1]===void 0?c[2]===void 0?c[3]!==void 0&&(o=Pe):(Le.test(c[2])&&(i=RegExp(`</`+c[2],`g`)),o=Pe):o=Ne:o===Pe?c[0]===`>`?(o=i??je,l=-1):c[1]===void 0?l=-2:(l=o.lastIndex-c[2].length,s=c[1],o=c[3]===void 0?Pe:c[3]===`"`?Ie:Fe):o===Ie||o===Fe?o=Pe:o===Me||o===Ne?o=je:(o=Pe,i=void 0);let d=o===Pe&&e[t+1].startsWith(`/>`)?` `:``;a+=o===je?n+we:l>=0?(r.push(s),n.slice(0,l)+xe+n.slice(l)+Se+d):n+Se+(l===-2?t:d)}return[he(e,a+(e[n]||`<?>`)+(t===2?`</svg>`:t===3?`</math>`:``)),r]},Ue=class e{constructor({strings:t,_$litType$:n},r){let i;this.parts=[];let a=0,o=0,s=t.length-1,c=this.parts,[l,u]=He(t,n);if(this.el=e.createElement(l,r),Ve.currentNode=this.el.content,n===2||n===3){let e=this.el.content.firstChild;e.replaceWith(...e.childNodes)}for(;(i=Ve.nextNode())!==null&&c.length<s;){if(i.nodeType===1){if(i.hasAttributes())for(let e of i.getAttributeNames())if(e.endsWith(xe)){let t=u[o++],n=i.getAttribute(e).split(Se),r=/([.?@])?(.*)/.exec(t);c.push({type:1,index:a,name:r[2],strings:n,ctor:r[1]===`.`?qe:r[1]===`?`?Je:r[1]===`@`?Ye:Ke}),i.removeAttribute(e)}else e.startsWith(Se)&&(c.push({type:6,index:a}),i.removeAttribute(e));if(Le.test(i.tagName)){let e=i.textContent.split(Se),t=e.length-1;if(t>0){i.textContent=ye?ye.emptyScript:``;for(let n=0;n<t;n++)i.append(e[n],Ee()),Ve.nextNode(),c.push({type:2,index:++a});i.append(e[t],Ee())}}}else if(i.nodeType===8){if(i.data===Ce)c.push({type:2,index:a});else{let e=-1;for(;(e=i.data.indexOf(Se,e+1))!==-1;)c.push({type:7,index:a}),e+=Se.length-1}}a++}}static createElement(e,t){let n=Te.createElement(`template`);return n.innerHTML=e,n}},We=class{constructor(e,t){this._$AV=[],this._$AN=void 0,this._$AD=e,this._$AM=t}get parentNode(){return this._$AM.parentNode}get _$AU(){return this._$AM._$AU}u(e){let{el:{content:t},parts:n}=this._$AD,r=(e?.creationScope??Te).importNode(t,!0);Ve.currentNode=r;let i=Ve.nextNode(),a=0,o=0,s=n[0];for(;s!==void 0;){if(a===s.index){let t;s.type===2?t=new Ge(i,i.nextSibling,this,e):s.type===1?t=new s.ctor(i,s.name,s.strings,this,e):s.type===6&&(t=new Xe(i,this,e)),this._$AV.push(t),s=n[++o]}a!==s?.index&&(i=Ve.nextNode(),a++)}return Ve.currentNode=Te,r}p(e){let t=0;for(let n of this._$AV)n!==void 0&&(n.strings===void 0?n._$AI(e[t]):(n._$AI(e,n,t),t+=n.strings.length-2)),t++}},Ge=class e{get _$AU(){return this._$AM?._$AU??this._$Cv}constructor(e,t,n,r){this.type=2,this._$AH=h,this._$AN=void 0,this._$AA=e,this._$AB=t,this._$AM=n,this.options=r,this._$Cv=r?.isConnected??!0}get parentNode(){let e=this._$AA.parentNode,t=this._$AM;return t!==void 0&&e?.nodeType===11&&(e=t.parentNode),e}get startNode(){return this._$AA}get endNode(){return this._$AB}_$AI(e,t=this){e=ge(this,e,t),De(e)?e===h||e==null||e===``?(this._$AH!==h&&this._$AR(),this._$AH=h):e!==this._$AH&&e!==ze&&this._(e):e._$litType$===void 0?e.nodeType===void 0?ke(e)?this.k(e):this._(e):this.T(e):this.$(e)}O(e){return this._$AA.parentNode.insertBefore(e,this._$AB)}T(e){this._$AH!==e&&(this._$AR(),this._$AH=this.O(e))}_(e){this._$AH!==h&&De(this._$AH)?this._$AA.nextSibling.data=e:this.T(Te.createTextNode(e)),this._$AH=e}$(e){let{values:t,_$litType$:n}=e,r=typeof n==`number`?this._$AC(e):(n.el===void 0&&(n.el=Ue.createElement(he(n.h,n.h[0]),this.options)),n);if(this._$AH?._$AD===r)this._$AH.p(t);else{let e=new We(r,this),n=e.u(this.options);e.p(t),this.T(n),this._$AH=e}}_$AC(e){let t=Be.get(e.strings);return t===void 0&&Be.set(e.strings,t=new Ue(e)),t}k(t){Oe(this._$AH)||(this._$AH=[],this._$AR());let n=this._$AH,r,i=0;for(let a of t)i===n.length?n.push(r=new e(this.O(Ee()),this.O(Ee()),this,this.options)):r=n[i],r._$AI(a),i++;i<n.length&&(this._$AR(r&&r._$AB.nextSibling,i),n.length=i)}_$AR(e=this._$AA.nextSibling,t){for(this._$AP?.(!1,!0,t);e!==this._$AB;){let t=ve(e).nextSibling;ve(e).remove(),e=t}}setConnected(e){this._$AM===void 0&&(this._$Cv=e,this._$AP?.(e))}},Ke=class{get tagName(){return this.element.tagName}get _$AU(){return this._$AM._$AU}constructor(e,t,n,r,i){this.type=1,this._$AH=h,this._$AN=void 0,this.element=e,this.name=t,this._$AM=r,this.options=i,n.length>2||n[0]!==``||n[1]!==``?(this._$AH=Array(n.length-1).fill(new String),this.strings=n):this._$AH=h}_$AI(e,t=this,n,r){let i=this.strings,a=!1;if(i===void 0)e=ge(this,e,t,0),a=!De(e)||e!==this._$AH&&e!==ze,a&&(this._$AH=e);else{let r=e,o,s;for(e=i[0],o=0;o<i.length-1;o++)s=ge(this,r[n+o],t,o),s===ze&&(s=this._$AH[o]),a||=!De(s)||s!==this._$AH[o],s===h?e=h:e!==h&&(e+=(s??``)+i[o+1]),this._$AH[o]=s}a&&!r&&this.j(e)}j(e){e===h?this.element.removeAttribute(this.name):this.element.setAttribute(this.name,e??``)}},qe=class extends Ke{constructor(){super(...arguments),this.type=3}j(e){this.element[this.name]=e===h?void 0:e}},Je=class extends Ke{constructor(){super(...arguments),this.type=4}j(e){this.element.toggleAttribute(this.name,!!e&&e!==h)}},Ye=class extends Ke{constructor(e,t,n,r,i){super(e,t,n,r,i),this.type=5}_$AI(e,t=this){if((e=ge(this,e,t,0)??h)===ze)return;let n=this._$AH,r=e===h&&n!==h||e.capture!==n.capture||e.once!==n.once||e.passive!==n.passive,i=e!==h&&(n===h||r);r&&this.element.removeEventListener(this.name,this,n),i&&this.element.addEventListener(this.name,this,e),this._$AH=e}handleEvent(e){typeof this._$AH==`function`?this._$AH.call(this.options?.host??this.element,e):this._$AH.handleEvent(e)}},Xe=class{constructor(e,t,n){this.element=e,this.type=6,this._$AN=void 0,this._$AM=t,this.options=n}get _$AU(){return this._$AM._$AU}_$AI(e){ge(this,e)}},Ze=_e.litHtmlPolyfillSupport,Ze?.(Ue,Ge),(_e.litHtmlVersions??=[]).push(`3.3.2`),Qe=(e,t,n)=>{let r=n?.renderBefore??t,i=r._$litPart$;if(i===void 0){let e=n?.renderBefore??null;r._$litPart$=i=new Ge(t.insertBefore(Ee(),e),e,void 0,n??{})}return i._$AI(e),i}})),et,g,tt,nt=t((()=>{me(),me(),$e(),$e(),et=globalThis,g=class extends pe{constructor(){super(...arguments),this.renderOptions={host:this},this._$Do=void 0}createRenderRoot(){let e=super.createRenderRoot();return this.renderOptions.renderBefore??=e.firstChild,e}update(e){let t=this.render();this.hasUpdated||(this.renderOptions.isConnected=this.isConnected),super.update(e),this._$Do=Qe(t,this.renderRoot,this.renderOptions)}connectedCallback(){super.connectedCallback(),this._$Do?.setConnected(!0)}disconnectedCallback(){super.disconnectedCallback(),this._$Do?.setConnected(!1)}render(){return ze}},g._$litElement$=!0,g.finalized=!0,et.litElementHydrateSupport?.({LitElement:g}),tt=et.litElementPolyfillSupport,tt?.({LitElement:g}),(et.litElementVersions??=[]).push(`4.2.2`)})),rt=t((()=>{})),_=t((()=>{me(),$e(),nt(),rt()})),v,it=t((()=>{v=e=>(t,n)=>{n===void 0?customElements.define(e,t):n.addInitializer(()=>{customElements.define(e,t)})}}));function y(e){return(t,n)=>typeof n==`object`?ot(e,t,n):((e,t,n)=>{let r=t.hasOwnProperty(n);return t.constructor.createProperty(n,e),r?Object.getOwnPropertyDescriptor(t,n):void 0})(e,t,n)}var at,ot,st=t((()=>{me(),at={attribute:!0,type:String,converter:ue,reflect:!1,hasChanged:de},ot=(e=at,t,n)=>{let{kind:r,metadata:i}=n,a=globalThis.litPropertyMetadata.get(i);if(a===void 0&&globalThis.litPropertyMetadata.set(i,a=new Map),r===`setter`&&((e=Object.create(e)).wrapped=!0),a.set(n.name,e),r===`accessor`){let{name:r}=n;return{set(n){let i=t.get.call(this);t.set.call(this,n),this.requestUpdate(r,i,e,!0,n)},init(t){return t!==void 0&&this.C(r,void 0,e,t),t}}}if(r===`setter`){let{name:r}=n;return function(n){let i=this[r];t.call(this,n),this.requestUpdate(r,i,e,!0,n)}}throw Error(`Unsupported decorator location: `+r)}}));function b(e){return y({...e,state:!0,attribute:!1})}var ct=t((()=>{st()})),lt=t((()=>{})),ut,dt=t((()=>{ut=(e,t,n)=>(n.configurable=!0,n.enumerable=!0,Reflect.decorate&&typeof t!=`object`&&Object.defineProperty(e,t,n),n)}));function ft(e,t){return(n,r,i)=>{let a=t=>t.renderRoot?.querySelector(e)??null;if(t){let{get:e,set:t}=typeof r==`object`?n:i??(()=>{let e=Symbol();return{get(){return this[e]},set(t){this[e]=t}}})();return ut(n,r,{get(){let n=e.call(this);return n===void 0&&(n=a(this),(n!==null||this.hasUpdated)&&t.call(this,n)),n}})}return ut(n,r,{get(){return a(this)}})}}var pt=t((()=>{dt()})),mt=t((()=>{})),ht=t((()=>{})),gt=t((()=>{})),_t=t((()=>{})),x=t((()=>{it(),st(),ct(),lt(),pt(),mt(),ht(),gt(),_t()}));_(),x();var vt={en:{"panel.title":`RoomMind`,"panel.subtitle":`Climate management`,"panel.tab.rooms":`Rooms`,"panel.edit":`Edit room`,"panel.tab.settings":`Settings`,"panel.loading":`Loading...`,"panel.no_areas":`No areas configured in Home Assistant.`,"panel.no_areas_hint":`Add areas in HA settings to get started.`,"badge.beta":`Beta`,"badge.beta_hint":`This feature is in beta and may change or be restructured in future updates.`,"common.learn_more":`Learn more`,"panel.stat.rooms":`Rooms`,"panel.stat.heating":`Heating`,"panel.stat.cooling":`Cooling`,"panel.stat.vacation":`Vacation`,"panel.stat.away":`Away`,"panel.stat.mold":`Mold`,"panel.hide_room":`Hide`,"panel.unhide":`Show`,"panel.hidden_rooms":`Hidden rooms`,"panel.floor_other":`Other`,"panel.reorder":`Reorder rooms`,"panel.reorder_done":`Done`,"room.back":`Back to rooms`,"room.section.climate_mode":`Climate Mode`,"room.section.schedule":`Schedule & Temperatures`,"room.section.control_mode":`Control Mode`,"room.section.devices":`Devices`,"room.section.sensors":`Sensors`,"room.section.windows":`Window Sensors`,"room.control_mode.full_control":`Full Control`,"room.control_mode.managed":`Managed`,"room.control_mode.external_sensor":`External sensor: {sensor}`,"room.control_mode.no_sensor":`No external temperature sensor assigned`,"room.control_mode.mpc_active":`MPC active`,"room.control_mode.mpc_learning":`Learning`,"room.control_mode.device_setpoint":`Device setpoint: {temp}`,"room.control_mode.power":`Power: {power}%`,"room.control_mode.full_control_info":`RoomMind has full control over your climate devices. An external temperature sensor provides the actual room temperature, enabling proportional setpoint calculation. The device setpoint is dynamically adjusted based on MPC power output. The thermal model (EKF) learns your room's behavior for optimal comfort and energy efficiency.`,"room.control_mode.managed_info":`RoomMind sets the target temperature on your device (from schedule, override, or vacation settings), but the device self-regulates using its own internal sensor. No proportional boost, no thermal model learning, and no MPC optimization. For more precise control, assign an external temperature sensor in the Devices section.`,"room.delete":`Delete room`,"room.deleting":`Deleting...`,"room.saving":`Saving...`,"room.saved":`Saved`,"room.error_saving":`Error saving`,"room.confirm_delete":`Remove RoomMind configuration for "{name}"?`,"room.error_save_fallback":`Failed to save configuration`,"room.error_delete_fallback":`Failed to delete configuration`,"room.climate_control_toggle":`Climate control`,"room.climate_control_hint":`When disabled, RoomMind stops controlling devices in this room. They keep their current settings and may continue heating or cooling on their own. RoomMind will not turn them off.`,"room.outdoor_toggle":`Outdoor area`,"room.outdoor_hint":`Disables climate control, mold detection, and model training. Sensor monitoring continues.`,"room.alias.placeholder":`Custom display name`,"room.alias.clear":`Reset to area name`,"override.label":`Temporary Override`,"override.comfort":`Comfort`,"override.eco":`Eco`,"override.custom":`Custom`,"override.target":`Target:`,"override.heat_to":`Heat to:`,"override.cool_above":`Cool above:`,"override.invalid_band":`Cooling target must be at or above the heating target`,"override.activate_for":`Activate for:`,"override.error_set":`Failed to set override`,"override.error_clear":`Failed to clear override`,"hero.target":`Target`,"hero.override":`Override`,"hero.remaining":`{time} remaining`,"hero.humidity":`{value}% humidity`,"hero.device_setpoint":`Device set to {value}{unit}`,"hero.heat_source_primary":`Heating: TRV`,"hero.heat_source_secondary":`Heating: AC`,"hero.heat_source_both":`Heating: TRV + AC`,"hero.permanent":`Permanent`,"hero.waiting":`Waiting for sensor data...`,"hero.not_configured":`Not configured yet`,"hero.mpc_learning_paused":`MPC learning paused`,"hero.temperature_sensor_unavailable":`Temperature sensor unavailable; climate control is paused`,"hero.mpc_learning_progress":`Thermal model learning: {confidence}% confidence`,"hero.mpc_learning_paused.outdoor_unavailable":`RoomMind needs an outdoor temperature to learn this room's thermal model. The configured outdoor sensor is unavailable and no weather entity is set as a fallback. Configure either in Settings.`,"hero.compressor_protection_min_off":`Compressor protection: waiting for min-off`,"hero.compressor_protection_min_run":`Compressor protection: min-run active`,"hero.compressor_protection_info":`This room shares an outdoor compressor with other rooms. To prevent short-cycling, the shared compressor group enforces a minimum run time and a minimum off time before this device is allowed to switch again.`,"card.target":`Target`,"card.waiting":`Waiting for data...`,"card.humidity":`{value}% humidity`,"card.thermostat":`Thermostat`,"card.thermostats":`Thermostats`,"card.ac":`AC`,"card.acs":`ACs`,"card.climate_device":`climate device`,"card.climate_devices":`climate devices`,"card.temp_sensor":`temp sensor`,"card.temp_sensors":`temp sensors`,"card.no_climate":`No climate devices`,"card.outdoor":`Outdoor`,"card.tap_configure":`Tap to configure`,"card.mpc_active":`MPC active`,"card.mpc_learning":`MPC learning`,"card.not_controlled":`Not controlled by RoomMind`,"mode.auto":`Auto`,"mode.auto_desc":`Heats & cools automatically based on target temperature`,"mode.heat_only":`Heat Only`,"mode.heat_only_desc":`Only uses thermostats, ACs stay off`,"mode.cool_only":`Cool Only`,"mode.cool_only_desc":`Only uses ACs, thermostats stay off`,"mode.heating":`Heating`,"mode.cooling":`Cooling`,"mode.idle":`Standby`,"schedule.add_schedule":`Add schedule`,"schedule.select_schedule":`Select schedule helper`,"schedule.create_helper_hint":`Create new schedule helper in HA settings`,"schedule.selector_label":`Schedule selector entity`,"schedule.selector_value_boolean":`Current: {value}`,"schedule.selector_value_number":`Current value: {value}`,"schedule.selector_warning":`Multiple schedules but no selector set. Only the first will be used.`,"schedule.off_action_label":`Action when schedule is off`,"schedule.off_action_eco":`Use eco temperature`,"schedule.off_action_off":`Turn off devices`,"schedule.state_active":`Active`,"schedule.state_inactive":`Inactive`,"schedule.state_unreachable":`Unreachable`,"schedule.no_schedules":`No schedules configured`,"schedule.done":`Done`,"schedule.view_comfort":`Comfort: {temp}{unit}`,"schedule.view_eco":`Eco: {temp}{unit}`,"schedule.view_selector":`Active schedule selected by: {name}`,"schedule.view_selector_prefix":`Active schedule selected by:`,"schedule.help_header":`How do schedules work?`,"schedule.help_temps_title":`How is the target temperature determined?`,"schedule.help_temps":`The target temperature follows this priority chain:`,"schedule.help_temps_1":`<strong>Manual override</strong> – A temporary boost/eco/custom override always takes highest priority.`,"schedule.help_temps_2":`<strong>Block temperature</strong> – If the active schedule block has a <code>temperature</code> value in its data, that value is used.`,"schedule.help_temps_3":`<strong>Comfort temperature</strong> – If the schedule is "on" but the block has no temperature, the comfort fallback temperature below is used.`,"schedule.help_temps_4":`<strong>Eco temperature</strong> – When the schedule is "off" (outside all time blocks), the eco temperature is used.`,"schedule.help_block_title":`Setting temperature per time block`,"schedule.help_block":`You can set a specific temperature for each time block by adding a <code>temperature</code> value in the schedule's YAML configuration:`,"schedule.help_block_note":`If a block has no <code>temperature</code> data, the comfort fallback temperature is used instead.`,"schedule.help_split_title":`Separate heating/cooling targets per block`,"schedule.help_split":`For auto-mode rooms, you can set separate heating and cooling targets per time block using <code>heat_temperature</code> and <code>cool_temperature</code>:`,"schedule.help_split_note":`If only one is set, the other falls back to the room's comfort temperature. These keys take priority over <code>temperature</code> when present.`,"schedule.help_multi_title":`Multiple schedules`,"schedule.help_multi":`You can add multiple schedules and switch between them using a <strong>selector entity</strong>. This can be an <code>input_boolean</code> (toggles between schedule 1 and 2) or an <code>input_number</code> (selects by number). Without a selector entity, only the first schedule is used.`,"schedule.column_comfort":`Comfort`,"schedule.column_eco":`Eco`,"schedule.row_heat":`Heat`,"schedule.row_cool":`Cool`,"schedule.view_heat":`Heat: {comfort} / {eco}{unit}`,"schedule.view_cool":`Cool: {comfort} / {eco}{unit}`,"schedule.comfort_hint_auto":`Comfort: target when schedule is on. Eco: target when schedule is off. Rows set the target for heating and cooling.`,"schedule.comfort_label":`Fallback comfort temperature`,"schedule.eco_label":`Eco temperature`,"schedule.comfort_hint":`Used when schedule is "on" but no temperature is set in the block`,"schedule.from_schedule":`{temp}{unit} from schedule`,"schedule.from_schedule_split":`{heat}{unit} / {cool}{unit} from schedule`,"schedule.fallback":`{temp}{unit} (fallback)`,"schedule.eco_detail":`{temp}{unit} (eco)`,"devices.climate_entities":`Climate entities`,"devices.temp_sensors":`Temperature sensors`,"devices.humidity_sensors":`Humidity sensors`,"devices.no_climate":`No climate entities found in this area.`,"devices.no_temp_sensors":`No temperature sensors found in this area.`,"devices.no_humidity_sensors":`No humidity sensors found in this area.`,"devices.occupancy_sensors":`Occupancy Sensors`,"devices.no_occupancy_sensors":`No occupancy sensors found in this area`,"devices.occupancy_sensor_hint":`Improves thermal model accuracy by tracking room occupancy`,"devices.window_sensors":`Window / door sensors`,"devices.no_window_sensors":`No window/door sensors found in this area.`,"devices.window_open_delay":`Delay before pausing`,"devices.window_close_delay":`Delay before resuming`,"devices.add_entity":`Add entity`,"devices.done":`Done`,"devices.other_area":`Other area`,"devices.type_thermostat":`Thermostat`,"devices.type_ac":`Climate Device`,"devices.type_label":`Type`,"devices.select_to_configure":`Select a device to configure`,"devices.heating_system_type":`Heating System Type`,"devices.heating_system_type_info":`After heating stops, radiators and especially underfloor systems continue to release stored heat. RoomMind accounts for this residual heat to avoid overshooting and improve model accuracy. Underfloor rooms also get longer minimum run times.`,"devices.system_type_none":`Standard (no residual heat)`,"devices.system_type_radiator":`Radiator`,"devices.system_type_underfloor":`Underfloor Heating`,"devices.underfloor_delay_hint":`Underfloor heating has long restart times. A window-open delay of at least 5 minutes is recommended to avoid unnecessary shutoffs.`,"devices.heating_system_type_boost_hint":`Tip: If the heating system has changed, you can accelerate re-learning under Settings.`,"devices.idle_action":`When idle`,"devices.idle_action_off":`Turn off`,"devices.idle_action_fan_only":`Fan only`,"devices.idle_action_setback":`Setback`,"devices.idle_action_low":`Low setpoint (keep awake)`,"devices.idle_action_low_hint":`Lowers the setpoint to the device minimum instead of sending off. Prevents TRVs that hibernate in off mode from losing later commands.`,"devices.idle_fan_mode":`Fan speed`,"devices.idle_fan_mode_keep":`Don't change`,"devices.fan_only_conditions":`Fan-only conditions`,"devices.fan_only_only_after_cooling":`Only after cooling`,"devices.fan_only_require_presence":`Only when tracked people are home`,"devices.fan_only_require_schedule":`Only during an active schedule`,"devices.fan_only_seasons":`Allowed seasons`,"devices.fan_only_season_spring":`Spring`,"devices.fan_only_season_summer":`Summer`,"devices.fan_only_season_autumn":`Autumn`,"devices.fan_only_season_winter":`Winter`,"devices.fan_only_season_hint":`Season filters require Home Assistant's Season integration, which provides sensor.season. If it is unavailable, fan-only stays off.`,"devices.setpoint_mode":`Setpoint mode`,"devices.setpoint_mode_proportional":`Proportional (valve control)`,"devices.setpoint_mode_direct":`Direct (device regulates)`,"devices.setpoint_mode_hint":`Direct sends the actual room target to the device — best for thermostats and space heaters that regulate themselves. Proportional sends a boosted setpoint toward the device max_temp — best for radiator valves (TRVs).`,"devices.valve_protection_excluded":`Excluded from valve protection`,"devices.valve_protection_exclude_hint":`This entity will not be cycled by valve protection (e.g. virtual boiler entities)`,"devices.info.types_title":`Device types`,"devices.info.types_body":`Thermostat means a radiator thermostat / TRV. Climate Device means an AC, heat pump, or other climate entity used for cooling or forced-air heating. Both are Home Assistant climate entities; the distinction is how RoomMind controls them.`,"devices.info.control_title":`How RoomMind controls them`,"devices.info.control_body":`Setpoint mode only applies to thermostats in Full Control rooms with an external temperature sensor. Use Proportional when RoomMind should drive heating output by sending boosted setpoints. Use Direct when the device should regulate itself around the real target temperature.`,"devices.info.modes_title":`Idle behavior`,"devices.info.modes_body":`When idle only applies to Climate Devices. Turn off powers the device down. Fan only keeps airflow without heating or cooling. Setback keeps the current mode active but moves the target 2°C away from the room target. This setback offset is currently fixed. For Thermostats, Low keeps the TRV active at its minimum setpoint instead of off, useful for battery-powered Zigbee TRVs that sleep when set to off.`,"devices.info.heat_source_title":`Smart source selection`,"devices.info.heat_source_body":`This appears only when a room has both a thermostat/TRV and a Climate Device plus an external temperature sensor. RoomMind can then choose which source should handle heating based on temperature gap and outdoor conditions.`,"hero.window_open":`Window open – paused`,"card.window_open":`Window open`,"room.section.covers":`Covers & Blinds`,"covers.section_title":`Covers & Blinds`,"covers.auto_control":`Automatic blind control`,"covers.auto_control_hint":`RoomMind closes blinds when solar gain is predicted to overheat the room.`,"covers.deploy_threshold":`Deploy threshold`,"covers.deploy_threshold_hint":`Close blinds when predicted temperature exceeds target by this amount.`,"covers.min_position":`Minimum open position`,"covers.min_position_hint":`Blinds will never close further than this (0 = fully closed allowed).`,"covers.override_minutes":`Override pause duration`,"covers.override_minutes_hint":`How long to pause automatic control after manual cover movement. Set to 0 for no pause.`,"covers.no_covers":`No cover entities configured.`,"covers.no_covers_in_area":`No cover entities found in this area.`,"covers.add_cover":`Add cover entity...`,"covers.shading_active":`Shading active`,"covers.auto_paused":`Auto paused (manual override)`,"covers.auto_paused_until":`Auto control paused until`,"covers.resume_auto":`Resume automatic control`,"covers.done":`Done`,"covers.night_close":`Close at night`,"covers.night_close_hint":`Automatically close covers at sunset and open at sunrise.`,"covers.night_close_active":`Night closing active`,"covers.schedule_group_title":`Schedule`,"covers.solar_group_title":`Solar control`,"covers.schedule_section":`Cover schedules`,"covers.schedule_section_hint":`Define time windows for cover control using HA schedule helpers. In Force position mode the schedule's position overrides solar/thermal logic. In Allow solar protection mode RoomMind decides the position within the active window.`,"covers.add_schedule":`Add cover schedule...`,"covers.schedule_mode_force":`Force position`,"covers.schedule_mode_gate":`Allow solar protection`,"covers.schedule_mode_gate_short":`Solar gate`,"covers.schedule_position":`Position`,"covers.schedule_position_hint":`Cover position when this schedule is active (0% = fully closed, 100% = fully open).`,"covers.schedule_selector":`Schedule selector entity`,"covers.schedule_selector_hint":`Choose which schedule is active. input_boolean: off=#1, on=#2. input_number: value selects schedule number.`,"covers.schedule_selector_warning":`Multiple schedules configured but no selector set. Only the first schedule will be used.`,"covers.schedule_state_active":`Active`,"covers.schedule_state_inactive":`Inactive`,"covers.schedule_state_unreachable":`Unreachable`,"covers.schedule_active":`Schedule active`,"covers.schedule_create_link":`Create schedule helper`,"covers.night_position":`Night position`,"covers.night_position_hint":`Cover position when night close is active (0% = fully closed). Covers with an individual min. position will never go below that.`,"covers.night_close_advanced":`Advanced`,"covers.night_close_elevation":`Sun position threshold`,"covers.night_close_elevation_hint":`How far below or above the horizon the sun must be. 0° = exactly at sunset/sunrise. Negative = darker (e.g. -6° = dusk, when it's noticeably dark). Positive = still bright (e.g. 5° = sun still visible above horizon).`,"covers.night_close_offset":`Time offset`,"covers.night_close_offset_hint":`Additional shift relative to the sun position threshold. Positive = close later (e.g. +20 = 20 min after threshold is reached), negative = close earlier.`,"covers.outdoor_min_temp":`Min. outdoor temperature`,"covers.outdoor_min_temp_hint":`Don't close covers for solar protection below this outdoor temperature. Solar heat gain is welcome when it's cold.`,"covers.per_cover_title":`Per-cover settings`,"covers.per_cover_hint":`Set the compass direction each cover faces and optional individual minimum positions.`,"covers.per_cover_min_short":`Min`,"covers.per_cover_min_position":`Min. position`,"covers.per_cover_min_position_hint":`Individual minimum position per cover. Covers will never close further than this. Useful when blinds are physically fully closed at a position > 0%.`,"covers.snap_deploy":`Snap to minimum position`,"covers.snap_deploy_hint":`Close covers directly to the minimum position instead of gradually closing. Recommended for triple-pane windows where intermediate positions can cause thermal stress.`,"covers.info.selection_title":`Cover selection`,"covers.info.selection_body":`Select covers/blinds from this area or add entities from other areas. RoomMind tracks their position and can control them automatically.`,"covers.info.schedule_title":`Schedule control`,"covers.info.schedule_body":`Use HA schedule helpers to define times when covers should close (e.g. privacy in the evening). The schedule's position attribute determines how far they close. Schedules override all other automatic logic.`,"covers.info.solar_title":`Solar/thermal control`,"covers.info.solar_body":`When automatic control is enabled, RoomMind predicts whether solar radiation will overheat the room and closes blinds preventively. It uses learned thermal data when available, otherwise a conservative default. The deploy threshold controls how much predicted overshoot is needed before blinds close.`,"covers.info.night_title":`Night closing`,"covers.info.night_body":`Closes covers at sunset and opens them at sunrise. You can set a custom night position (e.g. 10% = almost closed but not fully).`,"covers.info.override_title":`Manual override`,"covers.info.override_body":`If you manually move a cover, RoomMind detects this and pauses automatic control for the configured duration. This prevents fighting with the user.`,"covers.info.priority_title":`Priority order`,"covers.info.priority_body":`Manual override > Schedule > Night close > Solar/thermal control. Higher priority rules always win. When no rule applies, covers stay open.`,"covers.info.entities_title":`HA entities`,"covers.info.entities_body":`RoomMind creates two entities per room for external use: switch.roommind_{area}_cover_auto (enable/disable automatic cover control — usable in automations or dashboards) and binary_sensor.roommind_{area}_cover_paused (on when manual override is active, e.g. after manually moving a cover).`,"covers.orientation_group_title":`Cover orientation`,"covers.orientation_hint":`Set the compass direction each cover faces. RoomMind uses this to skip solar deployment when the sun is not shining on that side of the building.`,"covers.orientation_none":`Any direction`,"covers.orientation_N":`N`,"covers.orientation_NE":`NE`,"covers.orientation_E":`E`,"covers.orientation_SE":`SE`,"covers.orientation_S":`S`,"covers.orientation_SW":`SW`,"covers.orientation_W":`W`,"covers.orientation_NW":`NW`,"covers.orientation_N_full":`North`,"covers.orientation_NE_full":`Northeast`,"covers.orientation_E_full":`East`,"covers.orientation_SE_full":`Southeast`,"covers.orientation_S_full":`South`,"covers.orientation_SW_full":`Southwest`,"covers.orientation_W_full":`West`,"covers.orientation_NW_full":`Northwest`,"settings.general_title":`General`,"settings.group_by_floor":`Group rooms by floor`,"settings.climate_control_active":`Climate control active`,"settings.climate_control_hint":`When disabled, RoomMind continues to monitor all sensors and train the model, but sends no commands to your heating or cooling devices. Your devices keep their current mode and setpoint and may continue heating or cooling on their own. RoomMind will not turn them off.`,"settings.learning_title":`Model Training`,"settings.learning_hint":`When paused, RoomMind stops collecting new measurement data and training the thermal model. Existing model data is preserved.`,"settings.learning_exceptions":`Exceptions`,"settings.learning_room_paused":`room paused`,"settings.learning_rooms_paused":`rooms paused`,"settings.sensors_title":`Sensors & Data Sources`,"settings.control_title":`Control`,"settings.outdoor_sensor":`Outdoor Temperature`,"settings.outdoor_sensor_label":`Outdoor temperature sensor`,"settings.outdoor_current":`Currently {temp}{unit} outside`,"settings.outdoor_waiting":`Waiting for sensor data...`,"settings.outdoor_humidity_sensor":`Outdoor Humidity`,"settings.outdoor_humidity_label":`Outdoor humidity sensor`,"settings.outdoor_humidity_current":`Currently {value}% outside`,"settings.smart_control":`Smart Climate Control`,"settings.smart_control_hint":`Configure outdoor temperature limits for heating and cooling.`,"settings.outdoor_cooling_min":`Minimum outdoor temp for cooling`,"settings.outdoor_cooling_min_hint":`AC stays off when outdoor temperature is below this value`,"settings.outdoor_heating_max":`Maximum outdoor temp for heating`,"settings.outdoor_heating_max_hint":`Heating stays off when outdoor temperature exceeds this value`,"settings.saving":`Saving...`,"settings.saved":`Saved`,"settings.error":`Error saving`,"devices.using_builtin_sensor":`Using thermostat's built-in sensor`,"settings.climate_intelligence":`Climate Intelligence`,"settings.control_mode":`Control Mode`,"settings.control_mode_simple":`Simple (Bang-Bang)`,"settings.control_mode_mpc":`Intelligent (MPC)`,"settings.control_mode_hint":`MPC learns your room's thermal behavior for optimal control`,"settings.comfort_weight":`Priority`,"settings.comfort_weight_comfort":`Comfort`,"settings.comfort_weight_efficiency":`Efficiency`,"settings.comfort_weight_hint":`Balances temperature precision against energy use. Comfort reacts earlier and stays closer to target. Efficiency allows more drift to reduce heating/cooling runtime.`,"settings.weather_entity":`Weather Forecast`,"settings.weather_entity_hint":`Optional: enables predictive outdoor temperature planning, and acts as a fallback when the outdoor sensor is unavailable`,"settings.outdoor_unavailable_notify":`Notify when outdoor temperature is unavailable`,"settings.outdoor_unavailable_notify_hint":`Show a Home Assistant notification when neither the outdoor sensor nor the weather entity has reported a temperature for 30 minutes. While this is the case, RoomMind pauses thermal model learning to avoid corruption.`,"settings.prediction_enabled":`Temperature prediction`,"settings.prediction_enabled_hint":`Show predicted temperature trend in analytics charts. Disable if you experience slow performance.`,"vacation.title":`Vacation Mode`,"vacation.hint":`Sets all rooms to a setback temperature until the end date.`,"vacation.active_label":`Vacation mode active`,"vacation.end_date":`End date & time`,"vacation.setback_temp":`Setback temperature`,"vacation.no_end_date":`No end date`,"vacation.deactivate":`Deactivate`,"tabs.analytics":`Analytics`,"analytics.select_room":`Select Room`,"analytics.temperature":`Temperature`,energy_title:`Energy consumption`,energy_subtitle:`Measured AC demand and learned 3-hour forecast`,energy_room_power:`Room total`,energy_forecast:`Room forecast`,energy_forecast_short:`forecast`,energy_now:`Power now`,energy_period:`Energy in range`,energy_next_3h:`Forecast next 3h`,energy_learning:`Learning samples`,"analytics.target":`Target`,"analytics.prediction":`Prediction`,"analytics.outdoor":`Outdoor`,"analytics.model_status":`Model Status`,"analytics.confidence":`Confidence`,"analytics.heating_rate":`Heating Strength`,"analytics.cooling_rate":`Cooling Strength`,"analytics.solar_gain":`Solar Gain`,"analytics.occupancy_gain":`Occupancy Gain`,"analytics.time_constant":`Time Constant`,"analytics.samples":`Samples`,"analytics.prediction_accuracy":`Prediction Accuracy`,"analytics.avg_deviation":`Avg. Deviation`,"analytics.data_sources":`Data Sources`,"analytics.data_points":`Data Points`,"analytics.control_mode":`Control Mode`,"analytics.control_mode_mpc":`MPC active`,"analytics.control_mode_bangbang":`MPC learning`,"analytics.last_model_update":`Last Model Update`,"analytics.accuracy_idle":`Accuracy (Idle)`,"analytics.accuracy_heating":`Accuracy (Heating)`,"analytics.info.accuracy_idle":`How precisely the model predicts temperature when neither heating nor cooling is active. A lower value means the model understands your room's natural heat loss well. This is the first value to improve because idle data is collected continuously.`,"analytics.info.accuracy_heating":`How precisely the model predicts temperature during active heating. This value stays high initially because the model needs real heating cycles to learn from. Once your heating has run a few times, this value will drop and MPC control becomes available.`,"analytics.info.confidence":`Overall model readiness for intelligent MPC control, combining two factors: data quantity (how many idle and active-mode samples have been collected) and prediction accuracy (how precise the temperature forecasts are). Confidence starts at 0% and rises as the model collects data and learns. Around 50% means enough idle data but still waiting for heating/cooling cycles. Above 80% means the model has enough data and accurate predictions — MPC control becomes available. 100% is the theoretical maximum when predictions are as accurate as physically possible.`,"analytics.info.time_constant":`How long it takes your room to naturally cool down halfway toward the outdoor temperature when heating is off. A longer time constant means better insulation — the room holds warmth longer. A short time constant means the room cools quickly. The model learns this by observing temperature drops during idle periods.`,"analytics.info.heating_rate":`How strongly your heating affects the room temperature. A higher value means your heating system warms the room faster relative to its thermal mass. The model learns this by observing how quickly the temperature rises during active heating, and uses it to predict how long heating needs to run.`,"analytics.info.cooling_rate":`How strongly your AC affects the room temperature. A higher value means the AC cools the room faster relative to its thermal mass. The model learns this by observing how quickly the temperature drops during active cooling, and uses it to predict how long the AC needs to run.`,"analytics.info.solar_gain":`The estimated effect of solar radiation through windows on room temperature. The model learns this by observing how the room warms during sunny periods when heating is off. Rooms with large south-facing windows will have higher values. The model uses this to reduce heating when solar gain is expected.`,"analytics.info.occupancy_gain":`The estimated heat contribution from occupancy (people, pets, computers) while the room is occupied. The model learns this by observing temperature changes when the configured occupancy sensors are active. Separating this from solar gain prevents body heat from being misattributed to sunlight. Only shown when at least one occupancy sensor is configured for this room.`,"analytics.info.data_sources":`Number of measurement samples used for model training.`,"analytics.info.data_points":`Total number of observations the model has been trained on. More data points generally lead to better predictions. The model collects a new data point roughly every 3 minutes while RoomMind is running.`,"analytics.no_data":`No data yet — model is learning`,"analytics.loading":`Loading analytics...`,"settings.reset_title":`Reset Thermal Data`,"settings.reset_hint":`Clear learned thermal model data and history. The model will start learning from scratch.`,"settings.reset_all_label":`All rooms`,"settings.reset_all_hint":`Clear thermal data and history for all rooms at once.`,"settings.reset_all_btn":`Reset all`,"settings.reset_all_confirm":`Clear all learned thermal data and history for ALL rooms? All models will start learning from scratch.`,"settings.reset_room_label":`Individual room`,"settings.reset_room_hint":`Select a room to clear its thermal data and history.`,"settings.reset_room_confirm":`Clear all learned thermal data and history for this room? The model will start learning from scratch.`,"settings.reset_room_select":`Select room`,"settings.reset_btn":`Reset`,"settings.reset_no_rooms":`No configured rooms.`,"settings.boost_title":`Accelerate Learning`,"settings.boost_hint":`The thermal model learns your room's heating and cooling behavior over time. After major changes (new radiator, AC, insulation, furniture), the model may be inaccurate. This increases the model's uncertainty so it adapts faster to new conditions.`,"settings.boost_label":`Accelerate learning`,"settings.boost_room_select":`Select room`,"settings.boost_btn":`Accelerate`,"settings.boost_cooldown":`Active – re-learning in progress`,"settings.boost_no_rooms":`No configured rooms.`,"analytics.range_1d":`Today`,"analytics.range_2d":`2 days`,"analytics.range_7d":`Week`,"analytics.range_30d":`Month`,"analytics.export":`Measurements`,"analytics.heating_period":`Heating`,"analytics.cooling_period":`Cooling`,"analytics.blind_position":`Blind position`,"analytics.window_open_period":`Window open`,"analytics.chart_info_title":`How to read this chart`,"analytics.exported":`Exported!`,"analytics.copy_diagnostics":`Diagnostics`,"analytics.export_download":`Download file`,"analytics.export_clipboard":`Copy to clipboard`,"analytics.copied_to_clipboard":`Copied!`,"analytics.range_from":`From`,"analytics.range_to":`To`,"analytics.chart_info_body":`**Lines:** The solid orange line shows the measured room temperature. The green dashed line is the target temperature from your schedule. The blue dotted line is the model's temperature prediction.
 
 **Shaded areas:** Red shading marks heating periods, blue marks cooling, and teal marks times when a window was open.
 
@@ -7,7 +7,7 @@
 
 **Prediction modes:** When 'MPC active' is shown, the prediction uses the full MPC optimizer with intelligent pre-heating/pre-cooling. While the model is still learning, a simpler simulation is used.
 
-**Limitations:** The prediction assumes current conditions stay constant (outdoor temperature, window state). The simulation accuracy depends on how well the thermal model has learned your room — early on, predictions may be less accurate. Once MPC activates, predictions become significantly more reliable.`,"presence.title":`Presence Detection`,"presence.hint":`Uses eco temperature when nobody is home.`,"presence.hint_detail":`When enabled, all rooms switch to eco temperature as soon as none of the configured persons are home. You can optionally restrict per room which persons are relevant.`,"presence.add_person":`Add person`,"presence.add_entity":`Add presence entity`,"presence.person_label":`Person`,"room.section.presence":`Presence`,"presence.room_help_header":`How does per-room presence work?`,"presence.room_help_body":`Select which persons are relevant for this room. The room switches to eco temperature when none of the selected persons are home. Without selection, the global rule applies: eco when nobody is home.`,"presence.state_home":`Home`,"presence.state_away":`Away`,"presence.room_none_assigned":`Global rule — eco when nobody is home`,"presence.missing_entity_hint":`This entity no longer exists in Home Assistant — uncheck it to remove it from this room.`,"presence.ignore_toggle":`Ignore presence`,"presence.ignore_hint":`Controls how this room reacts to presence. You can assign specific persons below. The room switches to eco when none of the assigned persons are home. Use the toggle above to skip detection entirely and always follow the schedule.`,"presence.help_ignore_title":`What does "Ignore presence" do?`,"presence.help_ignore_body":`When enabled, this room skips presence detection entirely. It always follows its schedule and never switches to eco based on who is home. Useful for rooms that should maintain temperature regardless of presence, such as a server room, a pet room, or a guest room used by someone not tracked by Home Assistant.`,"presence.tile_ignored":`Presence detection is ignored. Room always follows its schedule.`,"presence.away_action_label":`Action when nobody is home`,"presence.away_action_eco":`Use eco temperature`,"presence.away_action_off":`Turn off devices`,"presence.clears_override_label":`Absence stops override`,"presence.clears_override_hint":`When nobody is home, manual overrides are paused and the room follows the away action. When someone returns, the override resumes until it expires.`,"card.presence_away":`Away`,"valve_protection.title":`Valve Protection`,"valve_protection.hint":`Periodically opens idle TRV valves briefly to prevent seizing or calcification.`,"valve_protection.interval_label":`Cycle interval`,"valve_protection.interval_suffix":`days`,"valve_protection.interval_hint":`How long a valve can be idle before being cycled (1–90 days)`,"compressor.title":`Compressor Protection`,"compressor.no_groups":`No compressor groups configured.`,"compressor.add_group":`Add compressor group`,"compressor.group_name":`Group name`,"compressor.members":`Indoor units`,"compressor.members_hint":`Select all climate devices powered by this compressor (indoor splits, TRVs on radiators, fan coils).`,"compressor.min_run":`Minimum run time`,"compressor.min_run_hint":`Compressor must run at least this long once started.`,"compressor.min_run_suffix":`min`,"compressor.min_off":`Minimum off time`,"compressor.min_off_hint":`Compressor must stay off at least this long after stopping.`,"compressor.min_off_suffix":`min`,"compressor.delete":`Delete group`,"compressor.delete_confirm":`Delete compressor group "{name}"?`,"compressor.master_entity":`Master device`,"compressor.master_entity_hint":`The central unit that powers the indoor devices in this group, e.g. a gas boiler, outdoor heat pump unit, or ducted AC master switch. RoomMind will turn it on when any room needs heating or cooling, and off when all rooms are idle. Leave empty to use only the action script or short-cycle protection.`,"compressor.conflict_resolution":`Conflict resolution`,"compressor.conflict_resolution_hint":`Determines what happens when some rooms need heating while others need cooling at the same time. Heating priority: heating always wins (safest for frost protection). Cooling priority: cooling always wins. Majority: the mode with more rooms wins, ties go to heating. Outdoor temperature: uses the outdoor heating max threshold from settings to decide automatically.`,"compressor.conflict_heating_priority":`Heating priority (frost protection)`,"compressor.conflict_cooling_priority":`Cooling priority`,"compressor.conflict_majority":`Majority wins`,"compressor.conflict_outdoor_temp":`Based on outdoor temperature`,"compressor.action_script":`Action script`,"compressor.action_script_hint":`A Home Assistant script that runs whenever the heating/cooling demand changes. Useful for systems that need special commands, e.g. cancelling a Vaillant Quick Veto or toggling a relay. Works with or without a master device. Without a master device, only the script is triggered. Receives variables: action (heat/cool/idle), master_entity, members, active_members.`,"compressor.enforce_uniform_mode":`Enforce uniform mode`,"compressor.enforce_uniform_mode_hint":`All thermostats in this group must operate in the same HVAC mode (all heating or all cooling). Rooms that disagree with the resolved group mode will be set to idle. Use this for heat pumps that start automatically but require all connected units to run the same mode.`,"mold.title":`Mold Risk Protection`,"mold.detection":`Mold Detection`,"mold.detection_desc":`Receive notifications when humidity indicates mold risk`,"mold.threshold":`Humidity threshold (%)`,"mold.threshold_hint":`Alert when room humidity stays above this value`,"mold.sustained":`Sustained duration (minutes)`,"mold.sustained_hint":`Alert only after risk persists for this long`,"mold.prevention":`Mold Prevention`,"mold.prevention_desc":`Automatically raise temperature to reduce mold risk`,"mold.intensity":`Intensity`,"mold.intensity_light":`Light (+{delta}{unit})`,"mold.intensity_medium":`Medium (+{delta}{unit})`,"mold.intensity_strong":`Strong (+{delta}{unit})`,"mold.intensity_hint":`Warmer air reduces surface humidity on cold walls. Light is usually sufficient for moderate risk, Strong can lower surface humidity by up to 8–10% — but uses noticeably more energy.`,"card.mold_warning":`Mold risk`,"card.mold_critical":`Mold danger!`,"card.mold_prevention":`Mold prevention +{delta}{unit}`,"room.mold_surface_rh":`Est. surface humidity: {value}%`,"settings.intro.general":`Basic display and control settings.`,"settings.intro.sensors":`Configure outdoor sensors and weather data for accurate climate control.`,"settings.intro.control":`Choose how RoomMind controls your climate devices and set priority and thresholds.`,"settings.intro.presence":`Automatically reduce temperature when nobody is home.`,"settings.intro.vacation":`Set all rooms to a reduced temperature while you are away.`,"settings.intro.valve":`Periodically move idle TRV valves to prevent seizing or calcification.`,"settings.intro.compressor":`Manage groups of indoor units that share an outdoor compressor or central heating source. Optionally assign a master device (boiler, outdoor unit) to automatically turn on/off based on room demand. Short-cycle protection prevents rapid on/off switching that can damage equipment.`,"settings.intro.mold":`Monitor humidity and automatically reduce mold risk.`,"settings.intro.notifications":`Configure who receives alerts and how.`,"settings.intro.learning":`Manage thermal model training and accelerate re-learning after changes.`,"settings.intro.reset":`Clear learned thermal model data. The model will start learning from scratch.`,"notifications.title":`Notifications`,"notifications.enabled":`Enable notifications`,"notifications.enabled_hint":`When disabled, no notifications are sent — neither to devices nor to the HA sidebar.`,"notifications.desc":`Choose which devices receive alerts. Without targets, alerts appear in the HA sidebar.`,"notifications.add_target_label":`Add notification device`,"notifications.add_target_hint":`Type the entity ID if your device is not listed (e.g. notify.mobile_app_...). You can find it under Settings → Devices → your phone → Notify entity.`,"notifications.target_unnamed":`Unnamed device`,"notifications.target_person":`Person`,"notifications.target_when_always":`Always`,"notifications.target_when_home":`Only when home`,"notifications.cooldown":`Notification cooldown (minutes)`,"notifications.cooldown_hint":`Minimum time between repeated alerts per room`,"notifications.mold_prevention_notify":`Notify when mold prevention activates`,"notifications.mold_prevention_notify_hint":`Also send a notification when prevention activates (temperature raised)`,"room.section.heat_source":`Heat Source Orchestration`,"heat_source.toggle":`Smart source selection`,"heat_source.toggle_hint":`When this room has both radiator thermostats and an AC/heat pump, RoomMind intelligently routes heating demand to the most efficient device based on temperature gap and outdoor conditions.`,"heat_source.primary_delta":`Boiler activation threshold`,"heat_source.primary_delta_hint":`Only activate the primary source when the temperature gap exceeds this value. Below this threshold, only the fast secondary source is used.`,"heat_source.primary_delta_suffix":`°C`,"heat_source.outdoor_threshold":`Outdoor preference switchover`,"heat_source.outdoor_threshold_hint":`Above this outdoor temperature, prefer the AC/heat pump (higher efficiency). Below, prefer the gas boiler/radiator.`,"heat_source.outdoor_threshold_suffix":`°C`,"heat_source.ac_min_outdoor":`Min. outdoor temp for AC heating`,"heat_source.ac_min_outdoor_hint":`Disable AC heating entirely below this temperature to protect the heat pump hardware.`,"heat_source.ac_min_outdoor_suffix":`°C`,"heat_source.summary_disabled":`Smart source selection is off`,"devices.keep_fan_only_window":`Keep fan-only with open window`,"devices.keep_fan_only_window_hint":`Heating and cooling pause, but an AC already in fan-only mode stays on.`,"settings.temperature_rounding":`Physical temperature rounding`,"settings.temperature_rounding_hint":`When a climate device cannot represent RoomMind's 0.5° setpoint, choose how the physical target is rounded.`,"settings.temperature_rounding_nearest":`Nearest supported value`,"settings.temperature_rounding_down":`Round down (26.5° → 26°)`,"settings.temperature_rounding_up":`Round up (26.5° → 27°)`,"devices.power_sensor":`Power sensor`,"devices.power_sensor_hint":`Instantaneous electrical consumption sensor for this AC. W and kW sensors are supported and used for energy history and adaptive predictions.`,"analytics.energy_title":`Energy consumption`,"analytics.energy_subtitle":`Measured device power and learned forecast`,"analytics.energy_chart_info_body":`Solid lines show measured power. Dashed segments continue from the latest measurement with the learned three-hour forecast. Tap a legend item to hide or restore a series. Pinch or scroll horizontally to zoom; the vertical dashed line marks now.`,"analytics.energy_room_power":`Room power`,"analytics.energy_forecast":`Forecast`,"analytics.energy_forecast_short":`Forecast`,"analytics.energy_now":`Now`,"analytics.energy_period":`Period energy`,"analytics.energy_next_3h":`Next 3 hours`,"analytics.energy_learning":`Learning samples`,"analytics.energy_confidence":`Forecast confidence`,"analytics.energy_confidence_low":`Low`,"analytics.energy_confidence_medium":`Medium`,"analytics.energy_confidence_high":`High`,"analytics.energy_cost_today":`Cost today`,"analytics.energy_cost_7d":`Cost last 7 days`,"analytics.energy_cost_next_3h":`Cost next 3h`,"analytics.comparison_title":`Room comparison`,"analytics.comparison_info":`Compare the selected period: kWh is measured climate energy, € is its estimated cost, Active is total heating/cooling time, ΔT/kWh shows temperature change per unit of energy, and To target is the average time to reach the scheduled temperature.`,"analytics.comparison_data_incomplete":`Incomplete data`,"analytics.comparison_quality_insufficient_samples":`too few samples`,"analytics.comparison_quality_no_power_measurements":`no power measurements`,"analytics.comparison_quality_history_gaps":`gaps in history`,"analytics.comparison_room":`Room`,"analytics.comparison_active":`Active`,"analytics.comparison_efficiency":`ΔT/kWh`,"analytics.comparison_target":`To target`,"settings.energy_price":`Climate energy price`,"settings.energy_price_hint":`Price (EUR/kWh)`,"hero.window_impact":`Window open for {minutes} min: {impact}{unit} vs forecast`,"hero.power_budget_blocked":`Climate start delayed by house power budget`,"hero.preconditioning_active":`Pre-conditioning active for the next scheduled target`,"hero.preconditioning_planned":`Pre-conditioning planned at {time}`,"hero.ac_efficiency_issue":`AC is using normal power but responding slowly`},de:{"panel.title":`RoomMind`,"panel.subtitle":`Klimasteuerung`,"panel.tab.rooms":`Räume`,"panel.tab.settings":`Einstellungen`,"panel.edit":`Raum bearbeiten`,"panel.loading":`Laden...`,"panel.no_areas":`Keine Bereiche in Home Assistant konfiguriert.`,"panel.no_areas_hint":`Bereiche in den HA-Einstellungen anlegen.`,"badge.beta":`Beta`,"badge.beta_hint":`Dieses Feature ist in der Beta-Phase und kann sich in zukünftigen Updates noch ändern.`,"common.learn_more":`Mehr erfahren`,"panel.stat.rooms":`Räume`,"panel.stat.heating":`Heizen`,"panel.stat.cooling":`Kühlen`,"panel.stat.vacation":`Urlaub`,"panel.stat.away":`Abwesend`,"panel.stat.mold":`Schimmel`,"panel.hide_room":`Ausblenden`,"panel.unhide":`Einblenden`,"panel.hidden_rooms":`Ausgeblendete Räume`,"panel.floor_other":`Sonstige`,"panel.reorder":`Räume sortieren`,"panel.reorder_done":`Fertig`,"room.back":`Zurück zu den Räumen`,"room.section.climate_mode":`Klimamodus`,"room.section.schedule":`Zeitplan & Temperaturen`,"room.section.control_mode":`Steuerungsmodus`,"room.section.devices":`Geräte`,"room.section.sensors":`Sensoren`,"room.section.windows":`Fenstersensoren`,"room.control_mode.full_control":`Full Control`,"room.control_mode.managed":`Managed`,"room.control_mode.external_sensor":`Externer Sensor: {sensor}`,"room.control_mode.no_sensor":`Kein externer Temperatursensor zugewiesen`,"room.control_mode.mpc_active":`MPC aktiv`,"room.control_mode.mpc_learning":`Lernphase`,"room.control_mode.device_setpoint":`Geräte-Setpoint: {temp}`,"room.control_mode.power":`Leistung: {power}%`,"room.control_mode.full_control_info":`RoomMind hat volle Kontrolle über deine Klimageräte. Ein externer Temperatursensor liefert die tatsächliche Raumtemperatur, was eine proportionale Setpoint-Berechnung ermöglicht. Der Geräte-Setpoint wird dynamisch basierend auf der MPC-Leistung angepasst. Das thermische Modell (EKF) lernt das Verhalten deines Raums für optimalen Komfort und Energieeffizienz.`,"room.control_mode.managed_info":`RoomMind setzt die Zieltemperatur auf deinem Gerät (aus Zeitplan, Override oder Urlaubsmodus), aber das Gerät regelt selbstständig mit seinem internen Sensor. Kein proportionaler Boost, kein thermisches Modell-Lernen und keine MPC-Optimierung. Für präzisere Steuerung einen externen Temperatursensor in der Geräte-Sektion zuweisen.`,"room.delete":`Raum löschen`,"room.deleting":`Wird gelöscht...`,"room.saving":`Speichern...`,"room.saved":`Gespeichert`,"room.error_saving":`Fehler beim Speichern`,"room.confirm_delete":`RoomMind-Konfiguration für "{name}" entfernen?`,"room.error_save_fallback":`Konfiguration konnte nicht gespeichert werden`,"room.error_delete_fallback":`Konfiguration konnte nicht gelöscht werden`,"room.climate_control_toggle":`Klimasteuerung`,"room.climate_control_hint":`Wenn deaktiviert, steuert RoomMind die Geräte in diesem Raum nicht mehr. Sie behalten ihre aktuellen Einstellungen und können eigenständig weiter heizen oder kühlen. RoomMind schaltet sie nicht aus.`,"room.outdoor_toggle":`Außenbereich`,"room.outdoor_hint":`Deaktiviert Klimasteuerung, Schimmelerkennung und Modell-Training. Sensorüberwachung läuft weiter.`,"room.alias.placeholder":`Eigener Anzeigename`,"room.alias.clear":`Auf Bereichsname zurücksetzen`,"override.label":`Temporärer Override`,"override.comfort":`Komfort`,"override.eco":`Eco`,"override.custom":`Individuell`,"override.target":`Ziel:`,"override.heat_to":`Heizen bis:`,"override.cool_above":`Kühlen ab:`,"override.invalid_band":`Das Kühlziel muss mindestens so hoch wie das Heizziel sein`,"override.activate_for":`Aktivieren für:`,"override.error_set":`Override konnte nicht gesetzt werden`,"override.error_clear":`Override konnte nicht aufgehoben werden`,"hero.target":`Ziel`,"hero.override":`Override`,"hero.remaining":`noch {time}`,"hero.humidity":`{value}% Luftfeuchtigkeit`,"hero.device_setpoint":`Gerät auf {value}{unit}`,"hero.heat_source_primary":`Heizung: TRV`,"hero.heat_source_secondary":`Heizung: AC`,"hero.heat_source_both":`Heizung: TRV + AC`,"hero.permanent":`Dauerhaft`,"hero.waiting":`Warte auf Sensordaten...`,"hero.not_configured":`Noch nicht konfiguriert`,"hero.mpc_learning_paused":`MPC-Lernen pausiert`,"hero.mpc_learning_paused.outdoor_unavailable":`RoomMind benötigt eine Außentemperatur, um das thermische Modell dieses Raums zu lernen. Der konfigurierte Außensensor ist nicht verfügbar und es ist keine Wetter-Entity als Fallback gesetzt. Konfiguriere eine der beiden in den Einstellungen.`,"hero.compressor_protection_min_off":`Kompressorschutz: wartet auf Mindestpause`,"hero.compressor_protection_min_run":`Kompressorschutz: Mindestlaufzeit aktiv`,"hero.compressor_protection_info":`Dieser Raum teilt sich eine Außeneinheit (Kompressor) mit anderen Räumen. Um Kurzzyklen zu vermeiden, erzwingt die Kompressorgruppe eine Mindestlaufzeit und eine Mindestpause, bevor dieses Gerät wieder umschalten darf.`,"card.target":`Ziel`,"card.waiting":`Warte auf Daten...`,"card.humidity":`{value}% Luftfeuchtigkeit`,"card.thermostat":`Thermostat`,"card.thermostats":`Thermostate`,"card.ac":`Klimaanlage`,"card.acs":`Klimaanlagen`,"card.climate_device":`Klimagerät`,"card.climate_devices":`Klimageräte`,"card.temp_sensor":`Temperatursensor`,"card.temp_sensors":`Temperatursensoren`,"card.no_climate":`Keine Klimageräte`,"card.outdoor":`Außen`,"card.tap_configure":`Tippen zum Konfigurieren`,"card.mpc_active":`MPC aktiv`,"card.mpc_learning":`MPC lernt`,"card.not_controlled":`Nicht von RoomMind gesteuert`,"mode.auto":`Automatisch`,"mode.auto_desc":`Heizt und kühlt automatisch basierend auf der Zieltemperatur`,"mode.heat_only":`Nur Heizen`,"mode.heat_only_desc":`Nutzt nur Thermostate, Klimaanlagen bleiben aus`,"mode.cool_only":`Nur Kühlen`,"mode.cool_only_desc":`Nutzt nur Klimaanlagen, Thermostate bleiben aus`,"mode.heating":`Heizen`,"mode.cooling":`Kühlen`,"mode.idle":`Standby`,"schedule.add_schedule":`Zeitplan hinzufügen`,"schedule.select_schedule":`Zeitplan-Helfer auswählen`,"schedule.create_helper_hint":`Neuen Zeitplan-Helfer in HA erstellen`,"schedule.selector_label":`Zeitplan-Auswahl`,"schedule.selector_value_boolean":`Aktuell: {value}`,"schedule.selector_value_number":`Aktueller Wert: {value}`,"schedule.selector_warning":`Mehrere Zeitpläne, aber keine Auswahl-Entity gesetzt. Nur der erste wird verwendet.`,"schedule.off_action_label":`Aktion wenn Zeitplan aus`,"schedule.off_action_eco":`Eco-Temperatur verwenden`,"schedule.off_action_off":`Geräte ausschalten`,"schedule.state_active":`Aktiv`,"schedule.state_inactive":`Inaktiv`,"schedule.state_unreachable":`Nicht erreichbar`,"schedule.no_schedules":`Keine Zeitpläne konfiguriert`,"schedule.done":`Fertig`,"schedule.view_comfort":`Komfort: {temp}{unit}`,"schedule.view_eco":`Eco: {temp}{unit}`,"schedule.view_selector":`Aktiver Zeitplan gewählt durch: {name}`,"schedule.view_selector_prefix":`Aktiver Zeitplan gewählt durch:`,"schedule.help_header":`Wie funktionieren Zeitpläne?`,"schedule.help_temps_title":`Wie wird die Zieltemperatur bestimmt?`,"schedule.help_temps":`Die Zieltemperatur folgt dieser Prioritätskette:`,"schedule.help_temps_1":`<strong>Manueller Override</strong> – Ein temporärer Komfort-/Eco-/Individueller Override hat immer die höchste Priorität.`,"schedule.help_temps_2":`<strong>Block-Temperatur</strong> – Wenn der aktive Zeitblock einen <code>temperature</code>-Wert in seinen Daten hat, wird dieser verwendet.`,"schedule.help_temps_3":`<strong>Komforttemperatur</strong> – Wenn der Zeitplan "an" ist, aber der Block keine Temperatur hat, wird die Komfort-Fallback-Temperatur verwendet.`,"schedule.help_temps_4":`<strong>Eco-Temperatur</strong> – Wenn der Zeitplan "aus" ist (außerhalb aller Zeitblöcke), wird die Eco-Temperatur verwendet.`,"schedule.help_block_title":`Temperatur pro Zeitblock setzen`,"schedule.help_block":`Du kannst für jeden Zeitblock eine eigene Temperatur setzen, indem du einen <code>temperature</code>-Wert in der YAML-Konfiguration des Zeitplans angibst:`,"schedule.help_block_note":`Wenn ein Block keinen <code>temperature</code>-Wert hat, wird stattdessen die Komfort-Fallback-Temperatur verwendet.`,"schedule.help_split_title":`Getrennte Heiz-/Kühlziele pro Block`,"schedule.help_split":`Für Räume im Auto-Modus kannst du pro Zeitblock separate Heiz- und Kühlziele mit <code>heat_temperature</code> und <code>cool_temperature</code> setzen:`,"schedule.help_split_note":`Wenn nur eines gesetzt ist, wird das andere auf die Komforttemperatur des Raumes zurückgesetzt. Diese Schlüssel haben Vorrang vor <code>temperature</code>.`,"schedule.help_multi_title":`Mehrere Zeitpläne`,"schedule.help_multi":`Du kannst mehrere Zeitpläne hinzufügen und mit einer <strong>Auswahl-Entity</strong> zwischen ihnen wechseln. Das kann ein <code>input_boolean</code> (wechselt zwischen Zeitplan 1 und 2) oder ein <code>input_number</code> (wählt nach Nummer) sein. Ohne Auswahl-Entity wird nur der erste Zeitplan verwendet.`,"schedule.column_comfort":`Komfort`,"schedule.column_eco":`Eco`,"schedule.row_heat":`Heizen`,"schedule.row_cool":`Kühlen`,"schedule.view_heat":`Heizen: {comfort} / {eco}{unit}`,"schedule.view_cool":`Kühlen: {comfort} / {eco}{unit}`,"schedule.comfort_hint_auto":`Komfort: Ziel wenn Zeitplan an. Eco: Ziel wenn Zeitplan aus. Zeilen: Ziel für Heizen bzw. Kühlen.`,"schedule.comfort_label":`Komfort-Fallback-Temperatur`,"schedule.eco_label":`Eco-Temperatur`,"schedule.comfort_hint":`Wird verwendet wenn der Zeitplan "an" ist, aber keine Temperatur im Block gesetzt ist`,"schedule.from_schedule":`{temp}{unit} vom Zeitplan`,"schedule.from_schedule_split":`{heat}{unit} / {cool}{unit} vom Zeitplan`,"schedule.fallback":`{temp}{unit} (Fallback)`,"schedule.eco_detail":`{temp}{unit} (Eco)`,"devices.climate_entities":`Klimageräte`,"devices.temp_sensors":`Temperatursensoren`,"devices.humidity_sensors":`Feuchtigkeitssensoren`,"devices.no_climate":`Keine Klimageräte in diesem Bereich gefunden.`,"devices.no_temp_sensors":`Keine Temperatursensoren in diesem Bereich gefunden.`,"devices.no_humidity_sensors":`Keine Feuchtigkeitssensoren in diesem Bereich gefunden.`,"devices.occupancy_sensors":`Anwesenheitssensoren`,"devices.no_occupancy_sensors":`Keine Anwesenheitssensoren in diesem Bereich gefunden`,"devices.occupancy_sensor_hint":`Verbessert die Genauigkeit des Wärmemodells durch Erkennung der Raumbelegung`,"devices.window_sensors":`Fenster- / Türsensoren`,"devices.no_window_sensors":`Keine Fenster-/Türsensoren in diesem Bereich gefunden.`,"devices.window_open_delay":`Verzögerung vor Pause`,"devices.window_close_delay":`Verzögerung vor Wiederaufnahme`,"devices.add_entity":`Entität hinzufügen`,"devices.done":`Fertig`,"devices.other_area":`Anderer Bereich`,"devices.type_thermostat":`Thermostat`,"devices.type_ac":`Klimagerät`,"devices.type_label":`Typ`,"devices.select_to_configure":`Gerät zum Konfigurieren auswählen`,"devices.heating_system_type":`Heizungstyp`,"devices.heating_system_type_info":`Nach dem Abschalten geben Heizkörper und besonders Fußbodenheizungen gespeicherte Wärme weiter ab. RoomMind berücksichtigt diese Nachlaufwärme, um Überschwingen zu vermeiden und die Modellgenauigkeit zu verbessern. Fußbodenheizungen erhalten außerdem längere Mindestlaufzeiten.`,"devices.system_type_none":`Standard (kein Nachlauf)`,"devices.system_type_radiator":`Heizkörper`,"devices.system_type_underfloor":`Fußbodenheizung`,"devices.underfloor_delay_hint":`Fußbodenheizung hat lange Anlaufzeiten. Eine Fenster-Verzögerung von mindestens 5 Minuten wird empfohlen, um unnötige Abschaltungen zu vermeiden.`,"devices.heating_system_type_boost_hint":`Tipp: Wenn sich die Heizungsart geändert hat, kannst du unter Einstellungen das Lernen beschleunigen.`,"devices.idle_action":`Im Leerlauf`,"devices.idle_action_off":`Ausschalten`,"devices.idle_action_fan_only":`Nur Ventilator`,"devices.idle_action_setback":`Absenkung`,"devices.idle_action_low":`Niedriger Sollwert (wach halten)`,"devices.idle_action_low_hint":`Senkt den Sollwert auf das Geräteminimum ab, statt auszuschalten. Verhindert, dass TRVs, die im Aus-Modus in Tiefschlaf gehen, spätere Befehle verlieren.`,"devices.idle_fan_mode":`Lüftergeschwindigkeit`,"devices.idle_fan_mode_keep":`Nicht ändern`,"devices.fan_only_conditions":`Bedingungen für Nur Ventilator`,"devices.fan_only_only_after_cooling":`Nur nach dem Kühlen`,"devices.fan_only_require_presence":`Nur wenn erfasste Personen zu Hause sind`,"devices.fan_only_require_schedule":`Nur während eines aktiven Zeitplans`,"devices.fan_only_seasons":`Erlaubte Jahreszeiten`,"devices.fan_only_season_spring":`Frühling`,"devices.fan_only_season_summer":`Sommer`,"devices.fan_only_season_autumn":`Herbst`,"devices.fan_only_season_winter":`Winter`,"devices.fan_only_season_hint":`Saisonfilter benötigen die Home-Assistant-Integration Season, die sensor.season bereitstellt. Falls sie nicht verfügbar ist, bleibt Nur Ventilator aus.`,"devices.setpoint_mode":`Sollwert-Modus`,"devices.setpoint_mode_proportional":`Proportional (Ventilsteuerung)`,"devices.setpoint_mode_direct":`Direkt (Gerät regelt selbst)`,"devices.setpoint_mode_hint":`Direkt sendet die tatsächliche Raum-Zieltemperatur ans Gerät — geeignet für Thermostate und Heizlüfter mit eigener Regelung. Proportional sendet einen erhöhten Sollwert Richtung Geräte-max_temp — geeignet für Heizkörperventile (TRVs).`,"devices.valve_protection_excluded":`Vom Ventilschutz ausgenommen`,"devices.valve_protection_exclude_hint":`Dieses Gerät wird nicht vom Ventilschutz bewegt (z.B. virtuelle Kessel-Entitäten)`,"devices.info.types_title":`Gerätetypen`,"devices.info.types_body":`Thermostat bedeutet Heizkörperthermostat / TRV. Klimagerät bedeutet AC, Wärmepumpe oder eine andere Klima-Entität für Kühlung oder Warmluftheizung. Beides sind Home-Assistant-Klima-Entitäten; der Unterschied liegt darin, wie RoomMind sie ansteuert.`,"devices.info.control_title":`Wie RoomMind sie steuert`,"devices.info.control_body":`Der Sollwert-Modus gilt nur für Thermostate in Räumen mit Full Control und externem Temperatursensor. Verwende Proportional, wenn RoomMind die Heizleistung über angehobene Sollwerte steuern soll. Verwende Direkt, wenn das Gerät selbst um den echten Zielwert regeln soll.`,"devices.info.modes_title":`Verhalten im Leerlauf`,"devices.info.modes_body":`Im Leerlauf gilt nur für Klimageräte. Ausschalten schaltet das Gerät aus. Nur Ventilator hält die Luftzirkulation ohne Heizen oder Kühlen aufrecht. Absenkung lässt den aktuellen Modus aktiv, verschiebt den Sollwert aber um 2°C vom Raumziel weg. Dieser Offset ist derzeit fest. Für Thermostate hält Niedrig den TRV aktiv auf minimalem Sollwert statt ihn auszuschalten, nützlich für batteriebetriebene Zigbee-TRVs, die beim Ausschalten in den Tiefschlaf gehen.`,"devices.info.heat_source_title":`Intelligente Quellenwahl`,"devices.info.heat_source_body":`Diese Funktion erscheint nur, wenn ein Raum sowohl ein Thermostat/TRV als auch ein Klimagerät und zusätzlich einen externen Temperatursensor hat. RoomMind kann dann je nach Temperaturdifferenz und Außenbedingungen auswählen, welche Quelle das Heizen übernimmt.`,"hero.window_open":`Fenster offen – pausiert`,"card.window_open":`Fenster offen`,"room.section.covers":`Rollos & Jalousien`,"covers.section_title":`Rollos & Jalousien`,"covers.auto_control":`Automatische Rollosteuerung`,"covers.auto_control_hint":`RoomMind schließt Rollos, wenn Solarwärme den Raum voraussichtlich überhitzen würde.`,"covers.deploy_threshold":`Auslöseschwelle`,"covers.deploy_threshold_hint":`Rollos schließen, wenn die vorhergesagte Temperatur den Zielwert um diesen Betrag übersteigt.`,"covers.min_position":`Minimale Öffnungsposition`,"covers.min_position_hint":`Rollos werden nie weiter als diese Position geschlossen (0 = vollständig schließen erlaubt).`,"covers.override_minutes":`Override-Pausendauer`,"covers.override_minutes_hint":`Wie lange die automatische Steuerung nach manueller Rolloverstellung pausiert. 0 = keine Pause.`,"covers.no_covers":`Keine Rollo-Entitäten konfiguriert.`,"covers.no_covers_in_area":`Keine Rollo-Entitäten in diesem Bereich gefunden.`,"covers.add_cover":`Rollo-Entität hinzufügen...`,"covers.shading_active":`Beschattung aktiv`,"covers.auto_paused":`Automatik pausiert (manuell übersteuert)`,"covers.auto_paused_until":`Automatik pausiert bis`,"covers.resume_auto":`Automatik jetzt fortsetzen`,"covers.done":`Fertig`,"covers.night_close":`Nachts automatisch schließen`,"covers.night_close_hint":`Rolläden bei Sonnenuntergang schließen und bei Sonnenaufgang öffnen.`,"covers.night_close_active":`Nachtschließung aktiv`,"covers.schedule_group_title":`Zeitplan`,"covers.solar_group_title":`Solar-Steuerung`,"covers.schedule_section":`Rolläden-Zeitpläne`,"covers.schedule_section_hint":`Definiere Zeitfenster für die Rolladensteuerung. Im Modus 'Position erzwingen' überschreibt der Zeitplan die Solar-/Thermik-Logik. Im Modus 'Sonnenschutz erlauben' entscheidet RoomMind innerhalb des aktiven Zeitfensters selbst über die Position.`,"covers.add_schedule":`Zeitplan hinzufügen...`,"covers.schedule_mode_force":`Position erzwingen`,"covers.schedule_mode_gate":`Sonnenschutz erlauben`,"covers.schedule_mode_gate_short":`Solarschutz-Gate`,"covers.schedule_position":`Position`,"covers.schedule_position_hint":`Rolloposition wenn dieser Zeitplan aktiv ist (0% = vollständig geschlossen, 100% = vollständig offen).`,"covers.schedule_selector":`Zeitplan-Selektor`,"covers.schedule_selector_hint":`Bestimmt welcher Zeitplan aktiv ist. input_boolean: aus=#1, an=#2. input_number: Wert wählt Zeitplan-Nummer.`,"covers.schedule_selector_warning":`Mehrere Zeitpläne konfiguriert aber kein Selektor gesetzt. Nur der erste Zeitplan wird verwendet.`,"covers.schedule_state_active":`Aktiv`,"covers.schedule_state_inactive":`Inaktiv`,"covers.schedule_state_unreachable":`Nicht erreichbar`,"covers.schedule_active":`Zeitplan aktiv`,"covers.schedule_create_link":`Zeitplan-Helfer erstellen`,"covers.night_position":`Nachtposition`,"covers.night_position_hint":`Rolloposition wenn Nachtschließung aktiv ist (0% = vollständig geschlossen). Bei Rollos mit individueller Min. Position wird diese nie unterschritten.`,"covers.night_close_advanced":`Erweitert`,"covers.night_close_elevation":`Sonnenstand-Schwellwert`,"covers.night_close_elevation_hint":`Wie weit die Sonne unter oder über dem Horizont stehen muss. 0° = genau bei Sonnenuntergang/-aufgang. Negativ = dunkler (z.B. -6° = Dämmerung, wenn es merklich dunkel wird). Positiv = noch hell (z.B. 5° = Sonne noch sichtbar).`,"covers.night_close_offset":`Zeitversatz`,"covers.night_close_offset_hint":`Zusätzliche Verschiebung relativ zum Sonnenstand-Schwellwert. Positiv = später schließen (z.B. +20 = 20 Min. nach Erreichen des Schwellwerts), negativ = früher.`,"covers.outdoor_min_temp":`Min. Außentemperatur`,"covers.outdoor_min_temp_hint":`Rollos bei dieser Außentemperatur nicht für Sonnenschutz schließen. Bei Kälte ist der Solareintrag erwünscht.`,"covers.per_cover_title":`Pro-Rollo Einstellungen`,"covers.per_cover_hint":`Himmelsrichtung pro Rollo und optionale individuelle Mindestposition.`,"covers.per_cover_min_short":`Min`,"covers.per_cover_min_position":`Min. Position`,"covers.per_cover_min_position_hint":`Individuelle Mindestposition pro Rollo. Rollos werden nicht weiter geschlossen. Nützlich wenn Rollos physisch schon bei > 0% ganz zu sind.`,"covers.snap_deploy":`Direkt auf Minimalposition`,"covers.snap_deploy_hint":`Rolläden direkt auf die Minimalposition schließen statt schrittweise. Empfohlen für Dreifachverglasung, bei der Zwischenpositionen thermische Spannungen verursachen können.`,"covers.info.selection_title":`Rollo-Auswahl`,"covers.info.selection_body":`Wähle Rollos/Jalousien aus diesem Bereich oder füge Entitäten aus anderen Bereichen hinzu. RoomMind verfolgt deren Position und kann sie automatisch steuern.`,"covers.info.schedule_title":`Zeitplan-Steuerung`,"covers.info.schedule_body":`Verwende HA-Zeitplan-Helfer um festzulegen, wann Rollos schließen sollen (z.B. Sichtschutz am Abend). Das Positions-Attribut des Zeitplans bestimmt, wie weit sie schließen. Zeitpläne überschreiben alle andere Automatik-Logik.`,"covers.info.solar_title":`Solar-/Thermik-Steuerung`,"covers.info.solar_body":`Bei aktivierter Automatik sagt RoomMind vorher, ob Sonneneinstrahlung den Raum überhitzen wird und schließt Rollos präventiv. Es nutzt gelernte Thermodaten wenn verfügbar, sonst einen konservativen Standardwert. Die Auslöseschwelle bestimmt, wie viel vorhergesagte Überschreitung nötig ist.`,"covers.info.night_title":`Nachtschließung`,"covers.info.night_body":`Schließt Rollos bei Sonnenuntergang und öffnet sie bei Sonnenaufgang. Du kannst eine eigene Nachtposition setzen (z.B. 10% = fast geschlossen aber nicht komplett).`,"covers.info.override_title":`Manuelles Übersteuern`,"covers.info.override_body":`Wenn du ein Rollo manuell bewegst, erkennt RoomMind dies und pausiert die Automatik für die konfigurierte Dauer. So wird nicht gegen den Nutzer gearbeitet.`,"covers.info.priority_title":`Prioritätsreihenfolge`,"covers.info.priority_body":`Manuelles Override > Zeitplan > Nachtschließung > Solar-/Thermik-Steuerung. Höhere Priorität gewinnt immer. Wenn keine Regel greift, bleiben Rollos offen.`,"covers.info.entities_title":`HA-Entitäten`,"covers.info.entities_body":`RoomMind erstellt zwei Entitäten pro Raum zur externen Nutzung: switch.roommind_{bereich}_cover_auto (automatische Rollosteuerung ein-/ausschalten — nutzbar in Automatisierungen oder Dashboards) und binary_sensor.roommind_{bereich}_cover_paused (an wenn manuelles Override aktiv ist, z.B. nach manuellem Bewegen eines Rollos).`,"covers.orientation_group_title":`Rolloausrichtung`,"covers.orientation_hint":`Himmelsrichtung, in die das Rollo zeigt. RoomMind nutzt dies, um Sonnenschutz zu überspringen, wenn die Sonne nicht auf diese Gebäudeseite scheint.`,"covers.orientation_none":`Beliebige Richtung`,"covers.orientation_N":`N`,"covers.orientation_NE":`NO`,"covers.orientation_E":`O`,"covers.orientation_SE":`SO`,"covers.orientation_S":`S`,"covers.orientation_SW":`SW`,"covers.orientation_W":`W`,"covers.orientation_NW":`NW`,"covers.orientation_N_full":`Nord`,"covers.orientation_NE_full":`Nordost`,"covers.orientation_E_full":`Ost`,"covers.orientation_SE_full":`Südost`,"covers.orientation_S_full":`Süd`,"covers.orientation_SW_full":`Südwest`,"covers.orientation_W_full":`West`,"covers.orientation_NW_full":`Nordwest`,"settings.general_title":`Allgemein`,"settings.group_by_floor":`Räume nach Etagen gruppieren`,"settings.climate_control_active":`Klimasteuerung aktiv`,"settings.climate_control_hint":`Wenn deaktiviert, überwacht RoomMind weiterhin alle Sensoren und trainiert das Modell, sendet aber keine Befehle an deine Heizungen oder Klimaanlagen. Die Geräte behalten ihren aktuellen Modus und Sollwert und können eigenständig weiter heizen oder kühlen. RoomMind schaltet sie nicht aus.`,"settings.learning_title":`Modell-Training`,"settings.learning_hint":`Wenn pausiert, sammelt RoomMind keine neuen Messdaten und trainiert das thermische Modell nicht weiter. Bestehende Modelldaten bleiben erhalten.`,"settings.learning_exceptions":`Ausnahmen`,"settings.learning_room_paused":`Raum pausiert`,"settings.learning_rooms_paused":`Räume pausiert`,"settings.sensors_title":`Sensoren & Datenquellen`,"settings.control_title":`Steuerung`,"settings.outdoor_sensor":`Außentemperatur`,"settings.outdoor_sensor_label":`Außentemperatursensor`,"settings.outdoor_current":`Aktuell {temp}{unit} draußen`,"settings.outdoor_waiting":`Warte auf Sensordaten...`,"settings.outdoor_humidity_sensor":`Außenluftfeuchtigkeit`,"settings.outdoor_humidity_label":`Außenluftfeuchtigkeitssensor`,"settings.outdoor_humidity_current":`Aktuell {value}% draußen`,"settings.smart_control":`Intelligente Klimasteuerung`,"settings.smart_control_hint":`Außentemperaturgrenzen für Heiz- und Kühlentscheidungen konfigurieren.`,"settings.outdoor_cooling_min":`Mindest-Außentemperatur für Kühlung`,"settings.outdoor_cooling_min_hint":`Klimaanlage bleibt aus wenn Außentemperatur unter diesem Wert`,"settings.outdoor_heating_max":`Maximal-Außentemperatur für Heizung`,"settings.outdoor_heating_max_hint":`Heizung bleibt aus wenn Außentemperatur über diesem Wert`,"settings.saving":`Speichern...`,"settings.saved":`Gespeichert`,"settings.error":`Fehler beim Speichern`,"devices.using_builtin_sensor":`Nutzt den eingebauten Thermostat-Sensor`,"settings.climate_intelligence":`Klimaintelligenz`,"settings.control_mode":`Steuerungsmodus`,"settings.control_mode_simple":`Einfach (Ein/Aus)`,"settings.control_mode_mpc":`Intelligent (MPC)`,"settings.control_mode_hint":`MPC lernt das thermische Verhalten deiner Räume für optimale Steuerung`,"settings.comfort_weight":`Priorität`,"settings.comfort_weight_comfort":`Komfort`,"settings.comfort_weight_efficiency":`Effizienz`,"settings.comfort_weight_hint":`Gewichtet Temperaturgenauigkeit gegen Energieverbrauch. Komfort reagiert früher und bleibt näher am Zielwert. Effizienz erlaubt mehr Abweichung, um Heiz- und Kühllaufzeiten zu reduzieren.`,"settings.weather_entity":`Wettervorhersage`,"settings.weather_entity_hint":`Optional: ermöglicht vorausschauende Außentemperaturplanung und dient als Fallback wenn der Außensensor nicht verfügbar ist`,"settings.outdoor_unavailable_notify":`Hinweis bei fehlender Außentemperatur`,"settings.outdoor_unavailable_notify_hint":`Zeigt eine Home-Assistant-Benachrichtigung, wenn weder Außensensor noch Wetter-Entity 30 Minuten lang eine Temperatur geliefert haben. In dieser Zeit pausiert RoomMind das Lernen des thermischen Modells, um Korruption zu vermeiden.`,"settings.prediction_enabled":`Temperaturvorhersage`,"settings.prediction_enabled_hint":`Zeigt den vorhergesagten Temperaturverlauf im Analyse-Diagramm. Bei langsamer Performance deaktivieren.`,"vacation.title":`Urlaubsmodus`,"vacation.hint":`Setzt alle Räume auf eine Absenktemperatur bis zum Enddatum.`,"vacation.active_label":`Urlaubsmodus aktiv`,"vacation.end_date":`Enddatum & Uhrzeit`,"vacation.setback_temp":`Absenktemperatur`,"vacation.no_end_date":`Kein Enddatum`,"vacation.deactivate":`Deaktivieren`,"tabs.analytics":`Analyse`,"analytics.select_room":`Raum auswählen`,"analytics.temperature":`Temperatur`,"analytics.target":`Ziel`,"analytics.prediction":`Vorhersage`,"analytics.outdoor":`Außen`,"analytics.model_status":`Modellstatus`,"analytics.confidence":`Konfidenz`,"analytics.heating_rate":`Heizstärke`,"analytics.cooling_rate":`Kühlstärke`,"analytics.solar_gain":`Solargewinn`,"analytics.occupancy_gain":`Anwesenheitsgewinn`,"analytics.time_constant":`Zeitkonstante`,"analytics.samples":`Datenpunkte`,"analytics.prediction_accuracy":`Vorhersagegenauigkeit`,"analytics.avg_deviation":`Durchschn. Abweichung`,"analytics.data_sources":`Datenquellen`,"analytics.data_points":`Datenpunkte`,"analytics.control_mode":`Steuerungsmodus`,"analytics.control_mode_mpc":`MPC aktiv`,"analytics.control_mode_bangbang":`MPC wird trainiert`,"analytics.last_model_update":`Letztes Modell-Update`,"analytics.accuracy_idle":`Genauigkeit (Leerlauf)`,"analytics.accuracy_heating":`Genauigkeit (Heizen)`,"analytics.info.accuracy_idle":`Wie genau das Modell die Temperatur vorhersagt, wenn weder geheizt noch gekühlt wird. Ein niedrigerer Wert bedeutet, dass das Modell den natürlichen Wärmeverlust deines Raums gut versteht. Dieser Wert verbessert sich als erstes, da Leerlauf-Daten kontinuierlich gesammelt werden.`,"analytics.info.accuracy_heating":`Wie genau das Modell die Temperatur während des aktiven Heizens vorhersagt. Dieser Wert bleibt anfangs hoch, da das Modell echte Heizzyklen zum Lernen braucht. Sobald deine Heizung ein paar Mal gelaufen ist, sinkt dieser Wert und die intelligente MPC-Steuerung wird verfügbar.`,"analytics.info.confidence":`Gesamte Modellreife für die intelligente MPC-Steuerung, basierend auf zwei Faktoren: Datenmenge (wie viele Leerlauf- und Aktiv-Messwerte gesammelt wurden) und Vorhersagegenauigkeit (wie präzise die Temperaturprognosen sind). Die Konfidenz startet bei 0% und steigt mit zunehmenden Daten. Etwa 50% bedeutet: genug Leerlaufdaten, aber noch zu wenig Heiz-/Kühlzyklen. Über 80% bedeutet: genug Daten und genaue Vorhersagen — MPC-Steuerung wird verfügbar. 100% ist das theoretische Maximum, wenn die Vorhersagen so genau wie physikalisch möglich sind.`,"analytics.info.time_constant":`Wie lange es dauert, bis sich die Raumtemperatur bei ausgeschalteter Heizung halbwegs der Außentemperatur annähert. Eine längere Zeitkonstante bedeutet bessere Dämmung — der Raum hält die Wärme länger. Eine kurze Zeitkonstante bedeutet schnelles Auskühlen. Das Modell lernt diesen Wert, indem es Temperaturabfälle im Leerlauf beobachtet.`,"analytics.info.heating_rate":`Wie stark deine Heizung die Raumtemperatur beeinflusst. Ein höherer Wert bedeutet, dass dein Heizsystem den Raum schneller erwärmt relativ zur thermischen Masse. Das Modell lernt dies durch Beobachtung der Temperaturanstiege beim Heizen und nutzt es um vorherzusagen, wie lange geheizt werden muss.`,"analytics.info.cooling_rate":`Wie stark deine Klimaanlage die Raumtemperatur beeinflusst. Ein höherer Wert bedeutet schnellere Kühlung relativ zur thermischen Masse. Das Modell lernt dies durch Beobachtung der Temperaturabfälle bei aktiver Kühlung und nutzt es um vorherzusagen, wie lange gekühlt werden muss.`,"analytics.info.solar_gain":`Der geschätzte Effekt der Sonneneinstrahlung durch Fenster auf die Raumtemperatur. Wird gelernt, indem beobachtet wird, wie sich der Raum bei Sonnenschein erwärmt, wenn nicht geheizt wird. Räume mit großen Südfenstern haben höhere Werte. Das Modell nutzt dies um die Heizung zu reduzieren, wenn Solargewinn erwartet wird.`,"analytics.info.occupancy_gain":`Der geschätzte Wärmebeitrag durch Anwesenheit (Personen, Haustiere, Computer), solange der Raum belegt ist. Wird gelernt, indem Temperaturänderungen beobachtet werden, während die konfigurierten Anwesenheitssensoren aktiv sind. Durch die Trennung vom Solargewinn wird Körperwärme nicht mehr fälschlich der Sonneneinstrahlung zugeschrieben. Wird nur angezeigt, wenn für diesen Raum mindestens ein Anwesenheitssensor konfiguriert ist.`,"analytics.info.data_sources":`Anzahl der Messwerte, die für das Modelltraining verwendet werden.`,"analytics.info.data_points":`Gesamtzahl der Beobachtungen, mit denen das Modell trainiert wurde. Mehr Datenpunkte führen in der Regel zu besseren Vorhersagen. Das Modell sammelt etwa alle 3 Minuten einen neuen Datenpunkt während RoomMind läuft.`,"analytics.no_data":`Noch keine Daten — Modell lernt`,"analytics.loading":`Analyse wird geladen...`,"settings.reset_title":`Thermische Daten zurücksetzen`,"settings.reset_hint":`Gelernte thermische Modelldaten und Verlauf löschen. Das Modell beginnt von vorne zu lernen.`,"settings.reset_all_label":`Alle Räume`,"settings.reset_all_hint":`Thermische Daten und Verlauf für alle Räume auf einmal löschen.`,"settings.reset_all_btn":`Alle zurücksetzen`,"settings.reset_all_confirm":`Alle gelernten thermischen Daten und Verlauf für ALLE Räume löschen? Alle Modelle beginnen von vorne zu lernen.`,"settings.reset_room_label":`Einzelner Raum`,"settings.reset_room_hint":`Wähle einen Raum, um dessen thermische Daten und Verlauf zu löschen.`,"settings.reset_room_confirm":`Alle gelernten thermischen Daten und Verlauf für diesen Raum löschen? Das Modell beginnt von vorne zu lernen.`,"settings.reset_room_select":`Raum auswählen`,"settings.reset_btn":`Zurücksetzen`,"settings.reset_no_rooms":`Keine konfigurierten Räume.`,"settings.boost_title":`Lernen beschleunigen`,"settings.boost_hint":`Das thermische Modell lernt das Heiz- und Kühlverhalten deines Raumes über die Zeit. Nach grösseren Änderungen (neuer Heizkörper, Klimaanlage, Dämmung, Möbel) kann das Modell ungenau sein. Dies erhöht die Unsicherheit des Modells, damit es sich schneller an die neuen Bedingungen anpasst.`,"settings.boost_label":`Lernen beschleunigen`,"settings.boost_room_select":`Raum auswählen`,"settings.boost_btn":`Beschleunigen`,"settings.boost_cooldown":`Aktiv – Neues Lernen läuft`,"settings.boost_no_rooms":`Keine konfigurierten Räume.`,"analytics.range_1d":`Heute`,"analytics.range_2d":`2 Tage`,"analytics.range_7d":`Woche`,"analytics.range_30d":`Monat`,"analytics.export":`Messdaten`,"analytics.heating_period":`Heizen`,"analytics.cooling_period":`Kühlung`,"analytics.window_open_period":`Fenster offen`,"analytics.blind_position":`Rolloposition`,"analytics.chart_info_title":`So liest du dieses Diagramm`,"analytics.exported":`Exportiert!`,"analytics.copy_diagnostics":`Diagnose`,"analytics.export_download":`Datei herunterladen`,"analytics.export_clipboard":`In Zwischenablage kopieren`,"analytics.copied_to_clipboard":`Kopiert!`,"analytics.range_from":`Von`,"analytics.range_to":`Bis`,"analytics.chart_info_body":`**Linien:** Die durchgezogene orangene Linie zeigt die gemessene Raumtemperatur. Die grüne gestrichelte Linie ist die Zieltemperatur aus deinem Zeitplan. Die blaue gepunktete Linie ist die Temperaturvorhersage des Modells.
+**Limitations:** The prediction assumes current conditions stay constant (outdoor temperature, window state). The simulation accuracy depends on how well the thermal model has learned your room — early on, predictions may be less accurate. Once MPC activates, predictions become significantly more reliable.`,"presence.title":`Presence Detection`,"presence.hint":`Uses eco temperature when nobody is home.`,"presence.hint_detail":`When enabled, all rooms switch to eco temperature as soon as none of the configured persons are home. You can optionally restrict per room which persons are relevant.`,"presence.add_person":`Add person`,"presence.add_entity":`Add presence entity`,"presence.person_label":`Person`,"room.section.presence":`Presence`,"presence.room_help_header":`How does per-room presence work?`,"presence.room_help_body":`Select which persons are relevant for this room. The room switches to eco temperature when none of the selected persons are home. Without selection, the global rule applies: eco when nobody is home.`,"presence.state_home":`Home`,"presence.state_away":`Away`,"presence.room_none_assigned":`Global rule — eco when nobody is home`,"presence.missing_entity_hint":`This entity no longer exists in Home Assistant — uncheck it to remove it from this room.`,"presence.ignore_toggle":`Ignore presence`,"presence.ignore_hint":`Controls how this room reacts to presence. You can assign specific persons below. The room switches to eco when none of the assigned persons are home. Use the toggle above to skip detection entirely and always follow the schedule.`,"presence.help_ignore_title":`What does "Ignore presence" do?`,"presence.help_ignore_body":`When enabled, this room skips presence detection entirely. It always follows its schedule and never switches to eco based on who is home. Useful for rooms that should maintain temperature regardless of presence, such as a server room, a pet room, or a guest room used by someone not tracked by Home Assistant.`,"presence.tile_ignored":`Presence detection is ignored. Room always follows its schedule.`,"presence.away_action_label":`Action when nobody is home`,"presence.away_action_eco":`Use eco temperature`,"presence.away_action_off":`Turn off devices`,"presence.clears_override_label":`Absence stops override`,"presence.clears_override_hint":`When nobody is home, manual overrides are paused and the room follows the away action. When someone returns, the override resumes until it expires.`,"card.presence_away":`Away`,"valve_protection.title":`Valve Protection`,"valve_protection.hint":`Periodically opens idle TRV valves briefly to prevent seizing or calcification.`,"valve_protection.interval_label":`Cycle interval`,"valve_protection.interval_suffix":`days`,"valve_protection.interval_hint":`How long a valve can be idle before being cycled (1–90 days)`,"compressor.title":`Compressor Protection`,"compressor.no_groups":`No compressor groups configured.`,"compressor.add_group":`Add compressor group`,"compressor.group_name":`Group name`,"compressor.members":`Indoor units`,"compressor.members_hint":`Select all climate devices powered by this compressor (indoor splits, TRVs on radiators, fan coils).`,"compressor.min_run":`Minimum run time`,"compressor.min_run_hint":`Compressor must run at least this long once started.`,"compressor.min_run_suffix":`min`,"compressor.min_off":`Minimum off time`,"compressor.min_off_hint":`Compressor must stay off at least this long after stopping.`,"compressor.min_off_suffix":`min`,"compressor.delete":`Delete group`,"compressor.delete_confirm":`Delete compressor group "{name}"?`,"compressor.master_entity":`Master device`,"compressor.master_entity_hint":`The central unit that powers the indoor devices in this group, e.g. a gas boiler, outdoor heat pump unit, or ducted AC master switch. RoomMind will turn it on when any room needs heating or cooling, and off when all rooms are idle. Leave empty to use only the action script or short-cycle protection.`,"compressor.conflict_resolution":`Conflict resolution`,"compressor.conflict_resolution_hint":`Determines what happens when some rooms need heating while others need cooling at the same time. Heating priority: heating always wins (safest for frost protection). Cooling priority: cooling always wins. Majority: the mode with more rooms wins, ties go to heating. Outdoor temperature: uses the outdoor heating max threshold from settings to decide automatically.`,"compressor.conflict_heating_priority":`Heating priority (frost protection)`,"compressor.conflict_cooling_priority":`Cooling priority`,"compressor.conflict_majority":`Majority wins`,"compressor.conflict_outdoor_temp":`Based on outdoor temperature`,"compressor.action_script":`Action script`,"compressor.action_script_hint":`A Home Assistant script that runs whenever the heating/cooling demand changes. Useful for systems that need special commands, e.g. cancelling a Vaillant Quick Veto or toggling a relay. Works with or without a master device. Without a master device, only the script is triggered. Receives variables: action (heat/cool/idle), master_entity, members, active_members.`,"compressor.enforce_uniform_mode":`Enforce uniform mode`,"compressor.enforce_uniform_mode_hint":`All thermostats in this group must operate in the same HVAC mode (all heating or all cooling). Rooms that disagree with the resolved group mode will be set to idle. Use this for heat pumps that start automatically but require all connected units to run the same mode.`,"mold.title":`Mold Risk Protection`,"mold.detection":`Mold Detection`,"mold.detection_desc":`Receive notifications when humidity indicates mold risk`,"mold.threshold":`Humidity threshold (%)`,"mold.threshold_hint":`Alert when room humidity stays above this value`,"mold.sustained":`Sustained duration (minutes)`,"mold.sustained_hint":`Alert only after risk persists for this long`,"mold.prevention":`Mold Prevention`,"mold.prevention_desc":`Automatically raise temperature to reduce mold risk`,"mold.intensity":`Intensity`,"mold.intensity_light":`Light (+{delta}{unit})`,"mold.intensity_medium":`Medium (+{delta}{unit})`,"mold.intensity_strong":`Strong (+{delta}{unit})`,"mold.intensity_hint":`Warmer air reduces surface humidity on cold walls. Light is usually sufficient for moderate risk, Strong can lower surface humidity by up to 8–10% — but uses noticeably more energy.`,"card.mold_warning":`Mold risk`,"card.mold_critical":`Mold danger!`,"card.mold_prevention":`Mold prevention +{delta}{unit}`,"room.mold_surface_rh":`Est. surface humidity: {value}%`,"settings.intro.general":`Basic display and control settings.`,"settings.intro.sensors":`Configure outdoor sensors and weather data for accurate climate control.`,"settings.intro.control":`Choose how RoomMind controls your climate devices and set priority and thresholds.`,"settings.intro.presence":`Automatically reduce temperature when nobody is home.`,"settings.intro.vacation":`Set all rooms to a reduced temperature while you are away.`,"settings.intro.valve":`Periodically move idle TRV valves to prevent seizing or calcification.`,"settings.intro.compressor":`Manage groups of indoor units that share an outdoor compressor or central heating source. Optionally assign a master device (boiler, outdoor unit) to automatically turn on/off based on room demand. Short-cycle protection prevents rapid on/off switching that can damage equipment.`,"settings.intro.mold":`Monitor humidity and automatically reduce mold risk.`,"settings.intro.notifications":`Configure who receives alerts and how.`,"settings.intro.learning":`Manage thermal model training and accelerate re-learning after changes.`,"settings.intro.reset":`Clear learned thermal model data. The model will start learning from scratch.`,"notifications.title":`Notifications`,"notifications.window_open_after":`Window open alert after`,"notifications.window_open_after_hint":`Send an alert after this many minutes with the window open. Set 0 to disable.`,"notifications.enabled":`Enable notifications`,"notifications.enabled_hint":`When disabled, no notifications are sent — neither to devices nor to the HA sidebar.`,"notifications.desc":`Choose which devices receive alerts. Without targets, alerts appear in the HA sidebar.`,"notifications.add_target_label":`Add notification device`,"notifications.add_target_hint":`Type the entity ID if your device is not listed (e.g. notify.mobile_app_...). You can find it under Settings → Devices → your phone → Notify entity.`,"notifications.target_unnamed":`Unnamed device`,"notifications.target_person":`Person`,"notifications.target_when_always":`Always`,"notifications.target_when_home":`Only when home`,"notifications.cooldown":`Notification cooldown (minutes)`,"notifications.cooldown_hint":`Minimum time between repeated alerts per room`,"notifications.mold_prevention_notify":`Notify when mold prevention activates`,"notifications.mold_prevention_notify_hint":`Also send a notification when prevention activates (temperature raised)`,"room.section.heat_source":`Heat Source Orchestration`,"heat_source.toggle":`Smart source selection`,"heat_source.toggle_hint":`When this room has both radiator thermostats and an AC/heat pump, RoomMind intelligently routes heating demand to the most efficient device based on temperature gap and outdoor conditions.`,"heat_source.primary_delta":`Boiler activation threshold`,"heat_source.primary_delta_hint":`Only activate the primary source when the temperature gap exceeds this value. Below this threshold, only the fast secondary source is used.`,"heat_source.primary_delta_suffix":`°C`,"heat_source.outdoor_threshold":`Outdoor preference switchover`,"heat_source.outdoor_threshold_hint":`Above this outdoor temperature, prefer the AC/heat pump (higher efficiency). Below, prefer the gas boiler/radiator.`,"heat_source.outdoor_threshold_suffix":`°C`,"heat_source.ac_min_outdoor":`Min. outdoor temp for AC heating`,"heat_source.ac_min_outdoor_hint":`Disable AC heating entirely below this temperature to protect the heat pump hardware.`,"heat_source.ac_min_outdoor_suffix":`°C`,"heat_source.summary_disabled":`Smart source selection is off`,"devices.keep_fan_only_window":`Keep fan-only with open window`,"devices.keep_fan_only_window_hint":`Heating and cooling pause, but an AC already in fan-only mode stays on.`,"settings.temperature_rounding":`Physical temperature rounding`,"settings.temperature_rounding_hint":`When a climate device cannot represent RoomMind's 0.5° setpoint, choose how the physical target is rounded.`,"settings.temperature_rounding_nearest":`Nearest supported value`,"settings.temperature_rounding_down":`Round down (26.5° → 26°)`,"settings.temperature_rounding_up":`Round up (26.5° → 27°)`,"devices.power_sensor":`Power sensor`,"devices.power_sensor_hint":`Instantaneous electrical consumption sensor for this AC. W and kW sensors are supported and used for energy history and adaptive predictions.`,"analytics.energy_title":`Energy consumption`,"analytics.energy_subtitle":`Measured device power and learned forecast`,"analytics.energy_chart_info_body":`Solid lines show measured power. Dashed segments continue from the latest measurement with the learned three-hour forecast. Tap a legend item to hide or restore a series. Pinch or scroll horizontally to zoom; the vertical dashed line marks now.`,"analytics.energy_room_power":`Room power`,"analytics.energy_forecast":`Forecast`,"analytics.energy_forecast_short":`Forecast`,"analytics.energy_now":`Now`,"analytics.energy_period":`Period energy`,"analytics.energy_next_3h":`Next 3 hours`,"analytics.energy_learning":`Learning samples`,"analytics.energy_confidence":`Forecast confidence`,"analytics.energy_confidence_low":`Low`,"analytics.energy_confidence_medium":`Medium`,"analytics.energy_confidence_high":`High`,"analytics.energy_cost_today":`Cost today`,"analytics.energy_cost_7d":`Cost last 7 days`,"analytics.energy_cost_next_3h":`Cost next 3h`,"analytics.comparison_title":`Room comparison`,"analytics.comparison_info":`Compare the selected period: kWh is measured climate energy, € is its estimated cost, Active is total heating/cooling time, ΔT/kWh shows temperature change per unit of energy, and To target is the average time to reach the scheduled temperature.`,"analytics.comparison_data_incomplete":`Incomplete data`,"analytics.comparison_quality_insufficient_samples":`too few samples`,"analytics.comparison_quality_no_power_measurements":`no power measurements`,"analytics.comparison_quality_history_gaps":`gaps in history`,"analytics.comparison_room":`Room`,"analytics.comparison_active":`Active`,"analytics.comparison_efficiency":`ΔT/kWh`,"analytics.comparison_target":`To target`,"settings.energy_price":`Climate energy price`,"settings.energy_price_hint":`Price (EUR/kWh)`,"hero.window_impact":`Window open for {minutes} min: {impact}{unit} vs forecast`,"hero.power_budget_blocked":`Climate start delayed by house power budget`,"hero.preconditioning_active":`Pre-conditioning active for the next scheduled target`,"hero.preconditioning_planned":`Pre-conditioning planned at {time}`,"hero.ac_efficiency_issue":`AC is using normal power but responding slowly`,"hero.window_recovery":`Estimated recovery after closing: {minutes} min`,"insights.decision.title":`Why RoomMind is acting`,"insights.decision.window_open":`Climate control is paused because a window is open.`,"insights.decision.power_budget":`Climate demand is limited by the configured power budget.`,"insights.decision.compressor_min_off":`The compressor is waiting for its minimum off time.`,"insights.decision.compressor_min_run":`The compressor is completing its minimum run time.`,"insights.decision.override_boost":`A Boost override is currently in control.`,"insights.decision.override_eco":`An Eco override is currently in control.`,"insights.decision.override_custom":`A custom temperature override is currently in control.`,"insights.decision.override_active":`A manual override is currently in control.`,"insights.decision.presence_away":`Away mode is adjusting this room.`,"insights.decision.mold_prevention":`Mold prevention is protecting this room.`,"insights.decision.humidity_comfort":`Dehumidification is running for humidity comfort.`,"insights.decision.smart_ventilation":`Smart ventilation is keeping air circulating.`,"insights.decision.preconditioning":`Predictive control is preconditioning the room.`,"insights.decision.heat_source":`RoomMind selected the current heat source for this room.`,"insights.decision.mode_heating":`The room is heating toward its current target.`,"insights.decision.mode_cooling":`The room is cooling toward its current target.`,"insights.decision.mode_idle":`The room is at target and no climate action is needed.`,"insights.readiness.title":`Room readiness`,"insights.readiness.ready":`Ready for predictive comfort ({ready}/{total} checks complete).`,"insights.readiness.basic":`Basic climate control is ready ({ready}/{total} checks complete).`,"insights.readiness.needs_setup":`Complete the required setup to enable climate control ({ready}/{total} checks complete).`,"insights.readiness.item.devices.ready":`Climate device configured`,"insights.readiness.item.devices.missing":`Add at least one climate device`,"insights.readiness.item.temperature_sensor.ready":`External temperature sensor configured`,"insights.readiness.item.temperature_sensor.recommended":`Add an external temperature sensor for Full Control`,"insights.readiness.item.schedule.ready":`Schedule configured`,"insights.readiness.item.schedule.recommended":`Add a schedule to automate comfort and eco temperatures`,"insights.readiness.item.predictive_control.ready":`Predictive control inputs are available`,"insights.readiness.item.predictive_control.recommended":`Add outdoor temperature to unlock predictive control`,"insights.readiness.item.climate_control.missing":`Enable climate control for this room`},de:{"panel.title":`RoomMind`,"panel.subtitle":`Klimasteuerung`,"panel.tab.rooms":`Räume`,"panel.tab.settings":`Einstellungen`,"panel.edit":`Raum bearbeiten`,"panel.loading":`Laden...`,"panel.no_areas":`Keine Bereiche in Home Assistant konfiguriert.`,"panel.no_areas_hint":`Bereiche in den HA-Einstellungen anlegen.`,"badge.beta":`Beta`,"badge.beta_hint":`Dieses Feature ist in der Beta-Phase und kann sich in zukünftigen Updates noch ändern.`,"common.learn_more":`Mehr erfahren`,"panel.stat.rooms":`Räume`,"panel.stat.heating":`Heizen`,"panel.stat.cooling":`Kühlen`,"panel.stat.vacation":`Urlaub`,"panel.stat.away":`Abwesend`,"panel.stat.mold":`Schimmel`,"panel.hide_room":`Ausblenden`,"panel.unhide":`Einblenden`,"panel.hidden_rooms":`Ausgeblendete Räume`,"panel.floor_other":`Sonstige`,"panel.reorder":`Räume sortieren`,"panel.reorder_done":`Fertig`,"room.back":`Zurück zu den Räumen`,"room.section.climate_mode":`Klimamodus`,"room.section.schedule":`Zeitplan & Temperaturen`,"room.section.control_mode":`Steuerungsmodus`,"room.section.devices":`Geräte`,"room.section.sensors":`Sensoren`,"room.section.windows":`Fenstersensoren`,"room.control_mode.full_control":`Full Control`,"room.control_mode.managed":`Managed`,"room.control_mode.external_sensor":`Externer Sensor: {sensor}`,"room.control_mode.no_sensor":`Kein externer Temperatursensor zugewiesen`,"room.control_mode.mpc_active":`MPC aktiv`,"room.control_mode.mpc_learning":`Lernphase`,"room.control_mode.device_setpoint":`Geräte-Setpoint: {temp}`,"room.control_mode.power":`Leistung: {power}%`,"room.control_mode.full_control_info":`RoomMind hat volle Kontrolle über deine Klimageräte. Ein externer Temperatursensor liefert die tatsächliche Raumtemperatur, was eine proportionale Setpoint-Berechnung ermöglicht. Der Geräte-Setpoint wird dynamisch basierend auf der MPC-Leistung angepasst. Das thermische Modell (EKF) lernt das Verhalten deines Raums für optimalen Komfort und Energieeffizienz.`,"room.control_mode.managed_info":`RoomMind setzt die Zieltemperatur auf deinem Gerät (aus Zeitplan, Override oder Urlaubsmodus), aber das Gerät regelt selbstständig mit seinem internen Sensor. Kein proportionaler Boost, kein thermisches Modell-Lernen und keine MPC-Optimierung. Für präzisere Steuerung einen externen Temperatursensor in der Geräte-Sektion zuweisen.`,"room.delete":`Raum löschen`,"room.deleting":`Wird gelöscht...`,"room.saving":`Speichern...`,"room.saved":`Gespeichert`,"room.error_saving":`Fehler beim Speichern`,"room.confirm_delete":`RoomMind-Konfiguration für "{name}" entfernen?`,"room.error_save_fallback":`Konfiguration konnte nicht gespeichert werden`,"room.error_delete_fallback":`Konfiguration konnte nicht gelöscht werden`,"room.climate_control_toggle":`Klimasteuerung`,"room.climate_control_hint":`Wenn deaktiviert, steuert RoomMind die Geräte in diesem Raum nicht mehr. Sie behalten ihre aktuellen Einstellungen und können eigenständig weiter heizen oder kühlen. RoomMind schaltet sie nicht aus.`,"room.outdoor_toggle":`Außenbereich`,"room.outdoor_hint":`Deaktiviert Klimasteuerung, Schimmelerkennung und Modell-Training. Sensorüberwachung läuft weiter.`,"room.alias.placeholder":`Eigener Anzeigename`,"room.alias.clear":`Auf Bereichsname zurücksetzen`,"override.label":`Temporärer Override`,"override.comfort":`Komfort`,"override.eco":`Eco`,"override.custom":`Individuell`,"override.target":`Ziel:`,"override.heat_to":`Heizen bis:`,"override.cool_above":`Kühlen ab:`,"override.invalid_band":`Das Kühlziel muss mindestens so hoch wie das Heizziel sein`,"override.activate_for":`Aktivieren für:`,"override.error_set":`Override konnte nicht gesetzt werden`,"override.error_clear":`Override konnte nicht aufgehoben werden`,"hero.target":`Ziel`,"hero.override":`Override`,"hero.remaining":`noch {time}`,"hero.humidity":`{value}% Luftfeuchtigkeit`,"hero.device_setpoint":`Gerät auf {value}{unit}`,"hero.heat_source_primary":`Heizung: TRV`,"hero.heat_source_secondary":`Heizung: AC`,"hero.heat_source_both":`Heizung: TRV + AC`,"hero.permanent":`Dauerhaft`,"hero.waiting":`Warte auf Sensordaten...`,"hero.not_configured":`Noch nicht konfiguriert`,"hero.mpc_learning_paused":`MPC-Lernen pausiert`,"hero.temperature_sensor_unavailable":`Temperatursensor nicht verfuegbar; Klimasteuerung pausiert`,"hero.mpc_learning_progress":`Thermisches Modell lernt: {confidence}% Konfidenz`,"hero.window_recovery":`Geschaetzte Erholung nach dem Schliessen: {minutes} Min.`,"hero.mpc_learning_paused.outdoor_unavailable":`RoomMind benötigt eine Außentemperatur, um das thermische Modell dieses Raums zu lernen. Der konfigurierte Außensensor ist nicht verfügbar und es ist keine Wetter-Entity als Fallback gesetzt. Konfiguriere eine der beiden in den Einstellungen.`,"hero.compressor_protection_min_off":`Kompressorschutz: wartet auf Mindestpause`,"hero.compressor_protection_min_run":`Kompressorschutz: Mindestlaufzeit aktiv`,"hero.compressor_protection_info":`Dieser Raum teilt sich eine Außeneinheit (Kompressor) mit anderen Räumen. Um Kurzzyklen zu vermeiden, erzwingt die Kompressorgruppe eine Mindestlaufzeit und eine Mindestpause, bevor dieses Gerät wieder umschalten darf.`,"card.target":`Ziel`,"card.waiting":`Warte auf Daten...`,"card.humidity":`{value}% Luftfeuchtigkeit`,"card.thermostat":`Thermostat`,"card.thermostats":`Thermostate`,"card.ac":`Klimaanlage`,"card.acs":`Klimaanlagen`,"card.climate_device":`Klimagerät`,"card.climate_devices":`Klimageräte`,"card.temp_sensor":`Temperatursensor`,"card.temp_sensors":`Temperatursensoren`,"card.no_climate":`Keine Klimageräte`,"card.outdoor":`Außen`,"card.tap_configure":`Tippen zum Konfigurieren`,"card.mpc_active":`MPC aktiv`,"card.mpc_learning":`MPC lernt`,"card.not_controlled":`Nicht von RoomMind gesteuert`,"mode.auto":`Automatisch`,"mode.auto_desc":`Heizt und kühlt automatisch basierend auf der Zieltemperatur`,"mode.heat_only":`Nur Heizen`,"mode.heat_only_desc":`Nutzt nur Thermostate, Klimaanlagen bleiben aus`,"mode.cool_only":`Nur Kühlen`,"mode.cool_only_desc":`Nutzt nur Klimaanlagen, Thermostate bleiben aus`,"mode.heating":`Heizen`,"mode.cooling":`Kühlen`,"mode.idle":`Standby`,"schedule.add_schedule":`Zeitplan hinzufügen`,"schedule.select_schedule":`Zeitplan-Helfer auswählen`,"schedule.create_helper_hint":`Neuen Zeitplan-Helfer in HA erstellen`,"schedule.selector_label":`Zeitplan-Auswahl`,"schedule.selector_value_boolean":`Aktuell: {value}`,"schedule.selector_value_number":`Aktueller Wert: {value}`,"schedule.selector_warning":`Mehrere Zeitpläne, aber keine Auswahl-Entity gesetzt. Nur der erste wird verwendet.`,"schedule.off_action_label":`Aktion wenn Zeitplan aus`,"schedule.off_action_eco":`Eco-Temperatur verwenden`,"schedule.off_action_off":`Geräte ausschalten`,"schedule.state_active":`Aktiv`,"schedule.state_inactive":`Inaktiv`,"schedule.state_unreachable":`Nicht erreichbar`,"schedule.no_schedules":`Keine Zeitpläne konfiguriert`,"schedule.done":`Fertig`,"schedule.view_comfort":`Komfort: {temp}{unit}`,"schedule.view_eco":`Eco: {temp}{unit}`,"schedule.view_selector":`Aktiver Zeitplan gewählt durch: {name}`,"schedule.view_selector_prefix":`Aktiver Zeitplan gewählt durch:`,"schedule.help_header":`Wie funktionieren Zeitpläne?`,"schedule.help_temps_title":`Wie wird die Zieltemperatur bestimmt?`,"schedule.help_temps":`Die Zieltemperatur folgt dieser Prioritätskette:`,"schedule.help_temps_1":`<strong>Manueller Override</strong> – Ein temporärer Komfort-/Eco-/Individueller Override hat immer die höchste Priorität.`,"schedule.help_temps_2":`<strong>Block-Temperatur</strong> – Wenn der aktive Zeitblock einen <code>temperature</code>-Wert in seinen Daten hat, wird dieser verwendet.`,"schedule.help_temps_3":`<strong>Komforttemperatur</strong> – Wenn der Zeitplan "an" ist, aber der Block keine Temperatur hat, wird die Komfort-Fallback-Temperatur verwendet.`,"schedule.help_temps_4":`<strong>Eco-Temperatur</strong> – Wenn der Zeitplan "aus" ist (außerhalb aller Zeitblöcke), wird die Eco-Temperatur verwendet.`,"schedule.help_block_title":`Temperatur pro Zeitblock setzen`,"schedule.help_block":`Du kannst für jeden Zeitblock eine eigene Temperatur setzen, indem du einen <code>temperature</code>-Wert in der YAML-Konfiguration des Zeitplans angibst:`,"schedule.help_block_note":`Wenn ein Block keinen <code>temperature</code>-Wert hat, wird stattdessen die Komfort-Fallback-Temperatur verwendet.`,"schedule.help_split_title":`Getrennte Heiz-/Kühlziele pro Block`,"schedule.help_split":`Für Räume im Auto-Modus kannst du pro Zeitblock separate Heiz- und Kühlziele mit <code>heat_temperature</code> und <code>cool_temperature</code> setzen:`,"schedule.help_split_note":`Wenn nur eines gesetzt ist, wird das andere auf die Komforttemperatur des Raumes zurückgesetzt. Diese Schlüssel haben Vorrang vor <code>temperature</code>.`,"schedule.help_multi_title":`Mehrere Zeitpläne`,"schedule.help_multi":`Du kannst mehrere Zeitpläne hinzufügen und mit einer <strong>Auswahl-Entity</strong> zwischen ihnen wechseln. Das kann ein <code>input_boolean</code> (wechselt zwischen Zeitplan 1 und 2) oder ein <code>input_number</code> (wählt nach Nummer) sein. Ohne Auswahl-Entity wird nur der erste Zeitplan verwendet.`,"schedule.column_comfort":`Komfort`,"schedule.column_eco":`Eco`,"schedule.row_heat":`Heizen`,"schedule.row_cool":`Kühlen`,"schedule.view_heat":`Heizen: {comfort} / {eco}{unit}`,"schedule.view_cool":`Kühlen: {comfort} / {eco}{unit}`,"schedule.comfort_hint_auto":`Komfort: Ziel wenn Zeitplan an. Eco: Ziel wenn Zeitplan aus. Zeilen: Ziel für Heizen bzw. Kühlen.`,"schedule.comfort_label":`Komfort-Fallback-Temperatur`,"schedule.eco_label":`Eco-Temperatur`,"schedule.comfort_hint":`Wird verwendet wenn der Zeitplan "an" ist, aber keine Temperatur im Block gesetzt ist`,"schedule.from_schedule":`{temp}{unit} vom Zeitplan`,"schedule.from_schedule_split":`{heat}{unit} / {cool}{unit} vom Zeitplan`,"schedule.fallback":`{temp}{unit} (Fallback)`,"schedule.eco_detail":`{temp}{unit} (Eco)`,"devices.climate_entities":`Klimageräte`,"devices.temp_sensors":`Temperatursensoren`,"devices.humidity_sensors":`Feuchtigkeitssensoren`,"devices.no_climate":`Keine Klimageräte in diesem Bereich gefunden.`,"devices.no_temp_sensors":`Keine Temperatursensoren in diesem Bereich gefunden.`,"devices.no_humidity_sensors":`Keine Feuchtigkeitssensoren in diesem Bereich gefunden.`,"devices.occupancy_sensors":`Anwesenheitssensoren`,"devices.no_occupancy_sensors":`Keine Anwesenheitssensoren in diesem Bereich gefunden`,"devices.occupancy_sensor_hint":`Verbessert die Genauigkeit des Wärmemodells durch Erkennung der Raumbelegung`,"devices.window_sensors":`Fenster- / Türsensoren`,"devices.no_window_sensors":`Keine Fenster-/Türsensoren in diesem Bereich gefunden.`,"devices.window_open_delay":`Verzögerung vor Pause`,"devices.window_close_delay":`Verzögerung vor Wiederaufnahme`,"devices.add_entity":`Entität hinzufügen`,"devices.done":`Fertig`,"devices.other_area":`Anderer Bereich`,"devices.type_thermostat":`Thermostat`,"devices.type_ac":`Klimagerät`,"devices.type_label":`Typ`,"devices.select_to_configure":`Gerät zum Konfigurieren auswählen`,"devices.heating_system_type":`Heizungstyp`,"devices.heating_system_type_info":`Nach dem Abschalten geben Heizkörper und besonders Fußbodenheizungen gespeicherte Wärme weiter ab. RoomMind berücksichtigt diese Nachlaufwärme, um Überschwingen zu vermeiden und die Modellgenauigkeit zu verbessern. Fußbodenheizungen erhalten außerdem längere Mindestlaufzeiten.`,"devices.system_type_none":`Standard (kein Nachlauf)`,"devices.system_type_radiator":`Heizkörper`,"devices.system_type_underfloor":`Fußbodenheizung`,"devices.underfloor_delay_hint":`Fußbodenheizung hat lange Anlaufzeiten. Eine Fenster-Verzögerung von mindestens 5 Minuten wird empfohlen, um unnötige Abschaltungen zu vermeiden.`,"devices.heating_system_type_boost_hint":`Tipp: Wenn sich die Heizungsart geändert hat, kannst du unter Einstellungen das Lernen beschleunigen.`,"devices.idle_action":`Im Leerlauf`,"devices.idle_action_off":`Ausschalten`,"devices.idle_action_fan_only":`Nur Ventilator`,"devices.idle_action_setback":`Absenkung`,"devices.idle_action_low":`Niedriger Sollwert (wach halten)`,"devices.idle_action_low_hint":`Senkt den Sollwert auf das Geräteminimum ab, statt auszuschalten. Verhindert, dass TRVs, die im Aus-Modus in Tiefschlaf gehen, spätere Befehle verlieren.`,"devices.idle_fan_mode":`Lüftergeschwindigkeit`,"devices.idle_fan_mode_keep":`Nicht ändern`,"devices.fan_only_conditions":`Bedingungen für Nur Ventilator`,"devices.fan_only_only_after_cooling":`Nur nach dem Kühlen`,"devices.fan_only_require_presence":`Nur wenn erfasste Personen zu Hause sind`,"devices.fan_only_require_schedule":`Nur während eines aktiven Zeitplans`,"devices.fan_only_seasons":`Erlaubte Jahreszeiten`,"devices.fan_only_season_spring":`Frühling`,"devices.fan_only_season_summer":`Sommer`,"devices.fan_only_season_autumn":`Herbst`,"devices.fan_only_season_winter":`Winter`,"devices.fan_only_season_hint":`Saisonfilter benötigen die Home-Assistant-Integration Season, die sensor.season bereitstellt. Falls sie nicht verfügbar ist, bleibt Nur Ventilator aus.`,"devices.setpoint_mode":`Sollwert-Modus`,"devices.setpoint_mode_proportional":`Proportional (Ventilsteuerung)`,"devices.setpoint_mode_direct":`Direkt (Gerät regelt selbst)`,"devices.setpoint_mode_hint":`Direkt sendet die tatsächliche Raum-Zieltemperatur ans Gerät — geeignet für Thermostate und Heizlüfter mit eigener Regelung. Proportional sendet einen erhöhten Sollwert Richtung Geräte-max_temp — geeignet für Heizkörperventile (TRVs).`,"devices.valve_protection_excluded":`Vom Ventilschutz ausgenommen`,"devices.valve_protection_exclude_hint":`Dieses Gerät wird nicht vom Ventilschutz bewegt (z.B. virtuelle Kessel-Entitäten)`,"devices.info.types_title":`Gerätetypen`,"devices.info.types_body":`Thermostat bedeutet Heizkörperthermostat / TRV. Klimagerät bedeutet AC, Wärmepumpe oder eine andere Klima-Entität für Kühlung oder Warmluftheizung. Beides sind Home-Assistant-Klima-Entitäten; der Unterschied liegt darin, wie RoomMind sie ansteuert.`,"devices.info.control_title":`Wie RoomMind sie steuert`,"devices.info.control_body":`Der Sollwert-Modus gilt nur für Thermostate in Räumen mit Full Control und externem Temperatursensor. Verwende Proportional, wenn RoomMind die Heizleistung über angehobene Sollwerte steuern soll. Verwende Direkt, wenn das Gerät selbst um den echten Zielwert regeln soll.`,"devices.info.modes_title":`Verhalten im Leerlauf`,"devices.info.modes_body":`Im Leerlauf gilt nur für Klimageräte. Ausschalten schaltet das Gerät aus. Nur Ventilator hält die Luftzirkulation ohne Heizen oder Kühlen aufrecht. Absenkung lässt den aktuellen Modus aktiv, verschiebt den Sollwert aber um 2°C vom Raumziel weg. Dieser Offset ist derzeit fest. Für Thermostate hält Niedrig den TRV aktiv auf minimalem Sollwert statt ihn auszuschalten, nützlich für batteriebetriebene Zigbee-TRVs, die beim Ausschalten in den Tiefschlaf gehen.`,"devices.info.heat_source_title":`Intelligente Quellenwahl`,"devices.info.heat_source_body":`Diese Funktion erscheint nur, wenn ein Raum sowohl ein Thermostat/TRV als auch ein Klimagerät und zusätzlich einen externen Temperatursensor hat. RoomMind kann dann je nach Temperaturdifferenz und Außenbedingungen auswählen, welche Quelle das Heizen übernimmt.`,"hero.window_open":`Fenster offen – pausiert`,"card.window_open":`Fenster offen`,"room.section.covers":`Rollos & Jalousien`,"covers.section_title":`Rollos & Jalousien`,"covers.auto_control":`Automatische Rollosteuerung`,"covers.auto_control_hint":`RoomMind schließt Rollos, wenn Solarwärme den Raum voraussichtlich überhitzen würde.`,"covers.deploy_threshold":`Auslöseschwelle`,"covers.deploy_threshold_hint":`Rollos schließen, wenn die vorhergesagte Temperatur den Zielwert um diesen Betrag übersteigt.`,"covers.min_position":`Minimale Öffnungsposition`,"covers.min_position_hint":`Rollos werden nie weiter als diese Position geschlossen (0 = vollständig schließen erlaubt).`,"covers.override_minutes":`Override-Pausendauer`,"covers.override_minutes_hint":`Wie lange die automatische Steuerung nach manueller Rolloverstellung pausiert. 0 = keine Pause.`,"covers.no_covers":`Keine Rollo-Entitäten konfiguriert.`,"covers.no_covers_in_area":`Keine Rollo-Entitäten in diesem Bereich gefunden.`,"covers.add_cover":`Rollo-Entität hinzufügen...`,"covers.shading_active":`Beschattung aktiv`,"covers.auto_paused":`Automatik pausiert (manuell übersteuert)`,"covers.auto_paused_until":`Automatik pausiert bis`,"covers.resume_auto":`Automatik jetzt fortsetzen`,"covers.done":`Fertig`,"covers.night_close":`Nachts automatisch schließen`,"covers.night_close_hint":`Rolläden bei Sonnenuntergang schließen und bei Sonnenaufgang öffnen.`,"covers.night_close_active":`Nachtschließung aktiv`,"covers.schedule_group_title":`Zeitplan`,"covers.solar_group_title":`Solar-Steuerung`,"covers.schedule_section":`Rolläden-Zeitpläne`,"covers.schedule_section_hint":`Definiere Zeitfenster für die Rolladensteuerung. Im Modus 'Position erzwingen' überschreibt der Zeitplan die Solar-/Thermik-Logik. Im Modus 'Sonnenschutz erlauben' entscheidet RoomMind innerhalb des aktiven Zeitfensters selbst über die Position.`,"covers.add_schedule":`Zeitplan hinzufügen...`,"covers.schedule_mode_force":`Position erzwingen`,"covers.schedule_mode_gate":`Sonnenschutz erlauben`,"covers.schedule_mode_gate_short":`Solarschutz-Gate`,"covers.schedule_position":`Position`,"covers.schedule_position_hint":`Rolloposition wenn dieser Zeitplan aktiv ist (0% = vollständig geschlossen, 100% = vollständig offen).`,"covers.schedule_selector":`Zeitplan-Selektor`,"covers.schedule_selector_hint":`Bestimmt welcher Zeitplan aktiv ist. input_boolean: aus=#1, an=#2. input_number: Wert wählt Zeitplan-Nummer.`,"covers.schedule_selector_warning":`Mehrere Zeitpläne konfiguriert aber kein Selektor gesetzt. Nur der erste Zeitplan wird verwendet.`,"covers.schedule_state_active":`Aktiv`,"covers.schedule_state_inactive":`Inaktiv`,"covers.schedule_state_unreachable":`Nicht erreichbar`,"covers.schedule_active":`Zeitplan aktiv`,"covers.schedule_create_link":`Zeitplan-Helfer erstellen`,"covers.night_position":`Nachtposition`,"covers.night_position_hint":`Rolloposition wenn Nachtschließung aktiv ist (0% = vollständig geschlossen). Bei Rollos mit individueller Min. Position wird diese nie unterschritten.`,"covers.night_close_advanced":`Erweitert`,"covers.night_close_elevation":`Sonnenstand-Schwellwert`,"covers.night_close_elevation_hint":`Wie weit die Sonne unter oder über dem Horizont stehen muss. 0° = genau bei Sonnenuntergang/-aufgang. Negativ = dunkler (z.B. -6° = Dämmerung, wenn es merklich dunkel wird). Positiv = noch hell (z.B. 5° = Sonne noch sichtbar).`,"covers.night_close_offset":`Zeitversatz`,"covers.night_close_offset_hint":`Zusätzliche Verschiebung relativ zum Sonnenstand-Schwellwert. Positiv = später schließen (z.B. +20 = 20 Min. nach Erreichen des Schwellwerts), negativ = früher.`,"covers.outdoor_min_temp":`Min. Außentemperatur`,"covers.outdoor_min_temp_hint":`Rollos bei dieser Außentemperatur nicht für Sonnenschutz schließen. Bei Kälte ist der Solareintrag erwünscht.`,"covers.per_cover_title":`Pro-Rollo Einstellungen`,"covers.per_cover_hint":`Himmelsrichtung pro Rollo und optionale individuelle Mindestposition.`,"covers.per_cover_min_short":`Min`,"covers.per_cover_min_position":`Min. Position`,"covers.per_cover_min_position_hint":`Individuelle Mindestposition pro Rollo. Rollos werden nicht weiter geschlossen. Nützlich wenn Rollos physisch schon bei > 0% ganz zu sind.`,"covers.snap_deploy":`Direkt auf Minimalposition`,"covers.snap_deploy_hint":`Rolläden direkt auf die Minimalposition schließen statt schrittweise. Empfohlen für Dreifachverglasung, bei der Zwischenpositionen thermische Spannungen verursachen können.`,"covers.info.selection_title":`Rollo-Auswahl`,"covers.info.selection_body":`Wähle Rollos/Jalousien aus diesem Bereich oder füge Entitäten aus anderen Bereichen hinzu. RoomMind verfolgt deren Position und kann sie automatisch steuern.`,"covers.info.schedule_title":`Zeitplan-Steuerung`,"covers.info.schedule_body":`Verwende HA-Zeitplan-Helfer um festzulegen, wann Rollos schließen sollen (z.B. Sichtschutz am Abend). Das Positions-Attribut des Zeitplans bestimmt, wie weit sie schließen. Zeitpläne überschreiben alle andere Automatik-Logik.`,"covers.info.solar_title":`Solar-/Thermik-Steuerung`,"covers.info.solar_body":`Bei aktivierter Automatik sagt RoomMind vorher, ob Sonneneinstrahlung den Raum überhitzen wird und schließt Rollos präventiv. Es nutzt gelernte Thermodaten wenn verfügbar, sonst einen konservativen Standardwert. Die Auslöseschwelle bestimmt, wie viel vorhergesagte Überschreitung nötig ist.`,"covers.info.night_title":`Nachtschließung`,"covers.info.night_body":`Schließt Rollos bei Sonnenuntergang und öffnet sie bei Sonnenaufgang. Du kannst eine eigene Nachtposition setzen (z.B. 10% = fast geschlossen aber nicht komplett).`,"covers.info.override_title":`Manuelles Übersteuern`,"covers.info.override_body":`Wenn du ein Rollo manuell bewegst, erkennt RoomMind dies und pausiert die Automatik für die konfigurierte Dauer. So wird nicht gegen den Nutzer gearbeitet.`,"covers.info.priority_title":`Prioritätsreihenfolge`,"covers.info.priority_body":`Manuelles Override > Zeitplan > Nachtschließung > Solar-/Thermik-Steuerung. Höhere Priorität gewinnt immer. Wenn keine Regel greift, bleiben Rollos offen.`,"covers.info.entities_title":`HA-Entitäten`,"covers.info.entities_body":`RoomMind erstellt zwei Entitäten pro Raum zur externen Nutzung: switch.roommind_{bereich}_cover_auto (automatische Rollosteuerung ein-/ausschalten — nutzbar in Automatisierungen oder Dashboards) und binary_sensor.roommind_{bereich}_cover_paused (an wenn manuelles Override aktiv ist, z.B. nach manuellem Bewegen eines Rollos).`,"covers.orientation_group_title":`Rolloausrichtung`,"covers.orientation_hint":`Himmelsrichtung, in die das Rollo zeigt. RoomMind nutzt dies, um Sonnenschutz zu überspringen, wenn die Sonne nicht auf diese Gebäudeseite scheint.`,"covers.orientation_none":`Beliebige Richtung`,"covers.orientation_N":`N`,"covers.orientation_NE":`NO`,"covers.orientation_E":`O`,"covers.orientation_SE":`SO`,"covers.orientation_S":`S`,"covers.orientation_SW":`SW`,"covers.orientation_W":`W`,"covers.orientation_NW":`NW`,"covers.orientation_N_full":`Nord`,"covers.orientation_NE_full":`Nordost`,"covers.orientation_E_full":`Ost`,"covers.orientation_SE_full":`Südost`,"covers.orientation_S_full":`Süd`,"covers.orientation_SW_full":`Südwest`,"covers.orientation_W_full":`West`,"covers.orientation_NW_full":`Nordwest`,"settings.general_title":`Allgemein`,"settings.group_by_floor":`Räume nach Etagen gruppieren`,"settings.climate_control_active":`Klimasteuerung aktiv`,"settings.climate_control_hint":`Wenn deaktiviert, überwacht RoomMind weiterhin alle Sensoren und trainiert das Modell, sendet aber keine Befehle an deine Heizungen oder Klimaanlagen. Die Geräte behalten ihren aktuellen Modus und Sollwert und können eigenständig weiter heizen oder kühlen. RoomMind schaltet sie nicht aus.`,"settings.learning_title":`Modell-Training`,"settings.learning_hint":`Wenn pausiert, sammelt RoomMind keine neuen Messdaten und trainiert das thermische Modell nicht weiter. Bestehende Modelldaten bleiben erhalten.`,"settings.learning_exceptions":`Ausnahmen`,"settings.learning_room_paused":`Raum pausiert`,"settings.learning_rooms_paused":`Räume pausiert`,"settings.sensors_title":`Sensoren & Datenquellen`,"settings.control_title":`Steuerung`,"settings.outdoor_sensor":`Außentemperatur`,"settings.outdoor_sensor_label":`Außentemperatursensor`,"settings.outdoor_current":`Aktuell {temp}{unit} draußen`,"settings.outdoor_waiting":`Warte auf Sensordaten...`,"settings.outdoor_humidity_sensor":`Außenluftfeuchtigkeit`,"settings.outdoor_humidity_label":`Außenluftfeuchtigkeitssensor`,"settings.outdoor_humidity_current":`Aktuell {value}% draußen`,"settings.smart_control":`Intelligente Klimasteuerung`,"settings.smart_control_hint":`Außentemperaturgrenzen für Heiz- und Kühlentscheidungen konfigurieren.`,"settings.outdoor_cooling_min":`Mindest-Außentemperatur für Kühlung`,"settings.outdoor_cooling_min_hint":`Klimaanlage bleibt aus wenn Außentemperatur unter diesem Wert`,"settings.outdoor_heating_max":`Maximal-Außentemperatur für Heizung`,"settings.outdoor_heating_max_hint":`Heizung bleibt aus wenn Außentemperatur über diesem Wert`,"settings.saving":`Speichern...`,"settings.saved":`Gespeichert`,"settings.error":`Fehler beim Speichern`,"devices.using_builtin_sensor":`Nutzt den eingebauten Thermostat-Sensor`,"settings.climate_intelligence":`Klimaintelligenz`,"settings.control_mode":`Steuerungsmodus`,"settings.control_mode_simple":`Einfach (Ein/Aus)`,"settings.control_mode_mpc":`Intelligent (MPC)`,"settings.control_mode_hint":`MPC lernt das thermische Verhalten deiner Räume für optimale Steuerung`,"settings.comfort_weight":`Priorität`,"settings.comfort_weight_comfort":`Komfort`,"settings.comfort_weight_efficiency":`Effizienz`,"settings.comfort_weight_hint":`Gewichtet Temperaturgenauigkeit gegen Energieverbrauch. Komfort reagiert früher und bleibt näher am Zielwert. Effizienz erlaubt mehr Abweichung, um Heiz- und Kühllaufzeiten zu reduzieren.`,"settings.weather_entity":`Wettervorhersage`,"settings.weather_entity_hint":`Optional: ermöglicht vorausschauende Außentemperaturplanung und dient als Fallback wenn der Außensensor nicht verfügbar ist`,"settings.outdoor_unavailable_notify":`Hinweis bei fehlender Außentemperatur`,"settings.outdoor_unavailable_notify_hint":`Zeigt eine Home-Assistant-Benachrichtigung, wenn weder Außensensor noch Wetter-Entity 30 Minuten lang eine Temperatur geliefert haben. In dieser Zeit pausiert RoomMind das Lernen des thermischen Modells, um Korruption zu vermeiden.`,"settings.prediction_enabled":`Temperaturvorhersage`,"settings.prediction_enabled_hint":`Zeigt den vorhergesagten Temperaturverlauf im Analyse-Diagramm. Bei langsamer Performance deaktivieren.`,"vacation.title":`Urlaubsmodus`,"vacation.hint":`Setzt alle Räume auf eine Absenktemperatur bis zum Enddatum.`,"vacation.active_label":`Urlaubsmodus aktiv`,"vacation.end_date":`Enddatum & Uhrzeit`,"vacation.setback_temp":`Absenktemperatur`,"vacation.no_end_date":`Kein Enddatum`,"vacation.deactivate":`Deaktivieren`,"tabs.analytics":`Analyse`,"analytics.select_room":`Raum auswählen`,"analytics.temperature":`Temperatur`,"analytics.target":`Ziel`,"analytics.prediction":`Vorhersage`,"analytics.outdoor":`Außen`,"analytics.model_status":`Modellstatus`,"analytics.confidence":`Konfidenz`,"analytics.heating_rate":`Heizstärke`,"analytics.cooling_rate":`Kühlstärke`,"analytics.solar_gain":`Solargewinn`,"analytics.occupancy_gain":`Anwesenheitsgewinn`,"analytics.time_constant":`Zeitkonstante`,"analytics.samples":`Datenpunkte`,"analytics.prediction_accuracy":`Vorhersagegenauigkeit`,"analytics.avg_deviation":`Durchschn. Abweichung`,"analytics.data_sources":`Datenquellen`,"analytics.data_points":`Datenpunkte`,"analytics.control_mode":`Steuerungsmodus`,"analytics.control_mode_mpc":`MPC aktiv`,"analytics.control_mode_bangbang":`MPC wird trainiert`,"analytics.last_model_update":`Letztes Modell-Update`,"analytics.accuracy_idle":`Genauigkeit (Leerlauf)`,"analytics.accuracy_heating":`Genauigkeit (Heizen)`,"analytics.info.accuracy_idle":`Wie genau das Modell die Temperatur vorhersagt, wenn weder geheizt noch gekühlt wird. Ein niedrigerer Wert bedeutet, dass das Modell den natürlichen Wärmeverlust deines Raums gut versteht. Dieser Wert verbessert sich als erstes, da Leerlauf-Daten kontinuierlich gesammelt werden.`,"analytics.info.accuracy_heating":`Wie genau das Modell die Temperatur während des aktiven Heizens vorhersagt. Dieser Wert bleibt anfangs hoch, da das Modell echte Heizzyklen zum Lernen braucht. Sobald deine Heizung ein paar Mal gelaufen ist, sinkt dieser Wert und die intelligente MPC-Steuerung wird verfügbar.`,"analytics.info.confidence":`Gesamte Modellreife für die intelligente MPC-Steuerung, basierend auf zwei Faktoren: Datenmenge (wie viele Leerlauf- und Aktiv-Messwerte gesammelt wurden) und Vorhersagegenauigkeit (wie präzise die Temperaturprognosen sind). Die Konfidenz startet bei 0% und steigt mit zunehmenden Daten. Etwa 50% bedeutet: genug Leerlaufdaten, aber noch zu wenig Heiz-/Kühlzyklen. Über 80% bedeutet: genug Daten und genaue Vorhersagen — MPC-Steuerung wird verfügbar. 100% ist das theoretische Maximum, wenn die Vorhersagen so genau wie physikalisch möglich sind.`,"analytics.info.time_constant":`Wie lange es dauert, bis sich die Raumtemperatur bei ausgeschalteter Heizung halbwegs der Außentemperatur annähert. Eine längere Zeitkonstante bedeutet bessere Dämmung — der Raum hält die Wärme länger. Eine kurze Zeitkonstante bedeutet schnelles Auskühlen. Das Modell lernt diesen Wert, indem es Temperaturabfälle im Leerlauf beobachtet.`,"analytics.info.heating_rate":`Wie stark deine Heizung die Raumtemperatur beeinflusst. Ein höherer Wert bedeutet, dass dein Heizsystem den Raum schneller erwärmt relativ zur thermischen Masse. Das Modell lernt dies durch Beobachtung der Temperaturanstiege beim Heizen und nutzt es um vorherzusagen, wie lange geheizt werden muss.`,"analytics.info.cooling_rate":`Wie stark deine Klimaanlage die Raumtemperatur beeinflusst. Ein höherer Wert bedeutet schnellere Kühlung relativ zur thermischen Masse. Das Modell lernt dies durch Beobachtung der Temperaturabfälle bei aktiver Kühlung und nutzt es um vorherzusagen, wie lange gekühlt werden muss.`,"analytics.info.solar_gain":`Der geschätzte Effekt der Sonneneinstrahlung durch Fenster auf die Raumtemperatur. Wird gelernt, indem beobachtet wird, wie sich der Raum bei Sonnenschein erwärmt, wenn nicht geheizt wird. Räume mit großen Südfenstern haben höhere Werte. Das Modell nutzt dies um die Heizung zu reduzieren, wenn Solargewinn erwartet wird.`,"analytics.info.occupancy_gain":`Der geschätzte Wärmebeitrag durch Anwesenheit (Personen, Haustiere, Computer), solange der Raum belegt ist. Wird gelernt, indem Temperaturänderungen beobachtet werden, während die konfigurierten Anwesenheitssensoren aktiv sind. Durch die Trennung vom Solargewinn wird Körperwärme nicht mehr fälschlich der Sonneneinstrahlung zugeschrieben. Wird nur angezeigt, wenn für diesen Raum mindestens ein Anwesenheitssensor konfiguriert ist.`,"analytics.info.data_sources":`Anzahl der Messwerte, die für das Modelltraining verwendet werden.`,"analytics.info.data_points":`Gesamtzahl der Beobachtungen, mit denen das Modell trainiert wurde. Mehr Datenpunkte führen in der Regel zu besseren Vorhersagen. Das Modell sammelt etwa alle 3 Minuten einen neuen Datenpunkt während RoomMind läuft.`,"analytics.no_data":`Noch keine Daten — Modell lernt`,"analytics.loading":`Analyse wird geladen...`,"settings.reset_title":`Thermische Daten zurücksetzen`,"settings.reset_hint":`Gelernte thermische Modelldaten und Verlauf löschen. Das Modell beginnt von vorne zu lernen.`,"settings.reset_all_label":`Alle Räume`,"settings.reset_all_hint":`Thermische Daten und Verlauf für alle Räume auf einmal löschen.`,"settings.reset_all_btn":`Alle zurücksetzen`,"settings.reset_all_confirm":`Alle gelernten thermischen Daten und Verlauf für ALLE Räume löschen? Alle Modelle beginnen von vorne zu lernen.`,"settings.reset_room_label":`Einzelner Raum`,"settings.reset_room_hint":`Wähle einen Raum, um dessen thermische Daten und Verlauf zu löschen.`,"settings.reset_room_confirm":`Alle gelernten thermischen Daten und Verlauf für diesen Raum löschen? Das Modell beginnt von vorne zu lernen.`,"settings.reset_room_select":`Raum auswählen`,"settings.reset_btn":`Zurücksetzen`,"settings.reset_no_rooms":`Keine konfigurierten Räume.`,"settings.boost_title":`Lernen beschleunigen`,"settings.boost_hint":`Das thermische Modell lernt das Heiz- und Kühlverhalten deines Raumes über die Zeit. Nach grösseren Änderungen (neuer Heizkörper, Klimaanlage, Dämmung, Möbel) kann das Modell ungenau sein. Dies erhöht die Unsicherheit des Modells, damit es sich schneller an die neuen Bedingungen anpasst.`,"settings.boost_label":`Lernen beschleunigen`,"settings.boost_room_select":`Raum auswählen`,"settings.boost_btn":`Beschleunigen`,"settings.boost_cooldown":`Aktiv – Neues Lernen läuft`,"settings.boost_no_rooms":`Keine konfigurierten Räume.`,"analytics.range_1d":`Heute`,"analytics.range_2d":`2 Tage`,"analytics.range_7d":`Woche`,"analytics.range_30d":`Monat`,"analytics.export":`Messdaten`,"analytics.heating_period":`Heizen`,"analytics.cooling_period":`Kühlung`,"analytics.window_open_period":`Fenster offen`,"analytics.blind_position":`Rolloposition`,"analytics.chart_info_title":`So liest du dieses Diagramm`,"analytics.exported":`Exportiert!`,"analytics.copy_diagnostics":`Diagnose`,"analytics.export_download":`Datei herunterladen`,"analytics.export_clipboard":`In Zwischenablage kopieren`,"analytics.copied_to_clipboard":`Kopiert!`,"analytics.range_from":`Von`,"analytics.range_to":`Bis`,"analytics.chart_info_body":`**Linien:** Die durchgezogene orangene Linie zeigt die gemessene Raumtemperatur. Die grüne gestrichelte Linie ist die Zieltemperatur aus deinem Zeitplan. Die blaue gepunktete Linie ist die Temperaturvorhersage des Modells.
 
 **Schattierte Bereiche:** Rote Schattierung markiert Heizperioden, blaue Kühlung und türkise Bereiche zeigen an, wenn ein Fenster offen war.
 
@@ -15,7 +15,7 @@
 
 **Vorhersage-Modus:** Wenn 'MPC aktiv' angezeigt wird, nutzt die Vorhersage den vollständigen MPC-Optimizer mit intelligentem Vorheizen/-kühlen. Solange das Modell noch lernt, wird eine einfachere Simulation verwendet.
 
-**Einschränkungen:** Die Vorhersage nimmt an, dass aktuelle Bedingungen konstant bleiben (Außentemperatur, Fensterstatus). Die Genauigkeit hängt davon ab, wie gut das Modell deinen Raum bereits gelernt hat — anfangs können die Vorhersagen ungenau sein. Sobald MPC aktiviert wird, werden die Vorhersagen deutlich zuverlässiger.`,"presence.title":`Anwesenheitserkennung`,"presence.hint":`Eco-Temperatur wenn niemand zu Hause ist.`,"presence.hint_detail":`Wenn aktiviert, werden alle Räume auf Eco-Temperatur gesetzt, sobald keine der konfigurierten Personen zu Hause ist. Pro Raum kann optional eingeschränkt werden, welche Personen relevant sind.`,"presence.add_person":`Person hinzufügen`,"presence.add_entity":`Präsenz-Entity hinzufügen`,"presence.person_label":`Person`,"room.section.presence":`Anwesenheit`,"presence.room_help_header":`Wie funktioniert die Raum-Anwesenheit?`,"presence.room_help_body":`Wähle aus, welche Personen für diesen Raum relevant sind. Der Raum schaltet auf Eco-Temperatur, wenn keine der ausgewählten Personen zu Hause ist. Ohne Auswahl greift die globale Regel: Eco wenn niemand zu Hause ist.`,"presence.state_home":`Zu Hause`,"presence.state_away":`Abwesend`,"presence.room_none_assigned":`Globale Regel — Eco wenn niemand zu Hause ist`,"presence.missing_entity_hint":`Diese Entity existiert nicht mehr in Home Assistant — abwählen, um sie aus diesem Raum zu entfernen.`,"presence.ignore_toggle":`Anwesenheit ignorieren`,"presence.ignore_hint":`Hier wird festgelegt, wie dieser Raum auf Anwesenheit reagiert. Unten kannst du einzelne Personen zuweisen. Der Raum wechselt auf Eco, wenn keine der zugewiesenen Personen zu Hause ist. Mit dem Toggle oben wird die Erkennung komplett übersprungen und der Raum heizt immer nach Zeitplan.`,"presence.help_ignore_title":`Was bewirkt "Ignore presence"?`,"presence.help_ignore_body":`Wenn aktiviert, ignoriert dieser Raum die Anwesenheitserkennung komplett. Er folgt immer seinem Zeitplan und wechselt nie aufgrund von Anwesenheit auf Eco. Nützlich für Räume, die unabhängig von Anwesenheit ihre Temperatur halten sollen, etwa Serverräume, Tierzimmer oder Gästezimmer mit Personen, die nicht in Home Assistant getrackt werden.`,"presence.tile_ignored":`Anwesenheitserkennung ist deaktiviert. Raum folgt immer dem Zeitplan.`,"presence.away_action_label":`Aktion wenn niemand zuhause`,"presence.away_action_eco":`Eco-Temperatur verwenden`,"presence.away_action_off":`Geräte ausschalten`,"presence.clears_override_label":`Abwesenheit beendet Override`,"presence.clears_override_hint":`Sobald niemand zuhause ist, wird ein manueller Override pausiert und der Raum folgt der Abwesenheits-Aktion. Kommt jemand zurück, läuft der Override weiter, bis er abläuft.`,"card.presence_away":`Abwesend`,"valve_protection.title":`Ventilschutz`,"valve_protection.hint":`Bewegt inaktive TRV-Ventile regelmäßig kurz, um Festsitzen oder Verkalkung zu verhindern.`,"valve_protection.interval_label":`Zyklusintervall`,"valve_protection.interval_suffix":`Tage`,"valve_protection.interval_hint":`Wie lange ein Ventil inaktiv sein darf, bevor es bewegt wird (1–90 Tage)`,"compressor.title":`Kompressorschutz`,"compressor.no_groups":`Keine Kompressorgruppen konfiguriert.`,"compressor.add_group":`Kompressorgruppe hinzufügen`,"compressor.group_name":`Gruppenname`,"compressor.members":`Innengeräte`,"compressor.members_hint":`Alle Klimageräte auswählen, die von diesem Kompressor versorgt werden (Splits, TRVs an Radiatoren, Fan Coils).`,"compressor.min_run":`Mindestlaufzeit`,"compressor.min_run_hint":`Kompressor muss nach dem Start mindestens so lange laufen.`,"compressor.min_run_suffix":`Min.`,"compressor.min_off":`Mindestauszeit`,"compressor.min_off_hint":`Kompressor muss nach dem Stopp mindestens so lange aus bleiben.`,"compressor.min_off_suffix":`Min.`,"compressor.delete":`Gruppe löschen`,"compressor.delete_confirm":`Kompressorgruppe "{name}" löschen?`,"compressor.master_entity":`Hauptgerät`,"compressor.master_entity_hint":`Das zentrale Gerät das die Innengeräte dieser Gruppe versorgt, z.B. ein Gaskessel, eine Wärmepumpen-Außeneinheit oder ein Kanalklima-Hauptschalter. RoomMind schaltet es ein wenn ein Raum Heiz- oder Kühlbedarf hat und aus wenn alle Räume im Leerlauf sind. Leer lassen um nur das Aktionsskript oder den Kurzzyklusschutz zu verwenden.`,"compressor.conflict_resolution":`Konfliktlösung`,"compressor.conflict_resolution_hint":`Bestimmt was passiert wenn einige Räume heizen und andere gleichzeitig kühlen wollen. Heizpriorität: Heizen gewinnt immer (sicherste Option für Frostschutz). Kühlpriorität: Kühlen gewinnt immer. Mehrheit: Der Modus mit mehr Räumen gewinnt, bei Gleichstand wird geheizt. Außentemperatur: Entscheidet automatisch anhand des Heiz-Schwellwerts aus den Einstellungen.`,"compressor.conflict_heating_priority":`Heizpriorität (Frostschutz)`,"compressor.conflict_cooling_priority":`Kühlpriorität`,"compressor.conflict_majority":`Mehrheit gewinnt`,"compressor.conflict_outdoor_temp":`Nach Außentemperatur`,"compressor.action_script":`Aktionsskript`,"compressor.action_script_hint":`Ein Home Assistant Skript das bei jedem Wechsel des Heiz-/Kühlbedarfs ausgeführt wird. Nützlich für Systeme die spezielle Befehle benötigen, z.B. zum Aufheben eines Vaillant Quick Veto oder Schalten eines Relais. Funktioniert mit oder ohne Hauptgerät. Ohne Hauptgerät wird nur das Skript ausgelöst. Erhält Variablen: action (heat/cool/idle), master_entity, members, active_members.`,"compressor.enforce_uniform_mode":`Einheitlichen Modus erzwingen`,"compressor.enforce_uniform_mode_hint":`Alle Thermostate in dieser Gruppe müssen im gleichen HVAC-Modus arbeiten (alle heizen oder alle kühlen). Räume, die dem aufgelösten Gruppenmodus widersprechen, werden auf Leerlauf gesetzt. Für Wärmepumpen die automatisch starten, aber alle angeschlossenen Geräte im gleichen Modus benötigen.`,"mold.title":`Schimmelschutz`,"mold.detection":`Schimmelerkennung`,"mold.detection_desc":`Benachrichtigung bei Schimmelgefahr durch hohe Luftfeuchtigkeit`,"mold.threshold":`Feuchtigkeitsschwelle (%)`,"mold.threshold_hint":`Warnung wenn die Raumluftfeuchte diesen Wert dauerhaft überschreitet`,"mold.sustained":`Mindestdauer (Minuten)`,"mold.sustained_hint":`Warnung erst nach anhaltender Überschreitung`,"mold.prevention":`Schimmelprävention`,"mold.prevention_desc":`Temperatur automatisch erhöhen um Schimmelrisiko zu senken`,"mold.intensity":`Intensität`,"mold.intensity_light":`Leicht (+{delta}{unit})`,"mold.intensity_medium":`Mittel (+{delta}{unit})`,"mold.intensity_strong":`Stark (+{delta}{unit})`,"mold.intensity_hint":`Wärmere Raumluft senkt die Oberflächenfeuchte an kalten Wänden. Leicht reicht meist bei moderatem Risiko, Stark kann die Oberflächenfeuchte um bis zu 8–10 % senken — verbraucht aber deutlich mehr Energie.`,"card.mold_warning":`Schimmelrisiko`,"card.mold_critical":`Schimmelgefahr!`,"card.mold_prevention":`Schimmelschutz +{delta}{unit}`,"room.mold_surface_rh":`Geschätzte Oberflächenfeuchte: {value}%`,"settings.intro.general":`Grundlegende Anzeige- und Steuerungseinstellungen.`,"settings.intro.sensors":`Außensensoren und Wetterdaten für eine präzise Klimasteuerung konfigurieren.`,"settings.intro.control":`Wähle, wie RoomMind deine Klimageräte steuert und setze Priorität und Schwellenwerte.`,"settings.intro.presence":`Temperatur automatisch absenken wenn niemand zu Hause ist.`,"settings.intro.vacation":`Alle Räume auf eine reduzierte Temperatur setzen während du abwesend bist.`,"settings.intro.valve":`Inaktive TRV-Ventile regelmäßig bewegen um Festsitzen oder Verkalkung zu verhindern.`,"settings.intro.compressor":`Gruppen von Innengeräten verwalten die sich einen Außenkompressor oder eine zentrale Heizquelle teilen. Optional ein Hauptgerät (Kessel, Außeneinheit) zuweisen das automatisch je nach Raumbedarf ein- und ausgeschaltet wird. Kurzzyklusschutz verhindert schnelles Ein-/Ausschalten das Geräte beschädigen kann.`,"settings.intro.mold":`Luftfeuchtigkeit überwachen und Schimmelrisiko automatisch reduzieren.`,"settings.intro.notifications":`Konfiguriere wer Benachrichtigungen erhält und wie.`,"settings.intro.learning":`Thermisches Modelltraining verwalten und Lernen nach Änderungen beschleunigen.`,"settings.intro.reset":`Gelernte thermische Modelldaten löschen. Das Modell beginnt von vorne zu lernen.`,"notifications.title":`Benachrichtigungen`,"notifications.enabled":`Benachrichtigungen aktivieren`,"notifications.enabled_hint":`Wenn deaktiviert, werden keine Benachrichtigungen gesendet — weder an Geräte noch an die HA-Seitenleiste.`,"notifications.desc":`Wähle die Geräte, die Benachrichtigungen erhalten. Ohne Ziele erscheint eine Meldung in der HA-Seitenleiste.`,"notifications.add_target_label":`Benachrichtigungsgerät hinzufügen`,"notifications.add_target_hint":`Tippe die Entity-ID ein, falls dein Gerät nicht angezeigt wird (z.B. notify.mobile_app_...). Du findest sie unter Einstellungen → Geräte → dein Telefon → Notify-Entität.`,"notifications.target_unnamed":`Unbenanntes Gerät`,"notifications.target_person":`Person`,"notifications.target_when_always":`Immer`,"notifications.target_when_home":`Nur wenn zuhause`,"notifications.cooldown":`Benachrichtigungspause (Minuten)`,"notifications.cooldown_hint":`Mindestabstand zwischen wiederholten Warnungen pro Raum`,"notifications.mold_prevention_notify":`Bei Aktivierung der Prävention benachrichtigen`,"notifications.mold_prevention_notify_hint":`Auch benachrichtigen wenn die Prävention aktiviert wird (Temperaturerhöhung)`,"room.section.heat_source":`Heizquellen-Orchestrierung`,"heat_source.toggle":`Intelligente Quellenauswahl`,"heat_source.toggle_hint":`Wenn dieser Raum sowohl Heizkörper-Thermostate als auch eine AC/Wärmepumpe hat, leitet RoomMind die Heizanforderung intelligent an das effizienteste Gerät weiter, basierend auf Temperaturlücke und Außenbedingungen.`,"heat_source.primary_delta":`Boiler-Aktivierungsschwelle`,"heat_source.primary_delta_hint":`Primärquelle erst aktivieren, wenn die Temperaturlücke diesen Wert überschreitet. Darunter wird nur die schnelle Sekundärquelle genutzt.`,"heat_source.primary_delta_suffix":`°C`,"heat_source.outdoor_threshold":`Außentemperatur-Umschaltpunkt`,"heat_source.outdoor_threshold_hint":`Über dieser Außentemperatur die AC/Wärmepumpe bevorzugen (höhere Effizienz). Darunter den Gas-Boiler/Heizkörper.`,"heat_source.outdoor_threshold_suffix":`°C`,"heat_source.ac_min_outdoor":`Min. Außentemp. für AC-Heizen`,"heat_source.ac_min_outdoor_hint":`AC-Heizen unter dieser Temperatur komplett deaktivieren, um die Wärmepumpen-Hardware zu schützen.`,"heat_source.ac_min_outdoor_suffix":`°C`,"heat_source.summary_disabled":`Intelligente Quellenwahl ist aus`,"devices.keep_fan_only_window":`Nur Lüften bei offenem Fenster beibehalten`,"devices.keep_fan_only_window_hint":`Heizen und Kühlen werden pausiert, aber ein Klimagerät im Nur-Lüften-Modus bleibt eingeschaltet.`,"settings.temperature_rounding":`Rundung der Gerätetemperatur`,"settings.temperature_rounding_hint":`Legt fest, wie RoomMind auf die vom Klimagerät unterstützte Schrittweite rundet.`,"settings.temperature_rounding_nearest":`Nächster unterstützter Wert`,"settings.temperature_rounding_down":`Abrunden (26,5° → 26°)`,"settings.temperature_rounding_up":`Aufrunden (26,5° → 27°)`,"devices.power_sensor":`Leistungssensor`,"devices.power_sensor_hint":`Sensor für den momentanen Stromverbrauch dieser Klimaanlage. W- und kW-Sensoren werden für Energieverlauf und adaptive Prognosen unterstützt.`,"analytics.energy_title":`Energieverbrauch`,"analytics.energy_subtitle":`Gemessene Geräteleistung und gelernte Prognose`,"analytics.energy_chart_info_body":`Durchgezogene Linien zeigen die gemessene Leistung. Gestrichelte Segmente setzen an der letzten Messung mit der gelernten Drei-Stunden-Prognose fort. Tippe auf einen Legendeneintrag, um eine Reihe ein- oder auszublenden. Zum Zoomen horizontal scrollen oder zwei Finger verwenden; die vertikale gestrichelte Linie markiert jetzt.`,"analytics.energy_room_power":`Raumleistung`,"analytics.energy_forecast":`Prognose`,"analytics.energy_forecast_short":`Prognose`,"analytics.energy_now":`Jetzt`,"analytics.energy_period":`Energie im Zeitraum`,"analytics.energy_next_3h":`Nächste 3 Stunden`,"analytics.energy_learning":`Lernmesswerte`,"analytics.energy_confidence":`Prognosesicherheit`,"analytics.energy_confidence_low":`Niedrig`,"analytics.energy_confidence_medium":`Mittel`,"analytics.energy_confidence_high":`Hoch`,"analytics.energy_cost_today":`Kosten heute`,"analytics.energy_cost_7d":`Kosten letzte 7 Tage`,"analytics.energy_cost_next_3h":`Kosten nächste 3 Std.`,"analytics.comparison_title":`Raumvergleich`,"analytics.comparison_info":`Vergleicht den ausgewählten Zeitraum: kWh ist die gemessene Klimaanlagenenergie, € die geschätzten Kosten, Aktiv die gesamte Heiz-/Kühlzeit, ΔT/kWh die Temperaturänderung pro Energieeinheit und Bis Ziel die durchschnittliche Zeit bis zur Solltemperatur.`,"analytics.comparison_data_incomplete":`Unvollständige Daten`,"analytics.comparison_quality_insufficient_samples":`zu wenige Messwerte`,"analytics.comparison_quality_no_power_measurements":`keine Leistungsmessungen`,"analytics.comparison_quality_history_gaps":`Lücken im Verlauf`,"analytics.comparison_room":`Raum`,"analytics.comparison_active":`Aktiv`,"analytics.comparison_efficiency":`ΔT/kWh`,"analytics.comparison_target":`Bis Ziel`,"settings.energy_price":`Energiepreis der Klimaanlage`,"settings.energy_price_hint":`Preis (EUR/kWh)`,"hero.window_impact":`Fenster seit {minutes} Min. offen: {impact}{unit} gegenüber Prognose`,"hero.power_budget_blocked":`Klimastart wegen Hausstrombudget verschoben`,"hero.preconditioning_active":`Vorkonditionierung für das nächste Zeitplan-Ziel aktiv`,"hero.preconditioning_planned":`Vorkonditionierung geplant um {time}`,"hero.ac_efficiency_issue":`Klimagerät verbraucht normal, reagiert aber langsam`},fr:{"panel.title":`RoomMind`,"panel.subtitle":`Gestion du climat`,"panel.tab.rooms":`Pièces`,"panel.edit":`Éditer la pièce`,"panel.tab.settings":`Réglages`,"panel.loading":`Chargement...`,"panel.no_areas":`Aucune pièce configurée dans Home Assistant.`,"panel.no_areas_hint":`Ajoutez des pièces dans les réglages HA pour commencer.`,"badge.beta":`Bêta`,"badge.beta_hint":`Cette fonctionnalité est en version bêta et est susceptible d'être modifiée ou restructurée lors de futures mises à jour.`,"common.learn_more":`En savoir plus`,"panel.stat.rooms":`Pièces`,"panel.stat.heating":`Chauffage`,"panel.stat.cooling":`Refroidissement`,"panel.stat.vacation":`Vacances`,"panel.stat.away":`Absent`,"panel.stat.mold":`Moisissure`,"panel.hide_room":`Masquer`,"panel.unhide":`Afficher`,"panel.hidden_rooms":`Pièces masquées`,"panel.floor_other":`Autre`,"panel.reorder":`Réorganiser les pièces`,"panel.reorder_done":`Terminé`,"room.back":`Retour aux pièces`,"room.section.climate_mode":`Mode climatique`,"room.section.schedule":`Planification et températures`,"room.section.control_mode":`Mode de contrôle`,"room.section.devices":`Appareils`,"room.section.sensors":`Capteurs`,"room.section.windows":`Capteurs de fenêtres`,"room.control_mode.full_control":`Contrôle total`,"room.control_mode.managed":`Mode géré`,"room.control_mode.external_sensor":`Capteur externe: {sensor}`,"room.control_mode.no_sensor":`Aucun capteur de température externe configuré`,"room.control_mode.mpc_active":`MPC actif`,"room.control_mode.mpc_learning":`Apprentissage`,"room.control_mode.device_setpoint":`Consigne de l'appareil: {temp}`,"room.control_mode.power":`Puissance: {power}%`,"room.control_mode.full_control_info":`RoomMind assure un contrôle total de vos appareils de climatisation. Un capteur de température externe mesure la température réelle de la pièce, ce qui permet de calculer la consigne de manière proportionnelle. La consigne de l'appareil est ajustée de manière dynamique en fonction de la puissance de sortie du MPC. Le modèle thermique (EKF) apprend le comportement de votre pièce afin d'optimiser le confort et l'efficacité énergétique.`,"room.control_mode.managed_info":`RoomMind définit la température cible sur votre appareil (à partir de la planification, des dérogations ou du mode vacances), mais l'appareil s'autorégule à l'aide de son propre capteur interne. Pas d'amplification proportionnelle, pas d'apprentissage de modèle thermique et pas d'optimisation MPC. Pour un contrôle plus précis, configurez un capteur de température externe dans la section Appareils.`,"room.delete":`Supprimer une pièce`,"room.deleting":`Suppression...`,"room.saving":`Enregistrement...`,"room.saved":`Enregistré`,"room.error_saving":`Erreur pendant l'enregistrement`,"room.confirm_delete":`Effacer la configuration RoomMind de "{name}"?`,"room.error_save_fallback":`Échec de l'enregistrement de la configuration`,"room.error_delete_fallback":`Échec de la suppression de la configuration`,"room.climate_control_toggle":`Contrôle climatique`,"room.climate_control_hint":`Si désactivé, RoomMind ne contrôle plus les appareils de cette pièce. Ils conservent leurs réglages actuels et peuvent continuer à chauffer ou refroidir d'eux-mêmes. RoomMind ne les éteint pas.`,"room.outdoor_toggle":`Zone extérieure`,"room.outdoor_hint":`Désactive le contrôle climatique, la détection de moisissures et l'entraînement du modèle. La surveillance des capteurs se poursuit.`,"room.alias.placeholder":`Nom d'affichage personnalisé`,"room.alias.clear":`Revenir au nom de la pièce`,"override.label":`Dérogation temporaire`,"override.comfort":`Confort`,"override.eco":`Éco`,"override.custom":`Personnalisé`,"override.target":`Cible:`,"override.heat_to":`Chauffer jusqu'à:`,"override.cool_above":`Refroidir au-dessus de:`,"override.invalid_band":`La cible de refroidissement doit être supérieure ou égale à la cible de chauffage`,"override.activate_for":`Activer pendant:`,"override.error_set":`Échec lors de la configuration de la dérogation`,"override.error_clear":`Échec lors de la suppression de la dérogation`,"hero.target":`Cible`,"hero.override":`Dérogation`,"hero.remaining":`{time} restant`,"hero.humidity":`{value}% humidité`,"hero.device_setpoint":`Appareil réglé sur {value}{unit}`,"hero.heat_source_primary":`Chauffage: vannes thermostatiques`,"hero.heat_source_secondary":`Chauffage: Climatisation`,"hero.heat_source_both":`Chauffage: Vannes thermostatiques + Climatisation`,"hero.permanent":`Permanent`,"hero.waiting":`En attente des données du capteur...`,"hero.not_configured":`Pas encore configuré`,"hero.mpc_learning_paused":`Apprentissage du MPC en pause`,"hero.mpc_learning_paused.outdoor_unavailable":`RoomMind a besoin d'une température extérieure pour apprendre le modèle thermique de cette pièce. Le capteur extérieur configuré n'est pas disponible et aucune entité météo n'est définie comme solution de secours. Configurez l'un ou l'autre dans les Paramètres.`,"hero.compressor_protection_min_off":`Protection du compresseur : attente du délai minimal d'arrêt`,"hero.compressor_protection_min_run":`Protection du compresseur : durée minimale de fonctionnement active`,"hero.compressor_protection_info":`Cette pièce partage une unité extérieure (compresseur) avec d'autres pièces. Pour éviter les cycles courts, le groupe de compresseurs impose une durée minimale de fonctionnement et un délai minimal d'arrêt avant que cet appareil ne puisse à nouveau changer d'état.`,"card.target":`Cible`,"card.waiting":`En attente de données...`,"card.humidity":`{value}% humidité`,"card.thermostat":`Thermostat`,"card.thermostats":`Thermostats`,"card.ac":`Climatisation`,"card.acs":`Climatisations`,"card.climate_device":`appareil de climatisation`,"card.climate_devices":`appareils de climatisation`,"card.temp_sensor":`capteur temp.`,"card.temp_sensors":`capteurs temp.`,"card.no_climate":`Aucun appareil de climatisation`,"card.outdoor":`Extérieur`,"card.tap_configure":`Appuyez pour configurer`,"card.mpc_active":`MPC actif`,"card.mpc_learning":`MPC en apprentissage`,"card.not_controlled":`Pas contrôlé par RoomMind`,"mode.auto":`Auto`,"mode.auto_desc":`Chauffe et refroidit automatiquement en fonction de la température cible`,"mode.heat_only":`Chauffer seulement`,"mode.heat_only_desc":`Utilise seulement les thermostats, la climatisation reste éteinte`,"mode.cool_only":`Refroidir seulement`,"mode.cool_only_desc":`Utilise seulement la climatisation, les thermostats restent éteints`,"mode.heating":`Chauffage`,"mode.cooling":`Refroidissement`,"mode.idle":`En veille`,"schedule.add_schedule":`Ajouter une planification`,"schedule.select_schedule":`Sélectionnez la planification`,"schedule.create_helper_hint":`Créer une nouvelle planification dans les réglages HA`,"schedule.selector_label":`Entité sélecteur de planification`,"schedule.selector_value_boolean":`Actuel: {value}`,"schedule.selector_value_number":`Valeur actuelle: {value}`,"schedule.selector_warning":`Plusieurs planifications définies mais aucun sélecteur défini. Seule la première planification sera utilisée.`,"schedule.off_action_label":`Action quand la planification est désactivée`,"schedule.off_action_eco":`Utiliser la température Éco`,"schedule.off_action_off":`Éteindre les appareils`,"schedule.state_active":`Actif`,"schedule.state_inactive":`Inactif`,"schedule.state_unreachable":`Inaccessible`,"schedule.no_schedules":`Aucune planification configurée`,"schedule.done":`Terminé`,"schedule.view_comfort":`Confort: {temp}{unit}`,"schedule.view_eco":`Éco: {temp}{unit}`,"schedule.view_selector":`Planification active sélectionnée par: {name}`,"schedule.view_selector_prefix":`Planification active sélectionnée par:`,"schedule.help_header":`Comment fonctionnent les planifications ?`,"schedule.help_temps_title":`Comment la température cible est-elle déterminée ?`,"schedule.help_temps":`La température cible suit cette chaîne de priorité:`,"schedule.help_temps_1":`<strong>Dérogation manuelle</strong> – Une dérogation confort/éco/personnalisée a toujours la priorité la plus élevée.`,"schedule.help_temps_2":`<strong>Température du bloc</strong> – Si le bloc de planification actif possède une valeur <code>temperature</code> dans ses données, cette valeur est utilisée.`,"schedule.help_temps_3":`<strong>Température de confort</strong> – Si la planification est "activée" mais que le bloc n'a pas de température, la température de secours de confort ci-dessous est utilisée.`,"schedule.help_temps_4":`<strong>Température éco</strong> – Lorsque la planification est "désactivée" (en dehors de tous les blocs temporels), la température éco est utilisée.`,"schedule.help_block_title":`Définir la température par bloc horaire`,"schedule.help_block":`Vous pouvez définir une température spécifique pour chaque bloc horaire en ajoutant une valeur <code>temperature</code> dans la configuration YAML de la planification:`,"schedule.help_block_note":`Si un bloc n'a pas de donnée <code>temperature</code>, la température de secours de confort est utilisée à la place.`,"schedule.help_split_title":`Cibles de chauffage/refroidissement différentes par bloc`,"schedule.help_split":`Pour les pièces en mode auto, vous pouvez définir des cibles de chauffage et de refroidissement différentes par bloc horaire en utilisant <code>heat_temperature</code> et <code>cool_temperature</code> :`,"schedule.help_split_note":`Si une seule est définie, l'autre revient à la température de confort de la pièce. Ces clés ont la priorité sur <code>temperature</code> quand elles sont présentes.`,"schedule.help_multi_title":`Planifications multiples`,"schedule.help_multi":`Vous pouvez ajouter plusieurs planifications et basculer entre elles à l'aide d'une <strong>entité sélecteur</strong>. Cela peut être un <code>input_boolean</code> (bascule entre les planifications 1 et 2) ou un <code>input_number</code> (sélection par numéro). Sans entité sélecteur, seule la première planification est utilisée.`,"schedule.column_comfort":`Confort`,"schedule.column_eco":`Éco`,"schedule.row_heat":`Chauffage`,"schedule.row_cool":`Refroidissement`,"schedule.view_heat":`Chauffage : {comfort} / {eco}{unit}`,"schedule.view_cool":`Refroidissement : {comfort} / {eco}{unit}`,"schedule.comfort_hint_auto":`Confort : cible lorsque la planification est activée. Éco : cible lorsque la planification est désactivée. Les lignes définissent la cible pour le chauffage et le refroidissement.`,"schedule.comfort_label":`Température de confort de secours`,"schedule.eco_label":`Température éco`,"schedule.comfort_hint":`Utilisée lorsque la planification est "activée" mais aucune température n'est définie dans le bloc`,"schedule.from_schedule":`{temp}{unit} provenant de la planification`,"schedule.from_schedule_split":`{heat}{unit} / {cool}{unit} provenant de la planification`,"schedule.fallback":`{temp}{unit} (secours)`,"schedule.eco_detail":`{temp}{unit} (éco)`,"devices.climate_entities":`Entités climatiques`,"devices.temp_sensors":`Capteurs de température`,"devices.humidity_sensors":`Capteurs d'humidité`,"devices.no_climate":`Aucune entité climatique trouvée dans cette pièce.`,"devices.no_temp_sensors":`Aucun capteur de température trouvé dans cette pièce.`,"devices.no_humidity_sensors":`Aucun capteur d'humidité trouvé dans cette pièce.`,"devices.occupancy_sensors":`Capteurs de présence`,"devices.no_occupancy_sensors":`Aucun capteur de présence trouvé dans cette pièce`,"devices.occupancy_sensor_hint":`Améliore la précision du modèle thermique en suivant l'occupation de la pièce`,"devices.window_sensors":`Capteurs de fenêtre/porte`,"devices.no_window_sensors":`Aucun capteur de fenêtre/porte trouvé dans cette pièce.`,"devices.window_open_delay":`Délai avant la pause`,"devices.window_close_delay":`Délai avant la reprise`,"devices.add_entity":`Ajouter une entité`,"devices.done":`Terminé`,"devices.other_area":`Autre pièce`,"devices.type_thermostat":`Thermostat`,"devices.type_ac":`Appareil climatique`,"devices.type_label":`Type`,"devices.select_to_configure":`Sélectionnez un appareil à configurer`,"devices.heating_system_type":`Type de système de chauffage`,"devices.heating_system_type_info":`Après l'arrêt du chauffage, les radiateurs et surtout les systèmes de chauffage au sol continuent de libérer la chaleur stockée. RoomMind tient compte de cette chaleur résiduelle pour éviter le dépassement et améliorer la précision du modèle. Les pièces avec chauffage au sol bénéficient également de temps de marche minimum plus longs.`,"devices.system_type_none":`Standard (pas de chaleur résiduelle)`,"devices.system_type_radiator":`Radiateur`,"devices.system_type_underfloor":`Chauffage au sol`,"devices.underfloor_delay_hint":`Le chauffage au sol a des temps de redémarrage longs. Un délai d'ouverture de fenêtre d'au moins 5 minutes est recommandé pour éviter des arrêts inutiles.`,"devices.heating_system_type_boost_hint":`Astuce : Si le système de chauffage a changé, vous pouvez accélérer le réapprentissage dans les Paramètres.`,"devices.idle_action":`Lorsque inactif`,"devices.idle_action_off":`Éteindre`,"devices.idle_action_fan_only":`Ventilateur uniquement`,"devices.idle_action_setback":`Décalage`,"devices.idle_action_low":`Consigne basse (maintenir actif)`,"devices.idle_action_low_hint":`Abaisse la consigne au minimum de l'appareil au lieu de l'éteindre. Empêche les TRV qui hibernent en mode off de perdre les commandes ultérieures.`,"devices.idle_fan_mode":`Vitesse du ventilateur`,"devices.idle_fan_mode_keep":`Ne pas changer`,"devices.fan_only_conditions":`Conditions de ventilation seule`,"devices.fan_only_only_after_cooling":`Uniquement après le refroidissement`,"devices.fan_only_require_presence":`Uniquement lorsque les personnes suivies sont présentes`,"devices.fan_only_require_schedule":`Uniquement pendant un planning actif`,"devices.fan_only_seasons":`Saisons autorisées`,"devices.fan_only_season_spring":`Printemps`,"devices.fan_only_season_summer":`Été`,"devices.fan_only_season_autumn":`Automne`,"devices.fan_only_season_winter":`Hiver`,"devices.fan_only_season_hint":`Les filtres saisonniers nécessitent l’intégration Season de Home Assistant, qui fournit sensor.season. Si elle est indisponible, la ventilation seule reste arrêtée.`,"devices.setpoint_mode":`Mode de consigne`,"devices.setpoint_mode_proportional":`Proportionnel (contrôle de vanne)`,"devices.setpoint_mode_direct":`Direct (l'appareil régule)`,"devices.setpoint_mode_hint":`Direct envoie la cible réelle de la pièce à l'appareil — idéal pour les thermostats et les chauffages d'appoint qui se régulent eux-mêmes. Proportionnel envoie une consigne renforcée vers la température maximale de l'appareil — idéal pour les vannes de radiateur (TRV).`,"devices.valve_protection_excluded":`Exclu de la protection des vannes`,"devices.valve_protection_exclude_hint":`Cette entité ne sera pas cyclée par la protection des vannes (ex. entités chaudière virtuelles)`,"devices.info.types_title":`Types d'appareil`,"devices.info.types_body":`Thermostat désigne un thermostat de radiateur / TRV. Appareil climatique désigne un climatiseur, une pompe à chaleur ou autre entité climatique utilisée pour le refroidissement ou le chauffage à air pulsé. Les deux sont des entités climatiques dans Home Assistant; la différence réside dans la façon dont RoomMind les contrôle.`,"devices.info.control_title":`Comment RoomMind les contrôle`,"devices.info.control_body":`Le mode de consigne ne s'applique qu'aux thermostats dans les pièces en Contrôle total disposant d'un capteur de température externe. Utilisez Proportionnel lorsque RoomMind doit piloter le chauffage en envoyant des consignes renforcées. Utilisez Direct lorsque l'appareil doit se réguler autour de la vraie température cible.`,"devices.info.modes_title":`Comportement en inactivité`,"devices.info.modes_body":`Lorsque inactif ne s'applique qu'aux appareils climatiques. Éteindre met l'appareil hors tension. Ventilateur uniquement maintient le débit d'air sans chauffage ni refroidissement. Décalage garde le mode actuel actif mais décale la cible de 2°C par rapport à la cible de la pièce. Ce décalage de réduction est actuellement fixe. Pour les thermostats, Consigne basse garde le TRV actif à sa consigne minimale au lieu de l'éteindre, utile pour les TRV Zigbee à batterie qui se mettent en veille lorsqu'ils sont à off.`,"devices.info.heat_source_title":`Sélection intelligente de source`,"devices.info.heat_source_body":`Cela apparaît uniquement lorsqu'une pièce possède à la fois un thermostat/TRV et un appareil climatique ainsi qu'un capteur de température externe. RoomMind peut alors choisir la source qui gérera le chauffage en fonction de l'écart de température et des conditions extérieures.`,"hero.window_open":`Fenêtre ouverte - en pause`,"card.window_open":`Fenêtre ouverte`,"room.section.covers":`Rideaux & stores`,"covers.section_title":`Rideaux & stores`,"covers.auto_control":`Contrôle automatique des stores`,"covers.auto_control_hint":`RoomMind ferme les stores lorsque le gain solaire risque de surchauffer la pièce.`,"covers.deploy_threshold":`Seuil de déploiement`,"covers.deploy_threshold_hint":`Ferme les stores lorsque la température prévue dépasse la cible de cette quantité.`,"covers.min_position":`Position d'ouverture minimale`,"covers.min_position_hint":`Les stores ne se fermeront jamais plus que cela (0 = fermeture totale autorisée).`,"covers.override_minutes":`Durée de pause de la dérogation`,"covers.override_minutes_hint":`Durée pendant laquelle le contrôle automatique est mis en pause après un mouvement manuel du store. Mettre 0 pour aucune pause.`,"covers.no_covers":`Aucune entité de store configurée.`,"covers.no_covers_in_area":`Aucune entité de store trouvée dans cette pièce.`,"covers.add_cover":`Ajouter une entité de store...`,"covers.shading_active":`Ombrage activé`,"covers.auto_paused":`Pause auto (dérogation manuelle)`,"covers.auto_paused_until":`Contrôle automatique en pause jusqu'à`,"covers.resume_auto":`Reprendre le contrôle automatique`,"covers.done":`Terminé`,"covers.night_close":`Fermer la nuit`,"covers.night_close_hint":`Ferme automatiquement les stores au coucher du soleil et les ouvre au lever du soleil.`,"covers.night_close_active":`Fermeture nocturne active`,"covers.schedule_group_title":`Planification`,"covers.solar_group_title":`Contrôle solaire`,"covers.schedule_section":`Planification des stores`,"covers.schedule_section_hint":`Définissez des créneaux horaires pour le contrôle des stores à l'aide des assistants de planification HA. En mode Forcer la position, la position de la planification l'emporte sur la logique solaire/thermique. En mode Autoriser la protection solaire, RoomMind décide de la position dans la fenêtre active.`,"covers.add_schedule":`Ajouter un horaire de store...`,"covers.schedule_mode_force":`Forcer la position`,"covers.schedule_mode_gate":`Autoriser la protection solaire`,"covers.schedule_mode_gate_short":`Portail solaire`,"covers.schedule_position":`Position`,"covers.schedule_position_hint":`Position du store lorsque cette planification est active (0% = entièrement fermé, 100% = entièrement ouvert).`,"covers.schedule_selector":`Entité sélecteur de planification`,"covers.schedule_selector_hint":`Choisissez quelle planification est active. input_boolean: off=#1, on=#2. input_number: la valeur sélectionne le numéro de planification.`,"covers.schedule_selector_warning":`Plusieurs planifications configurées mais aucun sélecteur défini. Seule la première planification sera utilisée.`,"covers.schedule_state_active":`Actif`,"covers.schedule_state_inactive":`Inactif`,"covers.schedule_state_unreachable":`Inaccessible`,"covers.schedule_active":`Horaire actif`,"covers.schedule_create_link":`Créer un assistant de planification`,"covers.night_position":`Position nocturne`,"covers.night_position_hint":`Position du store lorsque la fermeture nocturne est active (0% = entièrement fermé). Les stores avec une position minimale individuelle ne descendront jamais en dessous.`,"covers.night_close_advanced":`Avancé`,"covers.night_close_elevation":`Seuil de position du soleil`,"covers.night_close_elevation_hint":`À quelle distance sous ou au-dessus de l'horizon le soleil doit être. 0° = exactement au coucher/lever du soleil. Négatif = plus sombre (ex. -6° = crépuscule, lorsqu'il fait clairement sombre). Positif = encore lumineux (ex. 5° = le soleil encore visible au-dessus de l'horizon).`,"covers.night_close_offset":`Décalage horaire`,"covers.night_close_offset_hint":`Décalage supplémentaire par rapport au seuil de position du soleil. Positif = fermeture plus tard (ex. +20 = 20 min après le seuil), négatif = fermeture plus tôt.`,"covers.outdoor_min_temp":`Température extérieure min.`,"covers.outdoor_min_temp_hint":`Ne pas fermer les stores pour protéger du soleil en dessous de cette température extérieure. Le gain de chaleur solaire est bienvenu quand il fait froid.`,"covers.per_cover_title":`Paramètres par store`,"covers.per_cover_hint":`Définissez la direction cardinale de chaque store et les positions minimales individuelles éventuelles.`,"covers.per_cover_min_short":`Min`,"covers.per_cover_min_position":`Position min.`,"covers.per_cover_min_position_hint":`Position minimale individuelle par store. Les stores ne se fermeront jamais plus que cela. Utile lorsque les stores sont physiquement complètement fermés à une position > 0%.`,"covers.snap_deploy":`Forcer à la position minimale`,"covers.snap_deploy_hint":`Fermer les stores directement à la position minimale au lieu de les fermer progressivement. Recommandé pour les fenêtres à triple vitrage où les positions intermédiaires peuvent causer du stress thermique.`,"covers.info.selection_title":`Sélection de stores`,"covers.info.selection_body":`Sélectionnez les rideaux/stores de cette zone ou ajoutez des entités d'autres zones. RoomMind suit leur position et peut les contrôler automatiquement.`,"covers.info.schedule_title":`Contrôle via planification`,"covers.info.schedule_body":`Utilisez les assistants de planification HA pour définir les moments où les stores doivent se fermer (ex. intimité le soir). L'attribut de position de l'horaire détermine le degré de fermeture. Les planifications remplacent toute autre logique automatique.`,"covers.info.solar_title":`Contrôle solaire/thermique`,"covers.info.solar_body":`Lorsque le contrôle automatique est activé, RoomMind prédit si le rayonnement solaire surchaufferait la pièce et ferme les stores de manière préventive. Il utilise les données thermiques apprises lorsqu'elles sont disponibles, sinon une valeur par défaut prudente. Le seuil de déploiement détermine le dépassement prédit nécessaire avant de fermer les stores.`,"covers.info.night_title":`Fermeture nocturne`,"covers.info.night_body":`Ferme les stores au coucher du soleil et les ouvre au lever du soleil. Vous pouvez définir une position nocturne personnalisée (ex. 10% = presque fermé mais pas totalement).`,"covers.info.override_title":`Dérogation manuelle`,"covers.info.override_body":`Si vous déplacez manuellement un store, RoomMind le détecte et met le contrôle automatique en pause pendant la durée configurée. Cela évite les conflits avec l'utilisateur.`,"covers.info.priority_title":`Ordre de priorité`,"covers.info.priority_body":`Dérogation manuelle > Planification > Fermeture nocturne > Contrôle solaire/thermique. Les règles de priorité supérieure l'emportent toujours. Lorsqu'aucune règle ne s'applique, les stores restent ouverts.`,"covers.info.entities_title":`Entités HA`,"covers.info.entities_body":`RoomMind crée deux entités par pièce pour une utilisation externe: switch.roommind_{area}_cover_auto (activer/désactiver le contrôle automatique des stores — utilisable dans les automatisations ou tableaux de bord) et binary_sensor.roommind_{area}_cover_paused (activé lorsque la dérogation manuelle est en cours, ex. après un déplacement manuel d'un store).`,"covers.orientation_group_title":`Orientation du store`,"covers.orientation_hint":`Définissez la direction cardinale vers laquelle chaque store fait face. RoomMind utilise cela pour ignorer le déploiement solaire lorsque le soleil n'éclaire pas ce côté du bâtiment.`,"covers.orientation_none":`Pas de direction`,"covers.orientation_N":`N`,"covers.orientation_NE":`NE`,"covers.orientation_E":`E`,"covers.orientation_SE":`SE`,"covers.orientation_S":`S`,"covers.orientation_SW":`SO`,"covers.orientation_W":`O`,"covers.orientation_NW":`NO`,"covers.orientation_N_full":`Nord`,"covers.orientation_NE_full":`Nord-Est`,"covers.orientation_E_full":`Est`,"covers.orientation_SE_full":`Sud-Est`,"covers.orientation_S_full":`Sud`,"covers.orientation_SW_full":`Sud-Ouest`,"covers.orientation_W_full":`Ouest`,"covers.orientation_NW_full":`Nord-Ouest`,"settings.general_title":`Général`,"settings.group_by_floor":`Regrouper les pièces par étage`,"settings.climate_control_active":`Contrôle climatique actif`,"settings.climate_control_hint":`Lorsqu'il est désactivé, RoomMind continue de surveiller tous les capteurs et d'entraîner le modèle, mais n'envoie aucune commande à vos appareils de chauffage ou de refroidissement. Vos appareils conservent leur mode et leur consigne actuels et peuvent continuer à chauffer ou refroidir d'eux-mêmes. RoomMind ne les éteint pas.`,"settings.learning_title":`Entraînement du modèle`,"settings.learning_hint":`Lorsqu'il est en pause, RoomMind cesse de collecter de nouvelles mesures et d'entraîner le modèle thermique. Les données du modèle existant sont conservées.`,"settings.learning_exceptions":`Exceptions`,"settings.learning_room_paused":`pièce en pause`,"settings.learning_rooms_paused":`pièces en pause`,"settings.sensors_title":`Capteurs & sources de données`,"settings.control_title":`Contrôle`,"settings.outdoor_sensor":`Température extérieure`,"settings.outdoor_sensor_label":`Capteur de température extérieure`,"settings.outdoor_current":`Actuellement {temp}{unit} dehors`,"settings.outdoor_waiting":`En attente des données du capteur...`,"settings.outdoor_humidity_sensor":`Humidité extérieure`,"settings.outdoor_humidity_label":`Capteur d'humidité extérieure`,"settings.outdoor_humidity_current":`Actuellement {value}% dehors`,"settings.smart_control":`Contrôle climatique intelligent`,"settings.smart_control_hint":`Configurez les limites de température extérieure pour le chauffage et le refroidissement.`,"settings.outdoor_cooling_min":`Température extérieure minimale pour le refroidissement`,"settings.outdoor_cooling_min_hint":`Le climatiseur reste éteint lorsque la température extérieure est inférieure à cette valeur`,"settings.outdoor_heating_max":`Température extérieure maximale pour le chauffage`,"settings.outdoor_heating_max_hint":`Le chauffage reste éteint lorsque la température extérieure dépasse cette valeur`,"settings.saving":`Enregistrement...`,"settings.saved":`Enregistré`,"settings.error":`Erreur lors de l'enregistrement`,"devices.using_builtin_sensor":`Utilisation du capteur intégré du thermostat`,"settings.climate_intelligence":`Intelligence climatique`,"settings.control_mode":`Mode de contrôle`,"settings.control_mode_simple":`Simple (Bang-Bang)`,"settings.control_mode_mpc":`Intelligent (MPC)`,"settings.control_mode_hint":`Le MPC apprend le comportement thermique de votre pièce pour un contrôle optimal`,"settings.comfort_weight":`Priorité`,"settings.comfort_weight_comfort":`Confort`,"settings.comfort_weight_efficiency":`Efficacité`,"settings.comfort_weight_hint":`Équilibre la précision de la température avec la consommation d'énergie. Le confort réagit plus tôt et reste plus proche de la cible. L'efficacité permet plus de dérive pour réduire la durée de chauffage/refroidissement.`,"settings.weather_entity":`Prévision météo`,"settings.weather_entity_hint":`Optionnel : active la planification prédictive de la température extérieure et sert de secours lorsque le capteur extérieur est indisponible`,"settings.outdoor_unavailable_notify":`Notifier lorsque la température extérieure est indisponible`,"settings.outdoor_unavailable_notify_hint":`Afficher une notification Home Assistant lorsqu'aucun des capteurs extérieurs ni l'entité météo n'a signalé de température pendant 30 minutes. Pendant ce temps, RoomMind met en pause l'apprentissage du modèle thermique pour éviter la corruption.`,"settings.prediction_enabled":`Prédiction de température`,"settings.prediction_enabled_hint":`Afficher la tendance de température prédite dans les graphiques d'analyse. A désactiver si vous constatez de mauvaises performances.`,"vacation.title":`Mode vacances`,"vacation.hint":`Règle toutes les pièces sur une température réduite jusqu'à la date de fin.`,"vacation.active_label":`Mode vacances actif`,"vacation.end_date":`Date et heure de fin`,"vacation.setback_temp":`Température de réduction`,"vacation.no_end_date":`Pas de date de fin`,"vacation.deactivate":`Désactiver`,"tabs.analytics":`Analyses`,"analytics.select_room":`Sélectionner une pièce`,"analytics.temperature":`Température`,"analytics.target":`Cible`,"analytics.prediction":`Prédiction`,"analytics.outdoor":`Extérieur`,"analytics.model_status":`Statut du modèle`,"analytics.confidence":`Confiance`,"analytics.heating_rate":`Puissance de chauffage`,"analytics.cooling_rate":`Puissance de refroidissement`,"analytics.solar_gain":`Gain solaire`,"analytics.occupancy_gain":`Gain d'occupation`,"analytics.time_constant":`Constante de temps`,"analytics.samples":`Échantillons`,"analytics.prediction_accuracy":`Précision de la prédiction`,"analytics.avg_deviation":`Écart moyen`,"analytics.data_sources":`Sources de données`,"analytics.data_points":`Points de données`,"analytics.control_mode":`Mode de contrôle`,"analytics.control_mode_mpc":`MPC actif`,"analytics.control_mode_bangbang":`MPC en apprentissage`,"analytics.last_model_update":`Dernière mise à jour du modèle`,"analytics.accuracy_idle":`Précision (Inactif)`,"analytics.accuracy_heating":`Précision (Chauffage)`,"analytics.info.accuracy_idle":`À quel point le modèle prédit précisément la température lorsqu'aucun chauffage ni refroidissement n'est actif. Une valeur plus basse signifie que le modèle comprend bien la perte de chaleur naturelle de votre pièce. C'est la première valeur qui s'améliore car les données au repos sont collectées en continu.`,"analytics.info.accuracy_heating":`À quel point le modèle prédit précisément la température pendant que le chauffage est actif. Cette valeur reste élevée au début car le modèle a besoin de véritables cycles de chauffage pour apprendre. Une fois que votre chauffage a fonctionné plusieurs fois, cette valeur diminuera et le contrôle MPC deviendra disponible.`,"analytics.info.confidence":`Niveau global de préparation du modèle pour le contrôle MPC intelligent, combinant deux facteurs : la quantité de données (nombre d'échantillons en mode repos et actif) et la précision des prédictions (précision des prévisions de température). La confiance démarre à 0% et augmente à mesure que le modèle collecte des données et apprend. Environ 50% signifie qu'il y a suffisamment de données au repos mais qu'on attend encore des cycles de chauffage/refroidissement. Au-delà de 80% le modèle dispose de suffisamment de données et de prédictions précises — le contrôle MPC devient disponible. 100% est le maximum théorique lorsque les prédictions sont aussi précises que physiquement possible.`,"analytics.info.time_constant":`Durée nécessaire à votre pièce pour se refroidir naturellement jusqu'à la moitié de la différence avec la température extérieure lorsque le chauffage est éteint. Un temps constant plus long indique une meilleure isolation — la pièce conserve la chaleur plus longtemps. Un temps constant court signifie que la pièce se refroidit rapidement. Le modèle apprend cela en observant les baisses de température pendant les périodes d'inactivité.`,"analytics.info.heating_rate":`Intensité de l'effet de votre chauffage sur la température de la pièce. Une valeur plus élevée signifie que votre système de chauffage réchauffe la pièce plus rapidement par rapport à sa masse thermique. Le modèle apprend cela en observant la vitesse à laquelle la température augmente pendant que le chauffage est actif, et l'utilise pour prévoir la durée nécessaire du chauffage.`,"analytics.info.cooling_rate":`Intensité de l'effet de votre climatiseur sur la température de la pièce. Une valeur plus élevée signifie que le climatiseur refroidit la pièce plus rapidement par rapport à sa masse thermique. Le modèle apprend cela en observant la vitesse à laquelle la température baisse pendant le refroidissement actif, et l'utilise pour prévoir la durée nécessaire du fonctionnement du climatiseur.`,"analytics.info.solar_gain":`Effet estimé du rayonnement solaire à travers les fenêtres sur la température de la pièce. Le modèle apprend cela en observant comment la pièce se réchauffe pendant les périodes ensoleillées lorsque le chauffage est éteint. Les pièces avec de grandes fenêtres orientées sud auront des valeurs plus élevées. Le modèle utilise cela pour réduire le chauffage lorsqu'un gain solaire est attendu.`,"analytics.info.occupancy_gain":`Contribution thermique estimée due à l'occupation (personnes, animaux, ordinateurs) lorsque la pièce est occupée. Le modèle apprend cela en observant les variations de température lorsque les capteurs d'occupation configurés sont actifs. Séparer cela du gain solaire évite que la chaleur corporelle ne soit attribuée à tort à la lumière du soleil. Affiché uniquement lorsqu'au moins un capteur d'occupation est configuré pour cette pièce.`,"analytics.info.data_sources":`Nombre d'échantillons de mesure utilisés pour l'entraînement du modèle.`,"analytics.info.data_points":`Nombre total d'observations sur lesquelles le modèle a été entraîné. Plus de points de données conduisent généralement à de meilleures prédictions. Le modèle collecte un nouveau point de donnée environ toutes les 3 minutes tant que RoomMind fonctionne.`,"analytics.no_data":`Aucune donnée pour le moment — le modèle apprend`,"analytics.loading":`Chargement des analyses...`,"settings.reset_title":`Réinitialiser les données thermiques`,"settings.reset_hint":`Effacer les données thermiques du modèle et l'historique. Le modèle recommencera à apprendre à partir de zéro.`,"settings.reset_all_label":`Toutes les pièces`,"settings.reset_all_hint":`Effacer les données thermiques et l'historique de toutes les pièces en une fois.`,"settings.reset_all_btn":`Tout réinitialiser`,"settings.reset_all_confirm":`Effacer toutes les données thermiques et l'historique pour TOUTES les pièces ? Tous les modèles recommenceront à apprendre à partir de zéro.`,"settings.reset_room_label":`Pièce individuelle`,"settings.reset_room_hint":`Sélectionnez une pièce pour effacer ses données thermiques et son historique.`,"settings.reset_room_confirm":`Effacer toutes les données thermiques apprises et l'historique pour cette pièce ? Le modèle recommencera à apprendre à partir de zéro.`,"settings.reset_room_select":`Sélectionner une pièce`,"settings.reset_btn":`Réinitialiser`,"settings.reset_no_rooms":`Aucune pièce configurée.`,"settings.boost_title":`Accélérer l'apprentissage`,"settings.boost_hint":`Le modèle thermique apprend le comportement de chauffage et de refroidissement de votre pièce au fil du temps. Après des changements majeurs (nouveau radiateur, climatiseur, isolation, mobilier), le modèle peut être imprécis. Cela augmente l'incertitude du modèle afin qu'il s'adapte plus rapidement aux nouvelles conditions.`,"settings.boost_label":`Accélérer l'apprentissage`,"settings.boost_room_select":`Sélectionner une pièce`,"settings.boost_btn":`Accélérer`,"settings.boost_cooldown":`Actif - réapprentissage en cours`,"settings.boost_no_rooms":`Aucune pièce configurée.`,"analytics.range_1d":`Aujourd'hui`,"analytics.range_2d":`2 jours`,"analytics.range_7d":`Semaine`,"analytics.range_30d":`Mois`,"analytics.export":`Mesures`,"analytics.heating_period":`Chauffage`,"analytics.cooling_period":`Refroidissement`,"analytics.blind_position":`Position du store`,"analytics.window_open_period":`Fenêtre ouverte`,"analytics.chart_info_title":`Comment lire ce graphique`,"analytics.exported":`Exporté !`,"analytics.copy_diagnostics":`Diagnostics`,"analytics.export_download":`Télécharger le fichier`,"analytics.export_clipboard":`Copier dans le presse-papiers`,"analytics.copied_to_clipboard":`Copié !`,"analytics.range_from":`De`,"analytics.range_to":`À`,"analytics.chart_info_body":`**Lignes:** La ligne orange solide montre la température mesurée de la pièce. La ligne verte en pointillé représente la température cible de votre planning. La ligne bleue pointillée est la prédiction de température du modèle.
+**Einschränkungen:** Die Vorhersage nimmt an, dass aktuelle Bedingungen konstant bleiben (Außentemperatur, Fensterstatus). Die Genauigkeit hängt davon ab, wie gut das Modell deinen Raum bereits gelernt hat — anfangs können die Vorhersagen ungenau sein. Sobald MPC aktiviert wird, werden die Vorhersagen deutlich zuverlässiger.`,"presence.title":`Anwesenheitserkennung`,"presence.hint":`Eco-Temperatur wenn niemand zu Hause ist.`,"presence.hint_detail":`Wenn aktiviert, werden alle Räume auf Eco-Temperatur gesetzt, sobald keine der konfigurierten Personen zu Hause ist. Pro Raum kann optional eingeschränkt werden, welche Personen relevant sind.`,"presence.add_person":`Person hinzufügen`,"presence.add_entity":`Präsenz-Entity hinzufügen`,"presence.person_label":`Person`,"room.section.presence":`Anwesenheit`,"presence.room_help_header":`Wie funktioniert die Raum-Anwesenheit?`,"presence.room_help_body":`Wähle aus, welche Personen für diesen Raum relevant sind. Der Raum schaltet auf Eco-Temperatur, wenn keine der ausgewählten Personen zu Hause ist. Ohne Auswahl greift die globale Regel: Eco wenn niemand zu Hause ist.`,"presence.state_home":`Zu Hause`,"presence.state_away":`Abwesend`,"presence.room_none_assigned":`Globale Regel — Eco wenn niemand zu Hause ist`,"presence.missing_entity_hint":`Diese Entity existiert nicht mehr in Home Assistant — abwählen, um sie aus diesem Raum zu entfernen.`,"presence.ignore_toggle":`Anwesenheit ignorieren`,"presence.ignore_hint":`Hier wird festgelegt, wie dieser Raum auf Anwesenheit reagiert. Unten kannst du einzelne Personen zuweisen. Der Raum wechselt auf Eco, wenn keine der zugewiesenen Personen zu Hause ist. Mit dem Toggle oben wird die Erkennung komplett übersprungen und der Raum heizt immer nach Zeitplan.`,"presence.help_ignore_title":`Was bewirkt "Ignore presence"?`,"presence.help_ignore_body":`Wenn aktiviert, ignoriert dieser Raum die Anwesenheitserkennung komplett. Er folgt immer seinem Zeitplan und wechselt nie aufgrund von Anwesenheit auf Eco. Nützlich für Räume, die unabhängig von Anwesenheit ihre Temperatur halten sollen, etwa Serverräume, Tierzimmer oder Gästezimmer mit Personen, die nicht in Home Assistant getrackt werden.`,"presence.tile_ignored":`Anwesenheitserkennung ist deaktiviert. Raum folgt immer dem Zeitplan.`,"presence.away_action_label":`Aktion wenn niemand zuhause`,"presence.away_action_eco":`Eco-Temperatur verwenden`,"presence.away_action_off":`Geräte ausschalten`,"presence.clears_override_label":`Abwesenheit beendet Override`,"presence.clears_override_hint":`Sobald niemand zuhause ist, wird ein manueller Override pausiert und der Raum folgt der Abwesenheits-Aktion. Kommt jemand zurück, läuft der Override weiter, bis er abläuft.`,"card.presence_away":`Abwesend`,"valve_protection.title":`Ventilschutz`,"valve_protection.hint":`Bewegt inaktive TRV-Ventile regelmäßig kurz, um Festsitzen oder Verkalkung zu verhindern.`,"valve_protection.interval_label":`Zyklusintervall`,"valve_protection.interval_suffix":`Tage`,"valve_protection.interval_hint":`Wie lange ein Ventil inaktiv sein darf, bevor es bewegt wird (1–90 Tage)`,"compressor.title":`Kompressorschutz`,"compressor.no_groups":`Keine Kompressorgruppen konfiguriert.`,"compressor.add_group":`Kompressorgruppe hinzufügen`,"compressor.group_name":`Gruppenname`,"compressor.members":`Innengeräte`,"compressor.members_hint":`Alle Klimageräte auswählen, die von diesem Kompressor versorgt werden (Splits, TRVs an Radiatoren, Fan Coils).`,"compressor.min_run":`Mindestlaufzeit`,"compressor.min_run_hint":`Kompressor muss nach dem Start mindestens so lange laufen.`,"compressor.min_run_suffix":`Min.`,"compressor.min_off":`Mindestauszeit`,"compressor.min_off_hint":`Kompressor muss nach dem Stopp mindestens so lange aus bleiben.`,"compressor.min_off_suffix":`Min.`,"compressor.delete":`Gruppe löschen`,"compressor.delete_confirm":`Kompressorgruppe "{name}" löschen?`,"compressor.master_entity":`Hauptgerät`,"compressor.master_entity_hint":`Das zentrale Gerät das die Innengeräte dieser Gruppe versorgt, z.B. ein Gaskessel, eine Wärmepumpen-Außeneinheit oder ein Kanalklima-Hauptschalter. RoomMind schaltet es ein wenn ein Raum Heiz- oder Kühlbedarf hat und aus wenn alle Räume im Leerlauf sind. Leer lassen um nur das Aktionsskript oder den Kurzzyklusschutz zu verwenden.`,"compressor.conflict_resolution":`Konfliktlösung`,"compressor.conflict_resolution_hint":`Bestimmt was passiert wenn einige Räume heizen und andere gleichzeitig kühlen wollen. Heizpriorität: Heizen gewinnt immer (sicherste Option für Frostschutz). Kühlpriorität: Kühlen gewinnt immer. Mehrheit: Der Modus mit mehr Räumen gewinnt, bei Gleichstand wird geheizt. Außentemperatur: Entscheidet automatisch anhand des Heiz-Schwellwerts aus den Einstellungen.`,"compressor.conflict_heating_priority":`Heizpriorität (Frostschutz)`,"compressor.conflict_cooling_priority":`Kühlpriorität`,"compressor.conflict_majority":`Mehrheit gewinnt`,"compressor.conflict_outdoor_temp":`Nach Außentemperatur`,"compressor.action_script":`Aktionsskript`,"compressor.action_script_hint":`Ein Home Assistant Skript das bei jedem Wechsel des Heiz-/Kühlbedarfs ausgeführt wird. Nützlich für Systeme die spezielle Befehle benötigen, z.B. zum Aufheben eines Vaillant Quick Veto oder Schalten eines Relais. Funktioniert mit oder ohne Hauptgerät. Ohne Hauptgerät wird nur das Skript ausgelöst. Erhält Variablen: action (heat/cool/idle), master_entity, members, active_members.`,"compressor.enforce_uniform_mode":`Einheitlichen Modus erzwingen`,"compressor.enforce_uniform_mode_hint":`Alle Thermostate in dieser Gruppe müssen im gleichen HVAC-Modus arbeiten (alle heizen oder alle kühlen). Räume, die dem aufgelösten Gruppenmodus widersprechen, werden auf Leerlauf gesetzt. Für Wärmepumpen die automatisch starten, aber alle angeschlossenen Geräte im gleichen Modus benötigen.`,"mold.title":`Schimmelschutz`,"mold.detection":`Schimmelerkennung`,"mold.detection_desc":`Benachrichtigung bei Schimmelgefahr durch hohe Luftfeuchtigkeit`,"mold.threshold":`Feuchtigkeitsschwelle (%)`,"mold.threshold_hint":`Warnung wenn die Raumluftfeuchte diesen Wert dauerhaft überschreitet`,"mold.sustained":`Mindestdauer (Minuten)`,"mold.sustained_hint":`Warnung erst nach anhaltender Überschreitung`,"mold.prevention":`Schimmelprävention`,"mold.prevention_desc":`Temperatur automatisch erhöhen um Schimmelrisiko zu senken`,"mold.intensity":`Intensität`,"mold.intensity_light":`Leicht (+{delta}{unit})`,"mold.intensity_medium":`Mittel (+{delta}{unit})`,"mold.intensity_strong":`Stark (+{delta}{unit})`,"mold.intensity_hint":`Wärmere Raumluft senkt die Oberflächenfeuchte an kalten Wänden. Leicht reicht meist bei moderatem Risiko, Stark kann die Oberflächenfeuchte um bis zu 8–10 % senken — verbraucht aber deutlich mehr Energie.`,"card.mold_warning":`Schimmelrisiko`,"card.mold_critical":`Schimmelgefahr!`,"card.mold_prevention":`Schimmelschutz +{delta}{unit}`,"room.mold_surface_rh":`Geschätzte Oberflächenfeuchte: {value}%`,"settings.intro.general":`Grundlegende Anzeige- und Steuerungseinstellungen.`,"settings.intro.sensors":`Außensensoren und Wetterdaten für eine präzise Klimasteuerung konfigurieren.`,"settings.intro.control":`Wähle, wie RoomMind deine Klimageräte steuert und setze Priorität und Schwellenwerte.`,"settings.intro.presence":`Temperatur automatisch absenken wenn niemand zu Hause ist.`,"settings.intro.vacation":`Alle Räume auf eine reduzierte Temperatur setzen während du abwesend bist.`,"settings.intro.valve":`Inaktive TRV-Ventile regelmäßig bewegen um Festsitzen oder Verkalkung zu verhindern.`,"settings.intro.compressor":`Gruppen von Innengeräten verwalten die sich einen Außenkompressor oder eine zentrale Heizquelle teilen. Optional ein Hauptgerät (Kessel, Außeneinheit) zuweisen das automatisch je nach Raumbedarf ein- und ausgeschaltet wird. Kurzzyklusschutz verhindert schnelles Ein-/Ausschalten das Geräte beschädigen kann.`,"settings.intro.mold":`Luftfeuchtigkeit überwachen und Schimmelrisiko automatisch reduzieren.`,"settings.intro.notifications":`Konfiguriere wer Benachrichtigungen erhält und wie.`,"settings.intro.learning":`Thermisches Modelltraining verwalten und Lernen nach Änderungen beschleunigen.`,"settings.intro.reset":`Gelernte thermische Modelldaten löschen. Das Modell beginnt von vorne zu lernen.`,"notifications.title":`Benachrichtigungen`,"notifications.window_open_after":`Fenster-offen-Warnung nach`,"notifications.window_open_after_hint":`Nach dieser Zeit mit offenem Fenster benachrichtigen. 0 deaktiviert die Warnung.`,"notifications.enabled":`Benachrichtigungen aktivieren`,"notifications.enabled_hint":`Wenn deaktiviert, werden keine Benachrichtigungen gesendet — weder an Geräte noch an die HA-Seitenleiste.`,"notifications.desc":`Wähle die Geräte, die Benachrichtigungen erhalten. Ohne Ziele erscheint eine Meldung in der HA-Seitenleiste.`,"notifications.add_target_label":`Benachrichtigungsgerät hinzufügen`,"notifications.add_target_hint":`Tippe die Entity-ID ein, falls dein Gerät nicht angezeigt wird (z.B. notify.mobile_app_...). Du findest sie unter Einstellungen → Geräte → dein Telefon → Notify-Entität.`,"notifications.target_unnamed":`Unbenanntes Gerät`,"notifications.target_person":`Person`,"notifications.target_when_always":`Immer`,"notifications.target_when_home":`Nur wenn zuhause`,"notifications.cooldown":`Benachrichtigungspause (Minuten)`,"notifications.cooldown_hint":`Mindestabstand zwischen wiederholten Warnungen pro Raum`,"notifications.mold_prevention_notify":`Bei Aktivierung der Prävention benachrichtigen`,"notifications.mold_prevention_notify_hint":`Auch benachrichtigen wenn die Prävention aktiviert wird (Temperaturerhöhung)`,"room.section.heat_source":`Heizquellen-Orchestrierung`,"heat_source.toggle":`Intelligente Quellenauswahl`,"heat_source.toggle_hint":`Wenn dieser Raum sowohl Heizkörper-Thermostate als auch eine AC/Wärmepumpe hat, leitet RoomMind die Heizanforderung intelligent an das effizienteste Gerät weiter, basierend auf Temperaturlücke und Außenbedingungen.`,"heat_source.primary_delta":`Boiler-Aktivierungsschwelle`,"heat_source.primary_delta_hint":`Primärquelle erst aktivieren, wenn die Temperaturlücke diesen Wert überschreitet. Darunter wird nur die schnelle Sekundärquelle genutzt.`,"heat_source.primary_delta_suffix":`°C`,"heat_source.outdoor_threshold":`Außentemperatur-Umschaltpunkt`,"heat_source.outdoor_threshold_hint":`Über dieser Außentemperatur die AC/Wärmepumpe bevorzugen (höhere Effizienz). Darunter den Gas-Boiler/Heizkörper.`,"heat_source.outdoor_threshold_suffix":`°C`,"heat_source.ac_min_outdoor":`Min. Außentemp. für AC-Heizen`,"heat_source.ac_min_outdoor_hint":`AC-Heizen unter dieser Temperatur komplett deaktivieren, um die Wärmepumpen-Hardware zu schützen.`,"heat_source.ac_min_outdoor_suffix":`°C`,"heat_source.summary_disabled":`Intelligente Quellenwahl ist aus`,"devices.keep_fan_only_window":`Nur Lüften bei offenem Fenster beibehalten`,"devices.keep_fan_only_window_hint":`Heizen und Kühlen werden pausiert, aber ein Klimagerät im Nur-Lüften-Modus bleibt eingeschaltet.`,"settings.temperature_rounding":`Rundung der Gerätetemperatur`,"settings.temperature_rounding_hint":`Legt fest, wie RoomMind auf die vom Klimagerät unterstützte Schrittweite rundet.`,"settings.temperature_rounding_nearest":`Nächster unterstützter Wert`,"settings.temperature_rounding_down":`Abrunden (26,5° → 26°)`,"settings.temperature_rounding_up":`Aufrunden (26,5° → 27°)`,"devices.power_sensor":`Leistungssensor`,"devices.power_sensor_hint":`Sensor für den momentanen Stromverbrauch dieser Klimaanlage. W- und kW-Sensoren werden für Energieverlauf und adaptive Prognosen unterstützt.`,"analytics.energy_title":`Energieverbrauch`,"analytics.energy_subtitle":`Gemessene Geräteleistung und gelernte Prognose`,"analytics.energy_chart_info_body":`Durchgezogene Linien zeigen die gemessene Leistung. Gestrichelte Segmente setzen an der letzten Messung mit der gelernten Drei-Stunden-Prognose fort. Tippe auf einen Legendeneintrag, um eine Reihe ein- oder auszublenden. Zum Zoomen horizontal scrollen oder zwei Finger verwenden; die vertikale gestrichelte Linie markiert jetzt.`,"analytics.energy_room_power":`Raumleistung`,"analytics.energy_forecast":`Prognose`,"analytics.energy_forecast_short":`Prognose`,"analytics.energy_now":`Jetzt`,"analytics.energy_period":`Energie im Zeitraum`,"analytics.energy_next_3h":`Nächste 3 Stunden`,"analytics.energy_learning":`Lernmesswerte`,"analytics.energy_confidence":`Prognosesicherheit`,"analytics.energy_confidence_low":`Niedrig`,"analytics.energy_confidence_medium":`Mittel`,"analytics.energy_confidence_high":`Hoch`,"analytics.energy_cost_today":`Kosten heute`,"analytics.energy_cost_7d":`Kosten letzte 7 Tage`,"analytics.energy_cost_next_3h":`Kosten nächste 3 Std.`,"analytics.comparison_title":`Raumvergleich`,"analytics.comparison_info":`Vergleicht den ausgewählten Zeitraum: kWh ist die gemessene Klimaanlagenenergie, € die geschätzten Kosten, Aktiv die gesamte Heiz-/Kühlzeit, ΔT/kWh die Temperaturänderung pro Energieeinheit und Bis Ziel die durchschnittliche Zeit bis zur Solltemperatur.`,"analytics.comparison_data_incomplete":`Unvollständige Daten`,"analytics.comparison_quality_insufficient_samples":`zu wenige Messwerte`,"analytics.comparison_quality_no_power_measurements":`keine Leistungsmessungen`,"analytics.comparison_quality_history_gaps":`Lücken im Verlauf`,"analytics.comparison_room":`Raum`,"analytics.comparison_active":`Aktiv`,"analytics.comparison_efficiency":`ΔT/kWh`,"analytics.comparison_target":`Bis Ziel`,"settings.energy_price":`Energiepreis der Klimaanlage`,"settings.energy_price_hint":`Preis (EUR/kWh)`,"hero.window_impact":`Fenster seit {minutes} Min. offen: {impact}{unit} gegenüber Prognose`,"hero.power_budget_blocked":`Klimastart wegen Hausstrombudget verschoben`,"hero.preconditioning_active":`Vorkonditionierung für das nächste Zeitplan-Ziel aktiv`,"hero.preconditioning_planned":`Vorkonditionierung geplant um {time}`,"hero.ac_efficiency_issue":`Klimagerät verbraucht normal, reagiert aber langsam`},fr:{"panel.title":`RoomMind`,"panel.subtitle":`Gestion du climat`,"panel.tab.rooms":`Pièces`,"panel.edit":`Éditer la pièce`,"panel.tab.settings":`Réglages`,"panel.loading":`Chargement...`,"panel.no_areas":`Aucune pièce configurée dans Home Assistant.`,"panel.no_areas_hint":`Ajoutez des pièces dans les réglages HA pour commencer.`,"badge.beta":`Bêta`,"badge.beta_hint":`Cette fonctionnalité est en version bêta et est susceptible d'être modifiée ou restructurée lors de futures mises à jour.`,"common.learn_more":`En savoir plus`,"panel.stat.rooms":`Pièces`,"panel.stat.heating":`Chauffage`,"panel.stat.cooling":`Refroidissement`,"panel.stat.vacation":`Vacances`,"panel.stat.away":`Absent`,"panel.stat.mold":`Moisissure`,"panel.hide_room":`Masquer`,"panel.unhide":`Afficher`,"panel.hidden_rooms":`Pièces masquées`,"panel.floor_other":`Autre`,"panel.reorder":`Réorganiser les pièces`,"panel.reorder_done":`Terminé`,"room.back":`Retour aux pièces`,"room.section.climate_mode":`Mode climatique`,"room.section.schedule":`Planification et températures`,"room.section.control_mode":`Mode de contrôle`,"room.section.devices":`Appareils`,"room.section.sensors":`Capteurs`,"room.section.windows":`Capteurs de fenêtres`,"room.control_mode.full_control":`Contrôle total`,"room.control_mode.managed":`Mode géré`,"room.control_mode.external_sensor":`Capteur externe: {sensor}`,"room.control_mode.no_sensor":`Aucun capteur de température externe configuré`,"room.control_mode.mpc_active":`MPC actif`,"room.control_mode.mpc_learning":`Apprentissage`,"room.control_mode.device_setpoint":`Consigne de l'appareil: {temp}`,"room.control_mode.power":`Puissance: {power}%`,"room.control_mode.full_control_info":`RoomMind assure un contrôle total de vos appareils de climatisation. Un capteur de température externe mesure la température réelle de la pièce, ce qui permet de calculer la consigne de manière proportionnelle. La consigne de l'appareil est ajustée de manière dynamique en fonction de la puissance de sortie du MPC. Le modèle thermique (EKF) apprend le comportement de votre pièce afin d'optimiser le confort et l'efficacité énergétique.`,"room.control_mode.managed_info":`RoomMind définit la température cible sur votre appareil (à partir de la planification, des dérogations ou du mode vacances), mais l'appareil s'autorégule à l'aide de son propre capteur interne. Pas d'amplification proportionnelle, pas d'apprentissage de modèle thermique et pas d'optimisation MPC. Pour un contrôle plus précis, configurez un capteur de température externe dans la section Appareils.`,"room.delete":`Supprimer une pièce`,"room.deleting":`Suppression...`,"room.saving":`Enregistrement...`,"room.saved":`Enregistré`,"room.error_saving":`Erreur pendant l'enregistrement`,"room.confirm_delete":`Effacer la configuration RoomMind de "{name}"?`,"room.error_save_fallback":`Échec de l'enregistrement de la configuration`,"room.error_delete_fallback":`Échec de la suppression de la configuration`,"room.climate_control_toggle":`Contrôle climatique`,"room.climate_control_hint":`Si désactivé, RoomMind ne contrôle plus les appareils de cette pièce. Ils conservent leurs réglages actuels et peuvent continuer à chauffer ou refroidir d'eux-mêmes. RoomMind ne les éteint pas.`,"room.outdoor_toggle":`Zone extérieure`,"room.outdoor_hint":`Désactive le contrôle climatique, la détection de moisissures et l'entraînement du modèle. La surveillance des capteurs se poursuit.`,"room.alias.placeholder":`Nom d'affichage personnalisé`,"room.alias.clear":`Revenir au nom de la pièce`,"override.label":`Dérogation temporaire`,"override.comfort":`Confort`,"override.eco":`Éco`,"override.custom":`Personnalisé`,"override.target":`Cible:`,"override.heat_to":`Chauffer jusqu'à:`,"override.cool_above":`Refroidir au-dessus de:`,"override.invalid_band":`La cible de refroidissement doit être supérieure ou égale à la cible de chauffage`,"override.activate_for":`Activer pendant:`,"override.error_set":`Échec lors de la configuration de la dérogation`,"override.error_clear":`Échec lors de la suppression de la dérogation`,"hero.target":`Cible`,"hero.override":`Dérogation`,"hero.remaining":`{time} restant`,"hero.humidity":`{value}% humidité`,"hero.device_setpoint":`Appareil réglé sur {value}{unit}`,"hero.heat_source_primary":`Chauffage: vannes thermostatiques`,"hero.heat_source_secondary":`Chauffage: Climatisation`,"hero.heat_source_both":`Chauffage: Vannes thermostatiques + Climatisation`,"hero.permanent":`Permanent`,"hero.waiting":`En attente des données du capteur...`,"hero.not_configured":`Pas encore configuré`,"hero.mpc_learning_paused":`Apprentissage du MPC en pause`,"hero.temperature_sensor_unavailable":`Capteur de temperature indisponible ; controle climatique en pause`,"hero.mpc_learning_progress":`Apprentissage du modele thermique : confiance {confidence}%`,"hero.window_recovery":`Retour estime apres fermeture : {minutes} min`,"hero.mpc_learning_paused.outdoor_unavailable":`RoomMind a besoin d'une température extérieure pour apprendre le modèle thermique de cette pièce. Le capteur extérieur configuré n'est pas disponible et aucune entité météo n'est définie comme solution de secours. Configurez l'un ou l'autre dans les Paramètres.`,"hero.compressor_protection_min_off":`Protection du compresseur : attente du délai minimal d'arrêt`,"hero.compressor_protection_min_run":`Protection du compresseur : durée minimale de fonctionnement active`,"hero.compressor_protection_info":`Cette pièce partage une unité extérieure (compresseur) avec d'autres pièces. Pour éviter les cycles courts, le groupe de compresseurs impose une durée minimale de fonctionnement et un délai minimal d'arrêt avant que cet appareil ne puisse à nouveau changer d'état.`,"card.target":`Cible`,"card.waiting":`En attente de données...`,"card.humidity":`{value}% humidité`,"card.thermostat":`Thermostat`,"card.thermostats":`Thermostats`,"card.ac":`Climatisation`,"card.acs":`Climatisations`,"card.climate_device":`appareil de climatisation`,"card.climate_devices":`appareils de climatisation`,"card.temp_sensor":`capteur temp.`,"card.temp_sensors":`capteurs temp.`,"card.no_climate":`Aucun appareil de climatisation`,"card.outdoor":`Extérieur`,"card.tap_configure":`Appuyez pour configurer`,"card.mpc_active":`MPC actif`,"card.mpc_learning":`MPC en apprentissage`,"card.not_controlled":`Pas contrôlé par RoomMind`,"mode.auto":`Auto`,"mode.auto_desc":`Chauffe et refroidit automatiquement en fonction de la température cible`,"mode.heat_only":`Chauffer seulement`,"mode.heat_only_desc":`Utilise seulement les thermostats, la climatisation reste éteinte`,"mode.cool_only":`Refroidir seulement`,"mode.cool_only_desc":`Utilise seulement la climatisation, les thermostats restent éteints`,"mode.heating":`Chauffage`,"mode.cooling":`Refroidissement`,"mode.idle":`En veille`,"schedule.add_schedule":`Ajouter une planification`,"schedule.select_schedule":`Sélectionnez la planification`,"schedule.create_helper_hint":`Créer une nouvelle planification dans les réglages HA`,"schedule.selector_label":`Entité sélecteur de planification`,"schedule.selector_value_boolean":`Actuel: {value}`,"schedule.selector_value_number":`Valeur actuelle: {value}`,"schedule.selector_warning":`Plusieurs planifications définies mais aucun sélecteur défini. Seule la première planification sera utilisée.`,"schedule.off_action_label":`Action quand la planification est désactivée`,"schedule.off_action_eco":`Utiliser la température Éco`,"schedule.off_action_off":`Éteindre les appareils`,"schedule.state_active":`Actif`,"schedule.state_inactive":`Inactif`,"schedule.state_unreachable":`Inaccessible`,"schedule.no_schedules":`Aucune planification configurée`,"schedule.done":`Terminé`,"schedule.view_comfort":`Confort: {temp}{unit}`,"schedule.view_eco":`Éco: {temp}{unit}`,"schedule.view_selector":`Planification active sélectionnée par: {name}`,"schedule.view_selector_prefix":`Planification active sélectionnée par:`,"schedule.help_header":`Comment fonctionnent les planifications ?`,"schedule.help_temps_title":`Comment la température cible est-elle déterminée ?`,"schedule.help_temps":`La température cible suit cette chaîne de priorité:`,"schedule.help_temps_1":`<strong>Dérogation manuelle</strong> – Une dérogation confort/éco/personnalisée a toujours la priorité la plus élevée.`,"schedule.help_temps_2":`<strong>Température du bloc</strong> – Si le bloc de planification actif possède une valeur <code>temperature</code> dans ses données, cette valeur est utilisée.`,"schedule.help_temps_3":`<strong>Température de confort</strong> – Si la planification est "activée" mais que le bloc n'a pas de température, la température de secours de confort ci-dessous est utilisée.`,"schedule.help_temps_4":`<strong>Température éco</strong> – Lorsque la planification est "désactivée" (en dehors de tous les blocs temporels), la température éco est utilisée.`,"schedule.help_block_title":`Définir la température par bloc horaire`,"schedule.help_block":`Vous pouvez définir une température spécifique pour chaque bloc horaire en ajoutant une valeur <code>temperature</code> dans la configuration YAML de la planification:`,"schedule.help_block_note":`Si un bloc n'a pas de donnée <code>temperature</code>, la température de secours de confort est utilisée à la place.`,"schedule.help_split_title":`Cibles de chauffage/refroidissement différentes par bloc`,"schedule.help_split":`Pour les pièces en mode auto, vous pouvez définir des cibles de chauffage et de refroidissement différentes par bloc horaire en utilisant <code>heat_temperature</code> et <code>cool_temperature</code> :`,"schedule.help_split_note":`Si une seule est définie, l'autre revient à la température de confort de la pièce. Ces clés ont la priorité sur <code>temperature</code> quand elles sont présentes.`,"schedule.help_multi_title":`Planifications multiples`,"schedule.help_multi":`Vous pouvez ajouter plusieurs planifications et basculer entre elles à l'aide d'une <strong>entité sélecteur</strong>. Cela peut être un <code>input_boolean</code> (bascule entre les planifications 1 et 2) ou un <code>input_number</code> (sélection par numéro). Sans entité sélecteur, seule la première planification est utilisée.`,"schedule.column_comfort":`Confort`,"schedule.column_eco":`Éco`,"schedule.row_heat":`Chauffage`,"schedule.row_cool":`Refroidissement`,"schedule.view_heat":`Chauffage : {comfort} / {eco}{unit}`,"schedule.view_cool":`Refroidissement : {comfort} / {eco}{unit}`,"schedule.comfort_hint_auto":`Confort : cible lorsque la planification est activée. Éco : cible lorsque la planification est désactivée. Les lignes définissent la cible pour le chauffage et le refroidissement.`,"schedule.comfort_label":`Température de confort de secours`,"schedule.eco_label":`Température éco`,"schedule.comfort_hint":`Utilisée lorsque la planification est "activée" mais aucune température n'est définie dans le bloc`,"schedule.from_schedule":`{temp}{unit} provenant de la planification`,"schedule.from_schedule_split":`{heat}{unit} / {cool}{unit} provenant de la planification`,"schedule.fallback":`{temp}{unit} (secours)`,"schedule.eco_detail":`{temp}{unit} (éco)`,"devices.climate_entities":`Entités climatiques`,"devices.temp_sensors":`Capteurs de température`,"devices.humidity_sensors":`Capteurs d'humidité`,"devices.no_climate":`Aucune entité climatique trouvée dans cette pièce.`,"devices.no_temp_sensors":`Aucun capteur de température trouvé dans cette pièce.`,"devices.no_humidity_sensors":`Aucun capteur d'humidité trouvé dans cette pièce.`,"devices.occupancy_sensors":`Capteurs de présence`,"devices.no_occupancy_sensors":`Aucun capteur de présence trouvé dans cette pièce`,"devices.occupancy_sensor_hint":`Améliore la précision du modèle thermique en suivant l'occupation de la pièce`,"devices.window_sensors":`Capteurs de fenêtre/porte`,"devices.no_window_sensors":`Aucun capteur de fenêtre/porte trouvé dans cette pièce.`,"devices.window_open_delay":`Délai avant la pause`,"devices.window_close_delay":`Délai avant la reprise`,"devices.add_entity":`Ajouter une entité`,"devices.done":`Terminé`,"devices.other_area":`Autre pièce`,"devices.type_thermostat":`Thermostat`,"devices.type_ac":`Appareil climatique`,"devices.type_label":`Type`,"devices.select_to_configure":`Sélectionnez un appareil à configurer`,"devices.heating_system_type":`Type de système de chauffage`,"devices.heating_system_type_info":`Après l'arrêt du chauffage, les radiateurs et surtout les systèmes de chauffage au sol continuent de libérer la chaleur stockée. RoomMind tient compte de cette chaleur résiduelle pour éviter le dépassement et améliorer la précision du modèle. Les pièces avec chauffage au sol bénéficient également de temps de marche minimum plus longs.`,"devices.system_type_none":`Standard (pas de chaleur résiduelle)`,"devices.system_type_radiator":`Radiateur`,"devices.system_type_underfloor":`Chauffage au sol`,"devices.underfloor_delay_hint":`Le chauffage au sol a des temps de redémarrage longs. Un délai d'ouverture de fenêtre d'au moins 5 minutes est recommandé pour éviter des arrêts inutiles.`,"devices.heating_system_type_boost_hint":`Astuce : Si le système de chauffage a changé, vous pouvez accélérer le réapprentissage dans les Paramètres.`,"devices.idle_action":`Lorsque inactif`,"devices.idle_action_off":`Éteindre`,"devices.idle_action_fan_only":`Ventilateur uniquement`,"devices.idle_action_setback":`Décalage`,"devices.idle_action_low":`Consigne basse (maintenir actif)`,"devices.idle_action_low_hint":`Abaisse la consigne au minimum de l'appareil au lieu de l'éteindre. Empêche les TRV qui hibernent en mode off de perdre les commandes ultérieures.`,"devices.idle_fan_mode":`Vitesse du ventilateur`,"devices.idle_fan_mode_keep":`Ne pas changer`,"devices.fan_only_conditions":`Conditions de ventilation seule`,"devices.fan_only_only_after_cooling":`Uniquement après le refroidissement`,"devices.fan_only_require_presence":`Uniquement lorsque les personnes suivies sont présentes`,"devices.fan_only_require_schedule":`Uniquement pendant un planning actif`,"devices.fan_only_seasons":`Saisons autorisées`,"devices.fan_only_season_spring":`Printemps`,"devices.fan_only_season_summer":`Été`,"devices.fan_only_season_autumn":`Automne`,"devices.fan_only_season_winter":`Hiver`,"devices.fan_only_season_hint":`Les filtres saisonniers nécessitent l’intégration Season de Home Assistant, qui fournit sensor.season. Si elle est indisponible, la ventilation seule reste arrêtée.`,"devices.setpoint_mode":`Mode de consigne`,"devices.setpoint_mode_proportional":`Proportionnel (contrôle de vanne)`,"devices.setpoint_mode_direct":`Direct (l'appareil régule)`,"devices.setpoint_mode_hint":`Direct envoie la cible réelle de la pièce à l'appareil — idéal pour les thermostats et les chauffages d'appoint qui se régulent eux-mêmes. Proportionnel envoie une consigne renforcée vers la température maximale de l'appareil — idéal pour les vannes de radiateur (TRV).`,"devices.valve_protection_excluded":`Exclu de la protection des vannes`,"devices.valve_protection_exclude_hint":`Cette entité ne sera pas cyclée par la protection des vannes (ex. entités chaudière virtuelles)`,"devices.info.types_title":`Types d'appareil`,"devices.info.types_body":`Thermostat désigne un thermostat de radiateur / TRV. Appareil climatique désigne un climatiseur, une pompe à chaleur ou autre entité climatique utilisée pour le refroidissement ou le chauffage à air pulsé. Les deux sont des entités climatiques dans Home Assistant; la différence réside dans la façon dont RoomMind les contrôle.`,"devices.info.control_title":`Comment RoomMind les contrôle`,"devices.info.control_body":`Le mode de consigne ne s'applique qu'aux thermostats dans les pièces en Contrôle total disposant d'un capteur de température externe. Utilisez Proportionnel lorsque RoomMind doit piloter le chauffage en envoyant des consignes renforcées. Utilisez Direct lorsque l'appareil doit se réguler autour de la vraie température cible.`,"devices.info.modes_title":`Comportement en inactivité`,"devices.info.modes_body":`Lorsque inactif ne s'applique qu'aux appareils climatiques. Éteindre met l'appareil hors tension. Ventilateur uniquement maintient le débit d'air sans chauffage ni refroidissement. Décalage garde le mode actuel actif mais décale la cible de 2°C par rapport à la cible de la pièce. Ce décalage de réduction est actuellement fixe. Pour les thermostats, Consigne basse garde le TRV actif à sa consigne minimale au lieu de l'éteindre, utile pour les TRV Zigbee à batterie qui se mettent en veille lorsqu'ils sont à off.`,"devices.info.heat_source_title":`Sélection intelligente de source`,"devices.info.heat_source_body":`Cela apparaît uniquement lorsqu'une pièce possède à la fois un thermostat/TRV et un appareil climatique ainsi qu'un capteur de température externe. RoomMind peut alors choisir la source qui gérera le chauffage en fonction de l'écart de température et des conditions extérieures.`,"hero.window_open":`Fenêtre ouverte - en pause`,"card.window_open":`Fenêtre ouverte`,"room.section.covers":`Rideaux & stores`,"covers.section_title":`Rideaux & stores`,"covers.auto_control":`Contrôle automatique des stores`,"covers.auto_control_hint":`RoomMind ferme les stores lorsque le gain solaire risque de surchauffer la pièce.`,"covers.deploy_threshold":`Seuil de déploiement`,"covers.deploy_threshold_hint":`Ferme les stores lorsque la température prévue dépasse la cible de cette quantité.`,"covers.min_position":`Position d'ouverture minimale`,"covers.min_position_hint":`Les stores ne se fermeront jamais plus que cela (0 = fermeture totale autorisée).`,"covers.override_minutes":`Durée de pause de la dérogation`,"covers.override_minutes_hint":`Durée pendant laquelle le contrôle automatique est mis en pause après un mouvement manuel du store. Mettre 0 pour aucune pause.`,"covers.no_covers":`Aucune entité de store configurée.`,"covers.no_covers_in_area":`Aucune entité de store trouvée dans cette pièce.`,"covers.add_cover":`Ajouter une entité de store...`,"covers.shading_active":`Ombrage activé`,"covers.auto_paused":`Pause auto (dérogation manuelle)`,"covers.auto_paused_until":`Contrôle automatique en pause jusqu'à`,"covers.resume_auto":`Reprendre le contrôle automatique`,"covers.done":`Terminé`,"covers.night_close":`Fermer la nuit`,"covers.night_close_hint":`Ferme automatiquement les stores au coucher du soleil et les ouvre au lever du soleil.`,"covers.night_close_active":`Fermeture nocturne active`,"covers.schedule_group_title":`Planification`,"covers.solar_group_title":`Contrôle solaire`,"covers.schedule_section":`Planification des stores`,"covers.schedule_section_hint":`Définissez des créneaux horaires pour le contrôle des stores à l'aide des assistants de planification HA. En mode Forcer la position, la position de la planification l'emporte sur la logique solaire/thermique. En mode Autoriser la protection solaire, RoomMind décide de la position dans la fenêtre active.`,"covers.add_schedule":`Ajouter un horaire de store...`,"covers.schedule_mode_force":`Forcer la position`,"covers.schedule_mode_gate":`Autoriser la protection solaire`,"covers.schedule_mode_gate_short":`Portail solaire`,"covers.schedule_position":`Position`,"covers.schedule_position_hint":`Position du store lorsque cette planification est active (0% = entièrement fermé, 100% = entièrement ouvert).`,"covers.schedule_selector":`Entité sélecteur de planification`,"covers.schedule_selector_hint":`Choisissez quelle planification est active. input_boolean: off=#1, on=#2. input_number: la valeur sélectionne le numéro de planification.`,"covers.schedule_selector_warning":`Plusieurs planifications configurées mais aucun sélecteur défini. Seule la première planification sera utilisée.`,"covers.schedule_state_active":`Actif`,"covers.schedule_state_inactive":`Inactif`,"covers.schedule_state_unreachable":`Inaccessible`,"covers.schedule_active":`Horaire actif`,"covers.schedule_create_link":`Créer un assistant de planification`,"covers.night_position":`Position nocturne`,"covers.night_position_hint":`Position du store lorsque la fermeture nocturne est active (0% = entièrement fermé). Les stores avec une position minimale individuelle ne descendront jamais en dessous.`,"covers.night_close_advanced":`Avancé`,"covers.night_close_elevation":`Seuil de position du soleil`,"covers.night_close_elevation_hint":`À quelle distance sous ou au-dessus de l'horizon le soleil doit être. 0° = exactement au coucher/lever du soleil. Négatif = plus sombre (ex. -6° = crépuscule, lorsqu'il fait clairement sombre). Positif = encore lumineux (ex. 5° = le soleil encore visible au-dessus de l'horizon).`,"covers.night_close_offset":`Décalage horaire`,"covers.night_close_offset_hint":`Décalage supplémentaire par rapport au seuil de position du soleil. Positif = fermeture plus tard (ex. +20 = 20 min après le seuil), négatif = fermeture plus tôt.`,"covers.outdoor_min_temp":`Température extérieure min.`,"covers.outdoor_min_temp_hint":`Ne pas fermer les stores pour protéger du soleil en dessous de cette température extérieure. Le gain de chaleur solaire est bienvenu quand il fait froid.`,"covers.per_cover_title":`Paramètres par store`,"covers.per_cover_hint":`Définissez la direction cardinale de chaque store et les positions minimales individuelles éventuelles.`,"covers.per_cover_min_short":`Min`,"covers.per_cover_min_position":`Position min.`,"covers.per_cover_min_position_hint":`Position minimale individuelle par store. Les stores ne se fermeront jamais plus que cela. Utile lorsque les stores sont physiquement complètement fermés à une position > 0%.`,"covers.snap_deploy":`Forcer à la position minimale`,"covers.snap_deploy_hint":`Fermer les stores directement à la position minimale au lieu de les fermer progressivement. Recommandé pour les fenêtres à triple vitrage où les positions intermédiaires peuvent causer du stress thermique.`,"covers.info.selection_title":`Sélection de stores`,"covers.info.selection_body":`Sélectionnez les rideaux/stores de cette zone ou ajoutez des entités d'autres zones. RoomMind suit leur position et peut les contrôler automatiquement.`,"covers.info.schedule_title":`Contrôle via planification`,"covers.info.schedule_body":`Utilisez les assistants de planification HA pour définir les moments où les stores doivent se fermer (ex. intimité le soir). L'attribut de position de l'horaire détermine le degré de fermeture. Les planifications remplacent toute autre logique automatique.`,"covers.info.solar_title":`Contrôle solaire/thermique`,"covers.info.solar_body":`Lorsque le contrôle automatique est activé, RoomMind prédit si le rayonnement solaire surchaufferait la pièce et ferme les stores de manière préventive. Il utilise les données thermiques apprises lorsqu'elles sont disponibles, sinon une valeur par défaut prudente. Le seuil de déploiement détermine le dépassement prédit nécessaire avant de fermer les stores.`,"covers.info.night_title":`Fermeture nocturne`,"covers.info.night_body":`Ferme les stores au coucher du soleil et les ouvre au lever du soleil. Vous pouvez définir une position nocturne personnalisée (ex. 10% = presque fermé mais pas totalement).`,"covers.info.override_title":`Dérogation manuelle`,"covers.info.override_body":`Si vous déplacez manuellement un store, RoomMind le détecte et met le contrôle automatique en pause pendant la durée configurée. Cela évite les conflits avec l'utilisateur.`,"covers.info.priority_title":`Ordre de priorité`,"covers.info.priority_body":`Dérogation manuelle > Planification > Fermeture nocturne > Contrôle solaire/thermique. Les règles de priorité supérieure l'emportent toujours. Lorsqu'aucune règle ne s'applique, les stores restent ouverts.`,"covers.info.entities_title":`Entités HA`,"covers.info.entities_body":`RoomMind crée deux entités par pièce pour une utilisation externe: switch.roommind_{area}_cover_auto (activer/désactiver le contrôle automatique des stores — utilisable dans les automatisations ou tableaux de bord) et binary_sensor.roommind_{area}_cover_paused (activé lorsque la dérogation manuelle est en cours, ex. après un déplacement manuel d'un store).`,"covers.orientation_group_title":`Orientation du store`,"covers.orientation_hint":`Définissez la direction cardinale vers laquelle chaque store fait face. RoomMind utilise cela pour ignorer le déploiement solaire lorsque le soleil n'éclaire pas ce côté du bâtiment.`,"covers.orientation_none":`Pas de direction`,"covers.orientation_N":`N`,"covers.orientation_NE":`NE`,"covers.orientation_E":`E`,"covers.orientation_SE":`SE`,"covers.orientation_S":`S`,"covers.orientation_SW":`SO`,"covers.orientation_W":`O`,"covers.orientation_NW":`NO`,"covers.orientation_N_full":`Nord`,"covers.orientation_NE_full":`Nord-Est`,"covers.orientation_E_full":`Est`,"covers.orientation_SE_full":`Sud-Est`,"covers.orientation_S_full":`Sud`,"covers.orientation_SW_full":`Sud-Ouest`,"covers.orientation_W_full":`Ouest`,"covers.orientation_NW_full":`Nord-Ouest`,"settings.general_title":`Général`,"settings.group_by_floor":`Regrouper les pièces par étage`,"settings.climate_control_active":`Contrôle climatique actif`,"settings.climate_control_hint":`Lorsqu'il est désactivé, RoomMind continue de surveiller tous les capteurs et d'entraîner le modèle, mais n'envoie aucune commande à vos appareils de chauffage ou de refroidissement. Vos appareils conservent leur mode et leur consigne actuels et peuvent continuer à chauffer ou refroidir d'eux-mêmes. RoomMind ne les éteint pas.`,"settings.learning_title":`Entraînement du modèle`,"settings.learning_hint":`Lorsqu'il est en pause, RoomMind cesse de collecter de nouvelles mesures et d'entraîner le modèle thermique. Les données du modèle existant sont conservées.`,"settings.learning_exceptions":`Exceptions`,"settings.learning_room_paused":`pièce en pause`,"settings.learning_rooms_paused":`pièces en pause`,"settings.sensors_title":`Capteurs & sources de données`,"settings.control_title":`Contrôle`,"settings.outdoor_sensor":`Température extérieure`,"settings.outdoor_sensor_label":`Capteur de température extérieure`,"settings.outdoor_current":`Actuellement {temp}{unit} dehors`,"settings.outdoor_waiting":`En attente des données du capteur...`,"settings.outdoor_humidity_sensor":`Humidité extérieure`,"settings.outdoor_humidity_label":`Capteur d'humidité extérieure`,"settings.outdoor_humidity_current":`Actuellement {value}% dehors`,"settings.smart_control":`Contrôle climatique intelligent`,"settings.smart_control_hint":`Configurez les limites de température extérieure pour le chauffage et le refroidissement.`,"settings.outdoor_cooling_min":`Température extérieure minimale pour le refroidissement`,"settings.outdoor_cooling_min_hint":`Le climatiseur reste éteint lorsque la température extérieure est inférieure à cette valeur`,"settings.outdoor_heating_max":`Température extérieure maximale pour le chauffage`,"settings.outdoor_heating_max_hint":`Le chauffage reste éteint lorsque la température extérieure dépasse cette valeur`,"settings.saving":`Enregistrement...`,"settings.saved":`Enregistré`,"settings.error":`Erreur lors de l'enregistrement`,"devices.using_builtin_sensor":`Utilisation du capteur intégré du thermostat`,"settings.climate_intelligence":`Intelligence climatique`,"settings.control_mode":`Mode de contrôle`,"settings.control_mode_simple":`Simple (Bang-Bang)`,"settings.control_mode_mpc":`Intelligent (MPC)`,"settings.control_mode_hint":`Le MPC apprend le comportement thermique de votre pièce pour un contrôle optimal`,"settings.comfort_weight":`Priorité`,"settings.comfort_weight_comfort":`Confort`,"settings.comfort_weight_efficiency":`Efficacité`,"settings.comfort_weight_hint":`Équilibre la précision de la température avec la consommation d'énergie. Le confort réagit plus tôt et reste plus proche de la cible. L'efficacité permet plus de dérive pour réduire la durée de chauffage/refroidissement.`,"settings.weather_entity":`Prévision météo`,"settings.weather_entity_hint":`Optionnel : active la planification prédictive de la température extérieure et sert de secours lorsque le capteur extérieur est indisponible`,"settings.outdoor_unavailable_notify":`Notifier lorsque la température extérieure est indisponible`,"settings.outdoor_unavailable_notify_hint":`Afficher une notification Home Assistant lorsqu'aucun des capteurs extérieurs ni l'entité météo n'a signalé de température pendant 30 minutes. Pendant ce temps, RoomMind met en pause l'apprentissage du modèle thermique pour éviter la corruption.`,"settings.prediction_enabled":`Prédiction de température`,"settings.prediction_enabled_hint":`Afficher la tendance de température prédite dans les graphiques d'analyse. A désactiver si vous constatez de mauvaises performances.`,"vacation.title":`Mode vacances`,"vacation.hint":`Règle toutes les pièces sur une température réduite jusqu'à la date de fin.`,"vacation.active_label":`Mode vacances actif`,"vacation.end_date":`Date et heure de fin`,"vacation.setback_temp":`Température de réduction`,"vacation.no_end_date":`Pas de date de fin`,"vacation.deactivate":`Désactiver`,"tabs.analytics":`Analyses`,"analytics.select_room":`Sélectionner une pièce`,"analytics.temperature":`Température`,"analytics.target":`Cible`,"analytics.prediction":`Prédiction`,"analytics.outdoor":`Extérieur`,"analytics.model_status":`Statut du modèle`,"analytics.confidence":`Confiance`,"analytics.heating_rate":`Puissance de chauffage`,"analytics.cooling_rate":`Puissance de refroidissement`,"analytics.solar_gain":`Gain solaire`,"analytics.occupancy_gain":`Gain d'occupation`,"analytics.time_constant":`Constante de temps`,"analytics.samples":`Échantillons`,"analytics.prediction_accuracy":`Précision de la prédiction`,"analytics.avg_deviation":`Écart moyen`,"analytics.data_sources":`Sources de données`,"analytics.data_points":`Points de données`,"analytics.control_mode":`Mode de contrôle`,"analytics.control_mode_mpc":`MPC actif`,"analytics.control_mode_bangbang":`MPC en apprentissage`,"analytics.last_model_update":`Dernière mise à jour du modèle`,"analytics.accuracy_idle":`Précision (Inactif)`,"analytics.accuracy_heating":`Précision (Chauffage)`,"analytics.info.accuracy_idle":`À quel point le modèle prédit précisément la température lorsqu'aucun chauffage ni refroidissement n'est actif. Une valeur plus basse signifie que le modèle comprend bien la perte de chaleur naturelle de votre pièce. C'est la première valeur qui s'améliore car les données au repos sont collectées en continu.`,"analytics.info.accuracy_heating":`À quel point le modèle prédit précisément la température pendant que le chauffage est actif. Cette valeur reste élevée au début car le modèle a besoin de véritables cycles de chauffage pour apprendre. Une fois que votre chauffage a fonctionné plusieurs fois, cette valeur diminuera et le contrôle MPC deviendra disponible.`,"analytics.info.confidence":`Niveau global de préparation du modèle pour le contrôle MPC intelligent, combinant deux facteurs : la quantité de données (nombre d'échantillons en mode repos et actif) et la précision des prédictions (précision des prévisions de température). La confiance démarre à 0% et augmente à mesure que le modèle collecte des données et apprend. Environ 50% signifie qu'il y a suffisamment de données au repos mais qu'on attend encore des cycles de chauffage/refroidissement. Au-delà de 80% le modèle dispose de suffisamment de données et de prédictions précises — le contrôle MPC devient disponible. 100% est le maximum théorique lorsque les prédictions sont aussi précises que physiquement possible.`,"analytics.info.time_constant":`Durée nécessaire à votre pièce pour se refroidir naturellement jusqu'à la moitié de la différence avec la température extérieure lorsque le chauffage est éteint. Un temps constant plus long indique une meilleure isolation — la pièce conserve la chaleur plus longtemps. Un temps constant court signifie que la pièce se refroidit rapidement. Le modèle apprend cela en observant les baisses de température pendant les périodes d'inactivité.`,"analytics.info.heating_rate":`Intensité de l'effet de votre chauffage sur la température de la pièce. Une valeur plus élevée signifie que votre système de chauffage réchauffe la pièce plus rapidement par rapport à sa masse thermique. Le modèle apprend cela en observant la vitesse à laquelle la température augmente pendant que le chauffage est actif, et l'utilise pour prévoir la durée nécessaire du chauffage.`,"analytics.info.cooling_rate":`Intensité de l'effet de votre climatiseur sur la température de la pièce. Une valeur plus élevée signifie que le climatiseur refroidit la pièce plus rapidement par rapport à sa masse thermique. Le modèle apprend cela en observant la vitesse à laquelle la température baisse pendant le refroidissement actif, et l'utilise pour prévoir la durée nécessaire du fonctionnement du climatiseur.`,"analytics.info.solar_gain":`Effet estimé du rayonnement solaire à travers les fenêtres sur la température de la pièce. Le modèle apprend cela en observant comment la pièce se réchauffe pendant les périodes ensoleillées lorsque le chauffage est éteint. Les pièces avec de grandes fenêtres orientées sud auront des valeurs plus élevées. Le modèle utilise cela pour réduire le chauffage lorsqu'un gain solaire est attendu.`,"analytics.info.occupancy_gain":`Contribution thermique estimée due à l'occupation (personnes, animaux, ordinateurs) lorsque la pièce est occupée. Le modèle apprend cela en observant les variations de température lorsque les capteurs d'occupation configurés sont actifs. Séparer cela du gain solaire évite que la chaleur corporelle ne soit attribuée à tort à la lumière du soleil. Affiché uniquement lorsqu'au moins un capteur d'occupation est configuré pour cette pièce.`,"analytics.info.data_sources":`Nombre d'échantillons de mesure utilisés pour l'entraînement du modèle.`,"analytics.info.data_points":`Nombre total d'observations sur lesquelles le modèle a été entraîné. Plus de points de données conduisent généralement à de meilleures prédictions. Le modèle collecte un nouveau point de donnée environ toutes les 3 minutes tant que RoomMind fonctionne.`,"analytics.no_data":`Aucune donnée pour le moment — le modèle apprend`,"analytics.loading":`Chargement des analyses...`,"settings.reset_title":`Réinitialiser les données thermiques`,"settings.reset_hint":`Effacer les données thermiques du modèle et l'historique. Le modèle recommencera à apprendre à partir de zéro.`,"settings.reset_all_label":`Toutes les pièces`,"settings.reset_all_hint":`Effacer les données thermiques et l'historique de toutes les pièces en une fois.`,"settings.reset_all_btn":`Tout réinitialiser`,"settings.reset_all_confirm":`Effacer toutes les données thermiques et l'historique pour TOUTES les pièces ? Tous les modèles recommenceront à apprendre à partir de zéro.`,"settings.reset_room_label":`Pièce individuelle`,"settings.reset_room_hint":`Sélectionnez une pièce pour effacer ses données thermiques et son historique.`,"settings.reset_room_confirm":`Effacer toutes les données thermiques apprises et l'historique pour cette pièce ? Le modèle recommencera à apprendre à partir de zéro.`,"settings.reset_room_select":`Sélectionner une pièce`,"settings.reset_btn":`Réinitialiser`,"settings.reset_no_rooms":`Aucune pièce configurée.`,"settings.boost_title":`Accélérer l'apprentissage`,"settings.boost_hint":`Le modèle thermique apprend le comportement de chauffage et de refroidissement de votre pièce au fil du temps. Après des changements majeurs (nouveau radiateur, climatiseur, isolation, mobilier), le modèle peut être imprécis. Cela augmente l'incertitude du modèle afin qu'il s'adapte plus rapidement aux nouvelles conditions.`,"settings.boost_label":`Accélérer l'apprentissage`,"settings.boost_room_select":`Sélectionner une pièce`,"settings.boost_btn":`Accélérer`,"settings.boost_cooldown":`Actif - réapprentissage en cours`,"settings.boost_no_rooms":`Aucune pièce configurée.`,"analytics.range_1d":`Aujourd'hui`,"analytics.range_2d":`2 jours`,"analytics.range_7d":`Semaine`,"analytics.range_30d":`Mois`,"analytics.export":`Mesures`,"analytics.heating_period":`Chauffage`,"analytics.cooling_period":`Refroidissement`,"analytics.blind_position":`Position du store`,"analytics.window_open_period":`Fenêtre ouverte`,"analytics.chart_info_title":`Comment lire ce graphique`,"analytics.exported":`Exporté !`,"analytics.copy_diagnostics":`Diagnostics`,"analytics.export_download":`Télécharger le fichier`,"analytics.export_clipboard":`Copier dans le presse-papiers`,"analytics.copied_to_clipboard":`Copié !`,"analytics.range_from":`De`,"analytics.range_to":`À`,"analytics.chart_info_body":`**Lignes:** La ligne orange solide montre la température mesurée de la pièce. La ligne verte en pointillé représente la température cible de votre planning. La ligne bleue pointillée est la prédiction de température du modèle.
 
 **Zones colorées:** Le rouge indique les périodes de chauffage, le bleu les périodes de refroidissement, et le turquoise les moments où une fenêtre était ouverte.
 
@@ -23,7 +23,7 @@
 
 **Modes de prédiction :** Lorsque « MPC actif » est affiché, la prédiction utilise l'optimiseur complet MPC avec pré-chauffage/pré-refroidissement intelligent. Tant que le modèle apprend encore, une simulation plus simple est utilisée.
 
-**Limites :** La prédiction suppose que les conditions actuelles restent constantes (température extérieure, état des fenêtres). La précision de la simulation dépend de la qualité d'apprentissage du modèle thermique de votre pièce — au début, les prédictions peuvent être moins précises. Une fois le MPC activé, les prédictions deviennent nettement plus fiables.`,"presence.title":`Détection de présence`,"presence.hint":`Utilise la température éco lorsque personne n'est présent.`,"presence.hint_detail":`Lorsque activé, toutes les pièces passent à la température éco dès qu'aucune des personnes configurées n'est à la maison. Vous pouvez éventuellement restreindre, par pièce, quelles personnes sont prises en compte.`,"presence.add_person":`Ajouter une personne`,"presence.add_entity":`Ajouter une entité de présence`,"presence.person_label":`Personne`,"room.section.presence":`Présence`,"presence.room_help_header":`Comment fonctionne la présence par pièce ?`,"presence.room_help_body":`Sélectionnez les personnes pertinentes pour cette pièce. La pièce passe à la température éco lorsqu'aucune des personnes sélectionnées n'est à la maison. Sans sélection, la règle globale s'applique : éco lorsqu'aucun occupant n'est présent.`,"presence.state_home":`À la maison`,"presence.state_away":`Absent`,"presence.room_none_assigned":`Règle globale — éco lorsqu'aucun occupant n'est présent`,"presence.missing_entity_hint":`Cette entité n'existe plus dans Home Assistant — décochez-la pour la retirer de cette pièce.`,"presence.ignore_toggle":`Ignorer la présence`,"presence.ignore_hint":`Contrôle la façon dont cette pièce réagit à la présence. Vous pouvez attribuer des personnes spécifiques ci-dessous. La pièce passe à l'éco lorsqu'aucune des personnes assignées n'est à la maison. Utilisez le commutateur ci-dessus pour ignorer totalement la détection et suivre toujours le planning.`,"presence.help_ignore_title":`Que fait « Ignorer la présence » ?`,"presence.help_ignore_body":`Lorsqu'elle est activée, cette pièce ignore complètement la détection de présence. Elle suit toujours son planning et ne passe jamais en mode éco en fonction de la présence. Utile pour les pièces qui doivent maintenir la température quel que soit l'occupant, comme une salle serveur, un espace pour animaux ou une chambre d'ami non suivie par Home Assistant.`,"presence.tile_ignored":`Détection de présence ignorée. La pièce suit toujours son planning.`,"presence.away_action_label":`Action lorsque personne n'est à la maison`,"presence.away_action_eco":`Utiliser la température éco`,"presence.away_action_off":`Éteindre les appareils`,"presence.clears_override_label":`L'absence annule la dérogation`,"presence.clears_override_hint":`Lorsque personne n'est à la maison, les dérogations manuelles sont suspendues et la pièce suit l'action d'absence. Quand quelqu'un revient, la dérogation reprend jusqu'à son expiration.`,"card.presence_away":`Absent`,"valve_protection.title":`Protection des vannes`,"valve_protection.hint":`Ouvre périodiquement et brièvement les vannes TRV inactives pour éviter le blocage ou la calcification.`,"valve_protection.interval_label":`Intervalle du cycle`,"valve_protection.interval_suffix":`jours`,"valve_protection.interval_hint":`Durée pendant laquelle une valve peut rester inactive avant d'être cyclée (1-90 jours)`,"compressor.title":`Protection du compresseur`,"compressor.no_groups":`Aucun groupe de compresseurs configuré.`,"compressor.add_group":`Ajouter un groupe de compresseur`,"compressor.group_name":`Nom du groupe`,"compressor.members":`Unités intérieures`,"compressor.members_hint":`Sélectionnez tous les appareils climatiques alimentés par ce compresseur (unités intérieures, TRV sur radiateurs, ventilo-convecteurs).`,"compressor.min_run":`Durée minimale de fonctionnement`,"compressor.min_run_hint":`Le compresseur doit fonctionner au moins aussi longtemps une fois démarré.`,"compressor.min_run_suffix":`min`,"compressor.min_off":`Durée minimale d'arrêt`,"compressor.min_off_hint":`Le compresseur doit rester arrêté au moins aussi longtemps après l'arrêt.`,"compressor.min_off_suffix":`min`,"compressor.delete":`Supprimer le groupe`,"compressor.delete_confirm":`Supprimer le groupe de compresseur "{name}" ?`,"compressor.master_entity":`Appareil maître`,"compressor.master_entity_hint":`L'unité centrale qui alimente les appareils intérieurs de ce groupe, par ex. une chaudière à gaz, une unité extérieure de pompe à chaleur ou l'interrupteur maître d'un système de climatisation gainé. RoomMind l'allumera dès qu'une pièce a besoin de chauffage ou de refroidissement, et l'éteindra lorsque toutes les pièces sont au repos. Laisser vide pour n'utiliser que le script d'action ou la protection contre les courts cycles.`,"compressor.conflict_resolution":`Résolution des conflits`,"compressor.conflict_resolution_hint":`Détermine ce qui se passe lorsque certaines pièces ont besoin de chauffage tandis que d'autres ont besoin de refroidissement simultanément. Priorité chauffage : le chauffage l'emporte toujours (le plus sûr pour la protection contre le gel). Priorité refroidissement : le refroidissement l'emporte toujours. Majorité : le mode avec le plus de pièces l'emporte, les égalités vont au chauffage. Température extérieure : utilise le seuil maximal de chauffage extérieur des paramètres pour décider automatiquement.`,"compressor.conflict_heating_priority":`Priorité chauffage (protection contre le gel)`,"compressor.conflict_cooling_priority":`Priorité refroidissement`,"compressor.conflict_majority":`Majorité l'emporte`,"compressor.conflict_outdoor_temp":`Selon la température extérieure`,"compressor.action_script":`Script d'action`,"compressor.action_script_hint":`Un script Home Assistant qui s'exécute chaque fois que la demande de chauffage/refroidissement change. Utile pour les systèmes nécessitant des commandes spécifiques, par ex. annuler un Vaillant Quick Veto ou basculer un relais. Fonctionne avec ou sans appareil maître. Sans appareil maître, seul le script est déclenché. Reçoit les variables : action (heat/cool/idle), master_entity, members, active_members.`,"compressor.enforce_uniform_mode":`Imposer un mode uniforme`,"compressor.enforce_uniform_mode_hint":`Tous les thermostats de ce groupe doivent fonctionner dans le même mode HVAC (tout chauffage ou tout refroidissement). Les pièces qui ne sont pas d'accord avec le mode de groupe résolu seront mises en mode repos. Utilisez cela pour les pompes à chaleur qui démarrent automatiquement mais exigent que toutes les unités connectées fonctionnent dans le même mode.`,"mold.title":`Protection contre le risque de moisissure`,"mold.detection":`Détection de moisissure`,"mold.detection_desc":`Recevoir des notifications lorsque l'humidité indique un risque de moisissure`,"mold.threshold":`Seuil d'humidité (%)`,"mold.threshold_hint":`Alerter lorsque l'humidité de la pièce reste au-dessus de cette valeur`,"mold.sustained":`Durée écoulée (minutes)`,"mold.sustained_hint":`Alerter uniquement quand le risque persiste aussi longtemps`,"mold.prevention":`Prévention de la moisissure`,"mold.prevention_desc":`Augmenter automatiquement la température pour réduire le risque de moisissure`,"mold.intensity":`Intensité`,"mold.intensity_light":`Léger (+{delta}{unit})`,"mold.intensity_medium":`Moyen (+{delta}{unit})`,"mold.intensity_strong":`Fort (+{delta}{unit})`,"mold.intensity_hint":`L'air plus chaud réduit l'humidité de surface sur les murs froids. Léger suffit généralement pour un risque modéré, Fort peut abaisser l'humidité de surface jusqu'à 8-10% — mais consomme nettement plus d'énergie.`,"card.mold_warning":`Risque de moisissure`,"card.mold_critical":`Danger de moisissure !`,"card.mold_prevention":`Prévention de la moisissure +{delta}{unit}`,"room.mold_surface_rh":`Humidité de surface estimée : {value}%`,"settings.intro.general":`Paramètres d'affichage et de contrôle de base.`,"settings.intro.sensors":`Configurez les capteurs extérieurs et les données météo pour un contrôle climatique précis.`,"settings.intro.control":`Choisissez comment RoomMind contrôle vos appareils climatiques et définissez les priorités et seuils.`,"settings.intro.presence":`Réduisez automatiquement la température lorsqu'aucun occupant n'est présent.`,"settings.intro.vacation":`Réglez toutes les pièces à une température réduite pendant votre absence.`,"settings.intro.valve":`Déplacez périodiquement les vannes TRV inactives pour éviter le blocage ou la calcification.`,"settings.intro.compressor":`Gérez les groupes d'unités intérieures qui partagent un compresseur extérieur ou une source de chauffage centrale. Vous pouvez assigner un dispositif maître (chaudière, unité extérieure) pour l'allumer/éteindre automatiquement selon la demande des pièces. La protection contre les courts cycles évite les commutations rapides qui peuvent endommager l'équipement.`,"settings.intro.mold":`Surveillez l'humidité et réduisez automatiquement le risque de moisissure.`,"settings.intro.notifications":`Configurez qui reçoit les alertes et comment.`,"settings.intro.learning":`Gérez l'entraînement du modèle thermique et accélérez le réapprentissage après des changements.`,"settings.intro.reset":`Effacez les données du modèle thermique appris. Le modèle recommencera à apprendre à partir de zéro.`,"notifications.title":`Notifications`,"notifications.enabled":`Activer les notifications`,"notifications.enabled_hint":`Lorsqu'elles sont désactivées, aucune notification n'est envoyée — ni aux appareils, ni à la barre latérale HA.`,"notifications.desc":`Choisissez quels appareils reçoivent les alertes. Sans cibles, les alertes apparaissent dans la barre latérale HA.`,"notifications.add_target_label":`Ajouter un appareil de notification`,"notifications.add_target_hint":`Saisissez l'ID d'entité si votre appareil n'est pas répertorié (ex. notify.mobile_app_...). Vous pouvez le trouver sous Paramètres → Appareils → votre téléphone → entité de notification.`,"notifications.target_unnamed":`Appareil sans nom`,"notifications.target_person":`Personne`,"notifications.target_when_always":`Toujours`,"notifications.target_when_home":`Seulement lorsqu'à la maison`,"notifications.cooldown":`Temps de pause entre les notifications (minutes)`,"notifications.cooldown_hint":`Temps minimum entre des alertes répétées par pièce`,"notifications.mold_prevention_notify":`Notifier lorsque la prévention de moisissure s'active`,"notifications.mold_prevention_notify_hint":`Envoyer également une notification lorsque la prévention s'active (température augmentée)`,"room.section.heat_source":`Orchestration de la source de chaleur`,"heat_source.toggle":`Sélection intelligente de la source`,"heat_source.toggle_hint":`Lorsque cette pièce possède à la fois des thermostats de radiateur et une climatisation/pompe à chaleur, RoomMind oriente intelligemment la demande de chauffage vers l'appareil le plus efficace en fonction de l'écart de température et des conditions extérieures.`,"heat_source.primary_delta":`Seuil d'activation de la chaudière`,"heat_source.primary_delta_hint":`Activez la source principale uniquement lorsque l'écart de température dépasse cette valeur. En dessous de ce seuil, seule la source secondaire rapide est utilisée.`,"heat_source.primary_delta_suffix":`°C`,"heat_source.outdoor_threshold":`Seuil de préférence extérieur`,"heat_source.outdoor_threshold_hint":`Au-dessus de cette température extérieure, privilégier la climatisation/pompe à chaleur (efficacité supérieure). En dessous, privilégier la chaudière à gaz/radiateur.`,"heat_source.outdoor_threshold_suffix":`°C`,"heat_source.ac_min_outdoor":`Température extérieure min. pour la climatisation`,"heat_source.ac_min_outdoor_hint":`Désactiver complètement la climatisation en dessous de cette température pour protéger le matériel de la pompe à chaleur.`,"heat_source.ac_min_outdoor_suffix":`°C`,"heat_source.summary_disabled":`La sélection intelligente de la source est désactivée`,"devices.keep_fan_only_window":`Maintenir la ventilation seule si la fenêtre est ouverte`,"devices.keep_fan_only_window_hint":`Le chauffage et le refroidissement sont suspendus, mais un climatiseur en ventilation seule reste allumé.`,"settings.temperature_rounding":`Arrondi de la température physique`,"settings.temperature_rounding_hint":`Définit comment RoomMind arrondit vers le pas pris en charge par l'appareil climatique.`,"settings.temperature_rounding_nearest":`Valeur prise en charge la plus proche`,"settings.temperature_rounding_down":`Arrondir vers le bas (26,5° → 26°)`,"settings.temperature_rounding_up":`Arrondir vers le haut (26,5° → 27°)`,"devices.power_sensor":`Capteur de puissance`,"devices.power_sensor_hint":`Capteur de consommation électrique instantanée de ce climatiseur. Les capteurs en W et kW servent à l’historique et aux prévisions adaptatives.`,"analytics.energy_title":`Consommation d’énergie`,"analytics.energy_subtitle":`Puissance mesurée des appareils et prévision apprise`,"analytics.energy_chart_info_body":`Les lignes continues montrent la puissance mesurée. Les segments pointillés prolongent la dernière mesure avec la prévision apprise à trois heures. Touchez un élément de légende pour masquer ou rétablir une série. Faites défiler horizontalement ou pincez pour zoomer ; la ligne verticale pointillée indique maintenant.`,"analytics.energy_room_power":`Puissance de la pièce`,"analytics.energy_forecast":`Prévision`,"analytics.energy_forecast_short":`Prévision`,"analytics.energy_now":`Maintenant`,"analytics.energy_period":`Énergie sur la période`,"analytics.energy_next_3h":`3 prochaines heures`,"analytics.energy_learning":`Échantillons d’apprentissage`,"analytics.energy_confidence":`Fiabilité de la prévision`,"analytics.energy_confidence_low":`Faible`,"analytics.energy_confidence_medium":`Moyenne`,"analytics.energy_confidence_high":`Élevée`,"analytics.energy_cost_today":`Coût aujourd’hui`,"analytics.energy_cost_7d":`Coût des 7 derniers jours`,"analytics.energy_cost_next_3h":`Coût des 3 prochaines h`,"analytics.comparison_title":`Comparaison des pièces`,"analytics.comparison_info":`Compare la période sélectionnée : kWh est l’énergie climatique mesurée, € son coût estimé, Actif le temps total de chauffage/refroidissement, ΔT/kWh la variation de température par unité d’énergie et Vers cible le temps moyen pour atteindre la température programmée.`,"analytics.comparison_data_incomplete":`Données incomplètes`,"analytics.comparison_quality_insufficient_samples":`trop peu d’échantillons`,"analytics.comparison_quality_no_power_measurements":`aucune mesure de puissance`,"analytics.comparison_quality_history_gaps":`lacunes dans l’historique`,"analytics.comparison_room":`Pièce`,"analytics.comparison_active":`Actif`,"analytics.comparison_efficiency":`ΔT/kWh`,"analytics.comparison_target":`Vers cible`,"settings.energy_price":`Prix de l’énergie climatique`,"settings.energy_price_hint":`Prix (EUR/kWh)`,"hero.window_impact":`Fenêtre ouverte depuis {minutes} min : {impact}{unit} vs prévision`,"hero.power_budget_blocked":`Démarrage de la climatisation retardé par le budget électrique`,"hero.preconditioning_active":`Pré-conditionnement actif pour la prochaine consigne`,"hero.preconditioning_planned":`Pré-conditionnement prévu à {time}`,"hero.ac_efficiency_issue":`La climatisation consomme normalement mais répond lentement`}};function C(e,t,n){let r=(_t[t]??_t[t.split(`-`)[0]]??_t.en)[e]??_t.en[e]??e;if(n)for(let[e,t]of Object.entries(n))r=r.replaceAll(`{${e}}`,String(t));return r}function vt(e,t){if(e.area_id)return e.area_id;if(e.device_id&&t){let n=t[e.device_id];if(n?.area_id)return n.area_id}return null}function yt(e,t,n){return t?Object.values(t).filter(t=>vt(t,n)===e):[]}function bt(e){switch(e){case`heating`:return`mode-heating`;case`cooling`:return`mode-cooling`;case`idle`:return`mode-idle`;default:return`mode-other`}}var xt={heating:`mode.heating`,cooling:`mode.cooling`,idle:`mode.idle`};function St(e,t){return C(xt[e],t)}var Ct=l`
+**Limites :** La prédiction suppose que les conditions actuelles restent constantes (température extérieure, état des fenêtres). La précision de la simulation dépend de la qualité d'apprentissage du modèle thermique de votre pièce — au début, les prédictions peuvent être moins précises. Une fois le MPC activé, les prédictions deviennent nettement plus fiables.`,"presence.title":`Détection de présence`,"presence.hint":`Utilise la température éco lorsque personne n'est présent.`,"presence.hint_detail":`Lorsque activé, toutes les pièces passent à la température éco dès qu'aucune des personnes configurées n'est à la maison. Vous pouvez éventuellement restreindre, par pièce, quelles personnes sont prises en compte.`,"presence.add_person":`Ajouter une personne`,"presence.add_entity":`Ajouter une entité de présence`,"presence.person_label":`Personne`,"room.section.presence":`Présence`,"presence.room_help_header":`Comment fonctionne la présence par pièce ?`,"presence.room_help_body":`Sélectionnez les personnes pertinentes pour cette pièce. La pièce passe à la température éco lorsqu'aucune des personnes sélectionnées n'est à la maison. Sans sélection, la règle globale s'applique : éco lorsqu'aucun occupant n'est présent.`,"presence.state_home":`À la maison`,"presence.state_away":`Absent`,"presence.room_none_assigned":`Règle globale — éco lorsqu'aucun occupant n'est présent`,"presence.missing_entity_hint":`Cette entité n'existe plus dans Home Assistant — décochez-la pour la retirer de cette pièce.`,"presence.ignore_toggle":`Ignorer la présence`,"presence.ignore_hint":`Contrôle la façon dont cette pièce réagit à la présence. Vous pouvez attribuer des personnes spécifiques ci-dessous. La pièce passe à l'éco lorsqu'aucune des personnes assignées n'est à la maison. Utilisez le commutateur ci-dessus pour ignorer totalement la détection et suivre toujours le planning.`,"presence.help_ignore_title":`Que fait « Ignorer la présence » ?`,"presence.help_ignore_body":`Lorsqu'elle est activée, cette pièce ignore complètement la détection de présence. Elle suit toujours son planning et ne passe jamais en mode éco en fonction de la présence. Utile pour les pièces qui doivent maintenir la température quel que soit l'occupant, comme une salle serveur, un espace pour animaux ou une chambre d'ami non suivie par Home Assistant.`,"presence.tile_ignored":`Détection de présence ignorée. La pièce suit toujours son planning.`,"presence.away_action_label":`Action lorsque personne n'est à la maison`,"presence.away_action_eco":`Utiliser la température éco`,"presence.away_action_off":`Éteindre les appareils`,"presence.clears_override_label":`L'absence annule la dérogation`,"presence.clears_override_hint":`Lorsque personne n'est à la maison, les dérogations manuelles sont suspendues et la pièce suit l'action d'absence. Quand quelqu'un revient, la dérogation reprend jusqu'à son expiration.`,"card.presence_away":`Absent`,"valve_protection.title":`Protection des vannes`,"valve_protection.hint":`Ouvre périodiquement et brièvement les vannes TRV inactives pour éviter le blocage ou la calcification.`,"valve_protection.interval_label":`Intervalle du cycle`,"valve_protection.interval_suffix":`jours`,"valve_protection.interval_hint":`Durée pendant laquelle une valve peut rester inactive avant d'être cyclée (1-90 jours)`,"compressor.title":`Protection du compresseur`,"compressor.no_groups":`Aucun groupe de compresseurs configuré.`,"compressor.add_group":`Ajouter un groupe de compresseur`,"compressor.group_name":`Nom du groupe`,"compressor.members":`Unités intérieures`,"compressor.members_hint":`Sélectionnez tous les appareils climatiques alimentés par ce compresseur (unités intérieures, TRV sur radiateurs, ventilo-convecteurs).`,"compressor.min_run":`Durée minimale de fonctionnement`,"compressor.min_run_hint":`Le compresseur doit fonctionner au moins aussi longtemps une fois démarré.`,"compressor.min_run_suffix":`min`,"compressor.min_off":`Durée minimale d'arrêt`,"compressor.min_off_hint":`Le compresseur doit rester arrêté au moins aussi longtemps après l'arrêt.`,"compressor.min_off_suffix":`min`,"compressor.delete":`Supprimer le groupe`,"compressor.delete_confirm":`Supprimer le groupe de compresseur "{name}" ?`,"compressor.master_entity":`Appareil maître`,"compressor.master_entity_hint":`L'unité centrale qui alimente les appareils intérieurs de ce groupe, par ex. une chaudière à gaz, une unité extérieure de pompe à chaleur ou l'interrupteur maître d'un système de climatisation gainé. RoomMind l'allumera dès qu'une pièce a besoin de chauffage ou de refroidissement, et l'éteindra lorsque toutes les pièces sont au repos. Laisser vide pour n'utiliser que le script d'action ou la protection contre les courts cycles.`,"compressor.conflict_resolution":`Résolution des conflits`,"compressor.conflict_resolution_hint":`Détermine ce qui se passe lorsque certaines pièces ont besoin de chauffage tandis que d'autres ont besoin de refroidissement simultanément. Priorité chauffage : le chauffage l'emporte toujours (le plus sûr pour la protection contre le gel). Priorité refroidissement : le refroidissement l'emporte toujours. Majorité : le mode avec le plus de pièces l'emporte, les égalités vont au chauffage. Température extérieure : utilise le seuil maximal de chauffage extérieur des paramètres pour décider automatiquement.`,"compressor.conflict_heating_priority":`Priorité chauffage (protection contre le gel)`,"compressor.conflict_cooling_priority":`Priorité refroidissement`,"compressor.conflict_majority":`Majorité l'emporte`,"compressor.conflict_outdoor_temp":`Selon la température extérieure`,"compressor.action_script":`Script d'action`,"compressor.action_script_hint":`Un script Home Assistant qui s'exécute chaque fois que la demande de chauffage/refroidissement change. Utile pour les systèmes nécessitant des commandes spécifiques, par ex. annuler un Vaillant Quick Veto ou basculer un relais. Fonctionne avec ou sans appareil maître. Sans appareil maître, seul le script est déclenché. Reçoit les variables : action (heat/cool/idle), master_entity, members, active_members.`,"compressor.enforce_uniform_mode":`Imposer un mode uniforme`,"compressor.enforce_uniform_mode_hint":`Tous les thermostats de ce groupe doivent fonctionner dans le même mode HVAC (tout chauffage ou tout refroidissement). Les pièces qui ne sont pas d'accord avec le mode de groupe résolu seront mises en mode repos. Utilisez cela pour les pompes à chaleur qui démarrent automatiquement mais exigent que toutes les unités connectées fonctionnent dans le même mode.`,"mold.title":`Protection contre le risque de moisissure`,"mold.detection":`Détection de moisissure`,"mold.detection_desc":`Recevoir des notifications lorsque l'humidité indique un risque de moisissure`,"mold.threshold":`Seuil d'humidité (%)`,"mold.threshold_hint":`Alerter lorsque l'humidité de la pièce reste au-dessus de cette valeur`,"mold.sustained":`Durée écoulée (minutes)`,"mold.sustained_hint":`Alerter uniquement quand le risque persiste aussi longtemps`,"mold.prevention":`Prévention de la moisissure`,"mold.prevention_desc":`Augmenter automatiquement la température pour réduire le risque de moisissure`,"mold.intensity":`Intensité`,"mold.intensity_light":`Léger (+{delta}{unit})`,"mold.intensity_medium":`Moyen (+{delta}{unit})`,"mold.intensity_strong":`Fort (+{delta}{unit})`,"mold.intensity_hint":`L'air plus chaud réduit l'humidité de surface sur les murs froids. Léger suffit généralement pour un risque modéré, Fort peut abaisser l'humidité de surface jusqu'à 8-10% — mais consomme nettement plus d'énergie.`,"card.mold_warning":`Risque de moisissure`,"card.mold_critical":`Danger de moisissure !`,"card.mold_prevention":`Prévention de la moisissure +{delta}{unit}`,"room.mold_surface_rh":`Humidité de surface estimée : {value}%`,"settings.intro.general":`Paramètres d'affichage et de contrôle de base.`,"settings.intro.sensors":`Configurez les capteurs extérieurs et les données météo pour un contrôle climatique précis.`,"settings.intro.control":`Choisissez comment RoomMind contrôle vos appareils climatiques et définissez les priorités et seuils.`,"settings.intro.presence":`Réduisez automatiquement la température lorsqu'aucun occupant n'est présent.`,"settings.intro.vacation":`Réglez toutes les pièces à une température réduite pendant votre absence.`,"settings.intro.valve":`Déplacez périodiquement les vannes TRV inactives pour éviter le blocage ou la calcification.`,"settings.intro.compressor":`Gérez les groupes d'unités intérieures qui partagent un compresseur extérieur ou une source de chauffage centrale. Vous pouvez assigner un dispositif maître (chaudière, unité extérieure) pour l'allumer/éteindre automatiquement selon la demande des pièces. La protection contre les courts cycles évite les commutations rapides qui peuvent endommager l'équipement.`,"settings.intro.mold":`Surveillez l'humidité et réduisez automatiquement le risque de moisissure.`,"settings.intro.notifications":`Configurez qui reçoit les alertes et comment.`,"settings.intro.learning":`Gérez l'entraînement du modèle thermique et accélérez le réapprentissage après des changements.`,"settings.intro.reset":`Effacez les données du modèle thermique appris. Le modèle recommencera à apprendre à partir de zéro.`,"notifications.title":`Notifications`,"notifications.window_open_after":`Alerte fenetre ouverte apres`,"notifications.window_open_after_hint":`Envoyer une alerte apres ce nombre de minutes avec la fenetre ouverte. 0 pour desactiver.`,"notifications.enabled":`Activer les notifications`,"notifications.enabled_hint":`Lorsqu'elles sont désactivées, aucune notification n'est envoyée — ni aux appareils, ni à la barre latérale HA.`,"notifications.desc":`Choisissez quels appareils reçoivent les alertes. Sans cibles, les alertes apparaissent dans la barre latérale HA.`,"notifications.add_target_label":`Ajouter un appareil de notification`,"notifications.add_target_hint":`Saisissez l'ID d'entité si votre appareil n'est pas répertorié (ex. notify.mobile_app_...). Vous pouvez le trouver sous Paramètres → Appareils → votre téléphone → entité de notification.`,"notifications.target_unnamed":`Appareil sans nom`,"notifications.target_person":`Personne`,"notifications.target_when_always":`Toujours`,"notifications.target_when_home":`Seulement lorsqu'à la maison`,"notifications.cooldown":`Temps de pause entre les notifications (minutes)`,"notifications.cooldown_hint":`Temps minimum entre des alertes répétées par pièce`,"notifications.mold_prevention_notify":`Notifier lorsque la prévention de moisissure s'active`,"notifications.mold_prevention_notify_hint":`Envoyer également une notification lorsque la prévention s'active (température augmentée)`,"room.section.heat_source":`Orchestration de la source de chaleur`,"heat_source.toggle":`Sélection intelligente de la source`,"heat_source.toggle_hint":`Lorsque cette pièce possède à la fois des thermostats de radiateur et une climatisation/pompe à chaleur, RoomMind oriente intelligemment la demande de chauffage vers l'appareil le plus efficace en fonction de l'écart de température et des conditions extérieures.`,"heat_source.primary_delta":`Seuil d'activation de la chaudière`,"heat_source.primary_delta_hint":`Activez la source principale uniquement lorsque l'écart de température dépasse cette valeur. En dessous de ce seuil, seule la source secondaire rapide est utilisée.`,"heat_source.primary_delta_suffix":`°C`,"heat_source.outdoor_threshold":`Seuil de préférence extérieur`,"heat_source.outdoor_threshold_hint":`Au-dessus de cette température extérieure, privilégier la climatisation/pompe à chaleur (efficacité supérieure). En dessous, privilégier la chaudière à gaz/radiateur.`,"heat_source.outdoor_threshold_suffix":`°C`,"heat_source.ac_min_outdoor":`Température extérieure min. pour la climatisation`,"heat_source.ac_min_outdoor_hint":`Désactiver complètement la climatisation en dessous de cette température pour protéger le matériel de la pompe à chaleur.`,"heat_source.ac_min_outdoor_suffix":`°C`,"heat_source.summary_disabled":`La sélection intelligente de la source est désactivée`,"devices.keep_fan_only_window":`Maintenir la ventilation seule si la fenêtre est ouverte`,"devices.keep_fan_only_window_hint":`Le chauffage et le refroidissement sont suspendus, mais un climatiseur en ventilation seule reste allumé.`,"settings.temperature_rounding":`Arrondi de la température physique`,"settings.temperature_rounding_hint":`Définit comment RoomMind arrondit vers le pas pris en charge par l'appareil climatique.`,"settings.temperature_rounding_nearest":`Valeur prise en charge la plus proche`,"settings.temperature_rounding_down":`Arrondir vers le bas (26,5° → 26°)`,"settings.temperature_rounding_up":`Arrondir vers le haut (26,5° → 27°)`,"devices.power_sensor":`Capteur de puissance`,"devices.power_sensor_hint":`Capteur de consommation électrique instantanée de ce climatiseur. Les capteurs en W et kW servent à l’historique et aux prévisions adaptatives.`,"analytics.energy_title":`Consommation d’énergie`,"analytics.energy_subtitle":`Puissance mesurée des appareils et prévision apprise`,"analytics.energy_chart_info_body":`Les lignes continues montrent la puissance mesurée. Les segments pointillés prolongent la dernière mesure avec la prévision apprise à trois heures. Touchez un élément de légende pour masquer ou rétablir une série. Faites défiler horizontalement ou pincez pour zoomer ; la ligne verticale pointillée indique maintenant.`,"analytics.energy_room_power":`Puissance de la pièce`,"analytics.energy_forecast":`Prévision`,"analytics.energy_forecast_short":`Prévision`,"analytics.energy_now":`Maintenant`,"analytics.energy_period":`Énergie sur la période`,"analytics.energy_next_3h":`3 prochaines heures`,"analytics.energy_learning":`Échantillons d’apprentissage`,"analytics.energy_confidence":`Fiabilité de la prévision`,"analytics.energy_confidence_low":`Faible`,"analytics.energy_confidence_medium":`Moyenne`,"analytics.energy_confidence_high":`Élevée`,"analytics.energy_cost_today":`Coût aujourd’hui`,"analytics.energy_cost_7d":`Coût des 7 derniers jours`,"analytics.energy_cost_next_3h":`Coût des 3 prochaines h`,"analytics.comparison_title":`Comparaison des pièces`,"analytics.comparison_info":`Compare la période sélectionnée : kWh est l’énergie climatique mesurée, € son coût estimé, Actif le temps total de chauffage/refroidissement, ΔT/kWh la variation de température par unité d’énergie et Vers cible le temps moyen pour atteindre la température programmée.`,"analytics.comparison_data_incomplete":`Données incomplètes`,"analytics.comparison_quality_insufficient_samples":`trop peu d’échantillons`,"analytics.comparison_quality_no_power_measurements":`aucune mesure de puissance`,"analytics.comparison_quality_history_gaps":`lacunes dans l’historique`,"analytics.comparison_room":`Pièce`,"analytics.comparison_active":`Actif`,"analytics.comparison_efficiency":`ΔT/kWh`,"analytics.comparison_target":`Vers cible`,"settings.energy_price":`Prix de l’énergie climatique`,"settings.energy_price_hint":`Prix (EUR/kWh)`,"hero.window_impact":`Fenêtre ouverte depuis {minutes} min : {impact}{unit} vs prévision`,"hero.power_budget_blocked":`Démarrage de la climatisation retardé par le budget électrique`,"hero.preconditioning_active":`Pré-conditionnement actif pour la prochaine consigne`,"hero.preconditioning_planned":`Pré-conditionnement prévu à {time}`,"hero.ac_efficiency_issue":`La climatisation consomme normalement mais répond lentement`},it:{"insights.decision.title":`Perché RoomMind sta agendo`,"insights.decision.window_open":`Il controllo clima è in pausa perché una finestra è aperta.`,"insights.decision.power_budget":`La richiesta climatica è limitata dal budget di potenza configurato.`,"insights.decision.compressor_min_off":`Il compressore attende il tempo minimo di spegnimento.`,"insights.decision.compressor_min_run":`Il compressore sta completando il tempo minimo di funzionamento.`,"insights.decision.override_boost":`È attivo un override Boost.`,"insights.decision.override_eco":`È attivo un override Eco.`,"insights.decision.override_custom":`È attivo un override con temperatura personalizzata.`,"insights.decision.override_active":`È attivo un override manuale.`,"insights.decision.presence_away":`La modalità assenza sta regolando questa stanza.`,"insights.decision.mold_prevention":`La prevenzione muffa sta proteggendo questa stanza.`,"insights.decision.humidity_comfort":`La deumidificazione è attiva per il comfort dell'umidità.`,"insights.decision.smart_ventilation":`La ventilazione intelligente mantiene la circolazione dell'aria.`,"insights.decision.preconditioning":`Il controllo predittivo sta precondizionando la stanza.`,"insights.decision.heat_source":`RoomMind ha selezionato la sorgente di calore per questa stanza.`,"insights.decision.mode_heating":`La stanza si sta riscaldando verso il setpoint corrente.`,"insights.decision.mode_cooling":`La stanza si sta raffrescando verso il setpoint corrente.`,"insights.decision.mode_idle":`La stanza è al setpoint e non serve alcuna azione climatica.`,"insights.readiness.title":`Prontezza della stanza`,"insights.readiness.ready":`Pronta per il comfort predittivo ({ready}/{total} controlli completati).`,"insights.readiness.basic":`Il controllo climatico di base è pronto ({ready}/{total} controlli completati).`,"insights.readiness.needs_setup":`Completa la configurazione richiesta per abilitare il controllo climatico ({ready}/{total} controlli completati).`,"insights.readiness.item.devices.ready":`Dispositivo clima configurato`,"insights.readiness.item.devices.missing":`Aggiungi almeno un dispositivo clima`,"insights.readiness.item.temperature_sensor.ready":`Sensore di temperatura esterno configurato`,"insights.readiness.item.temperature_sensor.recommended":`Aggiungi un sensore esterno per il Controllo completo`,"insights.readiness.item.schedule.ready":`Programmazione configurata`,"insights.readiness.item.schedule.recommended":`Aggiungi una programmazione per automatizzare temperature comfort ed eco`,"insights.readiness.item.predictive_control.ready":`Gli input per il controllo predittivo sono disponibili`,"insights.readiness.item.predictive_control.recommended":`Aggiungi la temperatura esterna per sbloccare il controllo predittivo`,"insights.readiness.item.climate_control.missing":`Abilita il controllo climatico per questa stanza`}};function S(e,t,n){let r=(vt[t]??vt[t.split(`-`)[0]]??vt.en)[e]??vt.en[e]??e;if(n)for(let[e,t]of Object.entries(n))r=r.replaceAll(`{${e}}`,String(t));return r}function yt(e,t){if(e.area_id)return e.area_id;if(e.device_id&&t){let n=t[e.device_id];if(n?.area_id)return n.area_id}return null}function bt(e,t,n){return t?Object.values(t).filter(t=>yt(t,n)===e):[]}function xt(e){switch(e){case`heating`:return`mode-heating`;case`cooling`:return`mode-cooling`;case`idle`:return`mode-idle`;default:return`mode-other`}}var St={heating:`mode.heating`,cooling:`mode.cooling`,idle:`mode.idle`};function Ct(e,t){return S(St[e],t)}var wt=l`
   .mode-pill {
     display: inline-flex;
     align-items: center;
@@ -71,7 +71,7 @@
   .mode-other .mode-dot {
     background: var(--secondary-text-color);
   }
-`,wt=`M11.83,9L15,12.16C15,12.11 15,12.05 15,12A3,3 0 0,0 12,9C11.94,9 11.89,9 11.83,9M7.53,9.8L9.08,11.35C9.03,11.56 9,11.77 9,12A3,3 0 0,0 12,15C12.22,15 12.44,14.97 12.65,14.92L14.2,16.47C13.53,16.8 12.79,17 12,17A5,5 0 0,1 7,12C7,11.21 7.2,10.47 7.53,9.8M2,4.27L4.28,6.55L4.73,7C3.08,8.3 1.78,10 1,12C2.73,16.39 7,19.5 12,19.5C13.55,19.5 15.03,19.2 16.38,18.66L16.81,19.08L19.73,22L21,20.73L3.27,3M12,7A5,5 0 0,1 17,12C17,12.64 16.87,13.26 16.64,13.82L19.57,16.75C21.07,15.5 22.27,13.86 23,12C21.27,7.61 17,4.5 12,4.5C10.6,4.5 9.26,4.75 8,5.2L10.17,7.35C10.74,7.13 11.35,7 12,7Z`;function Tt(e){return e.config?.unit_system?.temperature===`°F`}function w(e){return Tt(e)?`°F`:`°C`}function T(e,t){return Tt(t)?e*9/5+32:e}function Et(e,t){return Tt(t)?(e-32)*5/9:e}function E(e,t){return Tt(t)?e*9/5:e}function D(e,t,n=1){return T(e,t).toFixed(n)}function O(e){return Tt(e)?`1`:`0.5`}function k(e,t,n){return{min:String(Math.round(T(e,n))),max:String(Math.round(T(t,n)))}}function A(e,t,n,r){var i=arguments.length,a=i<3?t:r===null?r=Object.getOwnPropertyDescriptor(t,n):r,o;if(typeof Reflect==`object`&&typeof Reflect.decorate==`function`)a=Reflect.decorate(e,t,n,r);else for(var s=e.length-1;s>=0;s--)(o=e[s])&&(a=(i<3?o(a):i>3?o(t,n,a):o(t,n))||a);return i>3&&a&&Object.defineProperty(t,n,a),a}var j=t((()=>{}));v(),j();var M=class extends _{constructor(...e){super(...e),this.config=null,this.climateEntityCount=0,this.tempSensorCount=0,this.controlMode=`bangbang`,this.climateControlActive=!0,this.reordering=!1,this.canMoveUp=!1,this.canMoveDown=!1}static{this.styles=[Ct,l`
+`,Tt=`M11.83,9L15,12.16C15,12.11 15,12.05 15,12A3,3 0 0,0 12,9C11.94,9 11.89,9 11.83,9M7.53,9.8L9.08,11.35C9.03,11.56 9,11.77 9,12A3,3 0 0,0 12,15C12.22,15 12.44,14.97 12.65,14.92L14.2,16.47C13.53,16.8 12.79,17 12,17A5,5 0 0,1 7,12C7,11.21 7.2,10.47 7.53,9.8M2,4.27L4.28,6.55L4.73,7C3.08,8.3 1.78,10 1,12C2.73,16.39 7,19.5 12,19.5C13.55,19.5 15.03,19.2 16.38,18.66L16.81,19.08L19.73,22L21,20.73L3.27,3M12,7A5,5 0 0,1 17,12C17,12.64 16.87,13.26 16.64,13.82L19.57,16.75C21.07,15.5 22.27,13.86 23,12C21.27,7.61 17,4.5 12,4.5C10.6,4.5 9.26,4.75 8,5.2L10.17,7.35C10.74,7.13 11.35,7 12,7Z`;function Et(e){return e.config?.unit_system?.temperature===`°F`}function C(e){return Et(e)?`°F`:`°C`}function w(e,t){return Et(t)?e*9/5+32:e}function Dt(e,t){return Et(t)?(e-32)*5/9:e}function T(e,t){return Et(t)?e*9/5:e}function E(e,t,n=1){return w(e,t).toFixed(n)}function D(e){return Et(e)?`1`:`0.5`}function O(e,t,n){return{min:String(Math.round(w(e,n))),max:String(Math.round(w(t,n)))}}function k(e,t,n,r){var i=arguments.length,a=i<3?t:r===null?r=Object.getOwnPropertyDescriptor(t,n):r,o;if(typeof Reflect==`object`&&typeof Reflect.decorate==`function`)a=Reflect.decorate(e,t,n,r);else for(var s=e.length-1;s>=0;s--)(o=e[s])&&(a=(i<3?o(a):i>3?o(t,n,a):o(t,n))||a);return i>3&&a&&Object.defineProperty(t,n,a),a}var A=t((()=>{}));_(),A();var j=class extends g{constructor(...e){super(...e),this.config=null,this.climateEntityCount=0,this.tempSensorCount=0,this.controlMode=`bangbang`,this.climateControlActive=!0,this.reordering=!1,this.canMoveUp=!1,this.canMoveDown=!1}static{this.styles=[wt,l`
       :host {
         display: block;
       }
@@ -413,15 +413,15 @@
         font-style: italic;
         margin-top: 8px;
       }
-    `]}render(){let e=this.climateEntityCount>0,t=(this.config?.devices?.length??0)>0||(this.config?.thermostats?.length??0)>0||(this.config?.acs?.length??0)>0,n=this.config?.is_outdoor??!1,r=this.config!==null&&t&&!n,i=this.config?.live,a=i?.mode,o=(!r||n)&&i&&(i.current_temp!==null||i.current_humidity!==null),s=r?a===`heating`?`accent-heating`:a===`cooling`?`accent-cooling`:`accent-idle`:o?`accent-idle`:`accent-unconfigured`;return h`
+    `]}render(){let e=this.climateEntityCount>0,t=(this.config?.devices?.length??0)>0||(this.config?.thermostats?.length??0)>0||(this.config?.acs?.length??0)>0,n=this.config?.is_outdoor??!1,r=this.config!==null&&t&&!n,i=this.config?.live,a=i?.mode,o=(!r||n)&&i&&(i.current_temp!==null||i.current_humidity!==null),s=r?a===`heating`?`accent-heating`:a===`cooling`?`accent-cooling`:`accent-idle`:o?`accent-idle`:`accent-unconfigured`;return m`
       <ha-card @click=${this._onCardClick}>
         <div class="accent ${s}"></div>
-        ${this.reordering?g:h`<ha-icon-button
+        ${this.reordering?h:m`<ha-icon-button
               class="hide-btn"
-              .path=${wt}
+              .path=${Tt}
               @click=${this._onHideClick}
             ></ha-icon-button>`}
-        ${this.reordering?h`<div class="reorder-overlay">
+        ${this.reordering?m`<div class="reorder-overlay">
               <div
                 class="reorder-half left ${this.canMoveUp?``:`disabled`}"
                 @click=${this._onMoveUp}
@@ -438,95 +438,95 @@
                   .path=${`M8.59,16.58L13.17,12L8.59,7.41L10,6L16,12L10,18L8.59,16.58Z`}
                 ></ha-icon-button>
               </div>
-            </div>`:g}
+            </div>`:h}
         <div class="card-inner">
           <div class="card-header">
             <h3 class="area-name">${this.config?.display_name||this.area.name}</h3>
-            ${r&&i?h`
-                  <span class="mode-pill ${bt(i.mode)}">
+            ${r&&i?m`
+                  <span class="mode-pill ${xt(i.mode)}">
                     <span class="mode-dot"></span>
-                    ${St(i.mode,this.hass.language)}${i.heating_power>0&&i.heating_power<100?h` ${i.heating_power}%`:g}
+                    ${Ct(i.mode,this.hass.language)}${i.heating_power>0&&i.heating_power<100?m` ${i.heating_power}%`:h}
                   </span>
-                `:g}
+                `:h}
           </div>
 
           ${r?this._renderConfigured():this.config?.live&&(this.config.live.current_temp!==null||this.config.live.current_humidity!==null)?this._renderSensorOnly():this._renderUnconfigured(e)}
         </div>
       </ha-card>
-    `}_renderConfigured(){let e=this.config?.live;if(!e)return h`<div class="waiting">${C(`card.waiting`,this.hass.language)}</div>`;let t=this.controlMode===`mpc`;return h`
+    `}_renderConfigured(){let e=this.config?.live;if(!e)return m`<div class="waiting">${S(`card.waiting`,this.hass.language)}</div>`;let t=this.controlMode===`mpc`;return m`
       <div class="temp-section">
-        ${e.current_temp===null?h`<span class="no-temp">--</span>`:h`
-              <span class="current-temp">${D(e.current_temp,this.hass)}</span>
-              <span class="temp-unit">${w(this.hass)}</span>
+        ${e.current_temp===null?m`<span class="no-temp">--</span>`:m`
+              <span class="current-temp">${E(e.current_temp,this.hass)}</span>
+              <span class="temp-unit">${C(this.hass)}</span>
             `}
         ${this._renderTargetInfo(e)}
       </div>
       <div class="card-footer">
         <span class="humidity-info">
-          ${e.current_humidity===null?g:C(`card.humidity`,this.hass.language,{value:e.current_humidity.toFixed(0)})}
+          ${e.current_humidity===null?h:S(`card.humidity`,this.hass.language,{value:e.current_humidity.toFixed(0)})}
         </span>
         <span class="badge-row">
-          ${e.mold_risk_level&&e.mold_risk_level!==`ok`?h`<span class="mold-badge ${e.mold_risk_level}">
+          ${e.mold_risk_level&&e.mold_risk_level!==`ok`?m`<span class="mold-badge ${e.mold_risk_level}">
                 <ha-icon icon="mdi:water-alert"></ha-icon>
-                ${e.mold_risk_level===`critical`?C(`card.mold_critical`,this.hass.language):C(`card.mold_warning`,this.hass.language)}
-              </span>`:g}
-          ${e.mold_prevention_active?h`<span class="mold-badge prevention">
+                ${e.mold_risk_level===`critical`?S(`card.mold_critical`,this.hass.language):S(`card.mold_warning`,this.hass.language)}
+              </span>`:h}
+          ${e.mold_prevention_active?m`<span class="mold-badge prevention">
                 <ha-icon icon="mdi:shield-check"></ha-icon>
-                ${C(`card.mold_prevention`,this.hass.language,{delta:E(e.mold_prevention_delta,this.hass).toFixed(0),unit:w(this.hass)})}
-              </span>`:g}
-          ${t?h`<span class="mpc-badge ${e.mpc_active?`active`:`learning`}">
+                ${S(`card.mold_prevention`,this.hass.language,{delta:T(e.mold_prevention_delta,this.hass).toFixed(0),unit:C(this.hass)})}
+              </span>`:h}
+          ${t?m`<span class="mpc-badge ${e.mpc_active?`active`:`learning`}">
                 <ha-icon .icon=${e.mpc_active?`mdi:brain`:`mdi:school-outline`}></ha-icon>
-                ${e.mpc_active?C(`card.mpc_active`,this.hass.language):C(`card.mpc_learning`,this.hass.language)}
-              </span>`:g}
+                ${e.mpc_active?S(`card.mpc_active`,this.hass.language):S(`card.mpc_learning`,this.hass.language)}
+              </span>`:h}
         </span>
       </div>
-      ${!this.climateControlActive||this.config?.climate_control_enabled===!1?h`<div class="uncontrolled-hint">
-            ${C(`card.not_controlled`,this.hass.language)}
-          </div>`:g}
-    `}_renderTargetInfo(e){if(e.target_temp===null&&e.heat_target===null)return g;let t=(this.config?.climate_mode??`auto`)===`auto`&&e.heat_target!=null&&e.cool_target!=null&&e.heat_target!==e.cool_target?h`<span class="target-value"
-          >${D(e.heat_target,this.hass)} –
-          ${D(e.cool_target,this.hass)}${w(this.hass)}</span
-        >`:h`<span class="target-value"
-          >${D(e.target_temp??e.heat_target,this.hass)}${w(this.hass)}</span
-        >`;return h`
+      ${!this.climateControlActive||this.config?.climate_control_enabled===!1?m`<div class="uncontrolled-hint">
+            ${S(`card.not_controlled`,this.hass.language)}
+          </div>`:h}
+    `}_renderTargetInfo(e){if(e.target_temp===null&&e.heat_target===null)return h;let t=(this.config?.climate_mode??`auto`)===`auto`&&e.heat_target!=null&&e.cool_target!=null&&e.heat_target!==e.cool_target?m`<span class="target-value"
+          >${E(e.heat_target,this.hass)} –
+          ${E(e.cool_target,this.hass)}${C(this.hass)}</span
+        >`:m`<span class="target-value"
+          >${E(e.target_temp??e.heat_target,this.hass)}${C(this.hass)}</span
+        >`;return m`
       <span class="target-info">
-        ${C(`card.target`,this.hass.language)} ${t}
-        ${e.override_active?h`<ha-icon class="override-icon" icon="mdi:timer-outline"></ha-icon>`:g}
-        ${e.window_open?h`<ha-icon class="window-icon" icon="mdi:window-open-variant"></ha-icon>`:g}
-        ${e.presence_away?h`<ha-icon class="away-icon" icon="mdi:home-off-outline"></ha-icon>`:g}
+        ${S(`card.target`,this.hass.language)} ${t}
+        ${e.override_active?m`<ha-icon class="override-icon" icon="mdi:timer-outline"></ha-icon>`:h}
+        ${e.window_open?m`<ha-icon class="window-icon" icon="mdi:window-open-variant"></ha-icon>`:h}
+        ${e.presence_away?m`<ha-icon class="away-icon" icon="mdi:home-off-outline"></ha-icon>`:h}
       </span>
-    `}_renderSensorOnly(){let e=this.config.live,t=this.config?.is_outdoor??!1;return h`
+    `}_renderSensorOnly(){let e=this.config.live,t=this.config?.is_outdoor??!1;return m`
       <div class="temp-section">
-        ${e.current_temp===null?h`<span class="no-temp">--</span>`:h`
-              <span class="current-temp">${D(e.current_temp,this.hass)}</span>
-              <span class="temp-unit">${w(this.hass)}</span>
+        ${e.current_temp===null?m`<span class="no-temp">--</span>`:m`
+              <span class="current-temp">${E(e.current_temp,this.hass)}</span>
+              <span class="temp-unit">${C(this.hass)}</span>
             `}
       </div>
       <div class="card-footer">
         <span class="humidity-info">
-          ${e.current_humidity===null?g:C(`card.humidity`,this.hass.language,{value:e.current_humidity.toFixed(0)})}
+          ${e.current_humidity===null?h:S(`card.humidity`,this.hass.language,{value:e.current_humidity.toFixed(0)})}
         </span>
         <span class="badge-row">
-          ${t?h`<span class="outdoor-badge">
+          ${t?m`<span class="outdoor-badge">
                 <ha-icon icon="mdi:tree"></ha-icon>
-                ${C(`card.outdoor`,this.hass.language)}
-              </span>`:g}
-          ${e.mold_risk_level&&e.mold_risk_level!==`ok`?h`<span class="mold-badge ${e.mold_risk_level}">
+                ${S(`card.outdoor`,this.hass.language)}
+              </span>`:h}
+          ${e.mold_risk_level&&e.mold_risk_level!==`ok`?m`<span class="mold-badge ${e.mold_risk_level}">
                 <ha-icon icon="mdi:water-alert"></ha-icon>
-                ${e.mold_risk_level===`critical`?C(`card.mold_critical`,this.hass.language):C(`card.mold_warning`,this.hass.language)}
-              </span>`:g}
+                ${e.mold_risk_level===`critical`?S(`card.mold_critical`,this.hass.language):S(`card.mold_warning`,this.hass.language)}
+              </span>`:h}
         </span>
       </div>
-    `}_renderUnconfigured(e){let t=this.hass.language;if(!e)return h`<div class="device-summary empty">${C(`card.no_climate`,t)}</div>`;let n=this.climateEntityCount,r=this.tempSensorCount;return h`
+    `}_renderUnconfigured(e){let t=this.hass.language;if(!e)return m`<div class="device-summary empty">${S(`card.no_climate`,t)}</div>`;let n=this.climateEntityCount,r=this.tempSensorCount;return m`
       <div class="device-summary">
         ${n}
-        ${C(n===1?`card.climate_device`:`card.climate_devices`,t)}${r>0?` \u00B7 ${r} ${C(r===1?`card.temp_sensor`:`card.temp_sensors`,t)}`:``}
+        ${S(n===1?`card.climate_device`:`card.climate_devices`,t)}${r>0?` \u00B7 ${r} ${S(r===1?`card.temp_sensor`:`card.temp_sensors`,t)}`:``}
       </div>
       <div class="configure-prompt">
-        <span class="configure-text">${C(`card.tap_configure`,t)}</span>
+        <span class="configure-text">${S(`card.tap_configure`,t)}</span>
         <span class="configure-arrow">›</span>
       </div>
-    `}_onCardClick(){this.dispatchEvent(new CustomEvent(`area-selected`,{detail:{areaId:this.area.area_id},bubbles:!0,composed:!0}))}_onMoveUp(e){e.stopPropagation(),this.canMoveUp&&this.dispatchEvent(new CustomEvent(`move-room-up`,{detail:{areaId:this.area.area_id},bubbles:!0,composed:!0}))}_onMoveDown(e){e.stopPropagation(),this.canMoveDown&&this.dispatchEvent(new CustomEvent(`move-room-down`,{detail:{areaId:this.area.area_id},bubbles:!0,composed:!0}))}_onHideClick(e){e.stopPropagation(),this.dispatchEvent(new CustomEvent(`hide-room`,{detail:{areaId:this.area.area_id},bubbles:!0,composed:!0}))}};A([b({attribute:!1})],M.prototype,`area`,void 0),A([b({attribute:!1})],M.prototype,`config`,void 0),A([b({type:Number})],M.prototype,`climateEntityCount`,void 0),A([b({type:Number})],M.prototype,`tempSensorCount`,void 0),A([b({attribute:!1})],M.prototype,`hass`,void 0),A([b({type:String})],M.prototype,`controlMode`,void 0),A([b({type:Boolean})],M.prototype,`climateControlActive`,void 0),A([b({type:Boolean})],M.prototype,`reordering`,void 0),A([b({type:Boolean})],M.prototype,`canMoveUp`,void 0),A([b({type:Boolean})],M.prototype,`canMoveDown`,void 0),M=A([y(`rs-area-card`)],M);var Dt={ATTRIBUTE:1,CHILD:2,PROPERTY:3,BOOLEAN_ATTRIBUTE:4,EVENT:5,ELEMENT:6},Ot=e=>(...t)=>({_$litDirective$:e,values:t}),kt=class{constructor(e){}get _$AU(){return this._$AM._$AU}_$AT(e,t,n){this._$Ct=e,this._$AM=t,this._$Ci=n}_$AS(e,t){return this.update(e,t)}update(e,t){return this.render(...t)}};Qe();var At=class extends kt{constructor(e){if(super(e),this.it=g,e.type!==Dt.CHILD)throw Error(this.constructor.directiveName+`() can only be used in child bindings`)}render(e){if(e===g||e==null)return this._t=void 0,this.it=e;if(e===Re)return e;if(typeof e!=`string`)throw Error(this.constructor.directiveName+`() called with a non-string value`);if(e===this.it)return this._t;this.it=e;let t=[e];return t.raw=t,this._t={_$litType$:this.constructor.resultType,strings:t,values:[]}}};At.directiveName=`unsafeHTML`,At.resultType=1;var N=Ot(At);v(),S(),j();var jt=class extends _{constructor(...e){super(...e),this.text=``,this.icon=`mdi:information-outline`,this._open=!1,this._style=`visibility: hidden;`,this._onDocPointer=e=>{e.composedPath().includes(this)||this._close()},this._onKey=e=>{e.key===`Escape`&&(e.stopPropagation(),this._close())},this._onScroll=()=>this._close()}disconnectedCallback(){super.disconnectedCallback(),this._removeListeners()}static{this.styles=l`
+    `}_onCardClick(){this.dispatchEvent(new CustomEvent(`area-selected`,{detail:{areaId:this.area.area_id},bubbles:!0,composed:!0}))}_onMoveUp(e){e.stopPropagation(),this.canMoveUp&&this.dispatchEvent(new CustomEvent(`move-room-up`,{detail:{areaId:this.area.area_id},bubbles:!0,composed:!0}))}_onMoveDown(e){e.stopPropagation(),this.canMoveDown&&this.dispatchEvent(new CustomEvent(`move-room-down`,{detail:{areaId:this.area.area_id},bubbles:!0,composed:!0}))}_onHideClick(e){e.stopPropagation(),this.dispatchEvent(new CustomEvent(`hide-room`,{detail:{areaId:this.area.area_id},bubbles:!0,composed:!0}))}};k([y({attribute:!1})],j.prototype,`area`,void 0),k([y({attribute:!1})],j.prototype,`config`,void 0),k([y({type:Number})],j.prototype,`climateEntityCount`,void 0),k([y({type:Number})],j.prototype,`tempSensorCount`,void 0),k([y({attribute:!1})],j.prototype,`hass`,void 0),k([y({type:String})],j.prototype,`controlMode`,void 0),k([y({type:Boolean})],j.prototype,`climateControlActive`,void 0),k([y({type:Boolean})],j.prototype,`reordering`,void 0),k([y({type:Boolean})],j.prototype,`canMoveUp`,void 0),k([y({type:Boolean})],j.prototype,`canMoveDown`,void 0),j=k([v(`rs-area-card`)],j);var Ot={ATTRIBUTE:1,CHILD:2,PROPERTY:3,BOOLEAN_ATTRIBUTE:4,EVENT:5,ELEMENT:6},kt=e=>(...t)=>({_$litDirective$:e,values:t}),At=class{constructor(e){}get _$AU(){return this._$AM._$AU}_$AT(e,t,n){this._$Ct=e,this._$AM=t,this._$Ci=n}_$AS(e,t){return this.update(e,t)}update(e,t){return this.render(...t)}};$e();var jt=class extends At{constructor(e){if(super(e),this.it=h,e.type!==Ot.CHILD)throw Error(this.constructor.directiveName+`() can only be used in child bindings`)}render(e){if(e===h||e==null)return this._t=void 0,this.it=e;if(e===ze)return e;if(typeof e!=`string`)throw Error(this.constructor.directiveName+`() called with a non-string value`);if(e===this.it)return this._t;this.it=e;let t=[e];return t.raw=t,this._t={_$litType$:this.constructor.resultType,strings:t,values:[]}}};jt.directiveName=`unsafeHTML`,jt.resultType=1;var M=kt(jt);_(),x(),A();var Mt=class extends g{constructor(...e){super(...e),this.text=``,this.icon=`mdi:information-outline`,this._open=!1,this._style=`visibility: hidden;`,this._onDocPointer=e=>{e.composedPath().includes(this)||this._close()},this._onKey=e=>{e.key===`Escape`&&(e.stopPropagation(),this._close())},this._onScroll=()=>this._close()}disconnectedCallback(){super.disconnectedCallback(),this._removeListeners()}static{this.styles=l`
     :host {
       display: inline-flex;
       position: relative;
@@ -601,7 +601,7 @@
         opacity: 1;
       }
     }
-  `}render(){return h`
+  `}render(){return m`
       <button
         type="button"
         class=${this._open?`open`:``}
@@ -611,15 +611,15 @@
       >
         <ha-icon .icon=${this.icon}></ha-icon>
       </button>
-      ${this._open?h`<div
+      ${this._open?m`<div
             class="tooltip"
             role="tooltip"
             style=${this._style}
             @click=${e=>e.stopPropagation()}
           >
-            ${this.text?this.text:g}<slot></slot>
-          </div>`:g}
-    `}_toggle(e){e.stopPropagation(),this._open?this._close():this._openTooltip()}_openTooltip(){this._open=!0,this._style=`visibility: hidden;`,requestAnimationFrame(()=>{this._positionTooltip()}),setTimeout(()=>{document.addEventListener(`pointerdown`,this._onDocPointer,!0),document.addEventListener(`keydown`,this._onKey,!0),document.addEventListener(`scroll`,this._onScroll,!0),window.addEventListener(`resize`,this._onScroll,!0)},0)}_positionTooltip(){let e=this.renderRoot.querySelector(`.tooltip`),t=this.renderRoot.querySelector(`button`);if(!e||!t)return;let n=t.getBoundingClientRect(),r=e.getBoundingClientRect(),i=window.innerWidth,a=window.innerHeight,o=a-n.bottom,s=n.top,c;c=o>=r.height+8?n.bottom+6:s>=r.height+8?n.top-r.height-6:Math.max(8,(a-r.height)/2);let l=n.left+n.width/2-r.width/2;l=Math.max(8,Math.min(l,i-r.width-8)),this._style=`top: ${c}px; left: ${l}px;`}_close(){this._open&&(this._open=!1,this._style=`visibility: hidden;`,this._removeListeners())}_removeListeners(){document.removeEventListener(`pointerdown`,this._onDocPointer,!0),document.removeEventListener(`keydown`,this._onKey,!0),document.removeEventListener(`scroll`,this._onScroll,!0),window.removeEventListener(`resize`,this._onScroll,!0)}};A([b({type:String})],jt.prototype,`text`,void 0),A([b({type:String})],jt.prototype,`icon`,void 0),A([x()],jt.prototype,`_open`,void 0),A([x()],jt.prototype,`_style`,void 0),jt=A([y(`rs-info-icon`)],jt),v(),S(),j();var Mt=`M20.71,7.04C21.1,6.65 21.1,6 20.71,5.63L18.37,3.29C18,2.9 17.35,2.9 16.96,3.29L15.12,5.12L18.87,8.87M3,17.25V21H6.75L17.81,9.93L14.06,6.18L3,17.25Z`,Nt=`M21,7L9,19L3.5,13.5L4.91,12.09L9,16.17L19.59,5.59L21,7Z`,P=class extends _{constructor(...e){super(...e),this.config=null,this.climateControlActive=!0,this.isOutdoor=!1,this.overrideInfo=null,this._countdown=``,this._editingName=!1,this._nameInput=``,this._controlModeInfoExpanded=!1}static{this.styles=[Ct,l`
+            ${this.text?this.text:h}<slot></slot>
+          </div>`:h}
+    `}_toggle(e){e.stopPropagation(),this._open?this._close():this._openTooltip()}_openTooltip(){this._open=!0,this._style=`visibility: hidden;`,requestAnimationFrame(()=>{this._positionTooltip()}),setTimeout(()=>{document.addEventListener(`pointerdown`,this._onDocPointer,!0),document.addEventListener(`keydown`,this._onKey,!0),document.addEventListener(`scroll`,this._onScroll,!0),window.addEventListener(`resize`,this._onScroll,!0)},0)}_positionTooltip(){let e=this.renderRoot.querySelector(`.tooltip`),t=this.renderRoot.querySelector(`button`);if(!e||!t)return;let n=t.getBoundingClientRect(),r=e.getBoundingClientRect(),i=window.innerWidth,a=window.innerHeight,o=a-n.bottom,s=n.top,c;c=o>=r.height+8?n.bottom+6:s>=r.height+8?n.top-r.height-6:Math.max(8,(a-r.height)/2);let l=n.left+n.width/2-r.width/2;l=Math.max(8,Math.min(l,i-r.width-8)),this._style=`top: ${c}px; left: ${l}px;`}_close(){this._open&&(this._open=!1,this._style=`visibility: hidden;`,this._removeListeners())}_removeListeners(){document.removeEventListener(`pointerdown`,this._onDocPointer,!0),document.removeEventListener(`keydown`,this._onKey,!0),document.removeEventListener(`scroll`,this._onScroll,!0),window.removeEventListener(`resize`,this._onScroll,!0)}};k([y({type:String})],Mt.prototype,`text`,void 0),k([y({type:String})],Mt.prototype,`icon`,void 0),k([b()],Mt.prototype,`_open`,void 0),k([b()],Mt.prototype,`_style`,void 0),Mt=k([v(`rs-info-icon`)],Mt),_(),x(),A();var Nt=`M20.71,7.04C21.1,6.65 21.1,6 20.71,5.63L18.37,3.29C18,2.9 17.35,2.9 16.96,3.29L15.12,5.12L18.87,8.87M3,17.25V21H6.75L17.81,9.93L14.06,6.18L3,17.25Z`,Pt=`M21,7L9,19L3.5,13.5L4.91,12.09L9,16.17L19.59,5.59L21,7Z`,N=class extends g{constructor(...e){super(...e),this.config=null,this.climateControlActive=!0,this.isOutdoor=!1,this.overrideInfo=null,this._countdown=``,this._editingName=!1,this._nameInput=``,this._controlModeInfoExpanded=!1}static{this.styles=[wt,l`
       :host {
         display: block;
       }
@@ -880,161 +880,234 @@
         color: var(--disabled-text-color, #9e9e9e);
         margin-top: 8px;
       }
-    `]}disconnectedCallback(){super.disconnectedCallback(),this._clearCountdownTimer()}updated(e){(e.has(`overrideInfo`)||e.has(`config`))&&this._updateCountdown()}_clearCountdownTimer(){this._countdownTimer&&=(clearInterval(this._countdownTimer),void 0)}_getOverrideUntil(){return this.overrideInfo?.active?this.overrideInfo.until:null}_updateCountdown(){if(this._clearCountdownTimer(),!this._getOverrideUntil()){let e=this._getEffectiveOverride();this._countdown=e?C(`hero.permanent`,this.hass?.language??`en`):``;return}let e=()=>{let e=this._getOverrideUntil();if(!e){this._countdown=``,this._clearCountdownTimer();return}let t=e-Date.now()/1e3;if(t<=0){this._countdown=``,this._clearCountdownTimer();return}let n=Math.floor(t/3600),r=Math.floor(t%3600/60);this._countdown=n>0?`${n}h ${r}m`:`${r}m`};e(),this._countdownTimer=setInterval(e,3e4)}_getEffectiveOverride(){return this.overrideInfo?.active?this.overrideInfo:null}_renderTargetSection(e){let t=e.target_temp,n=this.hass?.language??`en`,r=this._getEffectiveOverride();if(r){let e=r.type===`boost`?`mdi:fire`:r.type===`eco`?`mdi:leaf`:`mdi:thermometer`,i=r.type===`boost`?C(`override.comfort`,n):r.type===`eco`?C(`override.eco`,n):C(`override.custom`,n),a=`override-${r.type}`,o=r.heat,s=r.cool,c=o!=null&&s!=null&&o!==s,l=o??s??t;return h`
+    `]}disconnectedCallback(){super.disconnectedCallback(),this._clearCountdownTimer()}updated(e){(e.has(`overrideInfo`)||e.has(`config`))&&this._updateCountdown()}_clearCountdownTimer(){this._countdownTimer&&=(clearInterval(this._countdownTimer),void 0)}_getOverrideUntil(){return this.overrideInfo?.active?this.overrideInfo.until:null}_updateCountdown(){if(this._clearCountdownTimer(),!this._getOverrideUntil()){let e=this._getEffectiveOverride();this._countdown=e?S(`hero.permanent`,this.hass?.language??`en`):``;return}let e=()=>{let e=this._getOverrideUntil();if(!e){this._countdown=``,this._clearCountdownTimer();return}let t=e-Date.now()/1e3;if(t<=0){this._countdown=``,this._clearCountdownTimer();return}let n=Math.floor(t/3600),r=Math.floor(t%3600/60);this._countdown=n>0?`${n}h ${r}m`:`${r}m`};e(),this._countdownTimer=setInterval(e,3e4)}_getEffectiveOverride(){return this.overrideInfo?.active?this.overrideInfo:null}_renderTargetSection(e){let t=e.target_temp,n=this.hass?.language??`en`,r=this._getEffectiveOverride();if(r){let e=r.type===`boost`?`mdi:fire`:r.type===`eco`?`mdi:leaf`:`mdi:thermometer`,i=r.type===`boost`?S(`override.comfort`,n):r.type===`eco`?S(`override.eco`,n):S(`override.custom`,n),a=`override-${r.type}`,o=r.heat,s=r.cool,c=o!=null&&s!=null&&o!==s,l=o??s??t;return m`
         <div class="hero-target">
           <div class="hero-target-label ${a}">
             <ha-icon icon=${e}></ha-icon>
-            ${i} ${C(`hero.override`,n)}
+            ${i} ${S(`hero.override`,n)}
           </div>
           <div class="hero-target-value">
-            ${c?h`${D(o,this.hass)} –
-                ${D(s,this.hass)}${w(this.hass)}`:l===null?`--`:h`${D(l,this.hass)}${w(this.hass)}`}
+            ${c?m`${E(o,this.hass)} –
+                ${E(s,this.hass)}${C(this.hass)}`:l===null?`--`:m`${E(l,this.hass)}${C(this.hass)}`}
           </div>
-          ${this._countdown?h`<div class="hero-target-countdown">
-                ${C(`hero.remaining`,n,{time:this._countdown})}
-              </div>`:g}
+          ${this._countdown?m`<div class="hero-target-countdown">
+                ${S(`hero.remaining`,n,{time:this._countdown})}
+              </div>`:h}
         </div>
-      `}if(t!==null||e.heat_target!=null&&e.cool_target!=null){let r=(this.config?.climate_mode??`auto`)===`auto`&&e.heat_target!=null&&e.cool_target!=null&&e.heat_target!==e.cool_target?h`${D(e.heat_target,this.hass)} –
-          ${D(e.cool_target,this.hass)}${w(this.hass)}`:h`${D(t??e.heat_target,this.hass)}${w(this.hass)}`;return h`
+      `}if(t!==null||e.heat_target!=null&&e.cool_target!=null){let r=(this.config?.climate_mode??`auto`)===`auto`&&e.heat_target!=null&&e.cool_target!=null&&e.heat_target!==e.cool_target?m`${E(e.heat_target,this.hass)} –
+          ${E(e.cool_target,this.hass)}${C(this.hass)}`:m`${E(t??e.heat_target,this.hass)}${C(this.hass)}`;return m`
         <div class="hero-target">
-          <div class="hero-target-label">${C(`hero.target`,n)}</div>
+          <div class="hero-target-label">${S(`hero.target`,n)}</div>
           <div class="hero-target-value">${r}</div>
         </div>
-      `}return g}_toggleControlModeInfo(){this._controlModeInfoExpanded=!this._controlModeInfoExpanded}_onEditName(){this._nameInput=this.config?.display_name||``,this._editingName=!0,this.updateComplete.then(()=>{let e=this.renderRoot.querySelector(`.name-input`);e?.focus(),e?.select()})}_onNameInput(e){this._nameInput=e.target.value}_onNameKeydown(e){e.key===`Enter`?this._onNameDone():e.key===`Escape`&&(this._editingName=!1)}_onNameDone(){let e=this._nameInput.trim();this.dispatchEvent(new CustomEvent(`display-name-changed`,{detail:{value:e},bubbles:!0,composed:!0})),this._editingName=!1}_onNameClear(){this.dispatchEvent(new CustomEvent(`display-name-changed`,{detail:{value:``},bubbles:!0,composed:!0})),this._editingName=!1,this._nameInput=``}render(){let e=this.config?.live,t=e?.mode;return h`
+      `}return h}_toggleControlModeInfo(){this._controlModeInfoExpanded=!this._controlModeInfoExpanded}_onEditName(){this._nameInput=this.config?.display_name||``,this._editingName=!0,this.updateComplete.then(()=>{let e=this.renderRoot.querySelector(`.name-input`);e?.focus(),e?.select()})}_onNameInput(e){this._nameInput=e.target.value}_onNameKeydown(e){e.key===`Enter`?this._onNameDone():e.key===`Escape`&&(this._editingName=!1)}_onNameDone(){let e=this._nameInput.trim();this.dispatchEvent(new CustomEvent(`display-name-changed`,{detail:{value:e},bubbles:!0,composed:!0})),this._editingName=!1}_onNameClear(){this.dispatchEvent(new CustomEvent(`display-name-changed`,{detail:{value:``},bubbles:!0,composed:!0})),this._editingName=!1,this._nameInput=``}render(){let e=this.config?.live,t=e?.mode;return m`
       <ha-card>
         <div class="hero-accent ${e?t===`heating`?`hero-accent-heating`:t===`cooling`?`hero-accent-cooling`:`hero-accent-idle`:`hero-accent-none`}"></div>
         <div class="hero-header">
-          ${this._editingName?h`
+          ${this._editingName?m`
                 <div class="name-edit-row">
                   <input
                     class="name-input"
                     type="text"
                     .value=${this._nameInput}
-                    placeholder=${C(`room.alias.placeholder`,this.hass?.language??`en`)}
+                    placeholder=${S(`room.alias.placeholder`,this.hass?.language??`en`)}
                     @input=${this._onNameInput}
                     @keydown=${this._onNameKeydown}
                   />
                   <ha-icon-button
                     class="name-done-btn"
-                    .path=${Nt}
+                    .path=${Pt}
                     @click=${this._onNameDone}
                   ></ha-icon-button>
                 </div>
-                ${this.config?.display_name?h`<button class="name-clear-btn" @click=${this._onNameClear}>
-                      ${C(`room.alias.clear`,this.hass?.language??`en`)}
-                    </button>`:g}
-              `:h`
+                ${this.config?.display_name?m`<button class="name-clear-btn" @click=${this._onNameClear}>
+                      ${S(`room.alias.clear`,this.hass?.language??`en`)}
+                    </button>`:h}
+              `:m`
                 <div class="name-row">
                   <h2 class="area-name">${this.config?.display_name||this.area.name}</h2>
                   <ha-icon-button
                     class="name-edit-btn"
-                    .path=${Mt}
+                    .path=${Nt}
                     @click=${this._onEditName}
                   ></ha-icon-button>
                 </div>
               `}
-          ${this.isOutdoor?g:h`
+          ${this.isOutdoor?h:m`
                 <div class="hero-status-pills">
-                  ${e?h`
-                        <span class="mode-pill ${bt(e.mode)}">
+                  ${e?m`
+                        <span class="mode-pill ${xt(e.mode)}">
                           <span class="mode-dot"></span>
-                          ${St(e.mode,this.hass?.language??`en`)}${e.heating_power>0&&e.heating_power<100?h` ${e.heating_power}%`:g}
+                          ${Ct(e.mode,this.hass?.language??`en`)}${e.heating_power>0&&e.heating_power<100?m` ${e.heating_power}%`:h}
                         </span>
-                      `:g}
-                  ${this.config?h`
+                      `:h}
+                  ${this.config?m`
                         <span class="control-mode-badge" @click=${this._toggleControlModeInfo}>
-                          ${this.config.temperature_sensor?C(`room.control_mode.full_control`,this.hass?.language??`en`):C(`room.control_mode.managed`,this.hass?.language??`en`)}
+                          ${this.config.temperature_sensor?S(`room.control_mode.full_control`,this.hass?.language??`en`):S(`room.control_mode.managed`,this.hass?.language??`en`)}
                           <ha-icon
                             class="control-mode-info-icon ${this._controlModeInfoExpanded?`active`:``}"
                             icon="mdi:information-outline"
                           ></ha-icon>
                         </span>
-                      `:g}
+                      `:h}
                 </div>
               `}
         </div>
-        ${this._controlModeInfoExpanded&&this.config&&!this.isOutdoor?h`
+        ${this._controlModeInfoExpanded&&this.config&&!this.isOutdoor?m`
               <div class="control-mode-info-panel">
-                ${this.config.temperature_sensor?C(`room.control_mode.full_control_info`,this.hass?.language??`en`):C(`room.control_mode.managed_info`,this.hass?.language??`en`)}
+                ${this.config.temperature_sensor?S(`room.control_mode.full_control_info`,this.hass?.language??`en`):S(`room.control_mode.managed_info`,this.hass?.language??`en`)}
               </div>
-            `:g}
-        ${e?h`
-              ${e.window_open&&!this.isOutdoor?h`<div class="hero-window-open">
+            `:h}
+        ${e?m`
+              ${e.window_open&&!this.isOutdoor?m`<div class="hero-window-open">
                     <ha-icon icon="mdi:window-open-variant"></ha-icon>
-                    ${e.window_open_minutes!=null&&e.window_impact_c!=null?C(`hero.window_impact`,this.hass?.language??`en`,{minutes:String(e.window_open_minutes),impact:`${e.window_impact_c>=0?`+`:``}${e.window_impact_c.toFixed(1)}`,unit:w(this.hass)}):C(`hero.window_open`,this.hass?.language??`en`)}
-                  </div>`:g}
+                    ${e.window_open_minutes!=null&&e.window_impact_c!=null?S(`hero.window_impact`,this.hass?.language??`en`,{minutes:String(e.window_open_minutes),impact:`${e.window_impact_c>=0?`+`:``}${e.window_impact_c.toFixed(1)}`,unit:C(this.hass)}):S(`hero.window_open`,this.hass?.language??`en`)}
+                  </div>`:h}
+              ${e.window_open&&e.window_recovery_minutes!=null&&!this.isOutdoor?m`<div class="hero-metric info">
+                    <ha-icon icon="mdi:clock-fast"></ha-icon>
+                    ${S(`hero.window_recovery`,this.hass?.language??`en`,{minutes:String(e.window_recovery_minutes)})}
+                  </div>`:h}
               <div class="hero-temps">
-                ${e.current_temp===null?h`<span class="hero-current" style="opacity: 0.3">--</span>`:h`
-                      <span class="hero-current">${D(e.current_temp,this.hass)}</span>
-                      <span class="hero-unit">${w(this.hass)}</span>
+                ${e.current_temp===null?m`<span class="hero-current" style="opacity: 0.3">--</span>`:m`
+                      <span class="hero-current">${E(e.current_temp,this.hass)}</span>
+                      <span class="hero-unit">${C(this.hass)}</span>
                     `}
-                ${this.isOutdoor?g:this._renderTargetSection(e)}
+                ${this.isOutdoor?h:this._renderTargetSection(e)}
               </div>
-              ${e.current_humidity===null?g:h`<div class="hero-metric">
+              ${e.current_humidity===null?h:m`<div class="hero-metric">
                     <ha-icon icon="mdi:water-percent"></ha-icon>
-                    ${C(`hero.humidity`,this.hass?.language??`en`,{value:e.current_humidity.toFixed(0)})}
+                    ${S(`hero.humidity`,this.hass?.language??`en`,{value:e.current_humidity.toFixed(0)})}
                   </div>`}
-              ${e.device_setpoint!=null&&!this.isOutdoor?h`<div class="hero-metric">
+              ${e.device_setpoint!=null&&!this.isOutdoor?m`<div class="hero-metric">
                     <ha-icon
                       icon=${e.mode===`cooling`?`mdi:snowflake`:`mdi:radiator`}
                     ></ha-icon>
-                    ${C(`hero.device_setpoint`,this.hass?.language??`en`,{value:D(e.device_setpoint,this.hass),unit:w(this.hass)})}
-                  </div>`:g}
-              ${e.active_heat_sources&&e.active_heat_sources!==`none`&&!this.isOutdoor?h`<div class="hero-metric">
+                    ${S(`hero.device_setpoint`,this.hass?.language??`en`,{value:E(e.device_setpoint,this.hass),unit:C(this.hass)})}
+                  </div>`:h}
+              ${e.active_heat_sources&&e.active_heat_sources!==`none`&&!this.isOutdoor?m`<div class="hero-metric">
                     <ha-icon icon="mdi:swap-horizontal"></ha-icon>
-                    ${e.active_heat_sources===`primary`?C(`hero.heat_source_primary`,this.hass?.language??`en`):e.active_heat_sources===`secondary`?C(`hero.heat_source_secondary`,this.hass?.language??`en`):C(`hero.heat_source_both`,this.hass?.language??`en`)}
-                  </div>`:g}
-              ${e.compressor_protection_active&&!this.isOutdoor?h`<div class="hero-metric info">
+                    ${e.active_heat_sources===`primary`?S(`hero.heat_source_primary`,this.hass?.language??`en`):e.active_heat_sources===`secondary`?S(`hero.heat_source_secondary`,this.hass?.language??`en`):S(`hero.heat_source_both`,this.hass?.language??`en`)}
+                  </div>`:h}
+              ${e.compressor_protection_active&&!this.isOutdoor?m`<div class="hero-metric info">
                     <ha-icon icon="mdi:timer-sand"></ha-icon>
-                    ${e.compressor_protection_reason===`min_run`?C(`hero.compressor_protection_min_run`,this.hass?.language??`en`):C(`hero.compressor_protection_min_off`,this.hass?.language??`en`)}
+                    ${e.compressor_protection_reason===`min_run`?S(`hero.compressor_protection_min_run`,this.hass?.language??`en`):S(`hero.compressor_protection_min_off`,this.hass?.language??`en`)}
                     <rs-info-icon
                       icon="mdi:information-outline"
-                      .text=${C(`hero.compressor_protection_info`,this.hass?.language??`en`)}
+                      .text=${S(`hero.compressor_protection_info`,this.hass?.language??`en`)}
                     ></rs-info-icon>
-                  </div>`:g}
-              ${e.power_budget_blocked&&!this.isOutdoor?h`<div class="hero-metric warning">
+                  </div>`:h}
+              ${e.power_budget_blocked&&!this.isOutdoor?m`<div class="hero-metric warning">
                     <ha-icon icon="mdi:flash-alert"></ha-icon>
-                    ${C(`hero.power_budget_blocked`,this.hass?.language??`en`)}
-                  </div>`:g}
-              ${e.preconditioning_active&&!this.isOutdoor?h`<div class="hero-metric info">
+                    ${S(`hero.power_budget_blocked`,this.hass?.language??`en`)}
+                  </div>`:h}
+              ${e.preconditioning_active&&!this.isOutdoor?m`<div class="hero-metric info">
                     <ha-icon icon="mdi:calendar-clock"></ha-icon>
-                    ${C(`hero.preconditioning_active`,this.hass?.language??`en`)}
-                  </div>`:e.preconditioning_planned_at&&e.preconditioning_planned_at>Date.now()/1e3?h`<div class="hero-metric info">
+                    ${S(`hero.preconditioning_active`,this.hass?.language??`en`)}
+                  </div>`:e.preconditioning_planned_at&&e.preconditioning_planned_at>Date.now()/1e3?m`<div class="hero-metric info">
                       <ha-icon icon="mdi:calendar-clock"></ha-icon>
-                      ${C(`hero.preconditioning_planned`,this.hass?.language??`en`,{time:new Intl.DateTimeFormat(this.hass?.language??`en`,{hour:`2-digit`,minute:`2-digit`}).format(new Date(e.preconditioning_planned_at*1e3))})}
-                    </div>`:g}
-              ${e.ac_efficiency_status===`possible_issue`&&!this.isOutdoor?h`<div class="hero-metric warning">
+                      ${S(`hero.preconditioning_planned`,this.hass?.language??`en`,{time:new Intl.DateTimeFormat(this.hass?.language??`en`,{hour:`2-digit`,minute:`2-digit`}).format(new Date(e.preconditioning_planned_at*1e3))})}
+                    </div>`:h}
+              ${e.ac_efficiency_status===`possible_issue`&&!this.isOutdoor?m`<div class="hero-metric warning">
                     <ha-icon icon="mdi:air-filter"></ha-icon>
-                    ${C(`hero.ac_efficiency_issue`,this.hass?.language??`en`)}
-                  </div>`:g}
-              ${e.mold_surface_rh!=null&&!this.isOutdoor?h`<div
+                    ${S(`hero.ac_efficiency_issue`,this.hass?.language??`en`)}
+                  </div>`:h}
+              ${e.mold_surface_rh!=null&&!this.isOutdoor?m`<div
                     class="hero-metric ${e.mold_risk_level===`critical`?`critical`:e.mold_risk_level===`warning`?`warning`:``}"
                   >
                     <ha-icon icon="mdi:water-alert"></ha-icon>
-                    ${C(`room.mold_surface_rh`,this.hass?.language??`en`,{value:String(e.mold_surface_rh.toFixed(0))})}
-                  </div>`:g}
-              ${e.mold_prevention_active&&!this.isOutdoor?h`<div class="hero-metric info">
+                    ${S(`room.mold_surface_rh`,this.hass?.language??`en`,{value:String(e.mold_surface_rh.toFixed(0))})}
+                  </div>`:h}
+              ${e.mold_prevention_active&&!this.isOutdoor?m`<div class="hero-metric info">
                     <ha-icon icon="mdi:shield-check"></ha-icon>
-                    ${C(`card.mold_prevention`,this.hass?.language??`en`,{delta:E(e.mold_prevention_delta,this.hass).toFixed(0),unit:w(this.hass)})}
-                  </div>`:g}
-              ${e.learning_paused_reason===`outdoor_unavailable`&&!this.isOutdoor?h`<div class="hero-metric warning learning-paused">
+                    ${S(`card.mold_prevention`,this.hass?.language??`en`,{delta:T(e.mold_prevention_delta,this.hass).toFixed(0),unit:C(this.hass)})}
+                  </div>`:h}
+              ${e.learning_paused_reason===`outdoor_unavailable`&&!this.isOutdoor?m`<div class="hero-metric warning learning-paused">
                     <ha-icon icon="mdi:school-outline"></ha-icon>
-                    ${C(`hero.mpc_learning_paused`,this.hass?.language??`en`)}
+                    ${S(`hero.mpc_learning_paused`,this.hass?.language??`en`)}
                     <rs-info-icon
                       icon="mdi:information-outline"
-                      .text=${C(`hero.mpc_learning_paused.outdoor_unavailable`,this.hass?.language??`en`)}
+                      .text=${S(`hero.mpc_learning_paused.outdoor_unavailable`,this.hass?.language??`en`)}
                     ></rs-info-icon>
-                  </div>`:g}
-              ${!this.climateControlActive&&!this.isOutdoor?h`<div class="uncontrolled-hint">
-                    ${C(`card.not_controlled`,this.hass?.language??`en`)}
-                  </div>`:g}
-            `:this.config?h`<div class="hero-no-data">
-                ${C(`hero.waiting`,this.hass?.language??`en`)}
-              </div>`:h`<div class="hero-no-data">
-                ${C(`hero.not_configured`,this.hass?.language??`en`)}
+                  </div>`:h}
+              ${this.config?.temperature_sensor&&e.current_temp===null&&!this.isOutdoor?m`<div class="hero-metric warning">
+                    <ha-icon icon="mdi:thermometer-alert"></ha-icon>
+                    ${S(`hero.temperature_sensor_unavailable`,this.hass?.language??`en`)}
+                  </div>`:h}
+              ${e.confidence!=null&&e.confidence<.5&&!e.mpc_active&&!this.isOutdoor?m`<div class="hero-metric info">
+                    <ha-icon icon="mdi:school-outline"></ha-icon>
+                    ${S(`hero.mpc_learning_progress`,this.hass?.language??`en`,{confidence:String(Math.round(e.confidence*100))})}
+                  </div>`:h}
+              ${!this.climateControlActive&&!this.isOutdoor?m`<div class="uncontrolled-hint">
+                    ${S(`card.not_controlled`,this.hass?.language??`en`)}
+                  </div>`:h}
+            `:this.config?m`<div class="hero-no-data">
+                ${S(`hero.waiting`,this.hass?.language??`en`)}
+              </div>`:m`<div class="hero-no-data">
+                ${S(`hero.not_configured`,this.hass?.language??`en`)}
               </div>`}
       </ha-card>
-    `}};A([b({attribute:!1})],P.prototype,`hass`,void 0),A([b({attribute:!1})],P.prototype,`area`,void 0),A([b({attribute:!1})],P.prototype,`config`,void 0),A([b({type:Boolean})],P.prototype,`climateControlActive`,void 0),A([b({type:Boolean})],P.prototype,`isOutdoor`,void 0),A([b({attribute:!1})],P.prototype,`overrideInfo`,void 0),A([x()],P.prototype,`_countdown`,void 0),A([x()],P.prototype,`_editingName`,void 0),A([x()],P.prototype,`_nameInput`,void 0),A([x()],P.prototype,`_controlModeInfoExpanded`,void 0),P=A([y(`rs-hero-status`)],P),v(),S(),j();var Pt=class extends _{constructor(...e){super(...e),this.climateMode=`auto`,this.language=`en`}static{this.styles=l`
+    `}};k([y({attribute:!1})],N.prototype,`hass`,void 0),k([y({attribute:!1})],N.prototype,`area`,void 0),k([y({attribute:!1})],N.prototype,`config`,void 0),k([y({type:Boolean})],N.prototype,`climateControlActive`,void 0),k([y({type:Boolean})],N.prototype,`isOutdoor`,void 0),k([y({attribute:!1})],N.prototype,`overrideInfo`,void 0),k([b()],N.prototype,`_countdown`,void 0),k([b()],N.prototype,`_editingName`,void 0),k([b()],N.prototype,`_nameInput`,void 0),k([b()],N.prototype,`_controlModeInfoExpanded`,void 0),N=k([v(`rs-hero-status`)],N),_(),x(),A();var Ft={window_open:`insights.decision.window_open`,power_budget:`insights.decision.power_budget`,compressor_min_off:`insights.decision.compressor_min_off`,compressor_min_run:`insights.decision.compressor_min_run`,override_boost:`insights.decision.override_boost`,override_eco:`insights.decision.override_eco`,override_custom:`insights.decision.override_custom`,override_active:`insights.decision.override_active`,presence_away:`insights.decision.presence_away`,mold_prevention:`insights.decision.mold_prevention`,humidity_comfort:`insights.decision.humidity_comfort`,smart_ventilation:`insights.decision.smart_ventilation`,preconditioning:`insights.decision.preconditioning`,heat_source:`insights.decision.heat_source`,mode_heating:`insights.decision.mode_heating`,mode_cooling:`insights.decision.mode_cooling`,mode_idle:`insights.decision.mode_idle`},It=class extends g{constructor(...e){super(...e),this.decisionReasons=[]}static{this.styles=l`
+    :host {
+      display: block;
+    }
+    ha-card {
+      padding: 18px;
+    }
+    h3 {
+      margin: 0 0 10px;
+      font-size: 16px;
+    }
+    .subheading {
+      margin-top: 18px;
+    }
+    .decision,
+    .check {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin: 8px 0;
+      font-size: 14px;
+    }
+    .decision ha-icon {
+      color: var(--primary-color);
+    }
+    .ready ha-icon {
+      color: var(--success-color, #4caf50);
+    }
+    .recommended ha-icon {
+      color: var(--warning-color, #ff9800);
+    }
+    .missing ha-icon {
+      color: var(--error-color, #db4437);
+    }
+    .summary {
+      color: var(--secondary-text-color);
+      font-size: 13px;
+    }
+  `}render(){let e=this.hass.language,t=this.decisionReasons.length?this.decisionReasons:[`mode_idle`];return m`
+      <ha-card>
+        <h3>${S(`insights.decision.title`,e)}</h3>
+        ${t.slice(0,3).map(t=>m`
+              <div class="decision">
+                <ha-icon icon="mdi:information-outline"></ha-icon>${S(Ft[t]??`insights.decision.mode_idle`,e)}
+              </div>
+            `)}
+        ${this.readiness?m`
+              <h3 class="subheading">${S(`insights.readiness.title`,e)}</h3>
+              <div class="summary">
+                ${S(`insights.readiness.${this.readiness.level}`,e,{ready:this.readiness.ready_count,total:this.readiness.total_count})}
+              </div>
+              ${this.readiness.items.map(t=>m`
+                  <div class="check ${t.status}">
+                    <ha-icon
+                      icon=${t.status===`ready`?`mdi:check-circle`:t.status===`missing`?`mdi:alert-circle`:`mdi:information-outline`}
+                    ></ha-icon>
+                    ${S(`insights.readiness.item.${t.key}.${t.status}`,e)}
+                  </div>
+                `)}
+            `:h}
+      </ha-card>
+    `}};k([y({attribute:!1})],It.prototype,`hass`,void 0),k([y({attribute:!1})],It.prototype,`readiness`,void 0),k([y({type:Array})],It.prototype,`decisionReasons`,void 0),It=k([v(`rs-room-insights`)],It),_(),x(),A();var Lt=class extends g{constructor(...e){super(...e),this.climateMode=`auto`,this.language=`en`}static{this.styles=l`
     :host {
       display: block;
     }
@@ -1091,20 +1164,20 @@
     .mode-card[active] .mode-card-label {
       color: var(--primary-color, #03a9f4);
     }
-  `}render(){let e=this.language;return h`
+  `}render(){let e=this.language;return m`
       <div class="mode-grid">
-        ${[{value:`auto`,labelKey:`mode.auto`,icon:`mdi:autorenew`},{value:`heat_only`,labelKey:`mode.heat_only`,icon:`mdi:fire`},{value:`cool_only`,labelKey:`mode.cool_only`,icon:`mdi:snowflake`}].map(t=>h`
+        ${[{value:`auto`,labelKey:`mode.auto`,icon:`mdi:autorenew`},{value:`heat_only`,labelKey:`mode.heat_only`,icon:`mdi:fire`},{value:`cool_only`,labelKey:`mode.cool_only`,icon:`mdi:snowflake`}].map(t=>m`
             <button
               class="mode-card"
               ?active=${this.climateMode===t.value}
               @click=${()=>this._onModeClick(t.value)}
             >
               <ha-icon class="mode-card-icon" icon=${t.icon}></ha-icon>
-              <div class="mode-card-label">${C(t.labelKey,e)}</div>
+              <div class="mode-card-label">${S(t.labelKey,e)}</div>
             </button>
           `)}
       </div>
-    `}_onModeClick(e){this.dispatchEvent(new CustomEvent(`mode-changed`,{detail:{mode:e},bubbles:!0,composed:!0}))}};A([b({type:String})],Pt.prototype,`climateMode`,void 0),A([b({type:String})],Pt.prototype,`language`,void 0),Pt=A([y(`rs-climate-mode-selector`)],Pt);function F(e){return e.detail?.value??e.target.value??``}function I(e,t){e.dispatchEvent(new CustomEvent(`save-status`,{detail:{status:t},bubbles:!0,composed:!0}))}function Ft(e,t){e.dispatchEvent(new CustomEvent(`hass-more-info`,{bubbles:!0,composed:!0,detail:{entityId:t}}))}v(),S(),j();var It=class e extends _{constructor(...e){super(...e),this.activeIndex=-1,this.selectorEntity=``,this.editing=!1}static{this.sharedStyles=l`
+    `}_onModeClick(e){this.dispatchEvent(new CustomEvent(`mode-changed`,{detail:{mode:e},bubbles:!0,composed:!0}))}};k([y({type:String})],Lt.prototype,`climateMode`,void 0),k([y({type:String})],Lt.prototype,`language`,void 0),Lt=k([v(`rs-climate-mode-selector`)],Lt);function P(e){return e.detail?.value??e.target.value??``}function F(e,t){e.dispatchEvent(new CustomEvent(`save-status`,{detail:{status:t},bubbles:!0,composed:!0}))}function Rt(e,t){e.dispatchEvent(new CustomEvent(`hass-more-info`,{bubbles:!0,composed:!0,detail:{entityId:t}}))}_(),x(),A();var zt=class e extends g{constructor(...e){super(...e),this.activeIndex=-1,this.selectorEntity=``,this.editing=!1}static{this.sharedStyles=l`
     :host {
       display: block;
     }
@@ -1291,24 +1364,24 @@
       line-height: 1.5;
       margin-bottom: 12px;
     }
-  `}static{this.ICON_CLOSE=`M19,6.41L17.59,5L12,10.59L6.41,5L5,6.41L10.59,12L5,17.59L6.41,19L12,13.41L17.59,19L19,17.59L13.41,12L19,6.41Z`}static{this.ICON_UP=`M7.41,15.41L12,10.83L16.59,15.41L18,14L12,8L6,14L7.41,15.41Z`}static{this.ICON_DOWN=`M7.41,8.58L12,13.17L16.59,8.58L18,10L12,16L6,10L7.41,8.58Z`}_getScheduleState(e,t){if(t===0)return`inactive`;if(e===this.activeIndex)return`active`;if(!this.selectorEntity)return e===0?`active`:`unreachable`;let n=this.hass?.states?.[this.selectorEntity];if(!n)return`inactive`;if(this.selectorEntity.startsWith(`input_boolean.`))return e<=1?`inactive`:`unreachable`;if(this.selectorEntity.startsWith(`input_number.`)){let r=Number(n.attributes?.min??1),i=Number(n.attributes?.max??t);return e+1>=r&&e+1<=i?`inactive`:`unreachable`}return`inactive`}_getAvailableEntities(e){return this.hass?.states?Object.keys(this.hass.states).filter(t=>t.startsWith(`schedule.`)&&!e.has(t)):[]}_getFriendlyName(e){return this.hass?.states?.[e]?.attributes?.friendly_name||e}_renderAddRow(e,t,n,r){return h`
+  `}static{this.ICON_CLOSE=`M19,6.41L17.59,5L12,10.59L6.41,5L5,6.41L10.59,12L5,17.59L6.41,19L12,13.41L17.59,19L19,17.59L13.41,12L19,6.41Z`}static{this.ICON_UP=`M7.41,15.41L12,10.83L16.59,15.41L18,14L12,8L6,14L7.41,15.41Z`}static{this.ICON_DOWN=`M7.41,8.58L12,13.17L16.59,8.58L18,10L12,16L6,10L7.41,8.58Z`}_getScheduleState(e,t){if(t===0)return`inactive`;if(e===this.activeIndex)return`active`;if(!this.selectorEntity)return e===0?`active`:`unreachable`;let n=this.hass?.states?.[this.selectorEntity];if(!n)return`inactive`;if(this.selectorEntity.startsWith(`input_boolean.`))return e<=1?`inactive`:`unreachable`;if(this.selectorEntity.startsWith(`input_number.`)){let r=Number(n.attributes?.min??1),i=Number(n.attributes?.max??t);return e+1>=r&&e+1<=i?`inactive`:`unreachable`}return`inactive`}_getAvailableEntities(e){return this.hass?.states?Object.keys(this.hass.states).filter(t=>t.startsWith(`schedule.`)&&!e.has(t)):[]}_getFriendlyName(e){return this.hass?.states?.[e]?.attributes?.friendly_name||e}_renderAddRow(e,t,n,r){return m`
       <div class="add-schedule-row">
         <ha-select
           .value=${``}
           .label=${e}
           .options=${t.map(e=>({value:e,label:this._getFriendlyName(e)}))}
-          @selected=${e=>{let t=F(e);t&&(n(t),requestAnimationFrame(()=>{e.target.value=``}))}}
+          @selected=${e=>{let t=P(e);t&&(n(t),requestAnimationFrame(()=>{e.target.value=``}))}}
           @closed=${e=>e.stopPropagation()}
           fixedMenuPosition
           naturalMenuWidth
         >
-          ${t.map(e=>h`
+          ${t.map(e=>m`
               <ha-list-item value=${e}>${this._getFriendlyName(e)}</ha-list-item>
             `)}
         </ha-select>
         <a href="/config/helpers" target="_top" class="helper-link"> ${r} </a>
       </div>
-    `}_renderSelectorSection(e,t,n,r,i){if(e<2)return g;let a=this.selectorEntity?this.hass?.states?.[this.selectorEntity]:null;return h`
+    `}_renderSelectorSection(e,t,n,r,i){if(e<2)return h;let a=this.selectorEntity?this.hass?.states?.[this.selectorEntity]:null;return m`
       <div class="selector-section">
         <label class="form-label">${t}</label>
         <ha-entity-picker
@@ -1318,39 +1391,39 @@
           allow-custom-entity
           @value-changed=${e=>{e.stopPropagation(),i(e.detail?.value??``)}}
         ></ha-entity-picker>
-        ${this.selectorEntity&&a?h`
+        ${this.selectorEntity&&a?m`
               <div class="selector-value">
-                ${this.selectorEntity.startsWith(`input_boolean.`)?C(`schedule.selector_value_boolean`,this.hass.language,{value:a.state===`on`?`On`:`Off`}):C(`schedule.selector_value_number`,this.hass.language,{value:a.state})}
+                ${this.selectorEntity.startsWith(`input_boolean.`)?S(`schedule.selector_value_boolean`,this.hass.language,{value:a.state===`on`?`On`:`Off`}):S(`schedule.selector_value_number`,this.hass.language,{value:a.state})}
               </div>
-            `:g}
+            `:h}
         <div class="section-hint" style="margin-top:4px">${n}</div>
-        ${e>1&&!this.selectorEntity?h`
+        ${e>1&&!this.selectorEntity?m`
               <div class="selector-warning">
                 <ha-icon icon="mdi:alert-outline"></ha-icon>
                 ${r}
               </div>
-            `:g}
+            `:h}
       </div>
-    `}_renderScheduleControls(t,n,r,i){let a=n>=2;return h`
+    `}_renderScheduleControls(t,n,r,i){let a=n>=2;return m`
       <span class="schedule-controls">
-        ${a&&t>0?h`
+        ${a&&t>0?m`
               <ha-icon-button
                 .path=${e.ICON_UP}
                 @click=${()=>r(t,-1)}
               ></ha-icon-button>
-            `:g}
-        ${a&&t<n-1?h`
+            `:h}
+        ${a&&t<n-1?m`
               <ha-icon-button
                 .path=${e.ICON_DOWN}
                 @click=${()=>r(t,1)}
               ></ha-icon-button>
-            `:g}
+            `:h}
         <ha-icon-button
           .path=${e.ICON_CLOSE}
           @click=${()=>i(t)}
         ></ha-icon-button>
       </span>
-    `}_openEntityInfo(e){Ft(this,e)}};A([b({attribute:!1})],It.prototype,`hass`,void 0),A([b({type:Number})],It.prototype,`activeIndex`,void 0),A([b({type:String})],It.prototype,`selectorEntity`,void 0),A([b({type:Boolean})],It.prototype,`editing`,void 0),v();var L=l`
+    `}_openEntityInfo(e){Rt(this,e)}};k([y({attribute:!1})],zt.prototype,`hass`,void 0),k([y({type:Number})],zt.prototype,`activeIndex`,void 0),k([y({type:String})],zt.prototype,`selectorEntity`,void 0),k([y({type:Boolean})],zt.prototype,`editing`,void 0),_();var I=l`
   ha-textfield,
   ha-select,
   ha-entity-picker,
@@ -1374,7 +1447,7 @@
   ha-entity-picker {
     clip-path: inset(0 round 8px 8px 4px 4px);
   }
-`;v(),S(),j();var R=class extends It{constructor(...e){super(...e),this.schedules=[],this.comfortHeat=21,this.comfortCool=24,this.ecoHeat=17,this.ecoCool=27,this.climateMode=`auto`}set scheduleSelectorEntity(e){this.selectorEntity=e}get scheduleSelectorEntity(){return this.selectorEntity}set activeScheduleIndex(e){this.activeIndex=e}get activeScheduleIndex(){return this.activeIndex}static{this.styles=[It.sharedStyles,L,l`
+`;_(),x(),A();var L=class extends zt{constructor(...e){super(...e),this.schedules=[],this.comfortHeat=21,this.comfortCool=24,this.ecoHeat=17,this.ecoCool=27,this.climateMode=`auto`}set scheduleSelectorEntity(e){this.selectorEntity=e}get scheduleSelectorEntity(){return this.selectorEntity}set activeScheduleIndex(e){this.activeIndex=e}get activeScheduleIndex(){return this.activeIndex}static{this.styles=[zt.sharedStyles,I,l`
       .fallback-hint {
         font-size: 11px;
         color: var(--secondary-text-color);
@@ -1457,12 +1530,12 @@
           display: none;
         }
       }
-    `]}render(){return this.editing?this._renderEditMode():this._renderViewMode()}_renderViewMode(){let e=this.hass.language,t=this.schedules.length>=2;return h`
-      ${this.schedules.length>0?h`
+    `]}render(){return this.editing?this._renderEditMode():this._renderViewMode()}_renderViewMode(){let e=this.hass.language,t=this.schedules.length>=2;return m`
+      ${this.schedules.length>0?m`
             <div class="schedule-list">
-              ${this.schedules.map((e,n)=>{let r=this._getScheduleState(n,this.schedules.length);return h`
+              ${this.schedules.map((e,n)=>{let r=this._getScheduleState(n,this.schedules.length);return m`
                   <div class="schedule-row ${r}">
-                    ${t?h`<span class="schedule-number">${n+1}</span>`:g}
+                    ${t?m`<span class="schedule-number">${n+1}</span>`:h}
                     <span class="schedule-status-dot"></span>
                     <span
                       class="schedule-name schedule-link"
@@ -1473,38 +1546,38 @@
                   </div>
                 `})}
             </div>
-          `:h`<div class="no-schedules">${C(`schedule.no_schedules`,e)}</div>`}
-      ${this.climateMode===`auto`?h`
+          `:m`<div class="no-schedules">${S(`schedule.no_schedules`,e)}</div>`}
+      ${this.climateMode===`auto`?m`
             <div class="view-temps">
-              ${C(`schedule.view_heat`,e,{comfort:D(this.comfortHeat,this.hass),eco:D(this.ecoHeat,this.hass),unit:w(this.hass)})}
+              ${S(`schedule.view_heat`,e,{comfort:E(this.comfortHeat,this.hass),eco:E(this.ecoHeat,this.hass),unit:C(this.hass)})}
                · 
-              ${C(`schedule.view_cool`,e,{comfort:D(this.comfortCool,this.hass),eco:D(this.ecoCool,this.hass),unit:w(this.hass)})}
+              ${S(`schedule.view_cool`,e,{comfort:E(this.comfortCool,this.hass),eco:E(this.ecoCool,this.hass),unit:C(this.hass)})}
             </div>
-          `:h`
+          `:m`
             <div class="view-temps">
-              ${C(`schedule.view_comfort`,e,{temp:D(this.climateMode===`cool_only`?this.comfortCool:this.comfortHeat,this.hass),unit:w(this.hass)})}
+              ${S(`schedule.view_comfort`,e,{temp:E(this.climateMode===`cool_only`?this.comfortCool:this.comfortHeat,this.hass),unit:C(this.hass)})}
                · 
-              ${C(`schedule.view_eco`,e,{temp:D(this.climateMode===`cool_only`?this.ecoCool:this.ecoHeat,this.hass),unit:w(this.hass)})}
+              ${S(`schedule.view_eco`,e,{temp:E(this.climateMode===`cool_only`?this.ecoCool:this.ecoHeat,this.hass),unit:C(this.hass)})}
             </div>
           `}
-      ${this.scheduleSelectorEntity?h`<div class="view-selector-info">
-            ${C(`schedule.view_selector_prefix`,e)}
+      ${this.scheduleSelectorEntity?m`<div class="view-selector-info">
+            ${S(`schedule.view_selector_prefix`,e)}
             <span
               class="schedule-link"
               @click=${()=>this._openEntityInfo(this.scheduleSelectorEntity)}
               >${this._getFriendlyName(this.scheduleSelectorEntity)}</span
             >
-          </div>`:g}
-    `}_renderEditMode(){let e=this.hass.language,t=this.schedules.length,n=new Set(this.schedules.map(e=>e.entity_id));return h`
+          </div>`:h}
+    `}_renderEditMode(){let e=this.hass.language,t=this.schedules.length,n=new Set(this.schedules.map(e=>e.entity_id));return m`
       ${this._renderScheduleList()}
-      ${this._renderAddRow(C(`schedule.select_schedule`,e),this._getAvailableEntities(n),e=>this._addSchedule(e),C(`schedule.create_helper_hint`,e))}
-      ${this._renderSelectorSection(t,C(`schedule.selector_label`,e),this.scheduleSelectorEntity?this._getSelectorValueText(e):``,C(`schedule.selector_warning`,e),e=>this._onSelectorEntityChange(e))}
+      ${this._renderAddRow(S(`schedule.select_schedule`,e),this._getAvailableEntities(n),e=>this._addSchedule(e),S(`schedule.create_helper_hint`,e))}
+      ${this._renderSelectorSection(t,S(`schedule.selector_label`,e),this.scheduleSelectorEntity?this._getSelectorValueText(e):``,S(`schedule.selector_warning`,e),e=>this._onSelectorEntityChange(e))}
       ${this._renderTemperatureInputs(e)}
-    `}_renderScheduleList(){let e=this.hass.language,t=this.schedules.length;return t===0?h`<div class="no-schedules">${C(`schedule.no_schedules`,e)}</div>`:h`
+    `}_renderScheduleList(){let e=this.hass.language,t=this.schedules.length;return t===0?m`<div class="no-schedules">${S(`schedule.no_schedules`,e)}</div>`:m`
       <div class="schedule-list">
-        ${this.schedules.map((e,n)=>{let r=this._getScheduleState(n,t);return h`
+        ${this.schedules.map((e,n)=>{let r=this._getScheduleState(n,t);return m`
             <div class="schedule-row ${r}">
-              ${t>=2?h`<span class="schedule-number">${n+1}</span>`:g}
+              ${t>=2?m`<span class="schedule-number">${n+1}</span>`:h}
               <span class="schedule-status-dot"></span>
               <span class="schedule-name">${this._getFriendlyName(e.entity_id)}</span>
               <span class="schedule-status">${this._getStatusText(n,r)}</span>
@@ -1512,85 +1585,85 @@
             </div>
           `})}
       </div>
-    `}_renderTemperatureInputs(e){return this.climateMode===`auto`?h`
+    `}_renderTemperatureInputs(e){return this.climateMode===`auto`?m`
         <div class="temp-grid-auto">
           <div class="temp-grid-header"></div>
-          <div class="temp-grid-header">${C(`schedule.column_comfort`,e)}</div>
-          <div class="temp-grid-header">${C(`schedule.column_eco`,e)}</div>
+          <div class="temp-grid-header">${S(`schedule.column_comfort`,e)}</div>
+          <div class="temp-grid-header">${S(`schedule.column_eco`,e)}</div>
           <div class="temp-grid-row-label">
             <ha-icon icon="mdi:fire" style="--mdc-icon-size:16px"></ha-icon>
-            ${C(`schedule.row_heat`,e)}
+            ${S(`schedule.row_heat`,e)}
           </div>
           <ha-textfield
             type="number"
-            .value=${String(T(this.comfortHeat,this.hass))}
-            suffix=${w(this.hass)}
-            step=${O(this.hass)}
-            min=${k(5,35,this.hass).min}
-            max=${k(5,35,this.hass).max}
+            .value=${String(w(this.comfortHeat,this.hass))}
+            suffix=${C(this.hass)}
+            step=${D(this.hass)}
+            min=${O(5,35,this.hass).min}
+            max=${O(5,35,this.hass).max}
             @change=${this._onComfortHeatChange}
           ></ha-textfield>
           <ha-textfield
             type="number"
-            .value=${String(T(this.ecoHeat,this.hass))}
-            suffix=${w(this.hass)}
-            step=${O(this.hass)}
-            min=${k(5,35,this.hass).min}
-            max=${k(5,35,this.hass).max}
+            .value=${String(w(this.ecoHeat,this.hass))}
+            suffix=${C(this.hass)}
+            step=${D(this.hass)}
+            min=${O(5,35,this.hass).min}
+            max=${O(5,35,this.hass).max}
             @change=${this._onEcoHeatChange}
           ></ha-textfield>
           <div class="temp-grid-row-label">
             <ha-icon icon="mdi:snowflake" style="--mdc-icon-size:16px"></ha-icon>
-            ${C(`schedule.row_cool`,e)}
+            ${S(`schedule.row_cool`,e)}
           </div>
           <ha-textfield
             type="number"
-            .value=${String(T(this.comfortCool,this.hass))}
-            suffix=${w(this.hass)}
-            step=${O(this.hass)}
-            min=${k(5,35,this.hass).min}
-            max=${k(5,35,this.hass).max}
+            .value=${String(w(this.comfortCool,this.hass))}
+            suffix=${C(this.hass)}
+            step=${D(this.hass)}
+            min=${O(5,35,this.hass).min}
+            max=${O(5,35,this.hass).max}
             @change=${this._onComfortCoolChange}
           ></ha-textfield>
           <ha-textfield
             type="number"
-            .value=${String(T(this.ecoCool,this.hass))}
-            suffix=${w(this.hass)}
-            step=${O(this.hass)}
-            min=${k(5,35,this.hass).min}
-            max=${k(5,35,this.hass).max}
+            .value=${String(w(this.ecoCool,this.hass))}
+            suffix=${C(this.hass)}
+            step=${D(this.hass)}
+            min=${O(5,35,this.hass).min}
+            max=${O(5,35,this.hass).max}
             @change=${this._onEcoCoolChange}
           ></ha-textfield>
         </div>
-      `:h`
+      `:m`
       <div class="temp-inputs">
         <div class="temp-input-group">
           <ha-textfield
             type="number"
-            label=${C(`schedule.comfort_label`,e)}
-            suffix=${w(this.hass)}
-            step=${O(this.hass)}
-            .value=${String(T(this.climateMode===`cool_only`?this.comfortCool:this.comfortHeat,this.hass))}
-            min=${k(5,35,this.hass).min}
-            max=${k(5,35,this.hass).max}
+            label=${S(`schedule.comfort_label`,e)}
+            suffix=${C(this.hass)}
+            step=${D(this.hass)}
+            .value=${String(w(this.climateMode===`cool_only`?this.comfortCool:this.comfortHeat,this.hass))}
+            min=${O(5,35,this.hass).min}
+            max=${O(5,35,this.hass).max}
             @change=${this.climateMode===`cool_only`?this._onComfortCoolChange:this._onComfortHeatChange}
           ></ha-textfield>
         </div>
         <div class="temp-input-group">
           <ha-textfield
             type="number"
-            label=${C(`schedule.eco_label`,e)}
-            suffix=${w(this.hass)}
-            step=${O(this.hass)}
-            .value=${String(T(this.climateMode===`cool_only`?this.ecoCool:this.ecoHeat,this.hass))}
-            min=${k(5,35,this.hass).min}
-            max=${k(5,35,this.hass).max}
+            label=${S(`schedule.eco_label`,e)}
+            suffix=${C(this.hass)}
+            step=${D(this.hass)}
+            .value=${String(w(this.climateMode===`cool_only`?this.ecoCool:this.ecoHeat,this.hass))}
+            min=${O(5,35,this.hass).min}
+            max=${O(5,35,this.hass).max}
             @change=${this.climateMode===`cool_only`?this._onEcoCoolChange:this._onEcoHeatChange}
           ></ha-textfield>
         </div>
       </div>
-      <div class="fallback-hint">${C(`schedule.comfort_hint`,e)}</div>
-    `}_getSelectorValueText(e){let t=this.hass?.states?.[this.scheduleSelectorEntity];return t?this.scheduleSelectorEntity.startsWith(`input_boolean.`)?C(`schedule.selector_value_boolean`,e,{value:t.state===`on`?`On`:`Off`}):C(`schedule.selector_value_number`,e,{value:t.state}):``}_getStatusText(e,t){let n=this.hass.language;if(t===`unreachable`)return C(`schedule.state_unreachable`,n);if(t===`inactive`)return C(`schedule.state_inactive`,n);let r=this.schedules[e],i=this.hass?.states?.[r.entity_id];if(!i)return C(`schedule.state_active`,n);if(i.state===`on`){let e=i.attributes??{},t=e.temperature;if(t!=null)return C(`schedule.from_schedule`,n,{temp:String(t),unit:w(this.hass)});let r=e.heat_temperature,a=e.cool_temperature;return r!=null||a!=null?C(`schedule.from_schedule_split`,n,{heat:String(r??this.comfortHeat),cool:String(a??this.comfortCool),unit:w(this.hass)}):C(`schedule.fallback`,n,{temp:D(this.climateMode===`cool_only`?this.comfortCool:this.comfortHeat,this.hass),unit:w(this.hass)})}return C(`schedule.eco_detail`,n,{temp:D(this.climateMode===`cool_only`?this.ecoCool:this.ecoHeat,this.hass),unit:w(this.hass)})}_addSchedule(e){this._emitSchedules([...this.schedules,{entity_id:e}])}_removeSchedule(e){this._emitSchedules(this.schedules.filter((t,n)=>n!==e))}_moveSchedule(e,t){let n=e+t;if(n<0||n>=this.schedules.length)return;let r=[...this.schedules];[r[e],r[n]]=[r[n],r[e]],this._emitSchedules(r)}_emitSchedules(e){this.dispatchEvent(new CustomEvent(`schedules-changed`,{detail:{value:e},bubbles:!0,composed:!0}))}_onSelectorEntityChange(e){this.dispatchEvent(new CustomEvent(`schedule-selector-changed`,{detail:{value:e},bubbles:!0,composed:!0}))}_onComfortHeatChange(e){let t=e.target,n=Et(parseFloat(t.value)||T(21,this.hass),this.hass);this.dispatchEvent(new CustomEvent(`comfort-heat-changed`,{detail:{value:n},bubbles:!0,composed:!0})),this.comfortCool<n&&this.dispatchEvent(new CustomEvent(`comfort-cool-changed`,{detail:{value:n},bubbles:!0,composed:!0}))}_onComfortCoolChange(e){let t=e.target,n=Et(parseFloat(t.value)||T(24,this.hass),this.hass);this.dispatchEvent(new CustomEvent(`comfort-cool-changed`,{detail:{value:n},bubbles:!0,composed:!0})),this.comfortHeat>n&&this.dispatchEvent(new CustomEvent(`comfort-heat-changed`,{detail:{value:n},bubbles:!0,composed:!0}))}_onEcoHeatChange(e){let t=e.target,n=Et(parseFloat(t.value)||T(17,this.hass),this.hass);this.dispatchEvent(new CustomEvent(`eco-heat-changed`,{detail:{value:n},bubbles:!0,composed:!0})),this.ecoCool<n&&this.dispatchEvent(new CustomEvent(`eco-cool-changed`,{detail:{value:n},bubbles:!0,composed:!0}))}_onEcoCoolChange(e){let t=e.target,n=Et(parseFloat(t.value)||T(27,this.hass),this.hass);this.dispatchEvent(new CustomEvent(`eco-cool-changed`,{detail:{value:n},bubbles:!0,composed:!0})),this.ecoHeat>n&&this.dispatchEvent(new CustomEvent(`eco-heat-changed`,{detail:{value:n},bubbles:!0,composed:!0}))}};A([b({attribute:!1})],R.prototype,`schedules`,void 0),A([b({type:String})],R.prototype,`scheduleSelectorEntity`,null),A([b({type:Number})],R.prototype,`activeScheduleIndex`,null),A([b({type:Number})],R.prototype,`comfortHeat`,void 0),A([b({type:Number})],R.prototype,`comfortCool`,void 0),A([b({type:Number})],R.prototype,`ecoHeat`,void 0),A([b({type:Number})],R.prototype,`ecoCool`,void 0),A([b({type:String})],R.prototype,`climateMode`,void 0),R=A([y(`rs-schedule-settings`)],R);var Lt={underfloor:2,radiator:1,"":0};function Rt(e){let t=``;for(let n of e){if(n.type!==`trv`)continue;let e=n.heating_system_type??``;(Lt[e]??0)>(Lt[t]??0)&&(t=e)}return t}v();var zt=l`
+      <div class="fallback-hint">${S(`schedule.comfort_hint`,e)}</div>
+    `}_getSelectorValueText(e){let t=this.hass?.states?.[this.scheduleSelectorEntity];return t?this.scheduleSelectorEntity.startsWith(`input_boolean.`)?S(`schedule.selector_value_boolean`,e,{value:t.state===`on`?`On`:`Off`}):S(`schedule.selector_value_number`,e,{value:t.state}):``}_getStatusText(e,t){let n=this.hass.language;if(t===`unreachable`)return S(`schedule.state_unreachable`,n);if(t===`inactive`)return S(`schedule.state_inactive`,n);let r=this.schedules[e],i=this.hass?.states?.[r.entity_id];if(!i)return S(`schedule.state_active`,n);if(i.state===`on`){let e=i.attributes??{},t=e.temperature;if(t!=null)return S(`schedule.from_schedule`,n,{temp:String(t),unit:C(this.hass)});let r=e.heat_temperature,a=e.cool_temperature;return r!=null||a!=null?S(`schedule.from_schedule_split`,n,{heat:String(r??this.comfortHeat),cool:String(a??this.comfortCool),unit:C(this.hass)}):S(`schedule.fallback`,n,{temp:E(this.climateMode===`cool_only`?this.comfortCool:this.comfortHeat,this.hass),unit:C(this.hass)})}return S(`schedule.eco_detail`,n,{temp:E(this.climateMode===`cool_only`?this.ecoCool:this.ecoHeat,this.hass),unit:C(this.hass)})}_addSchedule(e){this._emitSchedules([...this.schedules,{entity_id:e}])}_removeSchedule(e){this._emitSchedules(this.schedules.filter((t,n)=>n!==e))}_moveSchedule(e,t){let n=e+t;if(n<0||n>=this.schedules.length)return;let r=[...this.schedules];[r[e],r[n]]=[r[n],r[e]],this._emitSchedules(r)}_emitSchedules(e){this.dispatchEvent(new CustomEvent(`schedules-changed`,{detail:{value:e},bubbles:!0,composed:!0}))}_onSelectorEntityChange(e){this.dispatchEvent(new CustomEvent(`schedule-selector-changed`,{detail:{value:e},bubbles:!0,composed:!0}))}_onComfortHeatChange(e){let t=e.target,n=Dt(parseFloat(t.value)||w(21,this.hass),this.hass);this.dispatchEvent(new CustomEvent(`comfort-heat-changed`,{detail:{value:n},bubbles:!0,composed:!0})),this.comfortCool<n&&this.dispatchEvent(new CustomEvent(`comfort-cool-changed`,{detail:{value:n},bubbles:!0,composed:!0}))}_onComfortCoolChange(e){let t=e.target,n=Dt(parseFloat(t.value)||w(24,this.hass),this.hass);this.dispatchEvent(new CustomEvent(`comfort-cool-changed`,{detail:{value:n},bubbles:!0,composed:!0})),this.comfortHeat>n&&this.dispatchEvent(new CustomEvent(`comfort-heat-changed`,{detail:{value:n},bubbles:!0,composed:!0}))}_onEcoHeatChange(e){let t=e.target,n=Dt(parseFloat(t.value)||w(17,this.hass),this.hass);this.dispatchEvent(new CustomEvent(`eco-heat-changed`,{detail:{value:n},bubbles:!0,composed:!0})),this.ecoCool<n&&this.dispatchEvent(new CustomEvent(`eco-cool-changed`,{detail:{value:n},bubbles:!0,composed:!0}))}_onEcoCoolChange(e){let t=e.target,n=Dt(parseFloat(t.value)||w(27,this.hass),this.hass);this.dispatchEvent(new CustomEvent(`eco-cool-changed`,{detail:{value:n},bubbles:!0,composed:!0})),this.ecoHeat>n&&this.dispatchEvent(new CustomEvent(`eco-heat-changed`,{detail:{value:n},bubbles:!0,composed:!0}))}};k([y({attribute:!1})],L.prototype,`schedules`,void 0),k([y({type:String})],L.prototype,`scheduleSelectorEntity`,null),k([y({type:Number})],L.prototype,`activeScheduleIndex`,null),k([y({type:Number})],L.prototype,`comfortHeat`,void 0),k([y({type:Number})],L.prototype,`comfortCool`,void 0),k([y({type:Number})],L.prototype,`ecoHeat`,void 0),k([y({type:Number})],L.prototype,`ecoCool`,void 0),k([y({type:String})],L.prototype,`climateMode`,void 0),L=k([v(`rs-schedule-settings`)],L);var Bt={underfloor:2,radiator:1,"":0};function Vt(e){let t=``;for(let n of e){if(n.type!==`trv`)continue;let e=n.heating_system_type??``;(Bt[e]??0)>(Bt[t]??0)&&(t=e)}return t}_();var Ht=l`
   .master {
     display: flex;
     flex-direction: column;
@@ -1843,7 +1916,7 @@
   .picker-wrap {
     margin-top: 8px;
   }
-`;v(),S(),j();var Bt=class extends _{constructor(...e){super(...e),this.masterWidth=`260px`,this.breakpoint=720}static{this.styles=l`
+`;_(),x(),A();var Ut=class extends g{constructor(...e){super(...e),this.masterWidth=`260px`,this.breakpoint=720}static{this.styles=l`
     :host {
       display: block;
       container-type: inline-size;
@@ -1876,12 +1949,12 @@
     ::slotted([slot="detail"]) {
       min-width: 0;
     }
-  `}render(){return h`
+  `}render(){return m`
       <div class="wrap" style="--rs-master-width: ${this.masterWidth};">
         <div class="master"><slot name="master"></slot></div>
         <div class="detail"><slot name="detail"></slot></div>
       </div>
-    `}};A([b({type:String})],Bt.prototype,`masterWidth`,void 0),A([b({type:Number})],Bt.prototype,`breakpoint`,void 0),Bt=A([y(`rs-master-detail`)],Bt),v(),S(),j();var Vt=[{option:`fan_only_only_after_cooling`,label:`devices.fan_only_only_after_cooling`},{option:`fan_only_require_presence`,label:`devices.fan_only_require_presence`},{option:`fan_only_require_schedule`,label:`devices.fan_only_require_schedule`}],z=class extends _{constructor(...e){super(...e),this.devices=[],this.selectedTempSensor=``,this.valveProtectionExclude=new Set,this.valveProtectionEnabled=!1,this.editing=!1,this._systemTypeInfoExpanded=!1,this._showBoostHint=!1,this._selectedThermostats=new Set,this._selectedCoolingDevices=new Set,this._heatingSystemType=``,this._selectedForEdit=``,this._entityFilter=e=>{let t=e.entity_id;return t.substring(t.indexOf(`.`)+1).startsWith(`roommind_`)||this.devices.some(e=>e.entity_id===t)?!1:t.startsWith(`climate.`)}}willUpdate(e){if(e.has(`devices`)){this._selectedThermostats=new Set(this.devices.filter(e=>e.type===`trv`).map(e=>e.entity_id)),this._selectedCoolingDevices=new Set(this.devices.filter(e=>e.type===`ac`).map(e=>e.entity_id)),this._heatingSystemType=Rt(this.devices);let e=new Set(this.devices.map(e=>e.entity_id));this._selectedForEdit&&!e.has(this._selectedForEdit)&&(this._selectedForEdit=``),!this._selectedForEdit&&this.devices.length>0&&(this._selectedForEdit=this.devices[0].entity_id)}}static{this.styles=[zt,L,l`
+    `}};k([y({type:String})],Ut.prototype,`masterWidth`,void 0),k([y({type:Number})],Ut.prototype,`breakpoint`,void 0),Ut=k([v(`rs-master-detail`)],Ut),_(),x(),A();var Wt=[{option:`fan_only_only_after_cooling`,label:`devices.fan_only_only_after_cooling`},{option:`fan_only_require_presence`,label:`devices.fan_only_require_presence`},{option:`fan_only_require_schedule`,label:`devices.fan_only_require_schedule`}],R=class extends g{constructor(...e){super(...e),this.devices=[],this.selectedTempSensor=``,this.valveProtectionExclude=new Set,this.valveProtectionEnabled=!1,this.editing=!1,this._systemTypeInfoExpanded=!1,this._showBoostHint=!1,this._selectedThermostats=new Set,this._selectedCoolingDevices=new Set,this._heatingSystemType=``,this._selectedForEdit=``,this._entityFilter=e=>{let t=e.entity_id;return t.substring(t.indexOf(`.`)+1).startsWith(`roommind_`)||this.devices.some(e=>e.entity_id===t)?!1:t.startsWith(`climate.`)}}willUpdate(e){if(e.has(`devices`)){this._selectedThermostats=new Set(this.devices.filter(e=>e.type===`trv`).map(e=>e.entity_id)),this._selectedCoolingDevices=new Set(this.devices.filter(e=>e.type===`ac`).map(e=>e.entity_id)),this._heatingSystemType=Vt(this.devices);let e=new Set(this.devices.map(e=>e.entity_id));this._selectedForEdit&&!e.has(this._selectedForEdit)&&(this._selectedForEdit=``),!this._selectedForEdit&&this.devices.length>0&&(this._selectedForEdit=this.devices[0].entity_id)}}static{this.styles=[Ht,I,l`
       :host {
         display: block;
       }
@@ -2172,54 +2245,54 @@
         font-weight: 500;
         flex-shrink: 0;
       }
-    `]}render(){return this.editing?this._renderEditMode():this._renderViewMode()}_renderViewMode(){let e=this._selectedThermostats.size>0||this._selectedCoolingDevices.size>0;return h`
-      ${e?h`
+    `]}render(){return this.editing?this._renderEditMode():this._renderViewMode()}_renderViewMode(){let e=this._selectedThermostats.size>0||this._selectedCoolingDevices.size>0;return m`
+      ${e?m`
             <div class="device-group">
               <div class="section-subtitle">
-                ${C(`devices.climate_entities`,this.hass.language)}
+                ${S(`devices.climate_entities`,this.hass.language)}
               </div>
               ${[...this._selectedThermostats].map(e=>this._renderViewRow(e,`climate`))}
               ${[...this._selectedCoolingDevices].map(e=>this._renderViewRow(e,`climate`))}
             </div>
-          `:g}
-      ${this._heatingSystemType?h`
+          `:h}
+      ${this._heatingSystemType?m`
             <div class="device-group">
               <div class="section-subtitle">
-                ${C(`devices.heating_system_type`,this.hass.language)}
+                ${S(`devices.heating_system_type`,this.hass.language)}
               </div>
               <div class="view-row">
                 <span class="view-name"
-                  >${this._heatingSystemType===`radiator`?C(`devices.system_type_radiator`,this.hass.language):this._heatingSystemType===`underfloor`?C(`devices.system_type_underfloor`,this.hass.language):this._heatingSystemType}</span
+                  >${this._heatingSystemType===`radiator`?S(`devices.system_type_radiator`,this.hass.language):this._heatingSystemType===`underfloor`?S(`devices.system_type_underfloor`,this.hass.language):this._heatingSystemType}</span
                 >
               </div>
             </div>
-          `:g}
-    `}_renderViewRow(e,t){let n=this.hass.states[e],r=n?.attributes?.friendly_name||e,i=n?.state,a=n?.attributes??{},o=``;if(t===`climate`){let e=a.current_temperature;e!=null&&(o=`${e.toFixed(1)}${w(this.hass)}`)}else if(t===`temp`){let t=e.startsWith(`climate.`)?a.current_temperature:i;t!=null&&t!==``&&t!==`unknown`&&t!==`unavailable`&&(o=`${Number(t).toFixed(1)}${w(this.hass)}`)}else i&&i!==`unknown`&&i!==`unavailable`&&(o=`${Math.round(Number(i))}%`);let s=t===`climate`&&this.valveProtectionEnabled&&this.valveProtectionExclude.has(e),c=t===`climate`?this.devices.find(t=>t.entity_id===e):void 0,l=c?.idle_action===`fan_only`||c?.idle_action===`setback`||c?.idle_action===`low`,u=c?.setpoint_mode===`direct`&&!!this.selectedTempSensor;return h`
+          `:h}
+    `}_renderViewRow(e,t){let n=this.hass.states[e],r=n?.attributes?.friendly_name||e,i=n?.state,a=n?.attributes??{},o=``;if(t===`climate`){let e=a.current_temperature;e!=null&&(o=`${e.toFixed(1)}${C(this.hass)}`)}else if(t===`temp`){let t=e.startsWith(`climate.`)?a.current_temperature:i;t!=null&&t!==``&&t!==`unknown`&&t!==`unavailable`&&(o=`${Number(t).toFixed(1)}${C(this.hass)}`)}else i&&i!==`unknown`&&i!==`unavailable`&&(o=`${Math.round(Number(i))}%`);let s=t===`climate`&&this.valveProtectionEnabled&&this.valveProtectionExclude.has(e),c=t===`climate`?this.devices.find(t=>t.entity_id===e):void 0,l=c?.idle_action===`fan_only`||c?.idle_action===`setback`||c?.idle_action===`low`,u=c?.setpoint_mode===`direct`&&!!this.selectedTempSensor;return m`
       <div class="view-row">
-        <span class="view-name entity-link" @click=${()=>Ft(this,e)}
+        <span class="view-name entity-link" @click=${()=>Rt(this,e)}
           >${r}</span
         >
-        ${l?h`<span class="valve-exclude-badge">
-              ${c.idle_action===`fan_only`?h`${C(`devices.idle_action_fan_only`,this.hass.language)}${c.idle_fan_mode?` (${c.idle_fan_mode})`:g}`:c.idle_action===`low`?C(`devices.idle_action_low`,this.hass.language):C(`devices.idle_action_setback`,this.hass.language)}
-            </span>`:g}
-        ${u?h`<span class="valve-exclude-badge">
-              ${C(`devices.setpoint_mode_direct`,this.hass.language)}
-            </span>`:g}
-        ${s?h`<span class="valve-exclude-badge">
+        ${l?m`<span class="valve-exclude-badge">
+              ${c.idle_action===`fan_only`?m`${S(`devices.idle_action_fan_only`,this.hass.language)}${c.idle_fan_mode?` (${c.idle_fan_mode})`:h}`:c.idle_action===`low`?S(`devices.idle_action_low`,this.hass.language):S(`devices.idle_action_setback`,this.hass.language)}
+            </span>`:h}
+        ${u?m`<span class="valve-exclude-badge">
+              ${S(`devices.setpoint_mode_direct`,this.hass.language)}
+            </span>`:h}
+        ${s?m`<span class="valve-exclude-badge">
               <ha-icon icon="mdi:shield-off-outline"></ha-icon>
-              ${C(`devices.valve_protection_excluded`,this.hass.language)}
-            </span>`:g}
-        ${o?h`<span class="view-value">${o}</span>`:g}
+              ${S(`devices.valve_protection_excluded`,this.hass.language)}
+            </span>`:h}
+        ${o?m`<span class="view-value">${o}</span>`:h}
       </div>
-    `}_renderEditMode(){let e=yt(this.area.area_id,this.hass?.entities,this.hass?.devices).filter(e=>!e.entity_id.substring(e.entity_id.indexOf(`.`)+1).startsWith(`roommind_`)).filter(e=>e.entity_id.startsWith(`climate.`)),t=new Set(e.map(e=>e.entity_id)),n=new Set(this.devices.map(e=>e.entity_id)),r=[...n].filter(e=>!t.has(e)),i=e=>n.has(e),a=this._selectedForEdit;return h`
+    `}_renderEditMode(){let e=bt(this.area.area_id,this.hass?.entities,this.hass?.devices).filter(e=>!e.entity_id.substring(e.entity_id.indexOf(`.`)+1).startsWith(`roommind_`)).filter(e=>e.entity_id.startsWith(`climate.`)),t=new Set(e.map(e=>e.entity_id)),n=new Set(this.devices.map(e=>e.entity_id)),r=[...n].filter(e=>!t.has(e)),i=e=>n.has(e),a=this._selectedForEdit;return m`
       <rs-master-detail>
         <div slot="master" class="master">
           <div class="section-subtitle">
-            ${C(`devices.climate_entities`,this.hass.language)}
+            ${S(`devices.climate_entities`,this.hass.language)}
           </div>
           <div class="master-list">
-            ${e.length>0?e.map(e=>this._renderMasterRow(e.entity_id,!1)):h`<div class="no-devices">
-                  ${C(`devices.no_climate`,this.hass.language)}
+            ${e.length>0?e.map(e=>this._renderMasterRow(e.entity_id,!1)):m`<div class="no-devices">
+                  ${S(`devices.no_climate`,this.hass.language)}
                 </div>`}
             ${r.map(e=>this._renderMasterRow(e,!0))}
           </div>
@@ -2229,26 +2302,26 @@
               .includeDomains=${[`climate`]}
               .entityFilter=${this._entityFilter}
               .value=${``}
-              label=${C(`devices.add_entity`,this.hass.language)}
+              label=${S(`devices.add_entity`,this.hass.language)}
               @value-changed=${this._onEntityPicked}
             ></ha-entity-picker>
           </div>
         </div>
 
         <div slot="detail" class="detail-panel">
-          ${a&&i(a)?this._renderDeviceDetail(a):h`<div class="empty-detail">
+          ${a&&i(a)?this._renderDeviceDetail(a):m`<div class="empty-detail">
                 <ha-icon icon="mdi:gesture-tap"></ha-icon>
-                <span>${C(`devices.select_to_configure`,this.hass.language)}</span>
+                <span>${S(`devices.select_to_configure`,this.hass.language)}</span>
               </div>`}
         </div>
       </rs-master-detail>
 
-      ${this._selectedThermostats.size>0?h`
+      ${this._selectedThermostats.size>0?m`
             <div class="block-divider"></div>
             <div class="block">
               <div class="subtitle-row">
                 <div class="section-subtitle">
-                  ${C(`devices.heating_system_type`,this.hass.language)}
+                  ${S(`devices.heating_system_type`,this.hass.language)}
                 </div>
                 <ha-icon
                   class="info-icon ${this._systemTypeInfoExpanded?`info-active`:``}"
@@ -2256,40 +2329,40 @@
                   @click=${()=>{this._systemTypeInfoExpanded=!this._systemTypeInfoExpanded}}
                 ></ha-icon>
               </div>
-              ${this._systemTypeInfoExpanded?h`
+              ${this._systemTypeInfoExpanded?m`
                     <div class="system-type-info">
-                      ${C(`devices.heating_system_type_info`,this.hass.language)}
+                      ${S(`devices.heating_system_type_info`,this.hass.language)}
                     </div>
-                  `:g}
+                  `:h}
               <ha-select
                 .value=${this._heatingSystemType||`standard`}
-                .options=${[{value:`standard`,label:C(`devices.system_type_none`,this.hass.language)},{value:`radiator`,label:C(`devices.system_type_radiator`,this.hass.language)},{value:`underfloor`,label:C(`devices.system_type_underfloor`,this.hass.language)}]}
+                .options=${[{value:`standard`,label:S(`devices.system_type_none`,this.hass.language)},{value:`radiator`,label:S(`devices.system_type_radiator`,this.hass.language)},{value:`underfloor`,label:S(`devices.system_type_underfloor`,this.hass.language)}]}
                 @selected=${this._onHeatingSystemTypeChange}
                 @closed=${e=>e.stopPropagation()}
                 fixedMenuPosition
                 style="width: 100%;"
               >
                 <ha-list-item value="standard"
-                  >${C(`devices.system_type_none`,this.hass.language)}</ha-list-item
+                  >${S(`devices.system_type_none`,this.hass.language)}</ha-list-item
                 >
                 <ha-list-item value="radiator"
-                  >${C(`devices.system_type_radiator`,this.hass.language)}</ha-list-item
+                  >${S(`devices.system_type_radiator`,this.hass.language)}</ha-list-item
                 >
                 <ha-list-item value="underfloor"
-                  >${C(`devices.system_type_underfloor`,this.hass.language)}</ha-list-item
+                  >${S(`devices.system_type_underfloor`,this.hass.language)}</ha-list-item
                 >
               </ha-select>
-              ${this._showBoostHint?h`
+              ${this._showBoostHint?m`
                     <div class="boost-hint">
                       <ha-icon icon="mdi:information-outline"></ha-icon>
                       <span
-                        >${C(`devices.heating_system_type_boost_hint`,this.hass.language)}</span
+                        >${S(`devices.heating_system_type_boost_hint`,this.hass.language)}</span
                       >
                     </div>
-                  `:g}
+                  `:h}
             </div>
-          `:g}
-    `}_renderMasterRow(e,t){let n=this._selectedThermostats.has(e),r=this._selectedCoolingDevices.has(e),i=n||r,a=this._selectedForEdit===e,o=this.hass.states[e]?.attributes?.friendly_name||e,s=this.devices.find(t=>t.entity_id===e),c=n?C(`devices.type_thermostat`,this.hass.language):r?C(`devices.type_ac`,this.hass.language):``;return h`
+          `:h}
+    `}_renderMasterRow(e,t){let n=this._selectedThermostats.has(e),r=this._selectedCoolingDevices.has(e),i=n||r,a=this._selectedForEdit===e,o=this.hass.states[e]?.attributes?.friendly_name||e,s=this.devices.find(t=>t.entity_id===e),c=n?S(`devices.type_thermostat`,this.hass.language):r?S(`devices.type_ac`,this.hass.language):``;return m`
       <div
         class="master-row ${a?`focused`:``} ${i?`in-room`:``}"
         @click=${()=>this._onSelectForEdit(e)}
@@ -2302,22 +2375,22 @@
         <div class="master-info">
           <div class="master-name-row">
             <span class="master-name">${o}</span>
-            ${t?h`<span class="external-badge"
-                  >${C(`devices.other_area`,this.hass.language)}</span
-                >`:g}
+            ${t?m`<span class="external-badge"
+                  >${S(`devices.other_area`,this.hass.language)}</span
+                >`:h}
           </div>
           <div class="master-meta">
-            ${c?h`<span class="type-pill">${c}</span>`:g}
-            ${s?.idle_action&&s.idle_action!==`off`?h`<span class="meta-pill"
-                  >${C(`devices.idle_action_${s.idle_action}`,this.hass.language)}</span
-                >`:g}
-            ${s?.setpoint_mode===`direct`&&this.selectedTempSensor?h`<span class="meta-pill"
-                  >${C(`devices.setpoint_mode_direct`,this.hass.language)}</span
-                >`:g}
+            ${c?m`<span class="type-pill">${c}</span>`:h}
+            ${s?.idle_action&&s.idle_action!==`off`?m`<span class="meta-pill"
+                  >${S(`devices.idle_action_${s.idle_action}`,this.hass.language)}</span
+                >`:h}
+            ${s?.setpoint_mode===`direct`&&this.selectedTempSensor?m`<span class="meta-pill"
+                  >${S(`devices.setpoint_mode_direct`,this.hass.language)}</span
+                >`:h}
           </div>
         </div>
       </div>
-    `}_onSelectForEdit(e){this._selectedForEdit=e}_renderDeviceDetail(e){let t=this.devices.find(t=>t.entity_id===e);if(!t)return g;let n=t.type===`trv`,r=t.type===`ac`,i=this.hass.states[e],a=i?.attributes?.friendly_name||e,o=(i?.attributes?.hvac_modes??[]).includes(`fan_only`),s=this.valveProtectionExclude.has(e),c=this.hass.language;return h`
+    `}_onSelectForEdit(e){this._selectedForEdit=e}_renderDeviceDetail(e){let t=this.devices.find(t=>t.entity_id===e);if(!t)return h;let n=t.type===`trv`,r=t.type===`ac`,i=this.hass.states[e],a=i?.attributes?.friendly_name||e,o=(i?.attributes?.hvac_modes??[]).includes(`fan_only`),s=this.valveProtectionExclude.has(e),c=this.hass.language;return m`
       <div class="detail-head">
         <div class="detail-title">${a}</div>
         <div class="detail-entity-id">${e}</div>
@@ -2325,38 +2398,38 @@
 
       <div class="detail-field">
         <ha-select
-          .label=${C(`devices.type_label`,c)||`Type`}
+          .label=${S(`devices.type_label`,c)||`Type`}
           .value=${this._getDeviceDisplayType(e)}
-          .options=${[{value:`thermostat`,label:C(`devices.type_thermostat`,c)},{value:`ac`,label:C(`devices.type_ac`,c)}]}
-          @selected=${t=>this._onDeviceTypeChange(e,F(t))}
+          .options=${[{value:`thermostat`,label:S(`devices.type_thermostat`,c)},{value:`ac`,label:S(`devices.type_ac`,c)}]}
+          @selected=${t=>this._onDeviceTypeChange(e,P(t))}
           @closed=${e=>e.stopPropagation()}
           fixedMenuPosition
         >
           <ha-list-item value="thermostat"
-            >${C(`devices.type_thermostat`,c)}</ha-list-item
+            >${S(`devices.type_thermostat`,c)}</ha-list-item
           >
-          <ha-list-item value="ac">${C(`devices.type_ac`,c)}</ha-list-item>
+          <ha-list-item value="ac">${S(`devices.type_ac`,c)}</ha-list-item>
         </ha-select>
       </div>
 
-      ${r?h`
+      ${r?m`
             <div class="detail-field">
               <ha-select
-                .label=${C(`devices.idle_action`,c)}
+                .label=${S(`devices.idle_action`,c)}
                 .value=${t.idle_action??`off`}
-                .options=${[{value:`off`,label:C(`devices.idle_action_off`,c)},...o?[{value:`fan_only`,label:C(`devices.idle_action_fan_only`,c)}]:[],{value:`setback`,label:C(`devices.idle_action_setback`,c)}]}
-                @selected=${t=>this._onIdleActionChange(e,F(t))}
+                .options=${[{value:`off`,label:S(`devices.idle_action_off`,c)},...o?[{value:`fan_only`,label:S(`devices.idle_action_fan_only`,c)}]:[],{value:`setback`,label:S(`devices.idle_action_setback`,c)}]}
+                @selected=${t=>this._onIdleActionChange(e,P(t))}
                 @closed=${e=>e.stopPropagation()}
                 fixedMenuPosition
               >
                 <ha-list-item value="off"
-                  >${C(`devices.idle_action_off`,c)}</ha-list-item
+                  >${S(`devices.idle_action_off`,c)}</ha-list-item
                 >
-                ${o?h`<ha-list-item value="fan_only"
-                      >${C(`devices.idle_action_fan_only`,c)}</ha-list-item
-                    >`:g}
+                ${o?m`<ha-list-item value="fan_only"
+                      >${S(`devices.idle_action_fan_only`,c)}</ha-list-item
+                    >`:h}
                 <ha-list-item value="setback"
-                  >${C(`devices.idle_action_setback`,c)}</ha-list-item
+                  >${S(`devices.idle_action_setback`,c)}</ha-list-item
                 >
               </ha-select>
             </div>
@@ -2365,91 +2438,91 @@
                 .hass=${this.hass}
                 .includeDomains=${[`sensor`]}
                 .value=${t.power_sensor_entity_id??``}
-                .label=${C(`devices.power_sensor`,c)}
+                .label=${S(`devices.power_sensor`,c)}
                 @value-changed=${t=>this._onPowerSensorChange(e,t.detail?.value??``)}
               ></ha-entity-picker>
-              <rs-info-icon .text=${C(`devices.power_sensor_hint`,c)}></rs-info-icon>
+              <rs-info-icon .text=${S(`devices.power_sensor_hint`,c)}></rs-info-icon>
             </div>
-            ${t.idle_action===`fan_only`?h`<div class="detail-field">
+            ${t.idle_action===`fan_only`?m`<div class="detail-field">
                   <ha-select
-                    .label=${C(`devices.idle_fan_mode`,c)}
+                    .label=${S(`devices.idle_fan_mode`,c)}
                     .value=${t.idle_fan_mode===``?`__keep__`:t.idle_fan_mode??`low`}
-                    .options=${[{value:`__keep__`,label:C(`devices.idle_fan_mode_keep`,c)},...(i?.attributes?.fan_modes??[]).map(e=>({value:e,label:e}))]}
-                    @selected=${t=>{let n=F(t);this._onIdleFanModeChange(e,n===`__keep__`?``:n)}}
+                    .options=${[{value:`__keep__`,label:S(`devices.idle_fan_mode_keep`,c)},...(i?.attributes?.fan_modes??[]).map(e=>({value:e,label:e}))]}
+                    @selected=${t=>{let n=P(t);this._onIdleFanModeChange(e,n===`__keep__`?``:n)}}
                     @closed=${e=>e.stopPropagation()}
                     fixedMenuPosition
                   >
                     <ha-list-item value="__keep__"
-                      >${C(`devices.idle_fan_mode_keep`,c)}</ha-list-item
+                      >${S(`devices.idle_fan_mode_keep`,c)}</ha-list-item
                     >
-                    ${(i?.attributes?.fan_modes??[]).map(e=>h`<ha-list-item value="${e}">${e}</ha-list-item>`)}
+                    ${(i?.attributes?.fan_modes??[]).map(e=>m`<ha-list-item value="${e}">${e}</ha-list-item>`)}
                   </ha-select>
-                </div>`:g}
-            ${t.idle_action===`fan_only`?h`<div class="detail-field fan-only-conditions">
-                  <div class="section-subtitle">${C(`devices.fan_only_conditions`,c)}</div>
-                  ${Vt.map(({option:n,label:r})=>h`<label class="fan-only-condition">
+                </div>`:h}
+            ${t.idle_action===`fan_only`?m`<div class="detail-field fan-only-conditions">
+                  <div class="section-subtitle">${S(`devices.fan_only_conditions`,c)}</div>
+                  ${Wt.map(({option:n,label:r})=>m`<label class="fan-only-condition">
                       <ha-checkbox
                         .checked=${!!t[n]}
                         @change=${t=>this._onFanOnlyOptionChange(e,n,t.target.checked)}
                       ></ha-checkbox>
-                      ${C(r,c)}
+                      ${S(r,c)}
                     </label>`)}
-                  <div class="section-subtitle">${C(`devices.fan_only_seasons`,c)}</div>
+                  <div class="section-subtitle">${S(`devices.fan_only_seasons`,c)}</div>
                   <div class="fan-only-seasons">
-                    ${[`spring`,`summer`,`autumn`,`winter`].map(n=>h`<label class="fan-only-condition">
+                    ${[`spring`,`summer`,`autumn`,`winter`].map(n=>m`<label class="fan-only-condition">
                         <ha-checkbox
                           .checked=${(t.fan_only_seasons??[]).includes(n)}
                           @change=${t=>this._onFanOnlySeasonChange(e,n,t.target.checked)}
                         ></ha-checkbox>
-                        ${C(`devices.fan_only_season_${n}`,c)}
+                        ${S(`devices.fan_only_season_${n}`,c)}
                       </label>`)}
                   </div>
-                  <div class="fan-only-hint">${C(`devices.fan_only_season_hint`,c)}</div>
-                </div>`:g}
-          `:g}
-      ${n?h`
+                  <div class="fan-only-hint">${S(`devices.fan_only_season_hint`,c)}</div>
+                </div>`:h}
+          `:h}
+      ${n?m`
             <div class="detail-field with-info">
               <ha-select
-                .label=${C(`devices.idle_action`,c)}
+                .label=${S(`devices.idle_action`,c)}
                 .value=${t.idle_action??`off`}
-                .options=${[{value:`off`,label:C(`devices.idle_action_off`,c)},{value:`low`,label:C(`devices.idle_action_low`,c)}]}
-                @selected=${t=>this._onIdleActionChange(e,F(t))}
+                .options=${[{value:`off`,label:S(`devices.idle_action_off`,c)},{value:`low`,label:S(`devices.idle_action_low`,c)}]}
+                @selected=${t=>this._onIdleActionChange(e,P(t))}
                 @closed=${e=>e.stopPropagation()}
                 fixedMenuPosition
               >
                 <ha-list-item value="off"
-                  >${C(`devices.idle_action_off`,c)}</ha-list-item
+                  >${S(`devices.idle_action_off`,c)}</ha-list-item
                 >
                 <ha-list-item value="low"
-                  >${C(`devices.idle_action_low`,c)}</ha-list-item
+                  >${S(`devices.idle_action_low`,c)}</ha-list-item
                 >
               </ha-select>
-              ${t.idle_action===`low`?h`<rs-info-icon
-                    .text=${C(`devices.idle_action_low_hint`,c)}
-                  ></rs-info-icon>`:g}
+              ${t.idle_action===`low`?m`<rs-info-icon
+                    .text=${S(`devices.idle_action_low_hint`,c)}
+                  ></rs-info-icon>`:h}
             </div>
-          `:g}
-      ${this.selectedTempSensor?h`
+          `:h}
+      ${this.selectedTempSensor?m`
             <div class="detail-field with-info">
               <ha-select
-                .label=${C(`devices.setpoint_mode`,c)}
+                .label=${S(`devices.setpoint_mode`,c)}
                 .value=${t.setpoint_mode??`proportional`}
-                .options=${[{value:`proportional`,label:C(`devices.setpoint_mode_proportional`,c)},{value:`direct`,label:C(`devices.setpoint_mode_direct`,c)}]}
-                @selected=${t=>this._onSetpointModeChange(e,F(t))}
+                .options=${[{value:`proportional`,label:S(`devices.setpoint_mode_proportional`,c)},{value:`direct`,label:S(`devices.setpoint_mode_direct`,c)}]}
+                @selected=${t=>this._onSetpointModeChange(e,P(t))}
                 @closed=${e=>e.stopPropagation()}
                 fixedMenuPosition
               >
                 <ha-list-item value="proportional"
-                  >${C(`devices.setpoint_mode_proportional`,c)}</ha-list-item
+                  >${S(`devices.setpoint_mode_proportional`,c)}</ha-list-item
                 >
                 <ha-list-item value="direct"
-                  >${C(`devices.setpoint_mode_direct`,c)}</ha-list-item
+                  >${S(`devices.setpoint_mode_direct`,c)}</ha-list-item
                 >
               </ha-select>
-              <rs-info-icon .text=${C(`devices.setpoint_mode_hint`,c)}></rs-info-icon>
+              <rs-info-icon .text=${S(`devices.setpoint_mode_hint`,c)}></rs-info-icon>
             </div>
-          `:g}
-      ${n&&this.valveProtectionEnabled?h`
+          `:h}
+      ${n&&this.valveProtectionEnabled?m`
             <div class="detail-toggle-row">
               <ha-checkbox
                 .checked=${s}
@@ -2457,14 +2530,14 @@
               ></ha-checkbox>
               <div class="detail-toggle-label">
                 <ha-icon icon="mdi:shield-off-outline"></ha-icon>
-                ${C(`devices.valve_protection_excluded`,c)}
+                ${S(`devices.valve_protection_excluded`,c)}
                 <rs-info-icon
-                  .text=${C(`devices.valve_protection_exclude_hint`,c)}
+                  .text=${S(`devices.valve_protection_exclude_hint`,c)}
                 ></rs-info-icon>
               </div>
             </div>
-          `:g}
-    `}_detectClimateType(e){return(this.hass.states[e]?.attributes?.hvac_modes??[]).some(e=>[`cool`,`heat_cool`].includes(e))?`ac`:`thermostat`}_getDeviceDisplayType(e){let t=this.devices.find(t=>t.entity_id===e);return t&&t.type===`ac`?`ac`:`thermostat`}_onClimateToggle(e,t){let n;if(t){let t=this._detectClimateType(e)===`thermostat`?`trv`:`ac`;n=[...this.devices,{entity_id:e,type:t,role:`auto`}]}else n=this.devices.filter(t=>t.entity_id!==e);this._fireDeviceChanged(n)}_onDeviceTypeChange(e,t){let n=t===`thermostat`?`trv`:`ac`,r=this.devices.map(t=>{if(t.entity_id!==e)return t;let r={...t,type:n};return n===`ac`&&r.idle_action===`low`&&(r.idle_action=`off`),r});this._fireDeviceChanged(r)}_onValveProtectionExcludeToggle(e,t){this.dispatchEvent(new CustomEvent(`valve-protection-exclude-toggle`,{detail:{entityId:e,excluded:t},bubbles:!0,composed:!0}))}_onIdleActionChange(e,t){let n=this.devices.map(n=>{if(n.entity_id!==e)return n;let r={...n,idle_action:t};return t===`fan_only`&&!n.idle_fan_mode&&(r.idle_fan_mode=`low`),r});this._fireDeviceChanged(n)}_onIdleFanModeChange(e,t){let n=this.devices.map(n=>n.entity_id===e?{...n,idle_fan_mode:t}:n);this._fireDeviceChanged(n)}_onFanOnlyOptionChange(e,t,n){this._fireDeviceChanged(this.devices.map(r=>r.entity_id===e?{...r,[t]:n}:r))}_onFanOnlySeasonChange(e,t,n){this._fireDeviceChanged(this.devices.map(r=>{if(r.entity_id!==e)return r;let i=new Set(r.fan_only_seasons??[]);return n?i.add(t):i.delete(t),{...r,fan_only_seasons:[...i]}}))}_onPowerSensorChange(e,t){let n=this.devices.map(n=>n.entity_id===e?{...n,power_sensor_entity_id:t}:n);this._fireDeviceChanged(n)}_onSetpointModeChange(e,t){let n=this.devices.map(n=>n.entity_id===e?{...n,setpoint_mode:t}:n);this._fireDeviceChanged(n)}_onHeatingSystemTypeChange(e){let t=F(e)??``,n=t===`standard`?``:t;this._showBoostHint=!0;let r=this.devices.map(e=>e.type===`trv`?{...e,heating_system_type:n}:e);this._fireDeviceChanged(r)}_fireDeviceChanged(e){this.dispatchEvent(new CustomEvent(`device-changed`,{detail:{devices:e},bubbles:!0,composed:!0}))}_onEntityPicked(e){let t=e.detail?.value,n=e.target;if(n.value=``,!t||!t.startsWith(`climate.`)||this.devices.some(e=>e.entity_id===t))return;let r=this._detectClimateType(t)===`thermostat`?`trv`:`ac`,i=[...this.devices,{entity_id:t,type:r,role:`auto`}];this._fireDeviceChanged(i)}};A([b({attribute:!1})],z.prototype,`hass`,void 0),A([b({attribute:!1})],z.prototype,`area`,void 0),A([b({attribute:!1})],z.prototype,`devices`,void 0),A([b({type:String})],z.prototype,`selectedTempSensor`,void 0),A([b({attribute:!1})],z.prototype,`valveProtectionExclude`,void 0),A([b({type:Boolean})],z.prototype,`valveProtectionEnabled`,void 0),A([b({type:Boolean})],z.prototype,`editing`,void 0),A([x()],z.prototype,`_systemTypeInfoExpanded`,void 0),A([x()],z.prototype,`_showBoostHint`,void 0),A([x()],z.prototype,`_selectedThermostats`,void 0),A([x()],z.prototype,`_selectedCoolingDevices`,void 0),A([x()],z.prototype,`_heatingSystemType`,void 0),A([x()],z.prototype,`_selectedForEdit`,void 0),z=A([y(`rs-device-section`)],z),v(),S(),j();var B=class extends _{constructor(...e){super(...e),this.temperatureSensor=``,this.humiditySensor=``,this.occupancySensors=new Set,this.windowSensors=new Set,this.windowOpenDelay=0,this.windowCloseDelay=0,this.keepFanOnlyOnWindowOpen=!0,this.heatingSystemType=``,this.editing=!1,this.language=`en`,this._pickerOpen=!1,this._collapsed={},this._globalEntityFilter=e=>{let t=e.entity_id;if(t.substring(t.indexOf(`.`)+1).startsWith(`roommind_`)||this.temperatureSensor===t||this.humiditySensor===t||this.occupancySensors.has(t)||this.windowSensors.has(t))return!1;if(t.startsWith(`sensor.`)){let e=this.hass.states[t]?.attributes?.device_class;return e===`temperature`||e===`humidity`}if(t.startsWith(`binary_sensor.`)){let e=this.hass.states[t]?.attributes?.device_class;return e===`occupancy`||e===`motion`||e===`presence`||e===`window`||e===`door`||e===`opening`}return t.startsWith(`climate.`)?this.hass.states[t]?.attributes?.current_temperature!=null:t.startsWith(`input_number.`)||t.startsWith(`input_boolean.`)},this._onGlobalPickerValueChanged=e=>{let t=e.detail?.value,n=e.target;if(n.value=``,t){if(t.startsWith(`binary_sensor.`)){let e=this.hass.states[t]?.attributes?.device_class;e===`window`||e===`door`||e===`opening`?this.windowSensors.has(t)||this._onWindowToggle(t,!0):this.occupancySensors.has(t)||this._onOccupancyToggle(t,!0)}else if(t.startsWith(`input_boolean.`))this.occupancySensors.has(t)||this._onOccupancyToggle(t,!0);else if(t.startsWith(`input_number.`)){let e=this.hass.states[t]?.attributes?.unit_of_measurement;this._onSensorSelected(t,e===`%`?`humidity`:`temp`)}else if(t.startsWith(`climate.`))this._onSensorSelected(t,`temp`);else{let e=this.hass.states[t]?.attributes?.device_class;this._onSensorSelected(t,e===`humidity`?`humidity`:`temp`)}this._pickerOpen=!1}},this._onKeepFanOnlyWindowChange=e=>{let t=e.target.checked;this.dispatchEvent(new CustomEvent(`sensor-changed`,{detail:{key:`keep_fan_only_on_window_open`,value:t},bubbles:!0,composed:!0}))},this._onWindowOpenDelayChange=e=>{let t=Math.max(0,parseInt(e.target.value)||0);this.dispatchEvent(new CustomEvent(`sensor-changed`,{detail:{key:`window_open_delay`,value:t},bubbles:!0,composed:!0}))},this._onWindowCloseDelayChange=e=>{let t=Math.max(0,parseInt(e.target.value)||0);this.dispatchEvent(new CustomEvent(`sensor-changed`,{detail:{key:`window_close_delay`,value:t},bubbles:!0,composed:!0}))}}static{this.styles=[L,l`
+          `:h}
+    `}_detectClimateType(e){return(this.hass.states[e]?.attributes?.hvac_modes??[]).some(e=>[`cool`,`heat_cool`].includes(e))?`ac`:`thermostat`}_getDeviceDisplayType(e){let t=this.devices.find(t=>t.entity_id===e);return t&&t.type===`ac`?`ac`:`thermostat`}_onClimateToggle(e,t){let n;if(t){let t=this._detectClimateType(e)===`thermostat`?`trv`:`ac`;n=[...this.devices,{entity_id:e,type:t,role:`auto`}]}else n=this.devices.filter(t=>t.entity_id!==e);this._fireDeviceChanged(n)}_onDeviceTypeChange(e,t){let n=t===`thermostat`?`trv`:`ac`,r=this.devices.map(t=>{if(t.entity_id!==e)return t;let r={...t,type:n};return n===`ac`&&r.idle_action===`low`&&(r.idle_action=`off`),r});this._fireDeviceChanged(r)}_onValveProtectionExcludeToggle(e,t){this.dispatchEvent(new CustomEvent(`valve-protection-exclude-toggle`,{detail:{entityId:e,excluded:t},bubbles:!0,composed:!0}))}_onIdleActionChange(e,t){let n=this.devices.map(n=>{if(n.entity_id!==e)return n;let r={...n,idle_action:t};return t===`fan_only`&&!n.idle_fan_mode&&(r.idle_fan_mode=`low`),r});this._fireDeviceChanged(n)}_onIdleFanModeChange(e,t){let n=this.devices.map(n=>n.entity_id===e?{...n,idle_fan_mode:t}:n);this._fireDeviceChanged(n)}_onFanOnlyOptionChange(e,t,n){this._fireDeviceChanged(this.devices.map(r=>r.entity_id===e?{...r,[t]:n}:r))}_onFanOnlySeasonChange(e,t,n){this._fireDeviceChanged(this.devices.map(r=>{if(r.entity_id!==e)return r;let i=new Set(r.fan_only_seasons??[]);return n?i.add(t):i.delete(t),{...r,fan_only_seasons:[...i]}}))}_onPowerSensorChange(e,t){let n=this.devices.map(n=>n.entity_id===e?{...n,power_sensor_entity_id:t}:n);this._fireDeviceChanged(n)}_onSetpointModeChange(e,t){let n=this.devices.map(n=>n.entity_id===e?{...n,setpoint_mode:t}:n);this._fireDeviceChanged(n)}_onHeatingSystemTypeChange(e){let t=P(e)??``,n=t===`standard`?``:t;this._showBoostHint=!0;let r=this.devices.map(e=>e.type===`trv`?{...e,heating_system_type:n}:e);this._fireDeviceChanged(r)}_fireDeviceChanged(e){this.dispatchEvent(new CustomEvent(`device-changed`,{detail:{devices:e},bubbles:!0,composed:!0}))}_onEntityPicked(e){let t=e.detail?.value,n=e.target;if(n.value=``,!t||!t.startsWith(`climate.`)||this.devices.some(e=>e.entity_id===t))return;let r=this._detectClimateType(t)===`thermostat`?`trv`:`ac`,i=[...this.devices,{entity_id:t,type:r,role:`auto`}];this._fireDeviceChanged(i)}};k([y({attribute:!1})],R.prototype,`hass`,void 0),k([y({attribute:!1})],R.prototype,`area`,void 0),k([y({attribute:!1})],R.prototype,`devices`,void 0),k([y({type:String})],R.prototype,`selectedTempSensor`,void 0),k([y({attribute:!1})],R.prototype,`valveProtectionExclude`,void 0),k([y({type:Boolean})],R.prototype,`valveProtectionEnabled`,void 0),k([y({type:Boolean})],R.prototype,`editing`,void 0),k([b()],R.prototype,`_systemTypeInfoExpanded`,void 0),k([b()],R.prototype,`_showBoostHint`,void 0),k([b()],R.prototype,`_selectedThermostats`,void 0),k([b()],R.prototype,`_selectedCoolingDevices`,void 0),k([b()],R.prototype,`_heatingSystemType`,void 0),k([b()],R.prototype,`_selectedForEdit`,void 0),R=k([v(`rs-device-section`)],R),_(),x(),A();var z=class extends g{constructor(...e){super(...e),this.temperatureSensor=``,this.humiditySensor=``,this.occupancySensors=new Set,this.windowSensors=new Set,this.windowOpenDelay=0,this.windowCloseDelay=0,this.keepFanOnlyOnWindowOpen=!0,this.heatingSystemType=``,this.editing=!1,this.language=`en`,this._pickerOpen=!1,this._collapsed={},this._globalEntityFilter=e=>{let t=e.entity_id;if(t.substring(t.indexOf(`.`)+1).startsWith(`roommind_`)||this.temperatureSensor===t||this.humiditySensor===t||this.occupancySensors.has(t)||this.windowSensors.has(t))return!1;if(t.startsWith(`sensor.`)){let e=this.hass.states[t]?.attributes?.device_class;return e===`temperature`||e===`humidity`}if(t.startsWith(`binary_sensor.`)){let e=this.hass.states[t]?.attributes?.device_class;return e===`occupancy`||e===`motion`||e===`presence`||e===`window`||e===`door`||e===`opening`}return t.startsWith(`climate.`)?this.hass.states[t]?.attributes?.current_temperature!=null:t.startsWith(`input_number.`)||t.startsWith(`input_boolean.`)},this._onGlobalPickerValueChanged=e=>{let t=e.detail?.value,n=e.target;if(n.value=``,t){if(t.startsWith(`binary_sensor.`)){let e=this.hass.states[t]?.attributes?.device_class;e===`window`||e===`door`||e===`opening`?this.windowSensors.has(t)||this._onWindowToggle(t,!0):this.occupancySensors.has(t)||this._onOccupancyToggle(t,!0)}else if(t.startsWith(`input_boolean.`))this.occupancySensors.has(t)||this._onOccupancyToggle(t,!0);else if(t.startsWith(`input_number.`)){let e=this.hass.states[t]?.attributes?.unit_of_measurement;this._onSensorSelected(t,e===`%`?`humidity`:`temp`)}else if(t.startsWith(`climate.`))this._onSensorSelected(t,`temp`);else{let e=this.hass.states[t]?.attributes?.device_class;this._onSensorSelected(t,e===`humidity`?`humidity`:`temp`)}this._pickerOpen=!1}},this._onKeepFanOnlyWindowChange=e=>{let t=e.target.checked;this.dispatchEvent(new CustomEvent(`sensor-changed`,{detail:{key:`keep_fan_only_on_window_open`,value:t},bubbles:!0,composed:!0}))},this._onWindowOpenDelayChange=e=>{let t=Math.max(0,parseInt(e.target.value)||0);this.dispatchEvent(new CustomEvent(`sensor-changed`,{detail:{key:`window_open_delay`,value:t},bubbles:!0,composed:!0}))},this._onWindowCloseDelayChange=e=>{let t=Math.max(0,parseInt(e.target.value)||0);this.dispatchEvent(new CustomEvent(`sensor-changed`,{detail:{key:`window_close_delay`,value:t},bubbles:!0,composed:!0}))}}static{this.styles=[I,l`
       :host {
         display: block;
       }
@@ -2834,63 +2907,63 @@
       .section-subtitle:first-child {
         margin-top: 0;
       }
-    `]}render(){return this.editing?this._renderEditMode():this._renderViewMode()}_renderViewMode(){let e=!!this.temperatureSensor,t=!!this.humiditySensor,n=this.occupancySensors.size>0,r=this.windowSensors.size>0;if(!e&&!t&&!n&&!r)return g;let i=this.hass.language;return h`
-      ${e?h`
-            <div class="section-subtitle">${C(`devices.temp_sensors`,i)}</div>
+    `]}render(){return this.editing?this._renderEditMode():this._renderViewMode()}_renderViewMode(){let e=!!this.temperatureSensor,t=!!this.humiditySensor,n=this.occupancySensors.size>0,r=this.windowSensors.size>0;if(!e&&!t&&!n&&!r)return h;let i=this.hass.language;return m`
+      ${e?m`
+            <div class="section-subtitle">${S(`devices.temp_sensors`,i)}</div>
             ${this._renderSensorViewRow(this.temperatureSensor,`temp`)}
-          `:g}
-      ${t?h`
-            <div class="section-subtitle">${C(`devices.humidity_sensors`,i)}</div>
+          `:h}
+      ${t?m`
+            <div class="section-subtitle">${S(`devices.humidity_sensors`,i)}</div>
             ${this._renderSensorViewRow(this.humiditySensor,`humidity`)}
-          `:g}
-      ${n?h`
-            <div class="section-subtitle">${C(`devices.occupancy_sensors`,i)}</div>
+          `:h}
+      ${n?m`
+            <div class="section-subtitle">${S(`devices.occupancy_sensors`,i)}</div>
             ${[...this.occupancySensors].map(e=>this._renderOccupancyViewRow(e))}
-          `:g}
-      ${r?h`
-            <div class="section-subtitle">${C(`devices.window_sensors`,i)}</div>
+          `:h}
+      ${r?m`
+            <div class="section-subtitle">${S(`devices.window_sensors`,i)}</div>
             ${[...this.windowSensors].map(e=>this._renderWindowViewRow(e))}
-            ${this.windowOpenDelay||this.windowCloseDelay?h`<div class="delay-view">
-                  ${this.windowOpenDelay?h`${C(`devices.window_open_delay`,i)}: ${this.windowOpenDelay}s`:g}
-                  ${this.windowOpenDelay&&this.windowCloseDelay?` · `:g}
-                  ${this.windowCloseDelay?h`${C(`devices.window_close_delay`,i)}:
-                      ${this.windowCloseDelay}s`:g}
-                </div>`:g}
-          `:g}
-    `}_renderWindowViewRow(e){let t=this.hass.states[e],n=t?.attributes?.friendly_name||e,r=t?.state===`on`;return h`
+            ${this.windowOpenDelay||this.windowCloseDelay?m`<div class="delay-view">
+                  ${this.windowOpenDelay?m`${S(`devices.window_open_delay`,i)}: ${this.windowOpenDelay}s`:h}
+                  ${this.windowOpenDelay&&this.windowCloseDelay?` · `:h}
+                  ${this.windowCloseDelay?m`${S(`devices.window_close_delay`,i)}:
+                      ${this.windowCloseDelay}s`:h}
+                </div>`:h}
+          `:h}
+    `}_renderWindowViewRow(e){let t=this.hass.states[e],n=t?.attributes?.friendly_name||e,r=t?.state===`on`;return m`
       <div class="view-row">
-        <span class="view-name entity-link" @click=${()=>Ft(this,e)}
+        <span class="view-name entity-link" @click=${()=>Rt(this,e)}
           >${n}</span
         >
         <span class="occupancy-dot window-dot ${r?`on`:`off`}"></span>
       </div>
-    `}_renderSensorViewRow(e,t){let n=this.hass.states[e],r=n?.attributes?.friendly_name||e,i=n?.state,a=n?.attributes??{},o=``;if(t===`temp`){let t=e.startsWith(`climate.`)?a.current_temperature:i;t!=null&&t!==``&&t!==`unknown`&&t!==`unavailable`&&(o=`${Number(t).toFixed(1)}${w(this.hass)}`)}else i&&i!==`unknown`&&i!==`unavailable`&&(o=`${Math.round(Number(i))}%`);return h`
+    `}_renderSensorViewRow(e,t){let n=this.hass.states[e],r=n?.attributes?.friendly_name||e,i=n?.state,a=n?.attributes??{},o=``;if(t===`temp`){let t=e.startsWith(`climate.`)?a.current_temperature:i;t!=null&&t!==``&&t!==`unknown`&&t!==`unavailable`&&(o=`${Number(t).toFixed(1)}${C(this.hass)}`)}else i&&i!==`unknown`&&i!==`unavailable`&&(o=`${Math.round(Number(i))}%`);return m`
       <div class="view-row">
-        <span class="view-name entity-link" @click=${()=>Ft(this,e)}
+        <span class="view-name entity-link" @click=${()=>Rt(this,e)}
           >${r}</span
         >
-        ${o?h`<span class="view-value">${o}</span>`:g}
+        ${o?m`<span class="view-value">${o}</span>`:h}
       </div>
-    `}_renderOccupancyViewRow(e){let t=this.hass.states[e],n=t?.attributes?.friendly_name||e,r=t?.state===`on`;return h`
+    `}_renderOccupancyViewRow(e){let t=this.hass.states[e],n=t?.attributes?.friendly_name||e,r=t?.state===`on`;return m`
       <div class="view-row">
-        <span class="view-name entity-link" @click=${()=>Ft(this,e)}
+        <span class="view-name entity-link" @click=${()=>Rt(this,e)}
           >${n}</span
         >
         <span class="occupancy-dot ${r?`on`:`off`}"></span>
       </div>
-    `}_renderEditMode(){let e=yt(this.area.area_id,this.hass?.entities,this.hass?.devices).filter(e=>!e.entity_id.substring(e.entity_id.indexOf(`.`)+1).startsWith(`roommind_`)),t=this.hass?.states?e.filter(e=>e.entity_id.startsWith(`sensor.`)&&this.hass.states[e.entity_id]?.attributes?.device_class===`temperature`||e.entity_id.startsWith(`climate.`)&&this.hass.states[e.entity_id]?.attributes?.current_temperature!=null):[],n=this.hass?.states?e.filter(e=>e.entity_id.startsWith(`sensor.`)&&this.hass.states[e.entity_id]?.attributes?.device_class===`humidity`):[],r=this.hass?.states?e.filter(e=>e.entity_id.startsWith(`binary_sensor.`)&&[`occupancy`,`motion`,`presence`].includes(this.hass.states[e.entity_id]?.attributes?.device_class)||e.entity_id.startsWith(`input_boolean.`)):[],i=new Set(t.map(e=>e.entity_id)),a=this.temperatureSensor&&!i.has(this.temperatureSensor)?this.temperatureSensor:null,o=new Set(n.map(e=>e.entity_id)),s=this.humiditySensor&&!o.has(this.humiditySensor)?this.humiditySensor:null,c=new Set(r.map(e=>e.entity_id)),l=[...this.occupancySensors].filter(e=>!c.has(e)),u=this.hass?.states?e.filter(e=>e.entity_id.startsWith(`binary_sensor.`)&&[`window`,`door`,`opening`].includes(this.hass.states[e.entity_id]?.attributes?.device_class)):[],d=new Set(u.map(e=>e.entity_id)),f=[...this.windowSensors].filter(e=>!d.has(e)),p=this.hass.language;return h`
-      ${this._renderBlock({kind:`temp`,icon:`mdi:thermometer`,title:C(`devices.temp_sensors`,p),emptyText:C(`devices.no_temp_sensors`,p),areaSensors:t,externalSensors:a?[a]:[],selectedCount:+!!this.temperatureSensor})}
-      ${this._renderBlock({kind:`humidity`,icon:`mdi:water-percent`,title:C(`devices.humidity_sensors`,p),emptyText:C(`devices.no_humidity_sensors`,p),areaSensors:n,externalSensors:s?[s]:[],selectedCount:+!!this.humiditySensor})}
-      ${this._renderBlock({kind:`occupancy`,icon:`mdi:account-eye`,title:C(`devices.occupancy_sensors`,p),emptyText:C(`devices.no_occupancy_sensors`,p),areaSensors:r,externalSensors:l,selectedCount:this.occupancySensors.size})}
-      ${this._renderBlock({kind:`window`,icon:`mdi:window-open-variant`,title:C(`devices.window_sensors`,p),emptyText:C(`devices.no_window_sensors`,p),areaSensors:u,externalSensors:f,selectedCount:this.windowSensors.size,extras:this._renderWindowExtras(p)})}
+    `}_renderEditMode(){let e=bt(this.area.area_id,this.hass?.entities,this.hass?.devices).filter(e=>!e.entity_id.substring(e.entity_id.indexOf(`.`)+1).startsWith(`roommind_`)),t=this.hass?.states?e.filter(e=>e.entity_id.startsWith(`sensor.`)&&this.hass.states[e.entity_id]?.attributes?.device_class===`temperature`||e.entity_id.startsWith(`climate.`)&&this.hass.states[e.entity_id]?.attributes?.current_temperature!=null):[],n=this.hass?.states?e.filter(e=>e.entity_id.startsWith(`sensor.`)&&this.hass.states[e.entity_id]?.attributes?.device_class===`humidity`):[],r=this.hass?.states?e.filter(e=>e.entity_id.startsWith(`binary_sensor.`)&&[`occupancy`,`motion`,`presence`].includes(this.hass.states[e.entity_id]?.attributes?.device_class)||e.entity_id.startsWith(`input_boolean.`)):[],i=new Set(t.map(e=>e.entity_id)),a=this.temperatureSensor&&!i.has(this.temperatureSensor)?this.temperatureSensor:null,o=new Set(n.map(e=>e.entity_id)),s=this.humiditySensor&&!o.has(this.humiditySensor)?this.humiditySensor:null,c=new Set(r.map(e=>e.entity_id)),l=[...this.occupancySensors].filter(e=>!c.has(e)),u=this.hass?.states?e.filter(e=>e.entity_id.startsWith(`binary_sensor.`)&&[`window`,`door`,`opening`].includes(this.hass.states[e.entity_id]?.attributes?.device_class)):[],d=new Set(u.map(e=>e.entity_id)),f=[...this.windowSensors].filter(e=>!d.has(e)),p=this.hass.language;return m`
+      ${this._renderBlock({kind:`temp`,icon:`mdi:thermometer`,title:S(`devices.temp_sensors`,p),emptyText:S(`devices.no_temp_sensors`,p),areaSensors:t,externalSensors:a?[a]:[],selectedCount:+!!this.temperatureSensor})}
+      ${this._renderBlock({kind:`humidity`,icon:`mdi:water-percent`,title:S(`devices.humidity_sensors`,p),emptyText:S(`devices.no_humidity_sensors`,p),areaSensors:n,externalSensors:s?[s]:[],selectedCount:+!!this.humiditySensor})}
+      ${this._renderBlock({kind:`occupancy`,icon:`mdi:account-eye`,title:S(`devices.occupancy_sensors`,p),emptyText:S(`devices.no_occupancy_sensors`,p),areaSensors:r,externalSensors:l,selectedCount:this.occupancySensors.size})}
+      ${this._renderBlock({kind:`window`,icon:`mdi:window-open-variant`,title:S(`devices.window_sensors`,p),emptyText:S(`devices.no_window_sensors`,p),areaSensors:u,externalSensors:f,selectedCount:this.windowSensors.size,extras:this._renderWindowExtras(p)})}
       ${this._renderGlobalAdd(p)}
-    `}_renderWindowExtras(e){return this.windowSensors.size===0?g:h`
+    `}_renderWindowExtras(e){return this.windowSensors.size===0?h:m`
       <div class="delay-fields">
         <ha-textfield
           type="number"
           min="0"
           suffix="s"
-          .label=${C(`devices.window_open_delay`,e)}
+          .label=${S(`devices.window_open_delay`,e)}
           .value=${String(this.windowOpenDelay)}
           @change=${this._onWindowOpenDelayChange}
         ></ha-textfield>
@@ -2898,7 +2971,7 @@
           type="number"
           min="0"
           suffix="s"
-          .label=${C(`devices.window_close_delay`,e)}
+          .label=${S(`devices.window_close_delay`,e)}
           .value=${String(this.windowCloseDelay)}
           @change=${this._onWindowCloseDelayChange}
         ></ha-textfield>
@@ -2906,10 +2979,10 @@
       <div class="fan-window-toggle">
         <div class="fan-window-toggle-text">
           <span class="fan-window-toggle-label"
-            >${C(`devices.keep_fan_only_window`,e)}</span
+            >${S(`devices.keep_fan_only_window`,e)}</span
           >
           <span class="fan-window-toggle-hint"
-            >${C(`devices.keep_fan_only_window_hint`,e)}</span
+            >${S(`devices.keep_fan_only_window_hint`,e)}</span
           >
         </div>
         <ha-switch
@@ -2917,13 +2990,13 @@
           @change=${this._onKeepFanOnlyWindowChange}
         ></ha-switch>
       </div>
-      ${this.heatingSystemType===`underfloor`&&this.windowOpenDelay<300?h`
+      ${this.heatingSystemType===`underfloor`&&this.windowOpenDelay<300?m`
             <div class="delay-hint">
               <ha-icon icon="mdi:information-outline"></ha-icon>
-              ${C(`devices.underfloor_delay_hint`,e)}
+              ${S(`devices.underfloor_delay_hint`,e)}
             </div>
-          `:g}
-    `}_renderGlobalAdd(e){return this._pickerOpen?h`
+          `:h}
+    `}_renderGlobalAdd(e){return this._pickerOpen?m`
         <div class="global-add">
           <ha-entity-picker
             .hass=${this.hass}
@@ -2931,7 +3004,7 @@
             .entityFilter=${this._globalEntityFilter}
             .value=${``}
             .autofocus=${!0}
-            label=${C(`devices.add_entity`,e)}
+            label=${S(`devices.add_entity`,e)}
             @value-changed=${this._onGlobalPickerValueChanged}
           ></ha-entity-picker>
           <ha-icon-button
@@ -2940,35 +3013,35 @@
             @click=${()=>this._pickerOpen=!1}
           ></ha-icon-button>
         </div>
-      `:h`
+      `:m`
       <button type="button" class="add-button global" @click=${()=>this._pickerOpen=!0}>
         <ha-icon icon="mdi:plus"></ha-icon>
-        ${C(`devices.add_entity`,e)}
+        ${S(`devices.add_entity`,e)}
       </button>
-    `}_renderBlock(e){let t=e.areaSensors.length+e.externalSensors.length,n=this._collapsed[e.kind]??!0;return h`
+    `}_renderBlock(e){let t=e.areaSensors.length+e.externalSensors.length,n=this._collapsed[e.kind]??!0;return m`
       <div class="sensor-block ${n?`collapsed`:``}">
         <div class="block-header" @click=${()=>this._toggleBlock(e.kind)}>
           <ha-icon icon=${e.icon}></ha-icon>
           <div class="block-title">${e.title}</div>
-          ${e.selectedCount>0?h`<span class="count-chip has-selection">${e.selectedCount}</span>`:t>0?h`<span class="count-chip">${t}</span>`:g}
+          ${e.selectedCount>0?m`<span class="count-chip has-selection">${e.selectedCount}</span>`:t>0?m`<span class="count-chip">${t}</span>`:h}
           <ha-icon
             class="chevron ${n?`collapsed`:``}"
             icon="mdi:chevron-down"
           ></ha-icon>
         </div>
-        ${n?g:h`
+        ${n?h:m`
               <div class="block-body">
                 <div class="row-list">
-                  ${e.areaSensors.length>0||e.externalSensors.length>0?h`
+                  ${e.areaSensors.length>0||e.externalSensors.length>0?m`
                         ${e.areaSensors.map(t=>this._renderEditRow(t.entity_id,e.kind,!1))}
                         ${e.externalSensors.map(t=>this._renderEditRow(t,e.kind,!0))}
-                      `:h`<div class="empty-row">${e.emptyText}</div>`}
+                      `:m`<div class="empty-row">${e.emptyText}</div>`}
                 </div>
-                ${e.extras??g}
+                ${e.extras??h}
               </div>
             `}
       </div>
-    `}_toggleBlock(e){let t=this._collapsed[e]??!0;this._collapsed={...this._collapsed,[e]:!t}}_renderEditRow(e,t,n){let r=this.hass.states[e],i=r?.attributes?.friendly_name||e,a=this.hass.language;if(t===`occupancy`||t===`window`){let o=(t===`occupancy`?this.occupancySensors:this.windowSensors).has(e),s=r?.state===`on`,c=t===`window`?`occupancy-dot window-dot`:`occupancy-dot`,l=n=>t===`occupancy`?this._onOccupancyToggle(e,n):this._onWindowToggle(e,n);return h`
+    `}_toggleBlock(e){let t=this._collapsed[e]??!0;this._collapsed={...this._collapsed,[e]:!t}}_renderEditRow(e,t,n){let r=this.hass.states[e],i=r?.attributes?.friendly_name||e,a=this.hass.language;if(t===`occupancy`||t===`window`){let o=(t===`occupancy`?this.occupancySensors:this.windowSensors).has(e),s=r?.state===`on`,c=t===`window`?`occupancy-dot window-dot`:`occupancy-dot`,l=n=>t===`occupancy`?this._onOccupancyToggle(e,n):this._onWindowToggle(e,n);return m`
         <div
           class="row ${o?`selected`:``}"
           @click=${e=>{e.target.tagName!==`HA-CHECKBOX`&&l(!o)}}
@@ -2980,13 +3053,13 @@
           <div class="row-info">
             <div class="row-name-line">
               <span class="row-name">${i}</span>
-              ${n?h`<span class="external-badge">${C(`devices.other_area`,a)}</span>`:g}
+              ${n?m`<span class="external-badge">${S(`devices.other_area`,a)}</span>`:h}
             </div>
             <div class="row-eid">${e}</div>
           </div>
           <span class="${c} ${s?`on`:`off`}"></span>
         </div>
-      `}let o=(t===`temp`?this.temperatureSensor:this.humiditySensor)===e,s=t===`temp`?w(this.hass):`%`,c=e.startsWith(`climate.`)?r?.attributes?.current_temperature:r?.state,l=c&&c!==`unknown`&&c!==`unavailable`?`${t===`humidity`?Math.round(Number(c)):Number(c).toFixed(1)}${s}`:``;return h`
+      `}let o=(t===`temp`?this.temperatureSensor:this.humiditySensor)===e,s=t===`temp`?C(this.hass):`%`,c=e.startsWith(`climate.`)?r?.attributes?.current_temperature:r?.state,l=c&&c!==`unknown`&&c!==`unavailable`?`${t===`humidity`?Math.round(Number(c)):Number(c).toFixed(1)}${s}`:``;return m`
       <div
         class="row ${o?`selected`:``}"
         @click=${()=>this._onSensorSelected(o?``:e,t)}
@@ -2995,13 +3068,13 @@
         <div class="row-info">
           <div class="row-name-line">
             <span class="row-name">${i}</span>
-            ${n?h`<span class="external-badge">${C(`devices.other_area`,a)}</span>`:g}
+            ${n?m`<span class="external-badge">${S(`devices.other_area`,a)}</span>`:h}
           </div>
           <div class="row-eid">${e}</div>
         </div>
-        ${l?h`<span class="value-chip">${l}</span>`:g}
+        ${l?m`<span class="value-chip">${l}</span>`:h}
       </div>
-    `}_onSensorSelected(e,t){let n=t===`temp`?`temperature_sensor`:`humidity_sensor`;this.dispatchEvent(new CustomEvent(`sensor-changed`,{detail:{key:n,value:e},bubbles:!0,composed:!0}))}_onOccupancyToggle(e,t){let n=new Set(this.occupancySensors);t?n.add(e):n.delete(e),this.dispatchEvent(new CustomEvent(`sensor-changed`,{detail:{key:`occupancy_sensors`,value:[...n]},bubbles:!0,composed:!0}))}_onWindowToggle(e,t){let n=new Set(this.windowSensors);t?n.add(e):n.delete(e),this.dispatchEvent(new CustomEvent(`sensor-changed`,{detail:{key:`window_sensors`,value:[...n]},bubbles:!0,composed:!0}))}};A([b({attribute:!1})],B.prototype,`hass`,void 0),A([b({attribute:!1})],B.prototype,`area`,void 0),A([b({type:String})],B.prototype,`temperatureSensor`,void 0),A([b({type:String})],B.prototype,`humiditySensor`,void 0),A([b({attribute:!1})],B.prototype,`occupancySensors`,void 0),A([b({attribute:!1})],B.prototype,`windowSensors`,void 0),A([b({type:Number})],B.prototype,`windowOpenDelay`,void 0),A([b({type:Number})],B.prototype,`windowCloseDelay`,void 0),A([b({type:Boolean})],B.prototype,`keepFanOnlyOnWindowOpen`,void 0),A([b({type:String})],B.prototype,`heatingSystemType`,void 0),A([b({type:Boolean})],B.prototype,`editing`,void 0),A([b()],B.prototype,`language`,void 0),A([x()],B.prototype,`_pickerOpen`,void 0),A([x()],B.prototype,`_collapsed`,void 0),B=A([y(`rs-sensor-section`)],B),v(),S(),j();var Ht=class extends _{constructor(...e){super(...e),this.label=``,this.hint=``}static{this.styles=l`
+    `}_onSensorSelected(e,t){let n=t===`temp`?`temperature_sensor`:`humidity_sensor`;this.dispatchEvent(new CustomEvent(`sensor-changed`,{detail:{key:n,value:e},bubbles:!0,composed:!0}))}_onOccupancyToggle(e,t){let n=new Set(this.occupancySensors);t?n.add(e):n.delete(e),this.dispatchEvent(new CustomEvent(`sensor-changed`,{detail:{key:`occupancy_sensors`,value:[...n]},bubbles:!0,composed:!0}))}_onWindowToggle(e,t){let n=new Set(this.windowSensors);t?n.add(e):n.delete(e),this.dispatchEvent(new CustomEvent(`sensor-changed`,{detail:{key:`window_sensors`,value:[...n]},bubbles:!0,composed:!0}))}};k([y({attribute:!1})],z.prototype,`hass`,void 0),k([y({attribute:!1})],z.prototype,`area`,void 0),k([y({type:String})],z.prototype,`temperatureSensor`,void 0),k([y({type:String})],z.prototype,`humiditySensor`,void 0),k([y({attribute:!1})],z.prototype,`occupancySensors`,void 0),k([y({attribute:!1})],z.prototype,`windowSensors`,void 0),k([y({type:Number})],z.prototype,`windowOpenDelay`,void 0),k([y({type:Number})],z.prototype,`windowCloseDelay`,void 0),k([y({type:Boolean})],z.prototype,`keepFanOnlyOnWindowOpen`,void 0),k([y({type:String})],z.prototype,`heatingSystemType`,void 0),k([y({type:Boolean})],z.prototype,`editing`,void 0),k([y()],z.prototype,`language`,void 0),k([b()],z.prototype,`_pickerOpen`,void 0),k([b()],z.prototype,`_collapsed`,void 0),z=k([v(`rs-sensor-section`)],z),_(),x(),A();var Gt=class extends g{constructor(...e){super(...e),this.label=``,this.hint=``}static{this.styles=l`
     :host {
       display: inline-block;
     }
@@ -3017,7 +3090,7 @@
       text-transform: uppercase;
       cursor: default;
     }
-  `}render(){return h`<span class="badge" title=${this.hint}>${this.label}</span>`}};A([b({type:String})],Ht.prototype,`label`,void 0),A([b({type:String})],Ht.prototype,`hint`,void 0),Ht=A([y(`rs-badge`)],Ht),v(),S(),j();var Ut=`M20.71,7.04C21.1,6.65 21.1,6 20.71,5.63L18.37,3.29C18,2.9 17.35,2.9 16.96,3.29L15.12,5.12L18.87,8.87M3,17.25V21H6.75L17.81,9.93L14.06,6.18L3,17.25Z`,Wt=class extends _{constructor(...e){super(...e),this.icon=``,this.heading=``,this.badge=``,this.badgeHint=``,this.editable=!1}static{this.styles=l`
+  `}render(){return m`<span class="badge" title=${this.hint}>${this.label}</span>`}};k([y({type:String})],Gt.prototype,`label`,void 0),k([y({type:String})],Gt.prototype,`hint`,void 0),Gt=k([v(`rs-badge`)],Gt),_(),x(),A();var Kt=`M20.71,7.04C21.1,6.65 21.1,6 20.71,5.63L18.37,3.29C18,2.9 17.35,2.9 16.96,3.29L15.12,5.12L18.87,8.87M3,17.25V21H6.75L17.81,9.93L14.06,6.18L3,17.25Z`,qt=class extends g{constructor(...e){super(...e),this.icon=``,this.heading=``,this.badge=``,this.badgeHint=``,this.editable=!1}static{this.styles=l`
     :host {
       display: block;
     }
@@ -3069,26 +3142,26 @@
     .section-body {
       padding: 0 20px 20px;
     }
-  `}render(){return h`
+  `}render(){return m`
       <ha-card>
         <div class="section-header">
           <ha-icon class="section-icon" icon=${this.icon}></ha-icon>
           <h3 class="section-title">${this.heading}</h3>
-          ${this.badge?h`<rs-badge .label=${this.badge} .hint=${this.badgeHint}></rs-badge>`:g}
+          ${this.badge?m`<rs-badge .label=${this.badge} .hint=${this.badgeHint}></rs-badge>`:h}
           <slot name="header-extras"></slot>
-          ${this.editable?h`
+          ${this.editable?m`
                 <ha-icon-button
                   class="edit-btn"
-                  .path=${Ut}
+                  .path=${Kt}
                   @click=${this._onEditClick}
                 ></ha-icon-button>
-              `:g}
+              `:h}
         </div>
         <div class="section-body">
           <slot></slot>
         </div>
       </ha-card>
-    `}_onEditClick(){this.dispatchEvent(new CustomEvent(`edit-click`,{bubbles:!0,composed:!0}))}};A([b({type:String})],Wt.prototype,`icon`,void 0),A([b({type:String})],Wt.prototype,`heading`,void 0),A([b({type:String})],Wt.prototype,`badge`,void 0),A([b({type:String})],Wt.prototype,`badgeHint`,void 0),A([b({type:Boolean})],Wt.prototype,`editable`,void 0),Wt=A([y(`rs-section-card`)],Wt),v(),S(),j();var V=class extends _{constructor(...e){super(...e),this.climateMode=`auto`,this.comfortHeat=21,this.comfortCool=24,this.ecoHeat=17,this.ecoCool=27,this.language=`en`,this._overridePending=null,this._overrideCustomHeat=21,this._overrideCustomCool=24,this._overrideError=``,this._optimisticOverride=null,this._optimisticClear=!1}static{this.styles=[L,l`
+    `}_onEditClick(){this.dispatchEvent(new CustomEvent(`edit-click`,{bubbles:!0,composed:!0}))}};k([y({type:String})],qt.prototype,`icon`,void 0),k([y({type:String})],qt.prototype,`heading`,void 0),k([y({type:String})],qt.prototype,`badge`,void 0),k([y({type:String})],qt.prototype,`badgeHint`,void 0),k([y({type:Boolean})],qt.prototype,`editable`,void 0),qt=k([v(`rs-section-card`)],qt),_(),x(),A();var B=class extends g{constructor(...e){super(...e),this.climateMode=`auto`,this.comfortHeat=21,this.comfortCool=24,this.ecoHeat=17,this.ecoCool=27,this.language=`en`,this._overridePending=null,this._overrideCustomHeat=21,this._overrideCustomCool=24,this._overrideError=``,this._optimisticOverride=null,this._optimisticClear=!1}static{this.styles=[I,l`
       :host {
         display: block;
       }
@@ -3222,14 +3295,14 @@
         font-size: 12px;
         margin-top: 6px;
       }
-    `]}updated(e){if(e.has(`config`)&&this.config?.live){let e=this.config.live;this._optimisticOverride&&e.override_active&&(this._optimisticOverride=null),this._optimisticClear&&!e.override_active&&(this._optimisticClear=!1)}}getEffectiveOverride(){if(this._optimisticClear)return{active:!1,type:null,heat:null,cool:null,until:null};if(this._optimisticOverride)return{active:!0,type:this._optimisticOverride.type,heat:this._optimisticOverride.heat,cool:this._optimisticOverride.cool,until:this._optimisticOverride.until};let e=this.config?.live;return e?.override_active&&e.override_type?{active:!0,type:e.override_type,heat:e.override_heat,cool:e.override_cool,until:e.override_until}:{active:!1,type:null,heat:null,cool:null,until:null}}render(){let e=this.getEffectiveOverride();return h`
+    `]}updated(e){if(e.has(`config`)&&this.config?.live){let e=this.config.live;this._optimisticOverride&&e.override_active&&(this._optimisticOverride=null),this._optimisticClear&&!e.override_active&&(this._optimisticClear=!1)}}getEffectiveOverride(){if(this._optimisticClear)return{active:!1,type:null,heat:null,cool:null,until:null};if(this._optimisticOverride)return{active:!0,type:this._optimisticOverride.type,heat:this._optimisticOverride.heat,cool:this._optimisticOverride.cool,until:this._optimisticOverride.until};let e=this.config?.live;return e?.override_active&&e.override_type?{active:!0,type:e.override_type,heat:e.override_heat,cool:e.override_cool,until:e.override_until}:{active:!1,type:null,heat:null,cool:null,until:null}}render(){let e=this.getEffectiveOverride();return m`
       <hr class="override-divider" />
-      <div class="override-label">${C(`override.label`,this.language)}</div>
+      <div class="override-label">${S(`override.label`,this.language)}</div>
       ${this._renderOverrideButtons(e)}
-      ${this._overrideError?h`<div class="override-error">${this._overrideError}</div>`:g}
-    `}_renderOverrideButtons(e){let t=e.active?e.type:null,n=!t&&this._overridePending;return h`
+      ${this._overrideError?m`<div class="override-error">${this._overrideError}</div>`:h}
+    `}_renderOverrideButtons(e){let t=e.active?e.type:null,n=!t&&this._overridePending;return m`
       <div class="override-presets">
-        ${[`boost`,`eco`,`custom`].map(e=>{let n=t===e,r=t!==null&&!n,i=!t&&this._overridePending===e;return h`
+        ${[`boost`,`eco`,`custom`].map(e=>{let n=t===e,r=t!==null&&!n,i=!t&&this._overridePending===e;return m`
             <button
               class="override-preset ${e} ${n?`active`:``} ${i?`pending`:``}"
               ?disabled=${r}
@@ -3238,18 +3311,18 @@
               <ha-icon
                 icon=${e===`boost`?`mdi:fire`:e===`eco`?`mdi:leaf`:`mdi:thermometer`}
               ></ha-icon>
-              ${C(e===`boost`?`override.comfort`:e===`eco`?`override.eco`:`override.custom`,this.language)}
+              ${S(e===`boost`?`override.comfort`:e===`eco`?`override.eco`:`override.custom`,this.language)}
             </button>
           `})}
       </div>
-      ${n?h`
-            ${this._overridePending===`custom`?this._renderCustomInputs():g}
+      ${n?m`
+            ${this._overridePending===`custom`?this._renderCustomInputs():h}
             <div class="override-duration">
               <span class="override-duration-label"
-                >${C(`override.activate_for`,this.language)}</span
+                >${S(`override.activate_for`,this.language)}</span
               >
               <div class="override-dur-chips">
-                ${[{label:`1h`,hours:1},{label:`2h`,hours:2},{label:`4h`,hours:4}].map(e=>h`
+                ${[{label:`1h`,hours:1},{label:`2h`,hours:2},{label:`4h`,hours:4}].map(e=>m`
                     <button
                       class="override-dur-chip"
                       @click=${()=>this._onOverrideActivate(e.hours)}
@@ -3259,32 +3332,32 @@
                   `)}
               </div>
             </div>
-          `:g}
-    `}_renderCustomInputs(){let e=k(5,35,this.hass),t=h`
+          `:h}
+    `}_renderCustomInputs(){let e=O(5,35,this.hass),t=m`
       <ha-textfield
         class="override-target"
         type="number"
-        .label=${C(this.climateMode===`auto`?`override.heat_to`:`override.target`,this.language)}
-        .suffix=${w(this.hass)}
+        .label=${S(this.climateMode===`auto`?`override.heat_to`:`override.target`,this.language)}
+        .suffix=${C(this.hass)}
         min=${e.min}
         max=${e.max}
-        step=${O(this.hass)}
-        .value=${String(T(this._overrideCustomHeat,this.hass))}
+        step=${D(this.hass)}
+        .value=${String(w(this._overrideCustomHeat,this.hass))}
         @input=${this._onCustomHeatInput}
       ></ha-textfield>
-    `,n=h`
+    `,n=m`
       <ha-textfield
         class="override-target"
         type="number"
-        .label=${C(this.climateMode===`auto`?`override.cool_above`:`override.target`,this.language)}
-        .suffix=${w(this.hass)}
+        .label=${S(this.climateMode===`auto`?`override.cool_above`:`override.target`,this.language)}
+        .suffix=${C(this.hass)}
         min=${e.min}
         max=${e.max}
-        step=${O(this.hass)}
-        .value=${String(T(this._overrideCustomCool,this.hass))}
+        step=${D(this.hass)}
+        .value=${String(w(this._overrideCustomCool,this.hass))}
         @input=${this._onCustomCoolInput}
       ></ha-textfield>
-    `;return this.climateMode===`heat_only`?t:this.climateMode===`cool_only`?n:h`${t} ${n}`}_onOverridePreset(e){this._overridePending===e?this._overridePending=null:(this._overridePending=e,e===`custom`&&(this._overrideCustomHeat=this.comfortHeat,this._overrideCustomCool=this.comfortCool)),this._overrideError=``}_onCustomHeatInput(e){this._overrideCustomHeat=Et(Number(e.target.value)||T(21,this.hass),this.hass)}_onCustomCoolInput(e){this._overrideCustomCool=Et(Number(e.target.value)||T(24,this.hass),this.hass)}async _onOverrideActivate(e){if(!this._overridePending||!this.config)return;let t=this._overridePending,n,r;if(t===`boost`?(n=this.comfortHeat,r=this.comfortCool):t===`eco`?(n=this.ecoHeat,r=this.ecoCool):(n=this._overrideCustomHeat,r=this._overrideCustomCool),this.climateMode===`heat_only`&&(r=null),this.climateMode===`cool_only`&&(n=null),n!=null&&r!=null&&r<n){this._overrideError=C(`override.invalid_band`,this.language);return}this._optimisticOverride={type:t,heat:n,cool:r,until:Date.now()/1e3+e*3600},this._optimisticClear=!1,this._overridePending=null,this._overrideError=``;let i={type:`roommind/override/set`,area_id:this.config.area_id,override_type:t,duration:e};t===`custom`&&(this.climateMode!==`cool_only`&&(i.heat=this._overrideCustomHeat),this.climateMode!==`heat_only`&&(i.cool=this._overrideCustomCool));try{await this.hass.callWS(i),this._fireRoomUpdated()}catch(e){this._optimisticOverride=null,this._overrideError=e instanceof Error?e.message:C(`override.error_set`,this.language),console.error(`Override set failed:`,e)}}async _onClearOverride(){if(this.config){this._optimisticClear=!0,this._optimisticOverride=null,this._overrideError=``;try{await this.hass.callWS({type:`roommind/override/clear`,area_id:this.config.area_id}),this._fireRoomUpdated()}catch(e){this._optimisticClear=!1,this._overrideError=e instanceof Error?e.message:C(`override.error_clear`,this.language),console.error(`Override clear failed:`,e)}}}_fireRoomUpdated(){this.dispatchEvent(new CustomEvent(`room-updated`,{bubbles:!0,composed:!0}))}};A([b({attribute:!1})],V.prototype,`hass`,void 0),A([b({attribute:!1})],V.prototype,`config`,void 0),A([b()],V.prototype,`climateMode`,void 0),A([b({type:Number})],V.prototype,`comfortHeat`,void 0),A([b({type:Number})],V.prototype,`comfortCool`,void 0),A([b({type:Number})],V.prototype,`ecoHeat`,void 0),A([b({type:Number})],V.prototype,`ecoCool`,void 0),A([b()],V.prototype,`language`,void 0),A([x()],V.prototype,`_overridePending`,void 0),A([x()],V.prototype,`_overrideCustomHeat`,void 0),A([x()],V.prototype,`_overrideCustomCool`,void 0),A([x()],V.prototype,`_overrideError`,void 0),A([x()],V.prototype,`_optimisticOverride`,void 0),A([x()],V.prototype,`_optimisticClear`,void 0),V=A([y(`rs-override-section`)],V),v(),S(),j();var Gt=class extends _{constructor(...e){super(...e),this.label=``,this.hint=``,this.checked=!1,this.disabled=!1}static{this.styles=l`
+    `;return this.climateMode===`heat_only`?t:this.climateMode===`cool_only`?n:m`${t} ${n}`}_onOverridePreset(e){this._overridePending===e?this._overridePending=null:(this._overridePending=e,e===`custom`&&(this._overrideCustomHeat=this.comfortHeat,this._overrideCustomCool=this.comfortCool)),this._overrideError=``}_onCustomHeatInput(e){this._overrideCustomHeat=Dt(Number(e.target.value)||w(21,this.hass),this.hass)}_onCustomCoolInput(e){this._overrideCustomCool=Dt(Number(e.target.value)||w(24,this.hass),this.hass)}async _onOverrideActivate(e){if(!this._overridePending||!this.config)return;let t=this._overridePending,n,r;if(t===`boost`?(n=this.comfortHeat,r=this.comfortCool):t===`eco`?(n=this.ecoHeat,r=this.ecoCool):(n=this._overrideCustomHeat,r=this._overrideCustomCool),this.climateMode===`heat_only`&&(r=null),this.climateMode===`cool_only`&&(n=null),n!=null&&r!=null&&r<n){this._overrideError=S(`override.invalid_band`,this.language);return}this._optimisticOverride={type:t,heat:n,cool:r,until:Date.now()/1e3+e*3600},this._optimisticClear=!1,this._overridePending=null,this._overrideError=``;let i={type:`roommind/override/set`,area_id:this.config.area_id,override_type:t,duration:e};t===`custom`&&(this.climateMode!==`cool_only`&&(i.heat=this._overrideCustomHeat),this.climateMode!==`heat_only`&&(i.cool=this._overrideCustomCool));try{await this.hass.callWS(i),this._fireRoomUpdated()}catch(e){this._optimisticOverride=null,this._overrideError=e instanceof Error?e.message:S(`override.error_set`,this.language),console.error(`Override set failed:`,e)}}async _onClearOverride(){if(this.config){this._optimisticClear=!0,this._optimisticOverride=null,this._overrideError=``;try{await this.hass.callWS({type:`roommind/override/clear`,area_id:this.config.area_id}),this._fireRoomUpdated()}catch(e){this._optimisticClear=!1,this._overrideError=e instanceof Error?e.message:S(`override.error_clear`,this.language),console.error(`Override clear failed:`,e)}}}_fireRoomUpdated(){this.dispatchEvent(new CustomEvent(`room-updated`,{bubbles:!0,composed:!0}))}};k([y({attribute:!1})],B.prototype,`hass`,void 0),k([y({attribute:!1})],B.prototype,`config`,void 0),k([y()],B.prototype,`climateMode`,void 0),k([y({type:Number})],B.prototype,`comfortHeat`,void 0),k([y({type:Number})],B.prototype,`comfortCool`,void 0),k([y({type:Number})],B.prototype,`ecoHeat`,void 0),k([y({type:Number})],B.prototype,`ecoCool`,void 0),k([y()],B.prototype,`language`,void 0),k([b()],B.prototype,`_overridePending`,void 0),k([b()],B.prototype,`_overrideCustomHeat`,void 0),k([b()],B.prototype,`_overrideCustomCool`,void 0),k([b()],B.prototype,`_overrideError`,void 0),k([b()],B.prototype,`_optimisticOverride`,void 0),k([b()],B.prototype,`_optimisticClear`,void 0),B=k([v(`rs-override-section`)],B),_(),x(),A();var Jt=class extends g{constructor(...e){super(...e),this.label=``,this.hint=``,this.checked=!1,this.disabled=!1}static{this.styles=l`
     :host {
       display: block;
     }
@@ -3310,11 +3383,11 @@
     ha-switch {
       flex-shrink: 0;
     }
-  `}render(){return h`
+  `}render(){return m`
       <div class="toggle-row">
         <div class="toggle-text">
           <span class="toggle-label">${this.label}</span>
-          ${this.hint?h`<rs-info-icon .text=${this.hint}></rs-info-icon>`:g}
+          ${this.hint?m`<rs-info-icon .text=${this.hint}></rs-info-icon>`:h}
         </div>
         <ha-switch
           .checked=${this.checked}
@@ -3322,7 +3395,7 @@
           @change=${this._onToggle}
         ></ha-switch>
       </div>
-    `}_onToggle(e){this.dispatchEvent(new CustomEvent(`toggle-changed`,{detail:e.target.checked,bubbles:!0,composed:!0}))}};A([b({type:String})],Gt.prototype,`label`,void 0),A([b({type:String})],Gt.prototype,`hint`,void 0),A([b({type:Boolean})],Gt.prototype,`checked`,void 0),A([b({type:Boolean})],Gt.prototype,`disabled`,void 0),Gt=A([y(`rs-toggle-row`)],Gt),v(),S(),j();var Kt=class extends _{constructor(...e){super(...e),this.presenceEnabled=!1,this.presencePersons=[],this.selectedPresencePersons=[],this.ignorePresence=!1,this.editing=!1,this.language=`en`}static{this.styles=l`
+    `}_onToggle(e){this.dispatchEvent(new CustomEvent(`toggle-changed`,{detail:e.target.checked,bubbles:!0,composed:!0}))}};k([y({type:String})],Jt.prototype,`label`,void 0),k([y({type:String})],Jt.prototype,`hint`,void 0),k([y({type:Boolean})],Jt.prototype,`checked`,void 0),k([y({type:Boolean})],Jt.prototype,`disabled`,void 0),Jt=k([v(`rs-toggle-row`)],Jt),_(),x(),A();var Yt=class extends g{constructor(...e){super(...e),this.presenceEnabled=!1,this.presencePersons=[],this.selectedPresencePersons=[],this.ignorePresence=!1,this.editing=!1,this.language=`en`}static{this.styles=l`
     :host {
       display: block;
     }
@@ -3477,19 +3550,19 @@
       color: var(--secondary-text-color);
       font-size: 12px;
     }
-  `}get _allPersons(){let e=this.selectedPresencePersons.filter(e=>!this.presencePersons.includes(e));return[...this.presencePersons,...e]}_isMissing(e){return!this.hass.states[e]}render(){return!this.presenceEnabled||!this.editing&&this._allPersons.length===0?g:this.editing?h`
+  `}get _allPersons(){let e=this.selectedPresencePersons.filter(e=>!this.presencePersons.includes(e));return[...this.presencePersons,...e]}_isMissing(e){return!this.hass.states[e]}render(){return!this.presenceEnabled||!this.editing&&this._allPersons.length===0?h:this.editing?m`
       <rs-toggle-row
-        .label=${C(`presence.ignore_toggle`,this.language)}
+        .label=${S(`presence.ignore_toggle`,this.language)}
         .checked=${this.ignorePresence}
         @toggle-changed=${this._onIgnoreToggle}
       ></rs-toggle-row>
-      ${this.ignorePresence?g:h`<div class="section-divider"></div>
+      ${this.ignorePresence?h:m`<div class="section-divider"></div>
             ${this._renderEditMode()}`}
-    `:this.ignorePresence?h`<span class="field-hint"
-          >${C(`presence.tile_ignored`,this.language)}</span
-        >`:this._renderViewMode()}_renderEditMode(){let e=this._allPersons,t=e.some(e=>this._isMissing(e));return h`
+    `:this.ignorePresence?m`<span class="field-hint"
+          >${S(`presence.tile_ignored`,this.language)}</span
+        >`:this._renderViewMode()}_renderEditMode(){let e=this._allPersons,t=e.some(e=>this._isMissing(e));return m`
       <div class="presence-grid">
-        ${e.map(e=>{let t=this.selectedPresencePersons.includes(e),n=this._isMissing(e),r=this.hass.states[e]?.attributes?.friendly_name??e.split(`.`).slice(1).join(`.`);return h`
+        ${e.map(e=>{let t=this.selectedPresencePersons.includes(e),n=this._isMissing(e),r=this.hass.states[e]?.attributes?.friendly_name??e.split(`.`).slice(1).join(`.`);return m`
             <div
               class="presence-card ${t?`active`:``} ${n?`missing`:``}"
               role="checkbox"
@@ -3506,33 +3579,33 @@
               ></ha-checkbox>
               <ha-icon class="person-icon" icon="mdi:account"></ha-icon>
               <span class="person-name">${r}</span>
-              ${n?this._renderMissingIcon():g}
+              ${n?this._renderMissingIcon():h}
             </div>
           `})}
       </div>
-      ${t?h`<div class="missing-hint">
-            ${C(`presence.missing_entity_hint`,this.language)}
-          </div>`:g}
-    `}_renderMissingIcon(){return h`<ha-icon
+      ${t?m`<div class="missing-hint">
+            ${S(`presence.missing_entity_hint`,this.language)}
+          </div>`:h}
+    `}_renderMissingIcon(){return m`<ha-icon
       class="missing-icon"
       icon="mdi:alert-circle-outline"
-      title=${C(`presence.missing_entity_hint`,this.language)}
-    ></ha-icon>`}_renderViewMode(){return this.selectedPresencePersons.length===0?h`<span class="field-hint"
-        >${C(`presence.room_none_assigned`,this.language)}</span
-      >`:h`
+      title=${S(`presence.missing_entity_hint`,this.language)}
+    ></ha-icon>`}_renderViewMode(){return this.selectedPresencePersons.length===0?m`<span class="field-hint"
+        >${S(`presence.room_none_assigned`,this.language)}</span
+      >`:m`
       <div class="presence-list">
-        ${this.selectedPresencePersons.map(e=>{let t=this.hass.states[e]?.attributes?.friendly_name??e.split(`.`).slice(1).join(`.`),n=this.hass.states[e]?.state,r=e.startsWith(`person.`)||e.startsWith(`device_tracker.`)?n===`home`:n===`on`;return h`
+        ${this.selectedPresencePersons.map(e=>{let t=this.hass.states[e]?.attributes?.friendly_name??e.split(`.`).slice(1).join(`.`),n=this.hass.states[e]?.state,r=e.startsWith(`person.`)||e.startsWith(`device_tracker.`)?n===`home`:n===`on`;return m`
             <div class="presence-row ${r?`home`:`away`}">
               <span class="presence-dot"></span>
               <span class="presence-name">${t}</span>
-              ${this._isMissing(e)?this._renderMissingIcon():g}
+              ${this._isMissing(e)?this._renderMissingIcon():h}
               <span class="presence-state"
-                >${C(r?`presence.state_home`:`presence.state_away`,this.language)}</span
+                >${S(r?`presence.state_home`:`presence.state_away`,this.language)}</span
               >
             </div>
           `})}
       </div>
-    `}_onIgnoreToggle(e){this.dispatchEvent(new CustomEvent(`ignore-presence-changed`,{detail:e.detail,bubbles:!0,composed:!0}))}_onTogglePerson(e,t){let n;n=t?this.selectedPresencePersons.filter(t=>t!==e):[...this.selectedPresencePersons,e],this.dispatchEvent(new CustomEvent(`presence-persons-changed`,{detail:n,bubbles:!0,composed:!0}))}};A([b({attribute:!1})],Kt.prototype,`hass`,void 0),A([b({type:Boolean})],Kt.prototype,`presenceEnabled`,void 0),A([b({attribute:!1})],Kt.prototype,`presencePersons`,void 0),A([b({attribute:!1})],Kt.prototype,`selectedPresencePersons`,void 0),A([b({type:Boolean})],Kt.prototype,`ignorePresence`,void 0),A([b({type:Boolean})],Kt.prototype,`editing`,void 0),A([b()],Kt.prototype,`language`,void 0),Kt=A([y(`rs-presence-section`)],Kt),v(),S(),j();var qt=class extends _{constructor(...e){super(...e),this.label=``,this.suffix=``,this.hint=``}static{this.styles=[L,l`
+    `}_onIgnoreToggle(e){this.dispatchEvent(new CustomEvent(`ignore-presence-changed`,{detail:e.detail,bubbles:!0,composed:!0}))}_onTogglePerson(e,t){let n;n=t?this.selectedPresencePersons.filter(t=>t!==e):[...this.selectedPresencePersons,e],this.dispatchEvent(new CustomEvent(`presence-persons-changed`,{detail:n,bubbles:!0,composed:!0}))}};k([y({attribute:!1})],Yt.prototype,`hass`,void 0),k([y({type:Boolean})],Yt.prototype,`presenceEnabled`,void 0),k([y({attribute:!1})],Yt.prototype,`presencePersons`,void 0),k([y({attribute:!1})],Yt.prototype,`selectedPresencePersons`,void 0),k([y({type:Boolean})],Yt.prototype,`ignorePresence`,void 0),k([y({type:Boolean})],Yt.prototype,`editing`,void 0),k([y()],Yt.prototype,`language`,void 0),Yt=k([v(`rs-presence-section`)],Yt),_(),x(),A();var Xt=class extends g{constructor(...e){super(...e),this.label=``,this.suffix=``,this.hint=``}static{this.styles=[I,l`
       :host {
         display: block;
       }
@@ -3552,7 +3625,7 @@
       rs-info-icon {
         flex-shrink: 0;
       }
-    `]}render(){return h`
+    `]}render(){return m`
       <div class="row">
         <ha-textfield
           .label=${this.label}
@@ -3564,9 +3637,9 @@
           type="number"
           @input=${this._onInput}
         ></ha-textfield>
-        ${this.hint?h`<rs-info-icon .text=${this.hint}></rs-info-icon>`:g}
+        ${this.hint?m`<rs-info-icon .text=${this.hint}></rs-info-icon>`:h}
       </div>
-    `}_onInput(e){let t=parseFloat(e.target.value);isNaN(t)||this.dispatchEvent(new CustomEvent(`value-changed`,{detail:t,bubbles:!0,composed:!0}))}};A([b({type:String})],qt.prototype,`label`,void 0),A([b({type:String})],qt.prototype,`suffix`,void 0),A([b({type:Number})],qt.prototype,`value`,void 0),A([b({type:Number})],qt.prototype,`min`,void 0),A([b({type:Number})],qt.prototype,`max`,void 0),A([b({type:Number})],qt.prototype,`step`,void 0),A([b({type:String})],qt.prototype,`hint`,void 0),qt=A([y(`rs-threshold-field`)],qt),v(),S(),j();var Jt=class extends It{constructor(...e){super(...e),this.schedules=[]}static{this.styles=[It.sharedStyles,L,l`
+    `}_onInput(e){let t=parseFloat(e.target.value);isNaN(t)||this.dispatchEvent(new CustomEvent(`value-changed`,{detail:t,bubbles:!0,composed:!0}))}};k([y({type:String})],Xt.prototype,`label`,void 0),k([y({type:String})],Xt.prototype,`suffix`,void 0),k([y({type:Number})],Xt.prototype,`value`,void 0),k([y({type:Number})],Xt.prototype,`min`,void 0),k([y({type:Number})],Xt.prototype,`max`,void 0),k([y({type:Number})],Xt.prototype,`step`,void 0),k([y({type:String})],Xt.prototype,`hint`,void 0),Xt=k([v(`rs-threshold-field`)],Xt),_(),x(),A();var Zt=class extends zt{constructor(...e){super(...e),this.schedules=[]}static{this.styles=[zt.sharedStyles,I,l`
       .pos-badge {
         font-size: 0.8em;
         padding: 1px 6px;
@@ -3614,30 +3687,30 @@
         border-color: rgba(3, 169, 244, 0.4);
         background: rgba(3, 169, 244, 0.08);
       }
-    `]}render(){return this.editing?this._renderEdit():this._renderView()}_renderView(){let e=this.hass.language;if(this.schedules.length===0)return g;let t=this.schedules.length>=2;return h`
+    `]}render(){return this.editing?this._renderEdit():this._renderView()}_renderView(){let e=this.hass.language;if(this.schedules.length===0)return h;let t=this.schedules.length>=2;return m`
       <div class="schedule-list">
-        ${this.schedules.map((n,r)=>{let i=this._getScheduleState(r,this.schedules.length),a=n.mode===`gate`,o=a?null:this._getBlockPosition(n.entity_id);return h`
+        ${this.schedules.map((n,r)=>{let i=this._getScheduleState(r,this.schedules.length),a=n.mode===`gate`,o=a?null:this._getBlockPosition(n.entity_id);return m`
             <div class="schedule-row ${i}">
-              ${t?h`<span class="schedule-number">${r+1}</span>`:g}
+              ${t?m`<span class="schedule-number">${r+1}</span>`:h}
               <span class="schedule-status-dot"></span>
               <span
                 class="schedule-name schedule-link"
                 @click=${()=>this._openEntityInfo(n.entity_id)}
                 >${this._getFriendlyName(n.entity_id)}</span
               >
-              ${a?h`<span class="gate-badge"
-                    >${C(`covers.schedule_mode_gate_short`,e)}</span
-                  >`:o===null?g:h`<span class="pos-badge">${o}%</span>`}
+              ${a?m`<span class="gate-badge"
+                    >${S(`covers.schedule_mode_gate_short`,e)}</span
+                  >`:o===null?h:m`<span class="pos-badge">${o}%</span>`}
               <span class="schedule-status">${this._statusText(i,e)}</span>
             </div>
           `})}
       </div>
-    `}_renderEdit(){let e=this.hass.language,t=this.schedules.length,n=new Set(this.schedules.map(e=>e.entity_id));return h`
-      ${t>0?h`
+    `}_renderEdit(){let e=this.hass.language,t=this.schedules.length,n=new Set(this.schedules.map(e=>e.entity_id));return m`
+      ${t>0?m`
             <div class="schedule-list">
-              ${this.schedules.map((n,r)=>{let i=this._getScheduleState(r,t);return h`
+              ${this.schedules.map((n,r)=>{let i=this._getScheduleState(r,t);return m`
                   <div class="schedule-row ${i}">
-                    ${t>=2?h`<span class="schedule-number">${r+1}</span>`:g}
+                    ${t>=2?m`<span class="schedule-number">${r+1}</span>`:h}
                     <span class="schedule-status-dot"></span>
                     <span class="schedule-name">${this._getFriendlyName(n.entity_id)}</span>
                     <span class="schedule-status">${this._statusText(i,e)}</span>
@@ -3656,7 +3729,7 @@
                         .checked=${(n.mode??`force`)===`force`}
                         tabindex="-1"
                       ></ha-radio>
-                      ${C(`covers.schedule_mode_force`,e)}
+                      ${S(`covers.schedule_mode_force`,e)}
                     </div>
                     <div
                       class="mode-option ${n.mode===`gate`?`active`:``}"
@@ -3667,15 +3740,15 @@
                       @keydown=${e=>{(e.key===`Enter`||e.key===` `)&&(e.preventDefault(),this._updateMode(r,`gate`))}}
                     >
                       <ha-radio .checked=${n.mode===`gate`} tabindex="-1"></ha-radio>
-                      ${C(`covers.schedule_mode_gate`,e)}
+                      ${S(`covers.schedule_mode_gate`,e)}
                     </div>
                   </div>
                 `})}
             </div>
-          `:g}
-      ${this._renderAddRow(C(`covers.add_schedule`,e),this._getAvailableEntities(n),e=>this._addSchedule(e),C(`covers.schedule_create_link`,e))}
-      ${this._renderSelectorSection(t,C(`covers.schedule_selector`,e),C(`covers.schedule_selector_hint`,e),C(`covers.schedule_selector_warning`,e),e=>this._emitSelectorChanged(e))}
-    `}_getBlockPosition(e){let t=this.hass?.states?.[e];if(!t||t.state!==`on`)return null;let n=t.attributes?.position;return n==null?null:Number(n)}_statusText(e,t){return C(e===`active`?`covers.schedule_state_active`:e===`unreachable`?`covers.schedule_state_unreachable`:`covers.schedule_state_inactive`,t)}_addSchedule(e){this._emitSchedules([...this.schedules,{entity_id:e,mode:`force`}])}_removeSchedule(e){this._emitSchedules(this.schedules.filter((t,n)=>n!==e))}_moveSchedule(e,t){let n=e+t;if(n<0||n>=this.schedules.length)return;let r=[...this.schedules];[r[e],r[n]]=[r[n],r[e]],this._emitSchedules(r)}_updateMode(e,t){let n=this.schedules.map((n,r)=>r===e?{...n,mode:t}:n);this._emitSchedules(n)}_emitSchedules(e){this.dispatchEvent(new CustomEvent(`cover-schedules-changed`,{detail:{value:e},bubbles:!0,composed:!0}))}_emitSelectorChanged(e){this.dispatchEvent(new CustomEvent(`cover-schedule-selector-changed`,{detail:{value:e},bubbles:!0,composed:!0}))}};A([b({attribute:!1})],Jt.prototype,`schedules`,void 0),Jt=A([y(`rs-cover-schedule`)],Jt),v(),S(),j();var Yt,H=class extends _{static{Yt=this}constructor(...e){super(...e),this.selectedCovers=new Set,this.editing=!1,this.autoEnabled=!1,this.deployThreshold=1.5,this.minPosition=0,this.overrideMinutes=60,this.autoPaused=!1,this.overrideUntil=null,this.coverSchedules=[],this.coverScheduleSelectorEntity=``,this.activeCoverScheduleIndex=-1,this.nightClose=!1,this.nightPosition=0,this.snapDeploy=!1,this.forcedReason=``,this.coverOrientations={},this.nightCloseElevation=0,this.nightCloseOffsetMinutes=0,this.outdoorMinTemp=10,this.coverMinPositions={},this._selectedForEdit=``,this._scheduleCollapsed=!0,this._solarCollapsed=!0,this._entityFilter=e=>{let t=e.entity_id;return!t.startsWith(`cover.roommind_`)&&t.startsWith(`cover.`)&&!this.selectedCovers.has(t)}}willUpdate(e){e.has(`selectedCovers`)&&(this._selectedForEdit&&!this.selectedCovers.has(this._selectedForEdit)&&(this._selectedForEdit=``),!this._selectedForEdit&&this.selectedCovers.size>0&&(this._selectedForEdit=[...this.selectedCovers][0]))}static{this.styles=[zt,L,l`
+          `:h}
+      ${this._renderAddRow(S(`covers.add_schedule`,e),this._getAvailableEntities(n),e=>this._addSchedule(e),S(`covers.schedule_create_link`,e))}
+      ${this._renderSelectorSection(t,S(`covers.schedule_selector`,e),S(`covers.schedule_selector_hint`,e),S(`covers.schedule_selector_warning`,e),e=>this._emitSelectorChanged(e))}
+    `}_getBlockPosition(e){let t=this.hass?.states?.[e];if(!t||t.state!==`on`)return null;let n=t.attributes?.position;return n==null?null:Number(n)}_statusText(e,t){return S(e===`active`?`covers.schedule_state_active`:e===`unreachable`?`covers.schedule_state_unreachable`:`covers.schedule_state_inactive`,t)}_addSchedule(e){this._emitSchedules([...this.schedules,{entity_id:e,mode:`force`}])}_removeSchedule(e){this._emitSchedules(this.schedules.filter((t,n)=>n!==e))}_moveSchedule(e,t){let n=e+t;if(n<0||n>=this.schedules.length)return;let r=[...this.schedules];[r[e],r[n]]=[r[n],r[e]],this._emitSchedules(r)}_updateMode(e,t){let n=this.schedules.map((n,r)=>r===e?{...n,mode:t}:n);this._emitSchedules(n)}_emitSchedules(e){this.dispatchEvent(new CustomEvent(`cover-schedules-changed`,{detail:{value:e},bubbles:!0,composed:!0}))}_emitSelectorChanged(e){this.dispatchEvent(new CustomEvent(`cover-schedule-selector-changed`,{detail:{value:e},bubbles:!0,composed:!0}))}};k([y({attribute:!1})],Zt.prototype,`schedules`,void 0),Zt=k([v(`rs-cover-schedule`)],Zt),_(),x(),A();var Qt,V=class extends g{static{Qt=this}constructor(...e){super(...e),this.selectedCovers=new Set,this.editing=!1,this.autoEnabled=!1,this.deployThreshold=1.5,this.minPosition=0,this.overrideMinutes=60,this.autoPaused=!1,this.overrideUntil=null,this.coverSchedules=[],this.coverScheduleSelectorEntity=``,this.activeCoverScheduleIndex=-1,this.nightClose=!1,this.nightPosition=0,this.snapDeploy=!1,this.forcedReason=``,this.coverOrientations={},this.nightCloseElevation=0,this.nightCloseOffsetMinutes=0,this.outdoorMinTemp=10,this.coverMinPositions={},this._selectedForEdit=``,this._scheduleCollapsed=!0,this._solarCollapsed=!0,this._entityFilter=e=>{let t=e.entity_id;return!t.startsWith(`cover.roommind_`)&&t.startsWith(`cover.`)&&!this.selectedCovers.has(t)}}willUpdate(e){e.has(`selectedCovers`)&&(this._selectedForEdit&&!this.selectedCovers.has(this._selectedForEdit)&&(this._selectedForEdit=``),!this._selectedForEdit&&this.selectedCovers.size>0&&(this._selectedForEdit=[...this.selectedCovers][0]))}static{this.styles=[Ht,I,l`
       :host {
         display: block;
       }
@@ -3947,45 +4020,45 @@
         background: var(--divider-color);
         margin: 4px -16px;
       }
-    `]}render(){let e=this.hass.language;return this.editing?this._renderEdit(e):this._renderView(e)}_renderView(e){let t=[...this.selectedCovers];return t.length===0?h`<p class="no-items">${C(`covers.no_covers`,e)}</p>`:h`
-      ${t.map(t=>{let n=this.hass.states[t],r=n?.attributes?.friendly_name??t,i=n?.attributes?.current_position,a=this.coverOrientations[t],o=a===void 0?void 0:Yt._DIRECTIONS.find(e=>e.deg===a),s=o?C(o.shortLabel,e):void 0,c=this.coverMinPositions[t];return h`
+    `]}render(){let e=this.hass.language;return this.editing?this._renderEdit(e):this._renderView(e)}_renderView(e){let t=[...this.selectedCovers];return t.length===0?m`<p class="no-items">${S(`covers.no_covers`,e)}</p>`:m`
+      ${t.map(t=>{let n=this.hass.states[t],r=n?.attributes?.friendly_name??t,i=n?.attributes?.current_position,a=this.coverOrientations[t],o=a===void 0?void 0:Qt._DIRECTIONS.find(e=>e.deg===a),s=o?S(o.shortLabel,e):void 0,c=this.coverMinPositions[t];return m`
           <div class="view-row">
             <span class="view-name">${r}</span>
-            ${s?h`<span class="view-pill">${s}</span>`:g}
-            ${c!==void 0&&c>0?h`<span class="view-pill"
-                  >${C(`covers.per_cover_min_short`,e)} ${c}%</span
-                >`:g}
-            ${i===void 0?g:h`<span class="view-value">${i}%</span>`}
+            ${s?m`<span class="view-pill">${s}</span>`:h}
+            ${c!==void 0&&c>0?m`<span class="view-pill"
+                  >${S(`covers.per_cover_min_short`,e)} ${c}%</span
+                >`:h}
+            ${i===void 0?h:m`<span class="view-value">${i}%</span>`}
           </div>
         `})}
-      ${this.autoPaused?h`
+      ${this.autoPaused?m`
             <div class="status-hint paused">
               <ha-icon icon="mdi:hand-back-right"></ha-icon>
               <span>
-                ${this.overrideUntil?`${C(`covers.auto_paused_until`,e)} ${new Date(this.overrideUntil*1e3).toLocaleTimeString(e,{hour:`2-digit`,minute:`2-digit`})}`:C(`covers.auto_paused`,e)}
+                ${this.overrideUntil?`${S(`covers.auto_paused_until`,e)} ${new Date(this.overrideUntil*1e3).toLocaleTimeString(e,{hour:`2-digit`,minute:`2-digit`})}`:S(`covers.auto_paused`,e)}
               </span>
               <ha-button @click=${this._onResumeAuto}
-                >${C(`covers.resume_auto`,e)}</ha-button
+                >${S(`covers.resume_auto`,e)}</ha-button
               >
             </div>
-          `:this.autoEnabled?h`
+          `:this.autoEnabled?m`
               <div class="status-hint">
                 <ha-icon icon="mdi:sun-angle-outline"></ha-icon>
-                <span>${C(`covers.shading_active`,e)}</span>
+                <span>${S(`covers.shading_active`,e)}</span>
               </div>
-            `:g}
-      ${this.forcedReason===`schedule_active`?h`
+            `:h}
+      ${this.forcedReason===`schedule_active`?m`
             <div class="status-hint">
               <ha-icon icon="mdi:calendar-clock"></ha-icon>
-              <span>${C(`covers.schedule_active`,e)}</span>
+              <span>${S(`covers.schedule_active`,e)}</span>
             </div>
-          `:this.forcedReason===`night_close`?h`
+          `:this.forcedReason===`night_close`?m`
               <div class="status-hint">
                 <ha-icon icon="mdi:weather-night"></ha-icon>
-                <span>${C(`covers.night_close_active`,e)}</span>
+                <span>${S(`covers.night_close_active`,e)}</span>
               </div>
-            `:g}
-    `}_renderMasterRow(e,t){let n=this.selectedCovers.has(e),r=this._selectedForEdit===e,i=this.hass.states[e],a=i?.attributes?.friendly_name||e,o=i?.attributes?.current_position,s=this.hass.language,c=this.coverOrientations[e],l=c===void 0?void 0:Yt._DIRECTIONS.find(e=>e.deg===c),u=l?C(l.shortLabel,s):``,d=this.coverMinPositions[e];return h`
+            `:h}
+    `}_renderMasterRow(e,t){let n=this.selectedCovers.has(e),r=this._selectedForEdit===e,i=this.hass.states[e],a=i?.attributes?.friendly_name||e,o=i?.attributes?.current_position,s=this.hass.language,c=this.coverOrientations[e],l=c===void 0?void 0:Qt._DIRECTIONS.find(e=>e.deg===c),u=l?S(l.shortLabel,s):``,d=this.coverMinPositions[e];return m`
       <div
         class="master-row ${r?`focused`:``}"
         @click=${()=>this._selectedForEdit=e}
@@ -3998,38 +4071,38 @@
         <div class="master-info">
           <div class="master-name-row">
             <span class="master-name">${a}</span>
-            ${t?h`<span class="external-badge">${C(`devices.other_area`,s)}</span>`:g}
+            ${t?m`<span class="external-badge">${S(`devices.other_area`,s)}</span>`:h}
           </div>
           <div class="master-meta">
-            ${u?h`<span class="meta-pill">${u}</span>`:g}
-            ${d!==void 0&&d>0?h`<span class="meta-pill">min ${d}%</span>`:g}
-            ${o===void 0?g:h`<span class="meta-pill" style="color: var(--primary-color);">${o}%</span>`}
+            ${u?m`<span class="meta-pill">${u}</span>`:h}
+            ${d!==void 0&&d>0?m`<span class="meta-pill">min ${d}%</span>`:h}
+            ${o===void 0?h:m`<span class="meta-pill" style="color: var(--primary-color);">${o}%</span>`}
           </div>
         </div>
       </div>
-    `}_renderCoverDetail(e){let t=this.hass.language,n=this.hass.states[e]?.attributes?.friendly_name||e,r=this.coverOrientations[e],i=this.coverMinPositions[e];return h`
+    `}_renderCoverDetail(e){let t=this.hass.language,n=this.hass.states[e]?.attributes?.friendly_name||e,r=this.coverOrientations[e],i=this.coverMinPositions[e];return m`
       <div class="detail-head">
         <div class="detail-title">${n}</div>
         <div class="detail-entity-id">${e}</div>
       </div>
       <div class="detail-field">
         <ha-select
-          .label=${C(`covers.orientation_group_title`,t)}
+          .label=${S(`covers.orientation_group_title`,t)}
           .value=${r===void 0?``:String(r)}
-          .options=${[{value:``,label:C(`covers.orientation_none`,t)},...Yt._DIRECTIONS.map(e=>({value:String(e.deg),label:C(e.longLabel,t)}))]}
+          .options=${[{value:``,label:S(`covers.orientation_none`,t)},...Qt._DIRECTIONS.map(e=>({value:String(e.deg),label:S(e.longLabel,t)}))]}
           fixedMenuPosition
-          @selected=${t=>{let n=F(t);this._setOrientation(e,n===``?void 0:Number(n))}}
+          @selected=${t=>{let n=P(t);this._setOrientation(e,n===``?void 0:Number(n))}}
           @closed=${e=>e.stopPropagation()}
         >
-          <ha-list-item value="">${C(`covers.orientation_none`,t)}</ha-list-item>
-          ${Yt._DIRECTIONS.map(e=>h`
-              <ha-list-item value=${String(e.deg)}>${C(e.longLabel,t)}</ha-list-item>
+          <ha-list-item value="">${S(`covers.orientation_none`,t)}</ha-list-item>
+          ${Qt._DIRECTIONS.map(e=>m`
+              <ha-list-item value=${String(e.deg)}>${S(e.longLabel,t)}</ha-list-item>
             `)}
         </ha-select>
       </div>
       <div class="detail-field">
         <rs-threshold-field
-          .label=${C(`covers.per_cover_min_position`,t)}
+          .label=${S(`covers.per_cover_min_position`,t)}
           .value=${i??0}
           .min=${0}
           .max=${99}
@@ -4038,12 +4111,12 @@
           @value-changed=${t=>this._setMinPosition(e,t.detail)}
         ></rs-threshold-field>
       </div>
-    `}_renderEdit(e){let t=yt(this.area.area_id,this.hass?.entities,this.hass?.devices).filter(e=>!e.entity_id.substring(e.entity_id.indexOf(`.`)+1).startsWith(`roommind_`)).filter(e=>e.entity_id.startsWith(`cover.`)),n=new Set(t.map(e=>e.entity_id)),r=[...this.selectedCovers].filter(e=>!n.has(e)),i=this.selectedCovers.size>0,a=this._selectedForEdit,o=a&&this.selectedCovers.has(a);return h`
+    `}_renderEdit(e){let t=bt(this.area.area_id,this.hass?.entities,this.hass?.devices).filter(e=>!e.entity_id.substring(e.entity_id.indexOf(`.`)+1).startsWith(`roommind_`)).filter(e=>e.entity_id.startsWith(`cover.`)),n=new Set(t.map(e=>e.entity_id)),r=[...this.selectedCovers].filter(e=>!n.has(e)),i=this.selectedCovers.size>0,a=this._selectedForEdit,o=a&&this.selectedCovers.has(a);return m`
       <rs-master-detail>
         <div slot="master" class="master">
-          <div class="block-title">${C(`covers.add_cover`,e)}</div>
+          <div class="block-title">${S(`covers.add_cover`,e)}</div>
           <div class="master-list">
-            ${t.length>0?t.map(e=>this._renderMasterRow(e.entity_id,!1)):h`<div class="empty-list">${C(`covers.no_covers_in_area`,e)}</div>`}
+            ${t.length>0?t.map(e=>this._renderMasterRow(e.entity_id,!1)):m`<div class="empty-list">${S(`covers.no_covers_in_area`,e)}</div>`}
             ${r.map(e=>this._renderMasterRow(e,!0))}
           </div>
           <div class="picker-wrap">
@@ -4052,27 +4125,27 @@
               .includeDomains=${[`cover`]}
               .entityFilter=${this._entityFilter}
               .value=${``}
-              .label=${C(`covers.add_cover`,e)}
+              .label=${S(`covers.add_cover`,e)}
               @value-changed=${this._onEntityPicked}
             ></ha-entity-picker>
           </div>
         </div>
         <div slot="detail">
-          ${o?h`<div class="detail-panel">${this._renderCoverDetail(a)}</div>`:h`<div class="detail-panel">
+          ${o?m`<div class="detail-panel">${this._renderCoverDetail(a)}</div>`:m`<div class="detail-panel">
                 <div class="empty-detail">
                   <ha-icon icon="mdi:gesture-tap"></ha-icon>
-                  <span>${C(`devices.select_to_configure`,e)}</span>
+                  <span>${S(`devices.select_to_configure`,e)}</span>
                 </div>
               </div>`}
         </div>
       </rs-master-detail>
 
-      ${i?h`
+      ${i?m`
             <div class="block-divider"></div>
             <div class="feature-card ${this.autoEnabled?`enabled`:``}">
               <div class="feature-text">
-                <div class="feature-title">${C(`covers.auto_control`,e)}</div>
-                <div class="feature-description">${C(`covers.auto_control_hint`,e)}</div>
+                <div class="feature-title">${S(`covers.auto_control`,e)}</div>
+                <div class="feature-description">${S(`covers.auto_control_hint`,e)}</div>
               </div>
               <ha-switch
                 .checked=${this.autoEnabled}
@@ -4080,23 +4153,23 @@
               ></ha-switch>
             </div>
 
-            ${this.autoEnabled?h`
+            ${this.autoEnabled?m`
                   <div class="group-card ${this._scheduleCollapsed?`collapsed`:``}">
                     <div
                       class="group-header"
                       @click=${()=>this._scheduleCollapsed=!this._scheduleCollapsed}
                     >
                       <ha-icon icon="mdi:calendar-clock"></ha-icon>
-                      <span>${C(`covers.schedule_group_title`,e)}</span>
+                      <span>${S(`covers.schedule_group_title`,e)}</span>
                       <rs-info-icon
-                        .text=${C(`covers.schedule_section_hint`,e)}
+                        .text=${S(`covers.schedule_section_hint`,e)}
                       ></rs-info-icon>
                       <ha-icon
                         class="chevron ${this._scheduleCollapsed?`collapsed`:``}"
                         icon="mdi:chevron-down"
                       ></ha-icon>
                     </div>
-                    ${this._scheduleCollapsed?g:h`<rs-cover-schedule
+                    ${this._scheduleCollapsed?h:m`<rs-cover-schedule
                             .hass=${this.hass}
                             .schedules=${this.coverSchedules}
                             .selectorEntity=${this.coverScheduleSelectorEntity}
@@ -4107,15 +4180,15 @@
                           ></rs-cover-schedule>
                           <div class="group-divider"></div>
                           <rs-toggle-row
-                            .label=${C(`covers.night_close`,e)}
-                            .hint=${C(`covers.night_close_hint`,e)}
+                            .label=${S(`covers.night_close`,e)}
+                            .hint=${S(`covers.night_close_hint`,e)}
                             .checked=${this.nightClose}
                             @toggle-changed=${e=>this._emit(`covers_night_close`,e.detail)}
                           ></rs-toggle-row>
-                          ${this.nightClose?h`
+                          ${this.nightClose?m`
                                 <rs-threshold-field
-                                  .label=${C(`covers.night_position`,e)}
-                                  .hint=${C(`covers.night_position_hint`,e)}
+                                  .label=${S(`covers.night_position`,e)}
+                                  .hint=${S(`covers.night_position_hint`,e)}
                                   .value=${this.nightPosition}
                                   .min=${0}
                                   .max=${100}
@@ -4124,13 +4197,13 @@
                                   @value-changed=${e=>this._emit(`covers_night_position`,e.detail)}
                                 ></rs-threshold-field>
                                 <ha-expansion-panel
-                                  .header=${C(`covers.night_close_advanced`,e)}
+                                  .header=${S(`covers.night_close_advanced`,e)}
                                   outlined
                                 >
                                   <div class="field-row" style="padding:8px 0;">
                                     <rs-threshold-field
-                                      .label=${C(`covers.night_close_elevation`,e)}
-                                      .hint=${C(`covers.night_close_elevation_hint`,e)}
+                                      .label=${S(`covers.night_close_elevation`,e)}
+                                      .hint=${S(`covers.night_close_elevation_hint`,e)}
                                       .value=${this.nightCloseElevation}
                                       .min=${-18}
                                       .max=${10}
@@ -4139,8 +4212,8 @@
                                       @value-changed=${e=>this._emit(`covers_night_close_elevation`,e.detail)}
                                     ></rs-threshold-field>
                                     <rs-threshold-field
-                                      .label=${C(`covers.night_close_offset`,e)}
-                                      .hint=${C(`covers.night_close_offset_hint`,e)}
+                                      .label=${S(`covers.night_close_offset`,e)}
+                                      .hint=${S(`covers.night_close_offset_hint`,e)}
                                       .value=${this.nightCloseOffsetMinutes}
                                       .min=${-120}
                                       .max=${120}
@@ -4150,7 +4223,7 @@
                                     ></rs-threshold-field>
                                   </div>
                                 </ha-expansion-panel>
-                              `:g}`}
+                              `:h}`}
                   </div>
 
                   <div class="group-card ${this._solarCollapsed?`collapsed`:``}">
@@ -4159,16 +4232,16 @@
                       @click=${()=>this._solarCollapsed=!this._solarCollapsed}
                     >
                       <ha-icon icon="mdi:white-balance-sunny"></ha-icon>
-                      <span>${C(`covers.solar_group_title`,e)}</span>
+                      <span>${S(`covers.solar_group_title`,e)}</span>
                       <ha-icon
                         class="chevron ${this._solarCollapsed?`collapsed`:``}"
                         icon="mdi:chevron-down"
                       ></ha-icon>
                     </div>
-                    ${this._solarCollapsed?g:h`<div class="field-row">
+                    ${this._solarCollapsed?h:m`<div class="field-row">
                             <rs-threshold-field
-                              .label=${C(`covers.deploy_threshold`,e)}
-                              .hint=${C(`covers.deploy_threshold_hint`,e)}
+                              .label=${S(`covers.deploy_threshold`,e)}
+                              .hint=${S(`covers.deploy_threshold_hint`,e)}
                               .value=${this.deployThreshold}
                               .min=${.5}
                               .max=${5}
@@ -4177,8 +4250,8 @@
                               @value-changed=${e=>this._emit(`covers_deploy_threshold`,e.detail)}
                             ></rs-threshold-field>
                             <rs-threshold-field
-                              .label=${C(`covers.min_position`,e)}
-                              .hint=${C(`covers.min_position_hint`,e)}
+                              .label=${S(`covers.min_position`,e)}
+                              .hint=${S(`covers.min_position_hint`,e)}
                               .value=${this.minPosition}
                               .min=${0}
                               .max=${80}
@@ -4189,8 +4262,8 @@
                           </div>
                           <div class="field-row">
                             <rs-threshold-field
-                              .label=${C(`covers.override_minutes`,e)}
-                              .hint=${C(`covers.override_minutes_hint`,e)}
+                              .label=${S(`covers.override_minutes`,e)}
+                              .hint=${S(`covers.override_minutes_hint`,e)}
                               .value=${this.overrideMinutes}
                               .min=${0}
                               .max=${480}
@@ -4199,8 +4272,8 @@
                               @value-changed=${e=>this._emit(`covers_override_minutes`,e.detail)}
                             ></rs-threshold-field>
                             <rs-threshold-field
-                              .label=${C(`covers.outdoor_min_temp`,e)}
-                              .hint=${C(`covers.outdoor_min_temp_hint`,e)}
+                              .label=${S(`covers.outdoor_min_temp`,e)}
+                              .hint=${S(`covers.outdoor_min_temp_hint`,e)}
                               .value=${this.outdoorMinTemp??10}
                               .min=${0}
                               .max=${35}
@@ -4211,15 +4284,15 @@
                           </div>
                           <div class="group-divider"></div>
                           <rs-toggle-row
-                            .label=${C(`covers.snap_deploy`,e)}
-                            .hint=${C(`covers.snap_deploy_hint`,e)}
+                            .label=${S(`covers.snap_deploy`,e)}
+                            .hint=${S(`covers.snap_deploy_hint`,e)}
                             .checked=${this.snapDeploy}
                             @toggle-changed=${e=>this._emit(`covers_snap_deploy`,e.detail)}
                           ></rs-toggle-row>`}
                   </div>
-                `:g}
-          `:g}
-    `}static{this._DIRECTIONS=[{shortLabel:`covers.orientation_N`,longLabel:`covers.orientation_N_full`,deg:0},{shortLabel:`covers.orientation_NE`,longLabel:`covers.orientation_NE_full`,deg:45},{shortLabel:`covers.orientation_E`,longLabel:`covers.orientation_E_full`,deg:90},{shortLabel:`covers.orientation_SE`,longLabel:`covers.orientation_SE_full`,deg:135},{shortLabel:`covers.orientation_S`,longLabel:`covers.orientation_S_full`,deg:180},{shortLabel:`covers.orientation_SW`,longLabel:`covers.orientation_SW_full`,deg:225},{shortLabel:`covers.orientation_W`,longLabel:`covers.orientation_W_full`,deg:270},{shortLabel:`covers.orientation_NW`,longLabel:`covers.orientation_NW_full`,deg:315}]}_setMinPosition(e,t){let n={...this.coverMinPositions};n[e]=t,this._emit(`cover_min_positions`,n)}_setOrientation(e,t){let n={...this.coverOrientations};t===void 0?delete n[e]:n[e]=t,this._emit(`cover_orientations`,n)}_onEntityPicked(e){e.stopPropagation();let t=e.detail.value;if(!t)return;this._onToggle(t,!0);let n=e.target;n.value=``}_onToggle(e,t){this.dispatchEvent(new CustomEvent(`covers-toggle`,{detail:{entityId:e,checked:t},bubbles:!0,composed:!0}))}_onResumeAuto(){this.dispatchEvent(new CustomEvent(`cover-resume-auto`,{bubbles:!0,composed:!0}))}_emit(e,t){this.dispatchEvent(new CustomEvent(`setting-changed`,{detail:{key:e,value:t},bubbles:!0,composed:!0}))}};A([b({attribute:!1})],H.prototype,`hass`,void 0),A([b({attribute:!1})],H.prototype,`area`,void 0),A([b({attribute:!1})],H.prototype,`selectedCovers`,void 0),A([b({type:Boolean})],H.prototype,`editing`,void 0),A([b({type:Boolean})],H.prototype,`autoEnabled`,void 0),A([b({type:Number})],H.prototype,`deployThreshold`,void 0),A([b({type:Number})],H.prototype,`minPosition`,void 0),A([b({type:Number})],H.prototype,`overrideMinutes`,void 0),A([b({type:Boolean})],H.prototype,`autoPaused`,void 0),A([b({type:Number})],H.prototype,`overrideUntil`,void 0),A([b({attribute:!1})],H.prototype,`coverSchedules`,void 0),A([b({type:String})],H.prototype,`coverScheduleSelectorEntity`,void 0),A([b({type:Number})],H.prototype,`activeCoverScheduleIndex`,void 0),A([b({type:Boolean})],H.prototype,`nightClose`,void 0),A([b({type:Number})],H.prototype,`nightPosition`,void 0),A([b({type:Boolean})],H.prototype,`snapDeploy`,void 0),A([b({type:String})],H.prototype,`forcedReason`,void 0),A([b({attribute:!1})],H.prototype,`coverOrientations`,void 0),A([b({type:Number})],H.prototype,`nightCloseElevation`,void 0),A([b({type:Number})],H.prototype,`nightCloseOffsetMinutes`,void 0),A([b({type:Number})],H.prototype,`outdoorMinTemp`,void 0),A([b({attribute:!1})],H.prototype,`coverMinPositions`,void 0),A([x()],H.prototype,`_selectedForEdit`,void 0),A([x()],H.prototype,`_scheduleCollapsed`,void 0),A([x()],H.prototype,`_solarCollapsed`,void 0),H=Yt=A([y(`rs-covers-section`)],H),v(),S(),j();var U=class extends _{constructor(...e){super(...e),this.enabled=!1,this.native=!1,this.heatPumpPower=0,this.primaryDelta=1.5,this.outdoorThreshold=5,this.acMinOutdoor=-15,this.editing=!1}static{this.styles=[L,l`
+                `:h}
+          `:h}
+    `}static{this._DIRECTIONS=[{shortLabel:`covers.orientation_N`,longLabel:`covers.orientation_N_full`,deg:0},{shortLabel:`covers.orientation_NE`,longLabel:`covers.orientation_NE_full`,deg:45},{shortLabel:`covers.orientation_E`,longLabel:`covers.orientation_E_full`,deg:90},{shortLabel:`covers.orientation_SE`,longLabel:`covers.orientation_SE_full`,deg:135},{shortLabel:`covers.orientation_S`,longLabel:`covers.orientation_S_full`,deg:180},{shortLabel:`covers.orientation_SW`,longLabel:`covers.orientation_SW_full`,deg:225},{shortLabel:`covers.orientation_W`,longLabel:`covers.orientation_W_full`,deg:270},{shortLabel:`covers.orientation_NW`,longLabel:`covers.orientation_NW_full`,deg:315}]}_setMinPosition(e,t){let n={...this.coverMinPositions};n[e]=t,this._emit(`cover_min_positions`,n)}_setOrientation(e,t){let n={...this.coverOrientations};t===void 0?delete n[e]:n[e]=t,this._emit(`cover_orientations`,n)}_onEntityPicked(e){e.stopPropagation();let t=e.detail.value;if(!t)return;this._onToggle(t,!0);let n=e.target;n.value=``}_onToggle(e,t){this.dispatchEvent(new CustomEvent(`covers-toggle`,{detail:{entityId:e,checked:t},bubbles:!0,composed:!0}))}_onResumeAuto(){this.dispatchEvent(new CustomEvent(`cover-resume-auto`,{bubbles:!0,composed:!0}))}_emit(e,t){this.dispatchEvent(new CustomEvent(`setting-changed`,{detail:{key:e,value:t},bubbles:!0,composed:!0}))}};k([y({attribute:!1})],V.prototype,`hass`,void 0),k([y({attribute:!1})],V.prototype,`area`,void 0),k([y({attribute:!1})],V.prototype,`selectedCovers`,void 0),k([y({type:Boolean})],V.prototype,`editing`,void 0),k([y({type:Boolean})],V.prototype,`autoEnabled`,void 0),k([y({type:Number})],V.prototype,`deployThreshold`,void 0),k([y({type:Number})],V.prototype,`minPosition`,void 0),k([y({type:Number})],V.prototype,`overrideMinutes`,void 0),k([y({type:Boolean})],V.prototype,`autoPaused`,void 0),k([y({type:Number})],V.prototype,`overrideUntil`,void 0),k([y({attribute:!1})],V.prototype,`coverSchedules`,void 0),k([y({type:String})],V.prototype,`coverScheduleSelectorEntity`,void 0),k([y({type:Number})],V.prototype,`activeCoverScheduleIndex`,void 0),k([y({type:Boolean})],V.prototype,`nightClose`,void 0),k([y({type:Number})],V.prototype,`nightPosition`,void 0),k([y({type:Boolean})],V.prototype,`snapDeploy`,void 0),k([y({type:String})],V.prototype,`forcedReason`,void 0),k([y({attribute:!1})],V.prototype,`coverOrientations`,void 0),k([y({type:Number})],V.prototype,`nightCloseElevation`,void 0),k([y({type:Number})],V.prototype,`nightCloseOffsetMinutes`,void 0),k([y({type:Number})],V.prototype,`outdoorMinTemp`,void 0),k([y({attribute:!1})],V.prototype,`coverMinPositions`,void 0),k([b()],V.prototype,`_selectedForEdit`,void 0),k([b()],V.prototype,`_scheduleCollapsed`,void 0),k([b()],V.prototype,`_solarCollapsed`,void 0),V=Qt=k([v(`rs-covers-section`)],V),_(),x(),A();var H=class extends g{constructor(...e){super(...e),this.enabled=!1,this.native=!1,this.heatPumpPower=0,this.primaryDelta=1.5,this.outdoorThreshold=5,this.acMinOutdoor=-15,this.editing=!1}static{this.styles=[I,l`
       :host {
         display: block;
       }
@@ -4319,16 +4392,16 @@
       .threshold-cell ha-textfield {
         width: 100%;
       }
-    `]}render(){let e=this.hass.language;return this.editing?h`
+    `]}render(){let e=this.hass.language;return this.editing?m`
       <div class="feature-card ${this.enabled?`enabled`:``}">
         <div class="feature-text">
-          <div class="feature-title">${C(`heat_source.toggle`,e)}</div>
-          <div class="feature-description">${C(`heat_source.toggle_hint`,e)}</div>
+          <div class="feature-title">${S(`heat_source.toggle`,e)}</div>
+          <div class="feature-description">${S(`heat_source.toggle_hint`,e)}</div>
         </div>
         <ha-switch .checked=${this.enabled} @change=${this._onSwitchChange}></ha-switch>
       </div>
 
-      ${this.enabled?h`
+      ${this.enabled?m`
             <div class="feature-card">
               <div class="feature-text">
                 <div class="feature-title">Heat pump / Hybrid / Boiler</div>
@@ -4342,7 +4415,7 @@
                 @change=${e=>this._emit(`native_heat_source`,e.target.checked)}
               ></ha-switch>
             </div>
-            ${this.native?h`<div class="thresholds">
+            ${this.native?m`<div class="thresholds">
                   <div class="threshold-cell">
                     <div class="threshold-label"><span>Heat-pump estimated demand (W)</span></div>
                     <ha-textfield
@@ -4353,25 +4426,25 @@
                       @input=${e=>this._onNumberInput(`heat_pump_power_watts`,e)}
                     ></ha-textfield>
                   </div>
-                </div>`:g}
+                </div>`:h}
             <div class="thresholds">
-              ${this._renderThresholdCell({label:C(`heat_source.primary_delta`,e),hint:C(`heat_source.primary_delta_hint`,e),suffix:C(`heat_source.primary_delta_suffix`,e),value:this.primaryDelta,min:.5,max:5,step:.1,key:`heat_source_primary_delta`})}
-              ${this._renderThresholdCell({label:C(`heat_source.outdoor_threshold`,e),hint:C(`heat_source.outdoor_threshold_hint`,e),suffix:C(`heat_source.outdoor_threshold_suffix`,e),value:this.outdoorThreshold,min:-20,max:25,step:1,key:`heat_source_outdoor_threshold`})}
-              ${this._renderThresholdCell({label:C(`heat_source.ac_min_outdoor`,e),hint:C(`heat_source.ac_min_outdoor_hint`,e),suffix:C(`heat_source.ac_min_outdoor_suffix`,e),value:this.acMinOutdoor,min:-30,max:5,step:1,key:`heat_source_ac_min_outdoor`})}
+              ${this._renderThresholdCell({label:S(`heat_source.primary_delta`,e),hint:S(`heat_source.primary_delta_hint`,e),suffix:S(`heat_source.primary_delta_suffix`,e),value:this.primaryDelta,min:.5,max:5,step:.1,key:`heat_source_primary_delta`})}
+              ${this._renderThresholdCell({label:S(`heat_source.outdoor_threshold`,e),hint:S(`heat_source.outdoor_threshold_hint`,e),suffix:S(`heat_source.outdoor_threshold_suffix`,e),value:this.outdoorThreshold,min:-20,max:25,step:1,key:`heat_source_outdoor_threshold`})}
+              ${this._renderThresholdCell({label:S(`heat_source.ac_min_outdoor`,e),hint:S(`heat_source.ac_min_outdoor_hint`,e),suffix:S(`heat_source.ac_min_outdoor_suffix`,e),value:this.acMinOutdoor,min:-30,max:5,step:1,key:`heat_source_ac_min_outdoor`})}
             </div>
-          `:g}
-    `:this.enabled?h`<div class="summary">
-        ${C(`heat_source.primary_delta`,e)}:
-        <strong>${this.primaryDelta}${C(`heat_source.primary_delta_suffix`,e)}</strong>
-        · ${C(`heat_source.outdoor_threshold`,e)}:
+          `:h}
+    `:this.enabled?m`<div class="summary">
+        ${S(`heat_source.primary_delta`,e)}:
+        <strong>${this.primaryDelta}${S(`heat_source.primary_delta_suffix`,e)}</strong>
+        · ${S(`heat_source.outdoor_threshold`,e)}:
         <strong
-          >${this.outdoorThreshold}${C(`heat_source.outdoor_threshold_suffix`,e)}</strong
+          >${this.outdoorThreshold}${S(`heat_source.outdoor_threshold_suffix`,e)}</strong
         >
-        · ${C(`heat_source.ac_min_outdoor`,e)}:
-        <strong>${this.acMinOutdoor}${C(`heat_source.ac_min_outdoor_suffix`,e)}</strong>
-      </div>`:h`<div class="summary disabled">
-          ${C(`heat_source.summary_disabled`,e)}
-        </div>`}_renderThresholdCell(e){return h`
+        · ${S(`heat_source.ac_min_outdoor`,e)}:
+        <strong>${this.acMinOutdoor}${S(`heat_source.ac_min_outdoor_suffix`,e)}</strong>
+      </div>`:m`<div class="summary disabled">
+          ${S(`heat_source.summary_disabled`,e)}
+        </div>`}_renderThresholdCell(e){return m`
       <div class="threshold-cell">
         <div class="threshold-label">
           <span>${e.label}</span>
@@ -4387,7 +4460,7 @@
           @input=${t=>this._onNumberInput(e.key,t)}
         ></ha-textfield>
       </div>
-    `}_onSwitchChange(e){this._emit(`heat_source_orchestration`,e.target.checked)}_onNumberInput(e,t){let n=parseFloat(t.target.value);isNaN(n)||this._emit(e,n)}_emit(e,t){this.dispatchEvent(new CustomEvent(`setting-changed`,{detail:{key:e,value:t},bubbles:!0,composed:!0}))}};A([b({attribute:!1})],U.prototype,`hass`,void 0),A([b({type:Boolean})],U.prototype,`enabled`,void 0),A([b({type:Boolean})],U.prototype,`native`,void 0),A([b({type:Number})],U.prototype,`heatPumpPower`,void 0),A([b({type:Number})],U.prototype,`primaryDelta`,void 0),A([b({type:Number})],U.prototype,`outdoorThreshold`,void 0),A([b({type:Number})],U.prototype,`acMinOutdoor`,void 0),A([b({type:Boolean})],U.prototype,`editing`,void 0),U=A([y(`rs-heat-source-section`)],U),v(),S(),j();var Xt=class extends _{constructor(...e){super(...e),this.icon=``,this.label=``,this.hint=``,this.checked=!1,this.disabled=!1}static{this.styles=l`
+    `}_onSwitchChange(e){this._emit(`heat_source_orchestration`,e.target.checked)}_onNumberInput(e,t){let n=parseFloat(t.target.value);isNaN(n)||this._emit(e,n)}_emit(e,t){this.dispatchEvent(new CustomEvent(`setting-changed`,{detail:{key:e,value:t},bubbles:!0,composed:!0}))}};k([y({attribute:!1})],H.prototype,`hass`,void 0),k([y({type:Boolean})],H.prototype,`enabled`,void 0),k([y({type:Boolean})],H.prototype,`native`,void 0),k([y({type:Number})],H.prototype,`heatPumpPower`,void 0),k([y({type:Number})],H.prototype,`primaryDelta`,void 0),k([y({type:Number})],H.prototype,`outdoorThreshold`,void 0),k([y({type:Number})],H.prototype,`acMinOutdoor`,void 0),k([y({type:Boolean})],H.prototype,`editing`,void 0),H=k([v(`rs-heat-source-section`)],H),_(),x(),A();var $t=class extends g{constructor(...e){super(...e),this.icon=``,this.label=``,this.hint=``,this.checked=!1,this.disabled=!1}static{this.styles=l`
     :host {
       display: block;
     }
@@ -4414,10 +4487,10 @@
       flex: 1;
       min-width: 0;
     }
-  `}render(){return h`
+  `}render(){return m`
       <ha-card>
         <div class="row">
-          ${this.icon?h`<ha-icon class="icon" icon=${this.icon}></ha-icon>`:g}
+          ${this.icon?m`<ha-icon class="icon" icon=${this.icon}></ha-icon>`:h}
           <rs-toggle-row
             .label=${this.label}
             .hint=${this.hint}
@@ -4427,7 +4500,7 @@
           ></rs-toggle-row>
         </div>
       </ha-card>
-    `}_onToggle(e){e.stopPropagation(),this.dispatchEvent(new CustomEvent(`toggle-changed`,{detail:e.detail,bubbles:!0,composed:!0}))}};A([b({type:String})],Xt.prototype,`icon`,void 0),A([b({type:String})],Xt.prototype,`label`,void 0),A([b({type:String})],Xt.prototype,`hint`,void 0),A([b({type:Boolean})],Xt.prototype,`checked`,void 0),A([b({type:Boolean})],Xt.prototype,`disabled`,void 0),Xt=A([y(`rs-toggle-card`)],Xt),v(),S(),j();var Zt=`M19,6.41L17.59,5L12,10.59L6.41,5L5,6.41L10.59,12L5,17.59L6.41,19L12,13.41L17.59,19L19,17.59L13.41,12L19,6.41Z`,Qt=`M11,9H13V7H11M12,20C7.59,20 4,16.41 4,12C4,7.59 7.59,4 12,4C16.41,4 20,7.59 20,12C20,16.41 16.41,20 12,20M12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2M11,17H13V11H11V17Z`,$t=class extends _{constructor(...e){super(...e),this.open=!1,this.heading=``,this.icon=``,this.hasInfo=!1,this._infoExpanded=!1,this._onKeyDown=e=>{e.key===`Escape`&&this.open&&(e.stopPropagation(),this._close())}}connectedCallback(){super.connectedCallback(),window.addEventListener(`keydown`,this._onKeyDown)}disconnectedCallback(){super.disconnectedCallback(),window.removeEventListener(`keydown`,this._onKeyDown)}static{this.styles=l`
+    `}_onToggle(e){e.stopPropagation(),this.dispatchEvent(new CustomEvent(`toggle-changed`,{detail:e.detail,bubbles:!0,composed:!0}))}};k([y({type:String})],$t.prototype,`icon`,void 0),k([y({type:String})],$t.prototype,`label`,void 0),k([y({type:String})],$t.prototype,`hint`,void 0),k([y({type:Boolean})],$t.prototype,`checked`,void 0),k([y({type:Boolean})],$t.prototype,`disabled`,void 0),$t=k([v(`rs-toggle-card`)],$t),_(),x(),A();var en=`M19,6.41L17.59,5L12,10.59L6.41,5L5,6.41L10.59,12L5,17.59L6.41,19L12,13.41L17.59,19L19,17.59L13.41,12L19,6.41Z`,tn=`M11,9H13V7H11M12,20C7.59,20 4,16.41 4,12C4,7.59 7.59,4 12,4C16.41,4 20,7.59 20,12C20,16.41 16.41,20 12,20M12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2M11,17H13V11H11V17Z`,nn=class extends g{constructor(...e){super(...e),this.open=!1,this.heading=``,this.icon=``,this.hasInfo=!1,this._infoExpanded=!1,this._onKeyDown=e=>{e.key===`Escape`&&this.open&&(e.stopPropagation(),this._close())}}connectedCallback(){super.connectedCallback(),window.addEventListener(`keydown`,this._onKeyDown)}disconnectedCallback(){super.disconnectedCallback(),window.removeEventListener(`keydown`,this._onKeyDown)}static{this.styles=l`
     :host {
       display: contents;
     }
@@ -4585,30 +4658,30 @@
         transform: translateY(0);
       }
     }
-  `}render(){return this.open?h`
+  `}render(){return this.open?m`
       <div class="backdrop" @click=${this._onBackdropClick} role="dialog" aria-modal="true">
         <div class="dialog" @click=${e=>e.stopPropagation()}>
           <div class="dialog-header">
-            ${this.icon?h`<ha-icon class="dialog-icon" icon=${this.icon}></ha-icon>`:g}
+            ${this.icon?m`<ha-icon class="dialog-icon" icon=${this.icon}></ha-icon>`:h}
             <h3 class="dialog-title">${this.heading}</h3>
-            ${this.hasInfo?h`<ha-icon-button
+            ${this.hasInfo?m`<ha-icon-button
                   class="info-btn ${this._infoExpanded?`active`:``}"
-                  .path=${Qt}
+                  .path=${tn}
                   @click=${this._toggleInfo}
-                ></ha-icon-button>`:g}
+                ></ha-icon-button>`:h}
             <ha-icon-button
               class="close-btn"
-              .path=${Zt}
+              .path=${en}
               @click=${this._close}
             ></ha-icon-button>
           </div>
           <div class="dialog-body">
-            ${this.hasInfo&&this._infoExpanded?h`<div class="info-panel"><slot name="info"></slot></div>`:g}
+            ${this.hasInfo&&this._infoExpanded?m`<div class="info-panel"><slot name="info"></slot></div>`:h}
             <slot></slot>
           </div>
         </div>
       </div>
-    `:g}_onBackdropClick(e){e.target===e.currentTarget&&this._close()}_toggleInfo(){this._infoExpanded=!this._infoExpanded}_close(){this._infoExpanded=!1,this.dispatchEvent(new CustomEvent(`rs-dialog-closed`,{bubbles:!0,composed:!0}))}};A([b({type:Boolean,reflect:!0})],$t.prototype,`open`,void 0),A([b({type:String})],$t.prototype,`heading`,void 0),A([b({type:String})],$t.prototype,`icon`,void 0),A([b({type:Boolean})],$t.prototype,`hasInfo`,void 0),A([x()],$t.prototype,`_infoExpanded`,void 0),$t=A([y(`rs-edit-dialog`)],$t),v(),S(),j();var en=`https://github.com/snazzybean/roommind/blob/main/docs/control-and-devices.md`,W=class extends _{constructor(...e){super(...e),this.config=null,this.presenceEnabled=!1,this.presencePersons=[],this.climateControlActive=!0,this.valveProtectionEnabled=!1,this._devices=[],this._selectedTempSensor=``,this._selectedHumiditySensor=``,this._selectedOccupancySensors=new Set,this._selectedWindowSensors=new Set,this._windowOpenDelay=0,this._windowCloseDelay=0,this._keepFanOnlyOnWindowOpen=!0,this._climateMode=`auto`,this._schedules=[],this._scheduleSelectorEntity=``,this._comfortHeat=21,this._comfortCool=24,this._ecoHeat=17,this._ecoCool=27,this._error=``,this._dirty=!1,this._editing=null,this._selectedPresencePersons=[],this._displayName=``,this._selectedCovers=new Set,this._coversAutoEnabled=!1,this._coversDeployThreshold=1.5,this._coversMinPosition=0,this._coversOverrideMinutes=60,this._coverSchedules=[],this._coverScheduleSelectorEntity=``,this._coversNightClose=!1,this._coversNightPosition=0,this._coversSnapDeploy=!1,this._coverOrientations={},this._coversNightCloseElevation=0,this._coversNightCloseOffsetMinutes=0,this._coversOutdoorMinTemp=10,this._coverMinPositions={},this._ignorePresence=!1,this._isOutdoor=!1,this._valveProtectionExclude=new Set,this._climateControlEnabled=!0,this._heatSourceOrchestration=!1,this._heatSourcePrimaryDelta=1.5,this._heatSourceOutdoorThreshold=5,this._heatSourceAcMinOutdoor=-15,this._nativeHeatSource=!1,this._heatPumpPowerWatts=0,this._optimisticCoverResume=!1,this._prevAreaId=null,this._openEdit=e=>()=>{this._editing=e},this._closeEdit=()=>{this._editing=null}}static{this.styles=l`
+    `:h}_onBackdropClick(e){e.target===e.currentTarget&&this._close()}_toggleInfo(){this._infoExpanded=!this._infoExpanded}_close(){this._infoExpanded=!1,this.dispatchEvent(new CustomEvent(`rs-dialog-closed`,{bubbles:!0,composed:!0}))}};k([y({type:Boolean,reflect:!0})],nn.prototype,`open`,void 0),k([y({type:String})],nn.prototype,`heading`,void 0),k([y({type:String})],nn.prototype,`icon`,void 0),k([y({type:Boolean})],nn.prototype,`hasInfo`,void 0),k([b()],nn.prototype,`_infoExpanded`,void 0),nn=k([v(`rs-edit-dialog`)],nn),_(),x(),A();var rn=`https://github.com/snazzybean/roommind/blob/main/docs/control-and-devices.md`,U=class extends g{constructor(...e){super(...e),this.config=null,this.presenceEnabled=!1,this.presencePersons=[],this.climateControlActive=!0,this.valveProtectionEnabled=!1,this._devices=[],this._selectedTempSensor=``,this._selectedHumiditySensor=``,this._selectedOccupancySensors=new Set,this._selectedWindowSensors=new Set,this._windowOpenDelay=0,this._windowCloseDelay=0,this._keepFanOnlyOnWindowOpen=!0,this._climateMode=`auto`,this._schedules=[],this._scheduleSelectorEntity=``,this._comfortHeat=21,this._comfortCool=24,this._ecoHeat=17,this._ecoCool=27,this._error=``,this._dirty=!1,this._editing=null,this._selectedPresencePersons=[],this._displayName=``,this._selectedCovers=new Set,this._coversAutoEnabled=!1,this._coversDeployThreshold=1.5,this._coversMinPosition=0,this._coversOverrideMinutes=60,this._coverSchedules=[],this._coverScheduleSelectorEntity=``,this._coversNightClose=!1,this._coversNightPosition=0,this._coversSnapDeploy=!1,this._coverOrientations={},this._coversNightCloseElevation=0,this._coversNightCloseOffsetMinutes=0,this._coversOutdoorMinTemp=10,this._coverMinPositions={},this._ignorePresence=!1,this._isOutdoor=!1,this._valveProtectionExclude=new Set,this._climateControlEnabled=!0,this._heatSourceOrchestration=!1,this._heatSourcePrimaryDelta=1.5,this._heatSourceOutdoorThreshold=5,this._heatSourceAcMinOutdoor=-15,this._nativeHeatSource=!1,this._heatPumpPowerWatts=0,this._optimisticCoverResume=!1,this._prevAreaId=null,this._openEdit=e=>()=>{this._editing=e},this._closeEdit=()=>{this._editing=null}}static{this.styles=l`
     :host {
       display: block;
       max-width: 2400px;
@@ -4714,7 +4787,7 @@
     .helper-link:hover {
       text-decoration: underline;
     }
-  `}connectedCallback(){super.connectedCallback(),this._initFromConfig()}disconnectedCallback(){super.disconnectedCallback(),this._saveDebounce&&clearTimeout(this._saveDebounce)}updated(e){let t=this.config?.area_id??this.area?.area_id??null;t===this._prevAreaId?e.has(`config`)&&!this._dirty&&(e.get(`config`)??this._initFromConfig()):(this._initFromConfig(),this._prevAreaId=t),e.has(`config`)&&this._optimisticCoverResume&&!this.config?.live?.cover_auto_paused&&(this._optimisticCoverResume=!1)}_initFromConfig(){this.config?(this._devices=this.config.devices?.length?[...this.config.devices]:[...(this.config.thermostats??[]).map(e=>({entity_id:e,type:`trv`,role:`auto`,heating_system_type:this.config.heating_system_type??``})),...(this.config.acs??[]).map(e=>({entity_id:e,type:`ac`,role:`auto`}))],this._selectedTempSensor=this.config.temperature_sensor,this._selectedHumiditySensor=this.config.humidity_sensor??``,this._selectedOccupancySensors=new Set(this.config.occupancy_sensors??[]),this._selectedWindowSensors=new Set(this.config.window_sensors??[]),this._windowOpenDelay=this.config.window_open_delay??0,this._windowCloseDelay=this.config.window_close_delay??0,this._keepFanOnlyOnWindowOpen=this.config.keep_fan_only_on_window_open??!0,this._climateMode=this.config.climate_mode,this._schedules=this.config.schedules??[],this._scheduleSelectorEntity=this.config.schedule_selector_entity??``,this._comfortHeat=this.config.comfort_heat??this.config.comfort_temp??21,this._comfortCool=this.config.comfort_cool??24,this._ecoHeat=this.config.eco_heat??this.config.eco_temp??17,this._ecoCool=this.config.eco_cool??27,this._selectedPresencePersons=this.config.presence_persons??[],this._displayName=this.config.display_name??``,this._selectedCovers=new Set(this.config.covers??[]),this._coversAutoEnabled=this.config.covers_auto_enabled??!1,this._coversDeployThreshold=this.config.covers_deploy_threshold??1.5,this._coversMinPosition=this.config.covers_min_position??0,this._coversOverrideMinutes=this.config.covers_override_minutes??60,this._coverSchedules=this.config.cover_schedules??[],this._coverScheduleSelectorEntity=this.config.cover_schedule_selector_entity??``,this._coversNightClose=this.config.covers_night_close??!1,this._coversNightPosition=this.config.covers_night_position??0,this._coversSnapDeploy=this.config.covers_snap_deploy??!1,this._coverOrientations=this.config.cover_orientations??{},this._coversNightCloseElevation=this.config.covers_night_close_elevation??0,this._coversNightCloseOffsetMinutes=this.config.covers_night_close_offset_minutes??0,this._coversOutdoorMinTemp=this.config.covers_outdoor_min_temp??10,this._coverMinPositions=this.config.cover_min_positions??{},this._ignorePresence=this.config.ignore_presence??!1,this._isOutdoor=this.config.is_outdoor??!1,this._valveProtectionExclude=new Set(this.config.valve_protection_exclude??[]),this._climateControlEnabled=this.config.climate_control_enabled??!0,this._heatSourceOrchestration=this.config.heat_source_orchestration??!1,this._heatSourcePrimaryDelta=this.config.heat_source_primary_delta??1.5,this._heatSourceOutdoorThreshold=this.config.heat_source_outdoor_threshold??5,this._heatSourceAcMinOutdoor=this.config.heat_source_ac_min_outdoor??-15,this._nativeHeatSource=this.config.native_heat_source??!1,this._heatPumpPowerWatts=this.config.heat_pump_power_watts??0):(this._devices=[],this._selectedTempSensor=``,this._selectedHumiditySensor=``,this._selectedOccupancySensors=new Set,this._selectedWindowSensors=new Set,this._windowOpenDelay=0,this._windowCloseDelay=0,this._keepFanOnlyOnWindowOpen=!0,this._climateMode=`auto`,this._schedules=[],this._scheduleSelectorEntity=``,this._comfortHeat=21,this._comfortCool=24,this._ecoHeat=17,this._ecoCool=27,this._selectedPresencePersons=[],this._displayName=``,this._selectedCovers=new Set,this._coversAutoEnabled=!1,this._coversDeployThreshold=1.5,this._coversMinPosition=0,this._coversOverrideMinutes=60,this._coverSchedules=[],this._coverScheduleSelectorEntity=``,this._coversNightClose=!1,this._coversNightPosition=0,this._coversSnapDeploy=!1,this._coverOrientations={},this._coversNightCloseElevation=0,this._coversNightCloseOffsetMinutes=0,this._coversOutdoorMinTemp=10,this._coverMinPositions={},this._ignorePresence=!1,this._isOutdoor=!1,this._valveProtectionExclude=new Set,this._climateControlEnabled=!0,this._heatSourceOrchestration=!1,this._heatSourcePrimaryDelta=1.5,this._heatSourceOutdoorThreshold=5,this._heatSourceAcMinOutdoor=-15),this._dirty=!1,this._devices.length===0&&this._editing===null&&(this._editing=`devices`)}_getEffectiveOverride(){let e=this.shadowRoot?.querySelector(`rs-override-section`);if(e)return e.getEffectiveOverride();let t=this.config?.live;return t?.override_active&&t.override_type?{active:!0,type:t.override_type,heat:t.override_heat,cool:t.override_cool,until:t.override_until}:{active:!1,type:null,heat:null,cool:null,until:null}}render(){return this.area?h`
+  `}connectedCallback(){super.connectedCallback(),this._initFromConfig()}disconnectedCallback(){super.disconnectedCallback(),this._saveDebounce&&clearTimeout(this._saveDebounce)}updated(e){let t=this.config?.area_id??this.area?.area_id??null;t===this._prevAreaId?e.has(`config`)&&!this._dirty&&(e.get(`config`)??this._initFromConfig()):(this._initFromConfig(),this._prevAreaId=t),e.has(`config`)&&this._optimisticCoverResume&&!this.config?.live?.cover_auto_paused&&(this._optimisticCoverResume=!1)}_initFromConfig(){this.config?(this._devices=this.config.devices?.length?[...this.config.devices]:[...(this.config.thermostats??[]).map(e=>({entity_id:e,type:`trv`,role:`auto`,heating_system_type:this.config.heating_system_type??``})),...(this.config.acs??[]).map(e=>({entity_id:e,type:`ac`,role:`auto`}))],this._selectedTempSensor=this.config.temperature_sensor,this._selectedHumiditySensor=this.config.humidity_sensor??``,this._selectedOccupancySensors=new Set(this.config.occupancy_sensors??[]),this._selectedWindowSensors=new Set(this.config.window_sensors??[]),this._windowOpenDelay=this.config.window_open_delay??0,this._windowCloseDelay=this.config.window_close_delay??0,this._keepFanOnlyOnWindowOpen=this.config.keep_fan_only_on_window_open??!0,this._climateMode=this.config.climate_mode,this._schedules=this.config.schedules??[],this._scheduleSelectorEntity=this.config.schedule_selector_entity??``,this._comfortHeat=this.config.comfort_heat??this.config.comfort_temp??21,this._comfortCool=this.config.comfort_cool??24,this._ecoHeat=this.config.eco_heat??this.config.eco_temp??17,this._ecoCool=this.config.eco_cool??27,this._selectedPresencePersons=this.config.presence_persons??[],this._displayName=this.config.display_name??``,this._selectedCovers=new Set(this.config.covers??[]),this._coversAutoEnabled=this.config.covers_auto_enabled??!1,this._coversDeployThreshold=this.config.covers_deploy_threshold??1.5,this._coversMinPosition=this.config.covers_min_position??0,this._coversOverrideMinutes=this.config.covers_override_minutes??60,this._coverSchedules=this.config.cover_schedules??[],this._coverScheduleSelectorEntity=this.config.cover_schedule_selector_entity??``,this._coversNightClose=this.config.covers_night_close??!1,this._coversNightPosition=this.config.covers_night_position??0,this._coversSnapDeploy=this.config.covers_snap_deploy??!1,this._coverOrientations=this.config.cover_orientations??{},this._coversNightCloseElevation=this.config.covers_night_close_elevation??0,this._coversNightCloseOffsetMinutes=this.config.covers_night_close_offset_minutes??0,this._coversOutdoorMinTemp=this.config.covers_outdoor_min_temp??10,this._coverMinPositions=this.config.cover_min_positions??{},this._ignorePresence=this.config.ignore_presence??!1,this._isOutdoor=this.config.is_outdoor??!1,this._valveProtectionExclude=new Set(this.config.valve_protection_exclude??[]),this._climateControlEnabled=this.config.climate_control_enabled??!0,this._heatSourceOrchestration=this.config.heat_source_orchestration??!1,this._heatSourcePrimaryDelta=this.config.heat_source_primary_delta??1.5,this._heatSourceOutdoorThreshold=this.config.heat_source_outdoor_threshold??5,this._heatSourceAcMinOutdoor=this.config.heat_source_ac_min_outdoor??-15,this._nativeHeatSource=this.config.native_heat_source??!1,this._heatPumpPowerWatts=this.config.heat_pump_power_watts??0):(this._devices=[],this._selectedTempSensor=``,this._selectedHumiditySensor=``,this._selectedOccupancySensors=new Set,this._selectedWindowSensors=new Set,this._windowOpenDelay=0,this._windowCloseDelay=0,this._keepFanOnlyOnWindowOpen=!0,this._climateMode=`auto`,this._schedules=[],this._scheduleSelectorEntity=``,this._comfortHeat=21,this._comfortCool=24,this._ecoHeat=17,this._ecoCool=27,this._selectedPresencePersons=[],this._displayName=``,this._selectedCovers=new Set,this._coversAutoEnabled=!1,this._coversDeployThreshold=1.5,this._coversMinPosition=0,this._coversOverrideMinutes=60,this._coverSchedules=[],this._coverScheduleSelectorEntity=``,this._coversNightClose=!1,this._coversNightPosition=0,this._coversSnapDeploy=!1,this._coverOrientations={},this._coversNightCloseElevation=0,this._coversNightCloseOffsetMinutes=0,this._coversOutdoorMinTemp=10,this._coverMinPositions={},this._ignorePresence=!1,this._isOutdoor=!1,this._valveProtectionExclude=new Set,this._climateControlEnabled=!0,this._heatSourceOrchestration=!1,this._heatSourcePrimaryDelta=1.5,this._heatSourceOutdoorThreshold=5,this._heatSourceAcMinOutdoor=-15),this._dirty=!1,this._devices.length===0&&this._editing===null&&(this._editing=`devices`)}_getEffectiveOverride(){let e=this.shadowRoot?.querySelector(`rs-override-section`);if(e)return e.getEffectiveOverride();let t=this.config?.live;return t?.override_active&&t.override_type?{active:!0,type:t.override_type,heat:t.override_heat,cool:t.override_cool,until:t.override_until}:{active:!1,type:null,heat:null,cool:null,until:null}}render(){return this.area?m`
       <div class="detail-layout">
         <rs-hero-status
           .hass=${this.hass}
@@ -4726,27 +4799,33 @@
           @display-name-changed=${this._onDisplayNameChanged}
         ></rs-hero-status>
 
+        ${!this._isOutdoor&&this.config?m`<rs-room-insights
+              .hass=${this.hass}
+              .readiness=${this.config.readiness}
+              .decisionReasons=${this.config.live?.decision_reasons??[]}
+            ></rs-room-insights>`:h}
+
         <div class="detail-grid">
-          ${this._isOutdoor?g:h`
+          ${this._isOutdoor?h:m`
                 <rs-toggle-card
                   icon="mdi:power"
-                  .label=${C(`room.climate_control_toggle`,this.hass.language)}
-                  .hint=${C(`room.climate_control_hint`,this.hass.language)}
+                  .label=${S(`room.climate_control_toggle`,this.hass.language)}
+                  .hint=${S(`room.climate_control_hint`,this.hass.language)}
                   .checked=${this._climateControlEnabled}
                   @toggle-changed=${this._onClimateControlToggle}
                 ></rs-toggle-card>
 
                 <rs-section-card
                   icon="mdi:cog"
-                  .heading=${C(`room.section.climate_mode`,this.hass.language)}
+                  .heading=${S(`room.section.climate_mode`,this.hass.language)}
                 >
                   <rs-info-icon slot="header-extras">
-                    <b>${C(`mode.auto`,this.hass.language)}</b> —
-                    ${C(`mode.auto_desc`,this.hass.language)}<br />
-                    <b>${C(`mode.heat_only`,this.hass.language)}</b> —
-                    ${C(`mode.heat_only_desc`,this.hass.language)}<br />
-                    <b>${C(`mode.cool_only`,this.hass.language)}</b> —
-                    ${C(`mode.cool_only_desc`,this.hass.language)}
+                    <b>${S(`mode.auto`,this.hass.language)}</b> —
+                    ${S(`mode.auto_desc`,this.hass.language)}<br />
+                    <b>${S(`mode.heat_only`,this.hass.language)}</b> —
+                    ${S(`mode.heat_only_desc`,this.hass.language)}<br />
+                    <b>${S(`mode.cool_only`,this.hass.language)}</b> —
+                    ${S(`mode.cool_only_desc`,this.hass.language)}
                   </rs-info-icon>
                   <rs-climate-mode-selector
                     .climateMode=${this._climateMode}
@@ -4757,7 +4836,7 @@
 
                 <rs-section-card
                   icon="mdi:calendar"
-                  .heading=${C(`room.section.schedule`,this.hass.language)}
+                  .heading=${S(`room.section.schedule`,this.hass.language)}
                   editable
                   @edit-click=${this._openEdit(`schedule`)}
                 >
@@ -4779,7 +4858,7 @@
                     @eco-heat-changed=${this._onEcoHeatChanged}
                     @eco-cool-changed=${this._onEcoCoolChanged}
                   ></rs-schedule-settings>
-                  ${this.config?h`
+                  ${this.config?m`
                         <rs-override-section
                           .hass=${this.hass}
                           .config=${this.config}
@@ -4790,13 +4869,13 @@
                           .ecoCool=${this._ecoCool}
                           .language=${this.hass.language}
                         ></rs-override-section>
-                      `:g}
+                      `:h}
                 </rs-section-card>
               `}
-          ${this._isOutdoor?g:h`
+          ${this._isOutdoor?h:m`
                 <rs-section-card
                   icon="mdi:power-plug"
-                  .heading=${C(`room.section.devices`,this.hass.language)}
+                  .heading=${S(`room.section.devices`,this.hass.language)}
                   editable
                   @edit-click=${this._openEdit(`devices`)}
                 >
@@ -4815,7 +4894,7 @@
 
                 <rs-section-card
                   icon="mdi:thermometer"
-                  .heading=${C(`room.section.sensors`,this.hass.language)}
+                  .heading=${S(`room.section.sensors`,this.hass.language)}
                   editable
                   @edit-click=${this._openEdit(`sensors`)}
                 >
@@ -4830,21 +4909,21 @@
                     .windowOpenDelay=${this._windowOpenDelay}
                     .windowCloseDelay=${this._windowCloseDelay}
                     .keepFanOnlyOnWindowOpen=${this._keepFanOnlyOnWindowOpen}
-                    .heatingSystemType=${Rt(this._devices)}
+                    .heatingSystemType=${Vt(this._devices)}
                     .language=${this.hass.language}
                     @sensor-changed=${this._onSensorChanged}
                   ></rs-sensor-section>
                 </rs-section-card>
 
-                ${this.presenceEnabled&&(this.presencePersons.length>0||this._selectedPresencePersons.length>0)?h`<rs-section-card
+                ${this.presenceEnabled&&(this.presencePersons.length>0||this._selectedPresencePersons.length>0)?m`<rs-section-card
                       icon="mdi:home-account"
-                      .heading=${C(`room.section.presence`,this.hass.language)}
+                      .heading=${S(`room.section.presence`,this.hass.language)}
                       editable
                       @edit-click=${this._openEdit(`presence`)}
                     >
                       <rs-info-icon
                         slot="header-extras"
-                        .text=${C(`presence.ignore_hint`,this.hass.language)}
+                        .text=${S(`presence.ignore_hint`,this.hass.language)}
                       ></rs-info-icon>
                       <rs-presence-section
                         .hass=${this.hass}
@@ -4857,13 +4936,13 @@
                         @presence-persons-changed=${this._onPresencePersonsChanged}
                         @ignore-presence-changed=${this._onIgnorePresenceChanged}
                       ></rs-presence-section>
-                    </rs-section-card>`:g}
+                    </rs-section-card>`:h}
               `}
-          ${this._isOutdoor?g:h`<rs-section-card
+          ${this._isOutdoor?h:m`<rs-section-card
                 icon="mdi:blinds-horizontal"
-                .heading=${C(`room.section.covers`,this.hass.language)}
-                .badge=${C(`badge.beta`,this.hass.language)}
-                .badgeHint=${C(`badge.beta_hint`,this.hass.language)}
+                .heading=${S(`room.section.covers`,this.hass.language)}
+                .badge=${S(`badge.beta`,this.hass.language)}
+                .badgeHint=${S(`badge.beta_hint`,this.hass.language)}
                 editable
                 @edit-click=${this._openEdit(`covers`)}
               >
@@ -4895,9 +4974,9 @@
                   @cover-resume-auto=${this._onCoverResumeAuto}
                 ></rs-covers-section>
               </rs-section-card>`}
-          ${!this._isOutdoor&&this._selectedTempSensor&&this._devices.some(e=>e.type===`trv`)&&this._devices.some(e=>e.type===`ac`)?h`<rs-section-card
+          ${!this._isOutdoor&&this._selectedTempSensor&&this._devices.some(e=>e.type===`trv`)&&this._devices.some(e=>e.type===`ac`)?m`<rs-section-card
                 icon="mdi:swap-horizontal"
-                .heading=${C(`room.section.heat_source`,this.hass.language)}
+                .heading=${S(`room.section.heat_source`,this.hass.language)}
                 editable
                 @edit-click=${this._openEdit(`heatSource`)}
               >
@@ -4910,41 +4989,41 @@
                   .acMinOutdoor=${this._heatSourceAcMinOutdoor}
                   @setting-changed=${this._onHeatSourceSettingChanged}
                 ></rs-heat-source-section>
-              </rs-section-card>`:g}
+              </rs-section-card>`:h}
 
           <rs-toggle-card
             icon="mdi:tree"
-            .label=${C(`room.outdoor_toggle`,this.hass.language)}
-            .hint=${C(`room.outdoor_hint`,this.hass.language)}
+            .label=${S(`room.outdoor_toggle`,this.hass.language)}
+            .hint=${S(`room.outdoor_hint`,this.hass.language)}
             .checked=${this._isOutdoor}
             @toggle-changed=${this._onOutdoorToggle}
           ></rs-toggle-card>
         </div>
-        ${this._error?h`<div class="error">${this._error}</div>`:g}
+        ${this._error?m`<div class="error">${this._error}</div>`:h}
         ${this._renderEditDialog()}
       </div>
-    `:g}_renderEditDialog(){if(this._editing===null)return g;let e=this.hass.language;switch(this._editing){case`schedule`:return h`<rs-edit-dialog
+    `:h}_renderEditDialog(){if(this._editing===null)return h;let e=this.hass.language;switch(this._editing){case`schedule`:return m`<rs-edit-dialog
           open
           icon="mdi:calendar"
-          .heading=${C(`room.section.schedule`,e)}
+          .heading=${S(`room.section.schedule`,e)}
           hasInfo
           @rs-dialog-closed=${this._closeEdit}
         >
           <div slot="info">
-            <p><strong>${C(`schedule.help_temps_title`,e)}</strong></p>
-            <p>${C(`schedule.help_temps`,e)}</p>
+            <p><strong>${S(`schedule.help_temps_title`,e)}</strong></p>
+            <p>${S(`schedule.help_temps`,e)}</p>
             <ol style="margin: 4px 0 0 0; padding-left: 20px; line-height: 1.8">
-              <li>${N(C(`schedule.help_temps_1`,e))}</li>
-              <li>${N(C(`schedule.help_temps_2`,e))}</li>
-              <li>${N(C(`schedule.help_temps_3`,e))}</li>
-              <li>${N(C(`schedule.help_temps_4`,e))}</li>
+              <li>${M(S(`schedule.help_temps_1`,e))}</li>
+              <li>${M(S(`schedule.help_temps_2`,e))}</li>
+              <li>${M(S(`schedule.help_temps_3`,e))}</li>
+              <li>${M(S(`schedule.help_temps_4`,e))}</li>
             </ol>
             <p style="margin-top: 12px">
-              <strong>${C(`schedule.help_block_title`,e)}</strong>
+              <strong>${S(`schedule.help_block_title`,e)}</strong>
             </p>
-            <p>${N(C(`schedule.help_block`,e))}</p>
+            <p>${M(S(`schedule.help_block`,e))}</p>
             <div class="yaml-block">
-              ${N(`<span class="yaml-key">schedule</span>:
+              ${M(`<span class="yaml-key">schedule</span>:
   <span class="yaml-key">living_room_heating</span>:
     <span class="yaml-key">name</span>: <span class="yaml-value">Living Room Heating</span>
     <span class="yaml-key">monday</span>:
@@ -4957,23 +5036,23 @@
         <span class="yaml-key">data</span>:
           <span class="yaml-key">temperature</span>: <span class="yaml-value">21.5</span>`)}
             </div>
-            <p style="margin-top: 8px">${N(C(`schedule.help_block_note`,e))}</p>
+            <p style="margin-top: 8px">${M(S(`schedule.help_block_note`,e))}</p>
             <p style="margin-top: 12px">
-              <strong>${C(`schedule.help_split_title`,e)}</strong>
+              <strong>${S(`schedule.help_split_title`,e)}</strong>
             </p>
-            <p>${N(C(`schedule.help_split`,e))}</p>
+            <p>${M(S(`schedule.help_split`,e))}</p>
             <div class="yaml-block">
-              ${N(`- <span class="yaml-key">from</span>: <span class="yaml-value">"06:00:00"</span>
+              ${M(`- <span class="yaml-key">from</span>: <span class="yaml-value">"06:00:00"</span>
   <span class="yaml-key">to</span>: <span class="yaml-value">"08:00:00"</span>
   <span class="yaml-key">data</span>:
     <span class="yaml-key">heat_temperature</span>: <span class="yaml-value">21</span>
     <span class="yaml-key">cool_temperature</span>: <span class="yaml-value">24</span>`)}
             </div>
-            <p style="margin-top: 8px">${N(C(`schedule.help_split_note`,e))}</p>
+            <p style="margin-top: 8px">${M(S(`schedule.help_split_note`,e))}</p>
             <p style="margin-top: 12px">
-              <strong>${C(`schedule.help_multi_title`,e)}</strong>
+              <strong>${S(`schedule.help_multi_title`,e)}</strong>
             </p>
-            <p>${N(C(`schedule.help_multi`,e))}</p>
+            <p>${M(S(`schedule.help_multi`,e))}</p>
           </div>
           <rs-schedule-settings
             .hass=${this.hass}
@@ -4993,28 +5072,28 @@
             @eco-heat-changed=${this._onEcoHeatChanged}
             @eco-cool-changed=${this._onEcoCoolChanged}
           ></rs-schedule-settings>
-        </rs-edit-dialog>`;case`devices`:return h`<rs-edit-dialog
+        </rs-edit-dialog>`;case`devices`:return m`<rs-edit-dialog
           open
           icon="mdi:power-plug"
-          .heading=${C(`room.section.devices`,e)}
+          .heading=${S(`room.section.devices`,e)}
           hasInfo
           @rs-dialog-closed=${this._closeEdit}
         >
           <div slot="info">
-            <b>${C(`devices.info.types_title`,e)}</b><br />
-            ${C(`devices.info.types_body`,e)}
+            <b>${S(`devices.info.types_title`,e)}</b><br />
+            ${S(`devices.info.types_body`,e)}
             <br /><br />
-            <b>${C(`devices.info.control_title`,e)}</b><br />
-            ${C(`devices.info.control_body`,e)}
+            <b>${S(`devices.info.control_title`,e)}</b><br />
+            ${S(`devices.info.control_body`,e)}
             <br /><br />
-            <b>${C(`devices.info.modes_title`,e)}</b><br />
-            ${C(`devices.info.modes_body`,e)}
+            <b>${S(`devices.info.modes_title`,e)}</b><br />
+            ${S(`devices.info.modes_body`,e)}
             <br /><br />
-            <b>${C(`devices.info.heat_source_title`,e)}</b><br />
-            ${C(`devices.info.heat_source_body`,e)}
+            <b>${S(`devices.info.heat_source_title`,e)}</b><br />
+            ${S(`devices.info.heat_source_body`,e)}
             <br />
-            <a class="helper-link" href=${en} target="_blank" rel="noreferrer">
-              ${C(`common.learn_more`,e)}
+            <a class="helper-link" href=${rn} target="_blank" rel="noreferrer">
+              ${S(`common.learn_more`,e)}
             </a>
           </div>
           <rs-device-section
@@ -5028,10 +5107,10 @@
             @device-changed=${this._onDeviceChanged}
             @valve-protection-exclude-toggle=${this._onValveProtectionExcludeToggle}
           ></rs-device-section>
-        </rs-edit-dialog>`;case`sensors`:return h`<rs-edit-dialog
+        </rs-edit-dialog>`;case`sensors`:return m`<rs-edit-dialog
           open
           icon="mdi:thermometer"
-          .heading=${C(`room.section.sensors`,e)}
+          .heading=${S(`room.section.sensors`,e)}
           @rs-dialog-closed=${this._closeEdit}
         >
           <rs-sensor-section
@@ -5045,23 +5124,23 @@
             .windowOpenDelay=${this._windowOpenDelay}
             .windowCloseDelay=${this._windowCloseDelay}
             .keepFanOnlyOnWindowOpen=${this._keepFanOnlyOnWindowOpen}
-            .heatingSystemType=${Rt(this._devices)}
+            .heatingSystemType=${Vt(this._devices)}
             .language=${this.hass.language}
             @sensor-changed=${this._onSensorChanged}
           ></rs-sensor-section>
-        </rs-edit-dialog>`;case`presence`:return h`<rs-edit-dialog
+        </rs-edit-dialog>`;case`presence`:return m`<rs-edit-dialog
           open
           icon="mdi:home-account"
-          .heading=${C(`room.section.presence`,e)}
+          .heading=${S(`room.section.presence`,e)}
           hasInfo
           @rs-dialog-closed=${this._closeEdit}
         >
           <div slot="info">
-            <b>${C(`presence.room_help_header`,e)}</b><br />
-            ${C(`presence.room_help_body`,e)}
+            <b>${S(`presence.room_help_header`,e)}</b><br />
+            ${S(`presence.room_help_body`,e)}
             <br /><br />
-            <b>${C(`presence.help_ignore_title`,e)}</b><br />
-            ${C(`presence.help_ignore_body`,e)}
+            <b>${S(`presence.help_ignore_title`,e)}</b><br />
+            ${S(`presence.help_ignore_body`,e)}
           </div>
           <rs-presence-section
             .hass=${this.hass}
@@ -5074,21 +5153,21 @@
             @presence-persons-changed=${this._onPresencePersonsChanged}
             @ignore-presence-changed=${this._onIgnorePresenceChanged}
           ></rs-presence-section>
-        </rs-edit-dialog>`;case`covers`:return h`<rs-edit-dialog
+        </rs-edit-dialog>`;case`covers`:return m`<rs-edit-dialog
           open
           icon="mdi:blinds-horizontal"
-          .heading=${C(`room.section.covers`,e)}
+          .heading=${S(`room.section.covers`,e)}
           hasInfo
           @rs-dialog-closed=${this._closeEdit}
         >
           <div slot="info">
-            <b>${C(`covers.info.selection_title`,e)}</b><br />
-            ${C(`covers.info.selection_body`,e)}
+            <b>${S(`covers.info.selection_title`,e)}</b><br />
+            ${S(`covers.info.selection_body`,e)}
             <br /><br />
-            <b>${C(`covers.info.schedule_title`,e)}</b><br />
-            ${C(`covers.info.schedule_body`,e)}
+            <b>${S(`covers.info.schedule_title`,e)}</b><br />
+            ${S(`covers.info.schedule_body`,e)}
             <div class="yaml-block">
-              ${N(`<span class="yaml-key">schedule</span>:
+              ${M(`<span class="yaml-key">schedule</span>:
   <span class="yaml-key">cover_evening</span>:
     <span class="yaml-key">name</span>: <span class="yaml-value">Cover Evening</span>
     <span class="yaml-key">monday</span>:
@@ -5097,20 +5176,20 @@
         <span class="yaml-key">data</span>:
           <span class="yaml-key">position</span>: <span class="yaml-value">10</span>`)}
             </div>
-            <b>${C(`covers.info.solar_title`,e)}</b><br />
-            ${C(`covers.info.solar_body`,e)}
+            <b>${S(`covers.info.solar_title`,e)}</b><br />
+            ${S(`covers.info.solar_body`,e)}
             <br /><br />
-            <b>${C(`covers.info.night_title`,e)}</b><br />
-            ${C(`covers.info.night_body`,e)}
+            <b>${S(`covers.info.night_title`,e)}</b><br />
+            ${S(`covers.info.night_body`,e)}
             <br /><br />
-            <b>${C(`covers.info.override_title`,e)}</b><br />
-            ${C(`covers.info.override_body`,e)}
+            <b>${S(`covers.info.override_title`,e)}</b><br />
+            ${S(`covers.info.override_body`,e)}
             <br /><br />
-            <b>${C(`covers.info.priority_title`,e)}</b><br />
-            ${C(`covers.info.priority_body`,e)}
+            <b>${S(`covers.info.priority_title`,e)}</b><br />
+            ${S(`covers.info.priority_body`,e)}
             <br /><br />
-            <b>${C(`covers.info.entities_title`,e)}</b><br />
-            ${C(`covers.info.entities_body`,e)}
+            <b>${S(`covers.info.entities_title`,e)}</b><br />
+            ${S(`covers.info.entities_body`,e)}
           </div>
           <rs-covers-section
             .hass=${this.hass}
@@ -5139,10 +5218,10 @@
             @setting-changed=${this._onCoverSettingChanged}
             @cover-resume-auto=${this._onCoverResumeAuto}
           ></rs-covers-section>
-        </rs-edit-dialog>`;case`heatSource`:return h`<rs-edit-dialog
+        </rs-edit-dialog>`;case`heatSource`:return m`<rs-edit-dialog
           open
           icon="mdi:swap-horizontal"
-          .heading=${C(`room.section.heat_source`,e)}
+          .heading=${S(`room.section.heat_source`,e)}
           @rs-dialog-closed=${this._closeEdit}
         >
           <rs-heat-source-section
@@ -5156,7 +5235,7 @@
             .heatPumpPower=${this._heatPumpPowerWatts}
             @setting-changed=${this._onHeatSourceSettingChanged}
           ></rs-heat-source-section>
-        </rs-edit-dialog>`}}_onModeChanged(e){this._climateMode=e.detail.mode,this._autoSave()}_onSchedulesChanged(e){this._schedules=e.detail.value,this._autoSave()}_onScheduleSelectorChanged(e){this._scheduleSelectorEntity=e.detail.value,this._autoSave()}_onComfortHeatChanged(e){this._comfortHeat=e.detail.value,this._comfortCool<this._comfortHeat&&(this._comfortCool=this._comfortHeat),this._autoSave()}_onComfortCoolChanged(e){this._comfortCool=e.detail.value,this._comfortHeat>this._comfortCool&&(this._comfortHeat=this._comfortCool),this._autoSave()}_onEcoHeatChanged(e){this._ecoHeat=e.detail.value,this._ecoCool<this._ecoHeat&&(this._ecoCool=this._ecoHeat),this._autoSave()}_onEcoCoolChanged(e){this._ecoCool=e.detail.value,this._ecoHeat>this._ecoCool&&(this._ecoHeat=this._ecoCool),this._autoSave()}_onDeviceChanged(e){let t=new Set(this._devices.map(e=>e.entity_id));this._devices=e.detail.devices;let n=new Set(this._devices.map(e=>e.entity_id));for(let e of t)if(!n.has(e)&&this._valveProtectionExclude.has(e)){let t=new Set(this._valveProtectionExclude);t.delete(e),this._valveProtectionExclude=t}for(let e of this._devices)if(e.type!==`trv`&&this._valveProtectionExclude.has(e.entity_id)){let t=new Set(this._valveProtectionExclude);t.delete(e.entity_id),this._valveProtectionExclude=t}this._autoSave()}_onSensorChanged(e){let{key:t,value:n}=e.detail;t===`temperature_sensor`?this._selectedTempSensor=n:t===`humidity_sensor`?this._selectedHumiditySensor=n:t===`occupancy_sensors`?this._selectedOccupancySensors=new Set(n):t===`window_sensors`?this._selectedWindowSensors=new Set(n):t===`window_open_delay`?this._windowOpenDelay=n:t===`window_close_delay`?this._windowCloseDelay=n:t===`keep_fan_only_on_window_open`&&(this._keepFanOnlyOnWindowOpen=n),this._autoSave()}_onValveProtectionExcludeToggle(e){let{entityId:t,excluded:n}=e.detail,r=new Set(this._valveProtectionExclude);n?r.add(t):r.delete(t),this._valveProtectionExclude=r,this._autoSave()}_onPresencePersonsChanged(e){this._selectedPresencePersons=e.detail,this._autoSave()}_onIgnorePresenceChanged(e){this._ignorePresence=e.detail,this._autoSave()}_onCoversToggle(e){let{entityId:t,checked:n}=e.detail,r=new Set(this._selectedCovers);if(n)r.add(t);else{if(r.delete(t),t in this._coverOrientations){let e={...this._coverOrientations};delete e[t],this._coverOrientations=e}if(t in this._coverMinPositions){let e={...this._coverMinPositions};delete e[t],this._coverMinPositions=e}}this._selectedCovers=r,this._autoSave()}_onCoverSettingChanged(e){let{key:t,value:n}=e.detail;e.stopPropagation(),t===`covers_auto_enabled`?this._coversAutoEnabled=n:t===`covers_deploy_threshold`?this._coversDeployThreshold=n:t===`covers_min_position`?this._coversMinPosition=n:t===`covers_override_minutes`?this._coversOverrideMinutes=n:t===`cover_schedules`?this._coverSchedules=n:t===`cover_schedule_selector_entity`?this._coverScheduleSelectorEntity=n:t===`covers_night_close`?this._coversNightClose=n:t===`covers_night_position`?this._coversNightPosition=n:t===`covers_snap_deploy`?this._coversSnapDeploy=n:t===`cover_orientations`?this._coverOrientations=n:t===`covers_night_close_elevation`?this._coversNightCloseElevation=n:t===`covers_night_close_offset_minutes`?this._coversNightCloseOffsetMinutes=n:t===`covers_outdoor_min_temp`?this._coversOutdoorMinTemp=n:t===`cover_min_positions`&&(this._coverMinPositions=n),this._autoSave()}async _onCoverResumeAuto(){this._optimisticCoverResume=!0;try{await this.hass.callWS({type:`roommind/covers/clear_override`,area_id:this.area.area_id})}catch{this._optimisticCoverResume=!1}}_onHeatSourceSettingChanged(e){let{key:t,value:n}=e.detail;e.stopPropagation(),t===`heat_source_orchestration`?this._heatSourceOrchestration=n:t===`heat_source_primary_delta`?this._heatSourcePrimaryDelta=n:t===`heat_source_outdoor_threshold`?this._heatSourceOutdoorThreshold=n:t===`heat_source_ac_min_outdoor`?this._heatSourceAcMinOutdoor=n:t===`native_heat_source`?this._nativeHeatSource=n:t===`heat_pump_power_watts`&&(this._heatPumpPowerWatts=n),this._autoSave()}_onClimateControlToggle(e){this._climateControlEnabled=e.detail,this._autoSave()}_onOutdoorToggle(e){this._isOutdoor=e.detail,this._autoSave()}_onDisplayNameChanged(e){this._displayName=e.detail.value,this._autoSave()}_autoSave(){this._dirty=!0,this._saveDebounce&&clearTimeout(this._saveDebounce),this._saveDebounce=setTimeout(()=>this._doSave(),500)}async _doSave(){I(this,`saving`),this._error=``;try{await this.hass.callWS({type:`roommind/rooms/save`,area_id:this.area.area_id,devices:this._devices,temperature_sensor:this._selectedTempSensor,humidity_sensor:this._selectedHumiditySensor,occupancy_sensors:[...this._selectedOccupancySensors],window_sensors:[...this._selectedWindowSensors],window_open_delay:this._windowOpenDelay,window_close_delay:this._windowCloseDelay,climate_mode:this._climateMode,schedules:this._schedules,schedule_selector_entity:this._scheduleSelectorEntity,comfort_heat:this._comfortHeat,comfort_cool:this._comfortCool,eco_heat:this._ecoHeat,eco_cool:this._ecoCool,presence_persons:this._selectedPresencePersons.filter(e=>e),display_name:this._displayName,covers:[...this._selectedCovers],climate_control_enabled:this._climateControlEnabled,keep_fan_only_on_window_open:this._keepFanOnlyOnWindowOpen,covers_auto_enabled:this._coversAutoEnabled,covers_deploy_threshold:this._coversDeployThreshold,covers_min_position:this._coversMinPosition,covers_override_minutes:this._coversOverrideMinutes,cover_schedules:this._coverSchedules,cover_schedule_selector_entity:this._coverScheduleSelectorEntity,covers_night_close:this._coversNightClose,covers_night_position:this._coversNightPosition,covers_snap_deploy:this._coversSnapDeploy,cover_orientations:this._coverOrientations,covers_night_close_elevation:this._coversNightCloseElevation,covers_night_close_offset_minutes:this._coversNightCloseOffsetMinutes,covers_outdoor_min_temp:this._coversOutdoorMinTemp,cover_min_positions:this._coverMinPositions,ignore_presence:this._ignorePresence,is_outdoor:this._isOutdoor,valve_protection_exclude:[...this._valveProtectionExclude],heat_source_orchestration:this._heatSourceOrchestration,heat_source_primary_delta:this._heatSourcePrimaryDelta,heat_source_outdoor_threshold:this._heatSourceOutdoorThreshold,heat_source_ac_min_outdoor:this._heatSourceAcMinOutdoor,native_heat_source:this._nativeHeatSource,heat_pump_power_watts:this._heatPumpPowerWatts}),this._dirty=!1,I(this,`saved`),this.dispatchEvent(new CustomEvent(`room-updated`,{bubbles:!0,composed:!0}))}catch(e){let t=e instanceof Error?e.message:C(`room.error_save_fallback`,this.hass.language);this._error=t,I(this,`error`)}}};A([b({attribute:!1})],W.prototype,`area`,void 0),A([b({attribute:!1})],W.prototype,`config`,void 0),A([b({attribute:!1})],W.prototype,`hass`,void 0),A([b({type:Boolean})],W.prototype,`presenceEnabled`,void 0),A([b({attribute:!1})],W.prototype,`presencePersons`,void 0),A([b({type:Boolean})],W.prototype,`climateControlActive`,void 0),A([b({type:Boolean})],W.prototype,`valveProtectionEnabled`,void 0),A([x()],W.prototype,`_devices`,void 0),A([x()],W.prototype,`_selectedTempSensor`,void 0),A([x()],W.prototype,`_selectedHumiditySensor`,void 0),A([x()],W.prototype,`_selectedOccupancySensors`,void 0),A([x()],W.prototype,`_selectedWindowSensors`,void 0),A([x()],W.prototype,`_windowOpenDelay`,void 0),A([x()],W.prototype,`_windowCloseDelay`,void 0),A([x()],W.prototype,`_keepFanOnlyOnWindowOpen`,void 0),A([x()],W.prototype,`_climateMode`,void 0),A([x()],W.prototype,`_schedules`,void 0),A([x()],W.prototype,`_scheduleSelectorEntity`,void 0),A([x()],W.prototype,`_comfortHeat`,void 0),A([x()],W.prototype,`_comfortCool`,void 0),A([x()],W.prototype,`_ecoHeat`,void 0),A([x()],W.prototype,`_ecoCool`,void 0),A([x()],W.prototype,`_error`,void 0),A([x()],W.prototype,`_dirty`,void 0),A([x()],W.prototype,`_editing`,void 0),A([x()],W.prototype,`_selectedPresencePersons`,void 0),A([x()],W.prototype,`_displayName`,void 0),A([x()],W.prototype,`_selectedCovers`,void 0),A([x()],W.prototype,`_coversAutoEnabled`,void 0),A([x()],W.prototype,`_coversDeployThreshold`,void 0),A([x()],W.prototype,`_coversMinPosition`,void 0),A([x()],W.prototype,`_coversOverrideMinutes`,void 0),A([x()],W.prototype,`_coverSchedules`,void 0),A([x()],W.prototype,`_coverScheduleSelectorEntity`,void 0),A([x()],W.prototype,`_coversNightClose`,void 0),A([x()],W.prototype,`_coversNightPosition`,void 0),A([x()],W.prototype,`_coversSnapDeploy`,void 0),A([x()],W.prototype,`_coverOrientations`,void 0),A([x()],W.prototype,`_coversNightCloseElevation`,void 0),A([x()],W.prototype,`_coversNightCloseOffsetMinutes`,void 0),A([x()],W.prototype,`_coversOutdoorMinTemp`,void 0),A([x()],W.prototype,`_coverMinPositions`,void 0),A([x()],W.prototype,`_ignorePresence`,void 0),A([x()],W.prototype,`_isOutdoor`,void 0),A([x()],W.prototype,`_valveProtectionExclude`,void 0),A([x()],W.prototype,`_climateControlEnabled`,void 0),A([x()],W.prototype,`_heatSourceOrchestration`,void 0),A([x()],W.prototype,`_heatSourcePrimaryDelta`,void 0),A([x()],W.prototype,`_heatSourceOutdoorThreshold`,void 0),A([x()],W.prototype,`_heatSourceAcMinOutdoor`,void 0),A([x()],W.prototype,`_nativeHeatSource`,void 0),A([x()],W.prototype,`_heatPumpPowerWatts`,void 0),A([x()],W.prototype,`_optimisticCoverResume`,void 0),W=A([y(`rs-room-detail`)],W);var tn=n({HaRadioPolyfill:()=>nn}),nn,rn=t((()=>{v(),S(),j(),nn=class extends _{constructor(...e){super(...e),this.checked=!1,this.disabled=!1,this.name=``,this.value=``}static{this.shadowRootOptions={mode:`open`,delegatesFocus:!0}}static{this.styles=l`
+        </rs-edit-dialog>`}}_onModeChanged(e){this._climateMode=e.detail.mode,this._autoSave()}_onSchedulesChanged(e){this._schedules=e.detail.value,this._autoSave()}_onScheduleSelectorChanged(e){this._scheduleSelectorEntity=e.detail.value,this._autoSave()}_onComfortHeatChanged(e){this._comfortHeat=e.detail.value,this._comfortCool<this._comfortHeat&&(this._comfortCool=this._comfortHeat),this._autoSave()}_onComfortCoolChanged(e){this._comfortCool=e.detail.value,this._comfortHeat>this._comfortCool&&(this._comfortHeat=this._comfortCool),this._autoSave()}_onEcoHeatChanged(e){this._ecoHeat=e.detail.value,this._ecoCool<this._ecoHeat&&(this._ecoCool=this._ecoHeat),this._autoSave()}_onEcoCoolChanged(e){this._ecoCool=e.detail.value,this._ecoHeat>this._ecoCool&&(this._ecoHeat=this._ecoCool),this._autoSave()}_onDeviceChanged(e){let t=new Set(this._devices.map(e=>e.entity_id));this._devices=e.detail.devices;let n=new Set(this._devices.map(e=>e.entity_id));for(let e of t)if(!n.has(e)&&this._valveProtectionExclude.has(e)){let t=new Set(this._valveProtectionExclude);t.delete(e),this._valveProtectionExclude=t}for(let e of this._devices)if(e.type!==`trv`&&this._valveProtectionExclude.has(e.entity_id)){let t=new Set(this._valveProtectionExclude);t.delete(e.entity_id),this._valveProtectionExclude=t}this._autoSave()}_onSensorChanged(e){let{key:t,value:n}=e.detail;t===`temperature_sensor`?this._selectedTempSensor=n:t===`humidity_sensor`?this._selectedHumiditySensor=n:t===`occupancy_sensors`?this._selectedOccupancySensors=new Set(n):t===`window_sensors`?this._selectedWindowSensors=new Set(n):t===`window_open_delay`?this._windowOpenDelay=n:t===`window_close_delay`?this._windowCloseDelay=n:t===`keep_fan_only_on_window_open`&&(this._keepFanOnlyOnWindowOpen=n),this._autoSave()}_onValveProtectionExcludeToggle(e){let{entityId:t,excluded:n}=e.detail,r=new Set(this._valveProtectionExclude);n?r.add(t):r.delete(t),this._valveProtectionExclude=r,this._autoSave()}_onPresencePersonsChanged(e){this._selectedPresencePersons=e.detail,this._autoSave()}_onIgnorePresenceChanged(e){this._ignorePresence=e.detail,this._autoSave()}_onCoversToggle(e){let{entityId:t,checked:n}=e.detail,r=new Set(this._selectedCovers);if(n)r.add(t);else{if(r.delete(t),t in this._coverOrientations){let e={...this._coverOrientations};delete e[t],this._coverOrientations=e}if(t in this._coverMinPositions){let e={...this._coverMinPositions};delete e[t],this._coverMinPositions=e}}this._selectedCovers=r,this._autoSave()}_onCoverSettingChanged(e){let{key:t,value:n}=e.detail;e.stopPropagation(),t===`covers_auto_enabled`?this._coversAutoEnabled=n:t===`covers_deploy_threshold`?this._coversDeployThreshold=n:t===`covers_min_position`?this._coversMinPosition=n:t===`covers_override_minutes`?this._coversOverrideMinutes=n:t===`cover_schedules`?this._coverSchedules=n:t===`cover_schedule_selector_entity`?this._coverScheduleSelectorEntity=n:t===`covers_night_close`?this._coversNightClose=n:t===`covers_night_position`?this._coversNightPosition=n:t===`covers_snap_deploy`?this._coversSnapDeploy=n:t===`cover_orientations`?this._coverOrientations=n:t===`covers_night_close_elevation`?this._coversNightCloseElevation=n:t===`covers_night_close_offset_minutes`?this._coversNightCloseOffsetMinutes=n:t===`covers_outdoor_min_temp`?this._coversOutdoorMinTemp=n:t===`cover_min_positions`&&(this._coverMinPositions=n),this._autoSave()}async _onCoverResumeAuto(){this._optimisticCoverResume=!0;try{await this.hass.callWS({type:`roommind/covers/clear_override`,area_id:this.area.area_id})}catch{this._optimisticCoverResume=!1}}_onHeatSourceSettingChanged(e){let{key:t,value:n}=e.detail;e.stopPropagation(),t===`heat_source_orchestration`?this._heatSourceOrchestration=n:t===`heat_source_primary_delta`?this._heatSourcePrimaryDelta=n:t===`heat_source_outdoor_threshold`?this._heatSourceOutdoorThreshold=n:t===`heat_source_ac_min_outdoor`?this._heatSourceAcMinOutdoor=n:t===`native_heat_source`?this._nativeHeatSource=n:t===`heat_pump_power_watts`&&(this._heatPumpPowerWatts=n),this._autoSave()}_onClimateControlToggle(e){this._climateControlEnabled=e.detail,this._autoSave()}_onOutdoorToggle(e){this._isOutdoor=e.detail,this._autoSave()}_onDisplayNameChanged(e){this._displayName=e.detail.value,this._autoSave()}_autoSave(){this._dirty=!0,this._saveDebounce&&clearTimeout(this._saveDebounce),this._saveDebounce=setTimeout(()=>this._doSave(),500)}async _doSave(){F(this,`saving`),this._error=``;try{await this.hass.callWS({type:`roommind/rooms/save`,area_id:this.area.area_id,devices:this._devices,temperature_sensor:this._selectedTempSensor,humidity_sensor:this._selectedHumiditySensor,occupancy_sensors:[...this._selectedOccupancySensors],window_sensors:[...this._selectedWindowSensors],window_open_delay:this._windowOpenDelay,window_close_delay:this._windowCloseDelay,climate_mode:this._climateMode,schedules:this._schedules,schedule_selector_entity:this._scheduleSelectorEntity,comfort_heat:this._comfortHeat,comfort_cool:this._comfortCool,eco_heat:this._ecoHeat,eco_cool:this._ecoCool,presence_persons:this._selectedPresencePersons.filter(e=>e),display_name:this._displayName,covers:[...this._selectedCovers],climate_control_enabled:this._climateControlEnabled,keep_fan_only_on_window_open:this._keepFanOnlyOnWindowOpen,covers_auto_enabled:this._coversAutoEnabled,covers_deploy_threshold:this._coversDeployThreshold,covers_min_position:this._coversMinPosition,covers_override_minutes:this._coversOverrideMinutes,cover_schedules:this._coverSchedules,cover_schedule_selector_entity:this._coverScheduleSelectorEntity,covers_night_close:this._coversNightClose,covers_night_position:this._coversNightPosition,covers_snap_deploy:this._coversSnapDeploy,cover_orientations:this._coverOrientations,covers_night_close_elevation:this._coversNightCloseElevation,covers_night_close_offset_minutes:this._coversNightCloseOffsetMinutes,covers_outdoor_min_temp:this._coversOutdoorMinTemp,cover_min_positions:this._coverMinPositions,ignore_presence:this._ignorePresence,is_outdoor:this._isOutdoor,valve_protection_exclude:[...this._valveProtectionExclude],heat_source_orchestration:this._heatSourceOrchestration,heat_source_primary_delta:this._heatSourcePrimaryDelta,heat_source_outdoor_threshold:this._heatSourceOutdoorThreshold,heat_source_ac_min_outdoor:this._heatSourceAcMinOutdoor,native_heat_source:this._nativeHeatSource,heat_pump_power_watts:this._heatPumpPowerWatts}),this._dirty=!1,F(this,`saved`),this.dispatchEvent(new CustomEvent(`room-updated`,{bubbles:!0,composed:!0}))}catch(e){let t=e instanceof Error?e.message:S(`room.error_save_fallback`,this.hass.language);this._error=t,F(this,`error`)}}};k([y({attribute:!1})],U.prototype,`area`,void 0),k([y({attribute:!1})],U.prototype,`config`,void 0),k([y({attribute:!1})],U.prototype,`hass`,void 0),k([y({type:Boolean})],U.prototype,`presenceEnabled`,void 0),k([y({attribute:!1})],U.prototype,`presencePersons`,void 0),k([y({type:Boolean})],U.prototype,`climateControlActive`,void 0),k([y({type:Boolean})],U.prototype,`valveProtectionEnabled`,void 0),k([b()],U.prototype,`_devices`,void 0),k([b()],U.prototype,`_selectedTempSensor`,void 0),k([b()],U.prototype,`_selectedHumiditySensor`,void 0),k([b()],U.prototype,`_selectedOccupancySensors`,void 0),k([b()],U.prototype,`_selectedWindowSensors`,void 0),k([b()],U.prototype,`_windowOpenDelay`,void 0),k([b()],U.prototype,`_windowCloseDelay`,void 0),k([b()],U.prototype,`_keepFanOnlyOnWindowOpen`,void 0),k([b()],U.prototype,`_climateMode`,void 0),k([b()],U.prototype,`_schedules`,void 0),k([b()],U.prototype,`_scheduleSelectorEntity`,void 0),k([b()],U.prototype,`_comfortHeat`,void 0),k([b()],U.prototype,`_comfortCool`,void 0),k([b()],U.prototype,`_ecoHeat`,void 0),k([b()],U.prototype,`_ecoCool`,void 0),k([b()],U.prototype,`_error`,void 0),k([b()],U.prototype,`_dirty`,void 0),k([b()],U.prototype,`_editing`,void 0),k([b()],U.prototype,`_selectedPresencePersons`,void 0),k([b()],U.prototype,`_displayName`,void 0),k([b()],U.prototype,`_selectedCovers`,void 0),k([b()],U.prototype,`_coversAutoEnabled`,void 0),k([b()],U.prototype,`_coversDeployThreshold`,void 0),k([b()],U.prototype,`_coversMinPosition`,void 0),k([b()],U.prototype,`_coversOverrideMinutes`,void 0),k([b()],U.prototype,`_coverSchedules`,void 0),k([b()],U.prototype,`_coverScheduleSelectorEntity`,void 0),k([b()],U.prototype,`_coversNightClose`,void 0),k([b()],U.prototype,`_coversNightPosition`,void 0),k([b()],U.prototype,`_coversSnapDeploy`,void 0),k([b()],U.prototype,`_coverOrientations`,void 0),k([b()],U.prototype,`_coversNightCloseElevation`,void 0),k([b()],U.prototype,`_coversNightCloseOffsetMinutes`,void 0),k([b()],U.prototype,`_coversOutdoorMinTemp`,void 0),k([b()],U.prototype,`_coverMinPositions`,void 0),k([b()],U.prototype,`_ignorePresence`,void 0),k([b()],U.prototype,`_isOutdoor`,void 0),k([b()],U.prototype,`_valveProtectionExclude`,void 0),k([b()],U.prototype,`_climateControlEnabled`,void 0),k([b()],U.prototype,`_heatSourceOrchestration`,void 0),k([b()],U.prototype,`_heatSourcePrimaryDelta`,void 0),k([b()],U.prototype,`_heatSourceOutdoorThreshold`,void 0),k([b()],U.prototype,`_heatSourceAcMinOutdoor`,void 0),k([b()],U.prototype,`_nativeHeatSource`,void 0),k([b()],U.prototype,`_heatPumpPowerWatts`,void 0),k([b()],U.prototype,`_optimisticCoverResume`,void 0),U=k([v(`rs-room-detail`)],U);var an=n({HaRadioPolyfill:()=>on}),on,sn=t((()=>{_(),x(),A(),on=class extends g{constructor(...e){super(...e),this.checked=!1,this.disabled=!1,this.name=``,this.value=``}static{this.shadowRootOptions={mode:`open`,delegatesFocus:!0}}static{this.styles=l`
     :host {
       display: inline-flex;
       align-items: center;
@@ -5172,7 +5251,7 @@
       cursor: default;
       opacity: 0.5;
     }
-  `}render(){return h`
+  `}render(){return m`
       <input
         type="radio"
         .checked=${this.checked}
@@ -5181,7 +5260,7 @@
         ?disabled=${this.disabled}
         @change=${this._onChange}
       />
-    `}_onChange(e){this.checked=e.target.checked,this.dispatchEvent(new Event(`change`,{bubbles:!0,composed:!0}))}},A([b({type:Boolean,reflect:!0})],nn.prototype,`checked`,void 0),A([b({type:Boolean,reflect:!0})],nn.prototype,`disabled`,void 0),A([b({type:String})],nn.prototype,`name`,void 0),A([b({type:String})],nn.prototype,`value`,void 0)})),an=n({HaTextfieldPolyfill:()=>G}),G,on=t((()=>{v(),S(),j(),G=class extends _{constructor(...e){super(...e),this.value=``,this.type=`text`,this.label=``,this.placeholder=``,this.suffix=``,this.prefix=``,this.helper=``,this.disabled=!1,this.required=!1,this.readOnly=!1,this.min=``,this.max=``,this.step=null,this.name=``}static{this.shadowRootOptions={mode:`open`,delegatesFocus:!0}}static{this.styles=l`
+    `}_onChange(e){this.checked=e.target.checked,this.dispatchEvent(new Event(`change`,{bubbles:!0,composed:!0}))}},k([y({type:Boolean,reflect:!0})],on.prototype,`checked`,void 0),k([y({type:Boolean,reflect:!0})],on.prototype,`disabled`,void 0),k([y({type:String})],on.prototype,`name`,void 0),k([y({type:String})],on.prototype,`value`,void 0)})),cn=n({HaTextfieldPolyfill:()=>W}),W,ln=t((()=>{_(),x(),A(),W=class extends g{constructor(...e){super(...e),this.value=``,this.type=`text`,this.label=``,this.placeholder=``,this.suffix=``,this.prefix=``,this.helper=``,this.disabled=!1,this.required=!1,this.readOnly=!1,this.min=``,this.max=``,this.step=null,this.name=``}static{this.shadowRootOptions={mode:`open`,delegatesFocus:!0}}static{this.styles=l`
     :host {
       display: inline-flex;
       flex-direction: column;
@@ -5196,7 +5275,7 @@
     .suffix {
       color: var(--secondary-text-color);
     }
-  `}render(){return h`
+  `}render(){return m`
       <ha-input
         .type=${this.type}
         .value=${this.value||``}
@@ -5214,18 +5293,18 @@
         @input=${this._sync}
         @change=${this._sync}
       >
-        ${this.prefix?h`<span class="prefix" slot="start">${this.prefix}</span>`:g}
-        ${this.suffix?h`<span class="suffix" slot="end">${this.suffix}</span>`:g}
+        ${this.prefix?m`<span class="prefix" slot="start">${this.prefix}</span>`:h}
+        ${this.suffix?m`<span class="suffix" slot="end">${this.suffix}</span>`:h}
       </ha-input>
-    `}_sync(){this.value=this._haInput?.value??``}},A([b({type:String})],G.prototype,`value`,void 0),A([b({type:String})],G.prototype,`type`,void 0),A([b({type:String})],G.prototype,`label`,void 0),A([b({type:String})],G.prototype,`placeholder`,void 0),A([b({type:String})],G.prototype,`suffix`,void 0),A([b({type:String})],G.prototype,`prefix`,void 0),A([b({type:String})],G.prototype,`helper`,void 0),A([b({type:Boolean})],G.prototype,`disabled`,void 0),A([b({type:Boolean})],G.prototype,`required`,void 0),A([b({type:Boolean,reflect:!0,attribute:`readonly`})],G.prototype,`readOnly`,void 0),A([b()],G.prototype,`min`,void 0),A([b()],G.prototype,`max`,void 0),A([b()],G.prototype,`step`,void 0),A([b({type:String})],G.prototype,`name`,void 0),A([dt(`ha-input`)],G.prototype,`_haInput`,void 0)})),sn=async()=>{if(!customElements.get(`ha-radio`))try{let{HaRadioPolyfill:e}=await Promise.resolve().then(()=>(rn(),tn));customElements.get(`ha-radio`)||customElements.define(`ha-radio`,e)}catch(e){console.warn(`RoomMind: ha-radio polyfill failed to load`,e)}if(!customElements.get(`ha-textfield`))try{let{HaTextfieldPolyfill:e}=await Promise.resolve().then(()=>(on(),an));customElements.get(`ha-textfield`)||customElements.define(`ha-textfield`,e)}catch(e){console.warn(`RoomMind: ha-textfield polyfill failed to load`,e)}if(!(customElements.get(`ha-entity-picker`)&&customElements.get(`ha-selector`))){if(!customElements.get(`ha-selector`)){await customElements.whenDefined(`partial-panel-resolver`);let e=document.createElement(`partial-panel-resolver`);e.hass={panels:[{url_path:`tmp`,component_name:`config`}]},e._updateRoutes(),await e.routerOptions.routes.tmp.load(),await customElements.whenDefined(`ha-panel-config`),await document.createElement(`ha-panel-config`).routerOptions.routes.automation.load()}if(!customElements.get(`ha-entity-picker`))try{await(await(await window.loadCardHelpers()).createCardElement({type:`entities`,entities:[]})).constructor.getConfigElement()}catch{}if(!customElements.get(`ha-entity-picker`))try{await Promise.race([customElements.whenDefined(`ha-selector`),new Promise((e,t)=>setTimeout(()=>t(Error(`timeout`)),1e4))]);let e=document.querySelector(`home-assistant`)?.hass,t=document.createElement(`div`);t.style.cssText=`position:fixed;left:-9999px;opacity:0;pointer-events:none`,document.body.appendChild(t);try{let n=document.createElement(`ha-selector`);n.hass=e,n.selector={entity:{}},t.appendChild(n),await Promise.race([customElements.whenDefined(`ha-entity-picker`),new Promise(e=>setTimeout(e,5e3))])}finally{t.remove()}}catch{}if(await customElements.whenDefined(`ha-card`),!customElements.get(`ha-date-range-picker`))try{await(await window.loadCardHelpers()).createCardElement({type:`energy-date-selection`,entities:[]}),await Promise.race([customElements.whenDefined(`ha-date-range-picker`),new Promise((e,t)=>setTimeout(t,5e3))])}catch{}if(!customElements.get(`ha-chart-base`))try{await(await window.loadCardHelpers()).createCardElement({type:`statistics-graph`,entities:[]}),await Promise.race([customElements.whenDefined(`ha-chart-base`),new Promise((e,t)=>setTimeout(t,5e3))])}catch{}}};function cn(e){return Array.isArray(e)?e.filter(e=>typeof e==`string`&&e.length>0):typeof e==`string`&&e.length>0?[e]:[]}function ln(e){return e===`consumption`?`consumption`:`available`}function un(e){return{value:ln(e),hasLocalChange:!0}}function dn(e,t){let n=ln(t);return e.hasLocalChange&&n!==e.value?e:{value:n,hasLocalChange:!1}}function fn(e,t){return{hydraulicBypassEntities:Array.isArray(e)?e.filter(e=>typeof e==`string`&&e.length>0):typeof e==`string`&&e.length>0?[e]:[],powerSensorMode:t===`consumption`?`consumption`:`available`}}var pn=3250368e4;v(),S(),j();var mn=class extends _{constructor(...e){super(...e),this.icon=``,this.heading=``,this.intro=``,this.badge=``,this.badgeHint=``}render(){return h`
+    `}_sync(){this.value=this._haInput?.value??``}},k([y({type:String})],W.prototype,`value`,void 0),k([y({type:String})],W.prototype,`type`,void 0),k([y({type:String})],W.prototype,`label`,void 0),k([y({type:String})],W.prototype,`placeholder`,void 0),k([y({type:String})],W.prototype,`suffix`,void 0),k([y({type:String})],W.prototype,`prefix`,void 0),k([y({type:String})],W.prototype,`helper`,void 0),k([y({type:Boolean})],W.prototype,`disabled`,void 0),k([y({type:Boolean})],W.prototype,`required`,void 0),k([y({type:Boolean,reflect:!0,attribute:`readonly`})],W.prototype,`readOnly`,void 0),k([y()],W.prototype,`min`,void 0),k([y()],W.prototype,`max`,void 0),k([y()],W.prototype,`step`,void 0),k([y({type:String})],W.prototype,`name`,void 0),k([ft(`ha-input`)],W.prototype,`_haInput`,void 0)})),un=async()=>{if(!customElements.get(`ha-radio`))try{let{HaRadioPolyfill:e}=await Promise.resolve().then(()=>(sn(),an));customElements.get(`ha-radio`)||customElements.define(`ha-radio`,e)}catch(e){console.warn(`RoomMind: ha-radio polyfill failed to load`,e)}if(!customElements.get(`ha-textfield`))try{let{HaTextfieldPolyfill:e}=await Promise.resolve().then(()=>(ln(),cn));customElements.get(`ha-textfield`)||customElements.define(`ha-textfield`,e)}catch(e){console.warn(`RoomMind: ha-textfield polyfill failed to load`,e)}if(!(customElements.get(`ha-entity-picker`)&&customElements.get(`ha-selector`))){if(!customElements.get(`ha-selector`)){await customElements.whenDefined(`partial-panel-resolver`);let e=document.createElement(`partial-panel-resolver`);e.hass={panels:[{url_path:`tmp`,component_name:`config`}]},e._updateRoutes(),await e.routerOptions.routes.tmp.load(),await customElements.whenDefined(`ha-panel-config`),await document.createElement(`ha-panel-config`).routerOptions.routes.automation.load()}if(!customElements.get(`ha-entity-picker`))try{await(await(await window.loadCardHelpers()).createCardElement({type:`entities`,entities:[]})).constructor.getConfigElement()}catch{}if(!customElements.get(`ha-entity-picker`))try{await Promise.race([customElements.whenDefined(`ha-selector`),new Promise((e,t)=>setTimeout(()=>t(Error(`timeout`)),1e4))]);let e=document.querySelector(`home-assistant`)?.hass,t=document.createElement(`div`);t.style.cssText=`position:fixed;left:-9999px;opacity:0;pointer-events:none`,document.body.appendChild(t);try{let n=document.createElement(`ha-selector`);n.hass=e,n.selector={entity:{}},t.appendChild(n),await Promise.race([customElements.whenDefined(`ha-entity-picker`),new Promise(e=>setTimeout(e,5e3))])}finally{t.remove()}}catch{}if(await customElements.whenDefined(`ha-card`),!customElements.get(`ha-date-range-picker`))try{await(await window.loadCardHelpers()).createCardElement({type:`energy-date-selection`,entities:[]}),await Promise.race([customElements.whenDefined(`ha-date-range-picker`),new Promise((e,t)=>setTimeout(t,5e3))])}catch{}if(!customElements.get(`ha-chart-base`))try{await(await window.loadCardHelpers()).createCardElement({type:`statistics-graph`,entities:[]}),await Promise.race([customElements.whenDefined(`ha-chart-base`),new Promise((e,t)=>setTimeout(t,5e3))])}catch{}}};function dn(e){return Array.isArray(e)?e.filter(e=>typeof e==`string`&&e.length>0):typeof e==`string`&&e.length>0?[e]:[]}function fn(e){return e===`consumption`?`consumption`:`available`}function pn(e){return{value:fn(e),hasLocalChange:!0}}function mn(e,t){let n=fn(t);return e.hasLocalChange&&n!==e.value?e:{value:n,hasLocalChange:!1}}function hn(e,t){return{hydraulicBypassEntities:Array.isArray(e)?e.filter(e=>typeof e==`string`&&e.length>0):typeof e==`string`&&e.length>0?[e]:[],powerSensorMode:t===`consumption`?`consumption`:`available`}}var gn=3250368e4;_(),x(),A();var _n=class extends g{constructor(...e){super(...e),this.icon=``,this.heading=``,this.intro=``,this.badge=``,this.badgeHint=``}render(){return m`
       <ha-expansion-panel outlined>
         <div slot="header" class="panel-header">
           <ha-icon .icon=${this.icon}></ha-icon>
           <span>${this.heading}</span>
-          ${this.badge?h`<rs-badge .label=${this.badge} .hint=${this.badgeHint}></rs-badge>`:g}
+          ${this.badge?m`<rs-badge .label=${this.badge} .hint=${this.badgeHint}></rs-badge>`:h}
         </div>
         <div class="panel-content">
-          ${this.intro?h`<p class="section-intro">${this.intro}</p>`:g}
+          ${this.intro?m`<p class="section-intro">${this.intro}</p>`:h}
           <slot></slot>
         </div>
       </ha-expansion-panel>
@@ -5259,7 +5338,7 @@
       padding: 2px 0 2px 12px;
       border-left: 3px solid var(--divider-color);
     }
-  `}};A([b({type:String})],mn.prototype,`icon`,void 0),A([b({type:String})],mn.prototype,`heading`,void 0),A([b({type:String})],mn.prototype,`intro`,void 0),A([b({type:String})],mn.prototype,`badge`,void 0),A([b({type:String})],mn.prototype,`badgeHint`,void 0),mn=A([y(`rs-settings-panel`)],mn),v();var K=class extends _{_fire(e,t){this.dispatchEvent(new CustomEvent(`setting-changed`,{detail:{key:e,value:t},bubbles:!0,composed:!0}))}static{this.settingsBaseStyles=l`
+  `}};k([y({type:String})],_n.prototype,`icon`,void 0),k([y({type:String})],_n.prototype,`heading`,void 0),k([y({type:String})],_n.prototype,`intro`,void 0),k([y({type:String})],_n.prototype,`badge`,void 0),k([y({type:String})],_n.prototype,`badgeHint`,void 0),_n=k([v(`rs-settings-panel`)],_n),_();var G=class extends g{_fire(e,t){this.dispatchEvent(new CustomEvent(`setting-changed`,{detail:{key:e,value:t},bubbles:!0,composed:!0}))}static{this.settingsBaseStyles=l`
     :host {
       display: block;
     }
@@ -5340,7 +5419,7 @@
         grid-template-columns: 1fr;
       }
     }
-  `}};v(),S(),j();var hn=class extends _{constructor(...e){super(...e),this.options=[],this.selected=``}static{this.styles=l`
+  `}};_(),x(),A();var vn=class extends g{constructor(...e){super(...e),this.options=[],this.selected=``}static{this.styles=l`
     :host {
       display: block;
     }
@@ -5359,9 +5438,9 @@
       font-size: 14px;
       color: var(--primary-text-color);
     }
-  `}render(){return h`
+  `}render(){return m`
       <div class="radio-group">
-        ${this.options.map(e=>h`
+        ${this.options.map(e=>m`
             <label>
               <ha-radio
                 .checked=${this.selected===e.value}
@@ -5372,26 +5451,26 @@
             </label>
           `)}
       </div>
-    `}_onRadioChange(e){let t=e.target;t.checked&&this.dispatchEvent(new CustomEvent(`selected-changed`,{detail:t.value,bubbles:!0,composed:!0}))}};A([b({type:Array})],hn.prototype,`options`,void 0),A([b({type:String})],hn.prototype,`selected`,void 0),hn=A([y(`rs-radio-group`)],hn),v(),S(),j();var gn=class extends K{constructor(...e){super(...e),this.groupByFloor=!1,this.climateControlActive=!0,this.temperatureRoundingMode=`nearest`}render(){let e=this.hass.language;return h`
-      ${this.hass.floors&&Object.keys(this.hass.floors).length>0?h`<div class="settings-section first">
+    `}_onRadioChange(e){let t=e.target;t.checked&&this.dispatchEvent(new CustomEvent(`selected-changed`,{detail:t.value,bubbles:!0,composed:!0}))}};k([y({type:Array})],vn.prototype,`options`,void 0),k([y({type:String})],vn.prototype,`selected`,void 0),vn=k([v(`rs-radio-group`)],vn),_(),x(),A();var yn=class extends G{constructor(...e){super(...e),this.groupByFloor=!1,this.climateControlActive=!0,this.temperatureRoundingMode=`nearest`}render(){let e=this.hass.language;return m`
+      ${this.hass.floors&&Object.keys(this.hass.floors).length>0?m`<div class="settings-section first">
             <div class="toggle-row">
               <div class="toggle-text">
-                <span class="toggle-label">${C(`settings.group_by_floor`,e)}</span>
+                <span class="toggle-label">${S(`settings.group_by_floor`,e)}</span>
               </div>
               <ha-switch
                 .checked=${this.groupByFloor}
                 @change=${e=>this._fire(`groupByFloor`,e.target.checked)}
               ></ha-switch>
             </div>
-          </div>`:g}
+          </div>`:h}
 
       <div
         class="settings-section ${this.hass.floors&&Object.keys(this.hass.floors).length>0?``:`first`}"
       >
         <div class="toggle-row">
           <div class="toggle-text">
-            <span class="toggle-label">${C(`settings.climate_control_active`,e)}</span>
-            <span class="toggle-hint">${C(`settings.climate_control_hint`,e)}</span>
+            <span class="toggle-label">${S(`settings.climate_control_active`,e)}</span>
+            <span class="toggle-hint">${S(`settings.climate_control_hint`,e)}</span>
           </div>
           <ha-switch
             .checked=${this.climateControlActive}
@@ -5402,18 +5481,18 @@
 
       <div class="settings-section">
         <div class="toggle-text">
-          <span class="toggle-label">${C(`settings.temperature_rounding`,e)}</span>
-          <span class="toggle-hint">${C(`settings.temperature_rounding_hint`,e)}</span>
+          <span class="toggle-label">${S(`settings.temperature_rounding`,e)}</span>
+          <span class="toggle-hint">${S(`settings.temperature_rounding_hint`,e)}</span>
         </div>
         <div style="margin-top: 12px">
           <rs-radio-group
-            .options=${[{value:`nearest`,label:C(`settings.temperature_rounding_nearest`,e)},{value:`down`,label:C(`settings.temperature_rounding_down`,e)},{value:`up`,label:C(`settings.temperature_rounding_up`,e)}]}
+            .options=${[{value:`nearest`,label:S(`settings.temperature_rounding_nearest`,e)},{value:`down`,label:S(`settings.temperature_rounding_down`,e)},{value:`up`,label:S(`settings.temperature_rounding_up`,e)}]}
             .selected=${this.temperatureRoundingMode}
             @selected-changed=${e=>this._fire(`temperatureRoundingMode`,e.detail)}
           ></rs-radio-group>
         </div>
       </div>
-    `}static{this.styles=[K.settingsBaseStyles]}};A([b({attribute:!1})],gn.prototype,`hass`,void 0),A([b({type:Boolean})],gn.prototype,`groupByFloor`,void 0),A([b({type:Boolean})],gn.prototype,`climateControlActive`,void 0),A([b({type:String})],gn.prototype,`temperatureRoundingMode`,void 0),gn=A([y(`rs-settings-general`)],gn),v(),S(),j();var _n=class extends K{constructor(...e){super(...e),this.outdoorTempSensor=``,this.outdoorHumiditySensor=``,this.weatherEntity=``,this.outdoorUnavailableNotify=!0,this._filterTemperature=e=>e.attributes?.device_class===`temperature`,this._filterHumidity=e=>e.attributes?.device_class===`humidity`}_getSensorValue(e){let t=this.hass.states[e];if(!t||t.state===`unavailable`||t.state===`unknown`)return null;let n=parseFloat(t.state);return isNaN(n)?null:Math.round(n*10)/10}render(){let e=this.hass.language,t=this.outdoorTempSensor?this._getSensorValue(this.outdoorTempSensor):null,n=this.outdoorHumiditySensor?this._getSensorValue(this.outdoorHumiditySensor):null;return h`
+    `}static{this.styles=[G.settingsBaseStyles]}};k([y({attribute:!1})],yn.prototype,`hass`,void 0),k([y({type:Boolean})],yn.prototype,`groupByFloor`,void 0),k([y({type:Boolean})],yn.prototype,`climateControlActive`,void 0),k([y({type:String})],yn.prototype,`temperatureRoundingMode`,void 0),yn=k([v(`rs-settings-general`)],yn),_(),x(),A();var bn=class extends G{constructor(...e){super(...e),this.outdoorTempSensor=``,this.outdoorHumiditySensor=``,this.weatherEntity=``,this.outdoorUnavailableNotify=!0,this._filterTemperature=e=>e.attributes?.device_class===`temperature`,this._filterHumidity=e=>e.attributes?.device_class===`humidity`}_getSensorValue(e){let t=this.hass.states[e];if(!t||t.state===`unavailable`||t.state===`unknown`)return null;let n=parseFloat(t.state);return isNaN(n)?null:Math.round(n*10)/10}render(){let e=this.hass.language,t=this.outdoorTempSensor?this._getSensorValue(this.outdoorTempSensor):null,n=this.outdoorHumiditySensor?this._getSensorValue(this.outdoorHumiditySensor):null;return m`
       <div class="settings-section first">
         <div class="sensor-grid">
           <div class="sensor-field">
@@ -5422,14 +5501,14 @@
               .value=${this.outdoorTempSensor}
               .includeDomains=${[`sensor`]}
               .entityFilter=${this._filterTemperature}
-              .label=${C(`settings.outdoor_sensor_label`,e)}
+              .label=${S(`settings.outdoor_sensor_label`,e)}
               allow-custom-entity
               @value-changed=${e=>{let t=e.detail?.value??``;t!==this.outdoorTempSensor&&this._fire(`outdoorTempSensor`,t)}}
             ></ha-entity-picker>
-            ${t===null?this.outdoorTempSensor?h`<div class="current-value muted">
-                    ${C(`settings.outdoor_waiting`,e)}
-                  </div>`:g:h`<div class="current-value">
-                  ${C(`settings.outdoor_current`,e,{temp:t.toFixed(1),unit:w(this.hass)})}
+            ${t===null?this.outdoorTempSensor?m`<div class="current-value muted">
+                    ${S(`settings.outdoor_waiting`,e)}
+                  </div>`:h:m`<div class="current-value">
+                  ${S(`settings.outdoor_current`,e,{temp:t.toFixed(1),unit:C(this.hass)})}
                 </div>`}
           </div>
           <div class="sensor-field">
@@ -5438,14 +5517,14 @@
               .value=${this.outdoorHumiditySensor}
               .includeDomains=${[`sensor`]}
               .entityFilter=${this._filterHumidity}
-              .label=${C(`settings.outdoor_humidity_label`,e)}
+              .label=${S(`settings.outdoor_humidity_label`,e)}
               allow-custom-entity
               @value-changed=${e=>{let t=e.detail?.value??``;t!==this.outdoorHumiditySensor&&this._fire(`outdoorHumiditySensor`,t)}}
             ></ha-entity-picker>
-            ${n===null?this.outdoorHumiditySensor?h`<div class="current-value muted">
-                    ${C(`settings.outdoor_waiting`,e)}
-                  </div>`:g:h`<div class="current-value">
-                  ${C(`settings.outdoor_humidity_current`,e,{value:String(n)})}
+            ${n===null?this.outdoorHumiditySensor?m`<div class="current-value muted">
+                    ${S(`settings.outdoor_waiting`,e)}
+                  </div>`:h:m`<div class="current-value">
+                  ${S(`settings.outdoor_humidity_current`,e,{value:String(n)})}
                 </div>`}
           </div>
         </div>
@@ -5456,22 +5535,22 @@
           .hass=${this.hass}
           .value=${this.weatherEntity}
           .includeDomains=${[`weather`]}
-          .label=${C(`settings.weather_entity`,e)}
+          .label=${S(`settings.weather_entity`,e)}
           allow-custom-entity
           @value-changed=${e=>{let t=e.detail?.value??``;t!==this.weatherEntity&&this._fire(`weatherEntity`,t)}}
         ></ha-entity-picker>
-        <span class="field-hint">${C(`settings.weather_entity_hint`,e)}</span>
+        <span class="field-hint">${S(`settings.weather_entity_hint`,e)}</span>
       </div>
 
       <div class="settings-section">
         <rs-toggle-row
-          .label=${C(`settings.outdoor_unavailable_notify`,e)}
-          .hint=${C(`settings.outdoor_unavailable_notify_hint`,e)}
+          .label=${S(`settings.outdoor_unavailable_notify`,e)}
+          .hint=${S(`settings.outdoor_unavailable_notify_hint`,e)}
           .checked=${this.outdoorUnavailableNotify}
           @toggle-changed=${e=>this._fire(`outdoorUnavailableNotify`,e.detail)}
         ></rs-toggle-row>
       </div>
-    `}static{this.styles=[K.settingsBaseStyles,l`
+    `}static{this.styles=[G.settingsBaseStyles,l`
       .sensor-grid {
         display: grid;
         grid-template-columns: 1fr 1fr;
@@ -5491,25 +5570,25 @@
           grid-template-columns: 1fr;
         }
       }
-    `]}};A([b({attribute:!1})],_n.prototype,`hass`,void 0),A([b({type:String})],_n.prototype,`outdoorTempSensor`,void 0),A([b({type:String})],_n.prototype,`outdoorHumiditySensor`,void 0),A([b({type:String})],_n.prototype,`weatherEntity`,void 0),A([b({type:Boolean})],_n.prototype,`outdoorUnavailableNotify`,void 0),_n=A([y(`rs-settings-sensors`)],_n),v(),S(),j();var vn=`https://github.com/snazzybean/roommind/blob/main/docs/control-and-devices.md`,yn=class extends K{constructor(...e){super(...e),this.controlMode=`mpc`,this.comfortWeight=70,this.outdoorCoolingMin=16,this.outdoorHeatingMax=22,this.predictionEnabled=!0,this.scheduleOffAction=`eco`}render(){let e=this.hass.language;return h`
+    `]}};k([y({attribute:!1})],bn.prototype,`hass`,void 0),k([y({type:String})],bn.prototype,`outdoorTempSensor`,void 0),k([y({type:String})],bn.prototype,`outdoorHumiditySensor`,void 0),k([y({type:String})],bn.prototype,`weatherEntity`,void 0),k([y({type:Boolean})],bn.prototype,`outdoorUnavailableNotify`,void 0),bn=k([v(`rs-settings-sensors`)],bn),_(),x(),A();var xn=`https://github.com/snazzybean/roommind/blob/main/docs/control-and-devices.md`,Sn=class extends G{constructor(...e){super(...e),this.controlMode=`mpc`,this.comfortWeight=70,this.outdoorCoolingMin=16,this.outdoorHeatingMax=22,this.predictionEnabled=!0,this.scheduleOffAction=`eco`}render(){let e=this.hass.language;return m`
       <div class="settings-section first">
-        <p class="hint">${C(`settings.control_mode_hint`,e)}</p>
+        <p class="hint">${S(`settings.control_mode_hint`,e)}</p>
         <div class="radio-group">
           <label class="radio-option" @click=${()=>this._setControlMode(`mpc`)}>
             <ha-radio name="control_mode" .checked=${this.controlMode===`mpc`}></ha-radio>
-            <span>${C(`settings.control_mode_mpc`,e)}</span>
+            <span>${S(`settings.control_mode_mpc`,e)}</span>
           </label>
           <label class="radio-option" @click=${()=>this._setControlMode(`bangbang`)}>
             <ha-radio name="control_mode" .checked=${this.controlMode===`bangbang`}></ha-radio>
-            <span>${C(`settings.control_mode_simple`,e)}</span>
+            <span>${S(`settings.control_mode_simple`,e)}</span>
           </label>
         </div>
       </div>
 
       <div class="settings-section">
-        <label class="section-label">${C(`settings.comfort_weight`,e)}</label>
+        <label class="section-label">${S(`settings.comfort_weight`,e)}</label>
         <div class="slider-row">
-          <span class="slider-label">${C(`settings.comfort_weight_efficiency`,e)}</span>
+          <span class="slider-label">${S(`settings.comfort_weight_efficiency`,e)}</span>
           <input
             type="range"
             min="0"
@@ -5518,42 +5597,42 @@
             .value=${String(this.comfortWeight)}
             @change=${e=>{let t=parseInt(e.target.value,10);!isNaN(t)&&t!==this.comfortWeight&&this._fire(`comfortWeight`,t)}}
           />
-          <span class="slider-label">${C(`settings.comfort_weight_comfort`,e)}</span>
+          <span class="slider-label">${S(`settings.comfort_weight_comfort`,e)}</span>
         </div>
-        <p class="hint helper-text">${C(`settings.comfort_weight_hint`,e)}</p>
-        <a class="helper-link" href=${vn} target="_blank" rel="noreferrer">
-          ${C(`common.learn_more`,e)}
+        <p class="hint helper-text">${S(`settings.comfort_weight_hint`,e)}</p>
+        <a class="helper-link" href=${xn} target="_blank" rel="noreferrer">
+          ${S(`common.learn_more`,e)}
         </a>
       </div>
 
       <div class="settings-section">
-        <p class="hint">${C(`settings.smart_control_hint`,e)}</p>
+        <p class="hint">${S(`settings.smart_control_hint`,e)}</p>
         <div class="threshold-grid">
           <div class="threshold-field">
             <ha-textfield
-              .value=${String(T(this.outdoorCoolingMin,this.hass))}
-              .label=${C(`settings.outdoor_cooling_min`,e)}
-              .suffix=${w(this.hass)}
+              .value=${String(w(this.outdoorCoolingMin,this.hass))}
+              .label=${S(`settings.outdoor_cooling_min`,e)}
+              .suffix=${C(this.hass)}
               type="number"
-              step=${O(this.hass)}
-              min=${k(-10,40,this.hass).min}
-              max=${k(-10,40,this.hass).max}
-              @change=${e=>{let t=parseFloat(e.target.value);isNaN(t)||this._fire(`outdoorCoolingMin`,Et(t,this.hass))}}
+              step=${D(this.hass)}
+              min=${O(-10,40,this.hass).min}
+              max=${O(-10,40,this.hass).max}
+              @change=${e=>{let t=parseFloat(e.target.value);isNaN(t)||this._fire(`outdoorCoolingMin`,Dt(t,this.hass))}}
             ></ha-textfield>
-            <span class="field-hint">${C(`settings.outdoor_cooling_min_hint`,e)}</span>
+            <span class="field-hint">${S(`settings.outdoor_cooling_min_hint`,e)}</span>
           </div>
           <div class="threshold-field">
             <ha-textfield
-              .value=${String(T(this.outdoorHeatingMax,this.hass))}
-              .label=${C(`settings.outdoor_heating_max`,e)}
-              .suffix=${w(this.hass)}
+              .value=${String(w(this.outdoorHeatingMax,this.hass))}
+              .label=${S(`settings.outdoor_heating_max`,e)}
+              .suffix=${C(this.hass)}
               type="number"
-              step=${O(this.hass)}
-              min=${k(0,40,this.hass).min}
-              max=${k(0,40,this.hass).max}
-              @change=${e=>{let t=parseFloat(e.target.value);isNaN(t)||this._fire(`outdoorHeatingMax`,Et(t,this.hass))}}
+              step=${D(this.hass)}
+              min=${O(0,40,this.hass).min}
+              max=${O(0,40,this.hass).max}
+              @change=${e=>{let t=parseFloat(e.target.value);isNaN(t)||this._fire(`outdoorHeatingMax`,Dt(t,this.hass))}}
             ></ha-textfield>
-            <span class="field-hint">${C(`settings.outdoor_heating_max_hint`,e)}</span>
+            <span class="field-hint">${S(`settings.outdoor_heating_max_hint`,e)}</span>
           </div>
         </div>
       </div>
@@ -5561,8 +5640,8 @@
       <div class="settings-section">
         <div class="toggle-row">
           <div class="toggle-text">
-            <span class="toggle-label">${C(`settings.prediction_enabled`,e)}</span>
-            <span class="toggle-hint">${C(`settings.prediction_enabled_hint`,e)}</span>
+            <span class="toggle-label">${S(`settings.prediction_enabled`,e)}</span>
+            <span class="toggle-hint">${S(`settings.prediction_enabled_hint`,e)}</span>
           </div>
           <ha-switch
             .checked=${this.predictionEnabled}
@@ -5573,18 +5652,18 @@
 
       <div class="settings-section">
         <ha-select
-          .label=${C(`schedule.off_action_label`,e)}
+          .label=${S(`schedule.off_action_label`,e)}
           .value=${this.scheduleOffAction}
-          .options=${[{value:`eco`,label:C(`schedule.off_action_eco`,e)},{value:`off`,label:C(`schedule.off_action_off`,e)}]}
+          .options=${[{value:`eco`,label:S(`schedule.off_action_eco`,e)},{value:`off`,label:S(`schedule.off_action_off`,e)}]}
           fixedMenuPosition
-          @selected=${e=>{let t=F(e);t&&t!==this.scheduleOffAction&&this._fire(`scheduleOffAction`,t)}}
+          @selected=${e=>{let t=P(e);t&&t!==this.scheduleOffAction&&this._fire(`scheduleOffAction`,t)}}
           @closed=${e=>e.stopPropagation()}
         >
-          <ha-list-item value="eco">${C(`schedule.off_action_eco`,e)}</ha-list-item>
-          <ha-list-item value="off">${C(`schedule.off_action_off`,e)}</ha-list-item>
+          <ha-list-item value="eco">${S(`schedule.off_action_eco`,e)}</ha-list-item>
+          <ha-list-item value="off">${S(`schedule.off_action_off`,e)}</ha-list-item>
         </ha-select>
       </div>
-    `}_setControlMode(e){this.controlMode!==e&&this._fire(`controlMode`,e)}static{this.styles=[K.settingsBaseStyles,l`
+    `}_setControlMode(e){this.controlMode!==e&&this._fire(`controlMode`,e)}static{this.styles=[G.settingsBaseStyles,l`
       .hint {
         color: var(--secondary-text-color);
         font-size: 13px;
@@ -5636,11 +5715,11 @@
       .helper-link:hover {
         text-decoration: underline;
       }
-    `]}};A([b({attribute:!1})],yn.prototype,`hass`,void 0),A([b({type:String})],yn.prototype,`controlMode`,void 0),A([b({type:Number})],yn.prototype,`comfortWeight`,void 0),A([b({type:Number})],yn.prototype,`outdoorCoolingMin`,void 0),A([b({type:Number})],yn.prototype,`outdoorHeatingMax`,void 0),A([b({type:Boolean})],yn.prototype,`predictionEnabled`,void 0),A([b({type:String})],yn.prototype,`scheduleOffAction`,void 0),yn=A([y(`rs-settings-control`)],yn),v(),S(),j();var bn=class extends K{constructor(...e){super(...e),this.presenceEnabled=!1,this.presencePersons=[],this.presenceAwayAction=`eco`,this.presenceClearsOverride=!1}render(){let e=this.hass.language;return h`
+    `]}};k([y({attribute:!1})],Sn.prototype,`hass`,void 0),k([y({type:String})],Sn.prototype,`controlMode`,void 0),k([y({type:Number})],Sn.prototype,`comfortWeight`,void 0),k([y({type:Number})],Sn.prototype,`outdoorCoolingMin`,void 0),k([y({type:Number})],Sn.prototype,`outdoorHeatingMax`,void 0),k([y({type:Boolean})],Sn.prototype,`predictionEnabled`,void 0),k([y({type:String})],Sn.prototype,`scheduleOffAction`,void 0),Sn=k([v(`rs-settings-control`)],Sn),_(),x(),A();var Cn=class extends G{constructor(...e){super(...e),this.presenceEnabled=!1,this.presencePersons=[],this.presenceAwayAction=`eco`,this.presenceClearsOverride=!1}render(){let e=this.hass.language;return m`
       <div class="toggle-row">
         <div class="toggle-text">
-          <span class="toggle-label">${C(`presence.title`,e)}</span>
-          <span class="toggle-hint">${C(`presence.hint`,e)}</span>
+          <span class="toggle-label">${S(`presence.title`,e)}</span>
+          <span class="toggle-hint">${S(`presence.hint`,e)}</span>
         </div>
         <ha-switch
           .checked=${this.presenceEnabled}
@@ -5648,12 +5727,12 @@
         ></ha-switch>
       </div>
 
-      ${this.presenceEnabled?h`
+      ${this.presenceEnabled?m`
             <div class="detail-section">
-              <span class="field-hint">${C(`presence.hint_detail`,e)}</span>
-              ${this.presencePersons.length>0?h`
+              <span class="field-hint">${S(`presence.hint_detail`,e)}</span>
+              ${this.presencePersons.length>0?m`
                     <div class="person-list">
-                      ${this.presencePersons.map(e=>{let t=this.hass.states[e]?.attributes?.friendly_name??e.split(`.`).slice(1).join(`.`);return h`
+                      ${this.presencePersons.map(e=>{let t=this.hass.states[e]?.attributes?.friendly_name??e.split(`.`).slice(1).join(`.`);return m`
                           <div class="person-row">
                             <ha-icon
                               icon="mdi:account"
@@ -5667,30 +5746,30 @@
                           </div>
                         `})}
                     </div>
-                  `:g}
+                  `:h}
               <ha-entity-picker
                 .hass=${this.hass}
                 .includeDomains=${[`person`,`device_tracker`,`binary_sensor`,`input_boolean`]}
                 .entityFilter=${e=>!this.presencePersons.includes(e.entity_id)}
-                .label=${C(`presence.add_entity`,e)}
+                .label=${S(`presence.add_entity`,e)}
                 @value-changed=${e=>{let t=e.detail?.value;t&&!this.presencePersons.includes(t)&&this._fire(`presencePersons`,[...this.presencePersons,t]);let n=e.target;n.value=``}}
               ></ha-entity-picker>
               <ha-select
-                .label=${C(`presence.away_action_label`,e)}
+                .label=${S(`presence.away_action_label`,e)}
                 .value=${this.presenceAwayAction}
-                .options=${[{value:`eco`,label:C(`presence.away_action_eco`,e)},{value:`off`,label:C(`presence.away_action_off`,e)}]}
+                .options=${[{value:`eco`,label:S(`presence.away_action_eco`,e)},{value:`off`,label:S(`presence.away_action_off`,e)}]}
                 fixedMenuPosition
-                @selected=${e=>{let t=F(e);t&&t!==this.presenceAwayAction&&this._fire(`presenceAwayAction`,t)}}
+                @selected=${e=>{let t=P(e);t&&t!==this.presenceAwayAction&&this._fire(`presenceAwayAction`,t)}}
                 @closed=${e=>e.stopPropagation()}
                 style="margin-top: 8px"
               >
-                <ha-list-item value="eco">${C(`presence.away_action_eco`,e)}</ha-list-item>
-                <ha-list-item value="off">${C(`presence.away_action_off`,e)}</ha-list-item>
+                <ha-list-item value="eco">${S(`presence.away_action_eco`,e)}</ha-list-item>
+                <ha-list-item value="off">${S(`presence.away_action_off`,e)}</ha-list-item>
               </ha-select>
               <div class="toggle-row">
                 <div class="toggle-text">
-                  <span class="toggle-label">${C(`presence.clears_override_label`,e)}</span>
-                  <span class="toggle-hint">${C(`presence.clears_override_hint`,e)}</span>
+                  <span class="toggle-label">${S(`presence.clears_override_label`,e)}</span>
+                  <span class="toggle-hint">${S(`presence.clears_override_hint`,e)}</span>
                 </div>
                 <ha-switch
                   .checked=${this.presenceClearsOverride}
@@ -5698,8 +5777,8 @@
                 ></ha-switch>
               </div>
             </div>
-          `:g}
-    `}static{this.styles=[K.settingsBaseStyles,l`
+          `:h}
+    `}static{this.styles=[G.settingsBaseStyles,l`
       .detail-section {
         display: flex;
         flex-direction: column;
@@ -5725,11 +5804,11 @@
         font-size: 14px;
         font-weight: 500;
       }
-    `]}};A([b({attribute:!1})],bn.prototype,`hass`,void 0),A([b({type:Boolean})],bn.prototype,`presenceEnabled`,void 0),A([b({type:Array})],bn.prototype,`presencePersons`,void 0),A([b({type:String})],bn.prototype,`presenceAwayAction`,void 0),A([b({type:Boolean})],bn.prototype,`presenceClearsOverride`,void 0),bn=A([y(`rs-settings-presence`)],bn),v(),S(),j();var xn=class extends K{constructor(...e){super(...e),this.vacationActive=!1,this.vacationTemp=15,this.vacationUntil=``}render(){let e=this.hass.language;return h`
+    `]}};k([y({attribute:!1})],Cn.prototype,`hass`,void 0),k([y({type:Boolean})],Cn.prototype,`presenceEnabled`,void 0),k([y({type:Array})],Cn.prototype,`presencePersons`,void 0),k([y({type:String})],Cn.prototype,`presenceAwayAction`,void 0),k([y({type:Boolean})],Cn.prototype,`presenceClearsOverride`,void 0),Cn=k([v(`rs-settings-presence`)],Cn),_(),x(),A();var wn=class extends G{constructor(...e){super(...e),this.vacationActive=!1,this.vacationTemp=15,this.vacationUntil=``}render(){let e=this.hass.language;return m`
       <div class="toggle-row">
         <div class="toggle-text">
-          <span class="toggle-label">${C(`vacation.title`,e)}</span>
-          <span class="toggle-hint">${C(`vacation.hint`,e)}</span>
+          <span class="toggle-label">${S(`vacation.title`,e)}</span>
+          <span class="toggle-hint">${S(`vacation.hint`,e)}</span>
         </div>
         <ha-switch
           .checked=${this.vacationActive}
@@ -5737,35 +5816,35 @@
         ></ha-switch>
       </div>
 
-      ${this.vacationActive?h`
+      ${this.vacationActive?m`
             <div class="threshold-grid" style="margin-top: 12px">
               <div class="threshold-field">
                 <ha-textfield
                   .value=${this.vacationUntil}
-                  .label=${C(`vacation.end_date`,e)}
+                  .label=${S(`vacation.end_date`,e)}
                   type="datetime-local"
                   @change=${e=>this._fire(`vacationUntil`,e.target.value)}
                 ></ha-textfield>
               </div>
               <div class="threshold-field">
                 <ha-textfield
-                  .value=${String(T(this.vacationTemp,this.hass))}
-                  .label=${C(`vacation.setback_temp`,e)}
-                  .suffix=${w(this.hass)}
+                  .value=${String(w(this.vacationTemp,this.hass))}
+                  .label=${S(`vacation.setback_temp`,e)}
+                  .suffix=${C(this.hass)}
                   type="number"
-                  step=${O(this.hass)}
-                  min=${k(5,25,this.hass).min}
-                  max=${k(5,25,this.hass).max}
-                  @change=${e=>{let t=parseFloat(e.target.value);isNaN(t)||this._fire(`vacationTemp`,Et(t,this.hass))}}
+                  step=${D(this.hass)}
+                  min=${O(5,25,this.hass).min}
+                  max=${O(5,25,this.hass).max}
+                  @change=${e=>{let t=parseFloat(e.target.value);isNaN(t)||this._fire(`vacationTemp`,Dt(t,this.hass))}}
                 ></ha-textfield>
               </div>
             </div>
-          `:g}
-    `}static{this.styles=[K.settingsBaseStyles]}};A([b({attribute:!1})],xn.prototype,`hass`,void 0),A([b({type:Boolean})],xn.prototype,`vacationActive`,void 0),A([b({type:Number})],xn.prototype,`vacationTemp`,void 0),A([b({type:String})],xn.prototype,`vacationUntil`,void 0),xn=A([y(`rs-settings-vacation`)],xn),v(),S(),j();var Sn=class extends K{constructor(...e){super(...e),this.valveProtectionEnabled=!1,this.valveProtectionInterval=7}render(){let e=this.hass.language;return h`
+          `:h}
+    `}static{this.styles=[G.settingsBaseStyles]}};k([y({attribute:!1})],wn.prototype,`hass`,void 0),k([y({type:Boolean})],wn.prototype,`vacationActive`,void 0),k([y({type:Number})],wn.prototype,`vacationTemp`,void 0),k([y({type:String})],wn.prototype,`vacationUntil`,void 0),wn=k([v(`rs-settings-vacation`)],wn),_(),x(),A();var Tn=class extends G{constructor(...e){super(...e),this.valveProtectionEnabled=!1,this.valveProtectionInterval=7}render(){let e=this.hass.language;return m`
       <div class="toggle-row">
         <div class="toggle-text">
-          <span class="toggle-label">${C(`valve_protection.title`,e)}</span>
-          <span class="toggle-hint">${C(`valve_protection.hint`,e)}</span>
+          <span class="toggle-label">${S(`valve_protection.title`,e)}</span>
+          <span class="toggle-hint">${S(`valve_protection.hint`,e)}</span>
         </div>
         <ha-switch
           .checked=${this.valveProtectionEnabled}
@@ -5773,24 +5852,24 @@
         ></ha-switch>
       </div>
 
-      ${this.valveProtectionEnabled?h`
+      ${this.valveProtectionEnabled?m`
             <div class="threshold-grid" style="margin-top: 12px">
               <div class="threshold-field">
                 <ha-textfield
                   .value=${String(this.valveProtectionInterval)}
-                  .label=${C(`valve_protection.interval_label`,e)}
-                  .suffix=${C(`valve_protection.interval_suffix`,e)}
+                  .label=${S(`valve_protection.interval_label`,e)}
+                  .suffix=${S(`valve_protection.interval_suffix`,e)}
                   type="number"
                   step="1"
                   min="1"
                   max="90"
                   @change=${e=>{let t=parseInt(e.target.value,10);!isNaN(t)&&t>=1&&t<=90&&this._fire(`valveProtectionInterval`,t)}}
                 ></ha-textfield>
-                <span class="field-hint">${C(`valve_protection.interval_hint`,e)}</span>
+                <span class="field-hint">${S(`valve_protection.interval_hint`,e)}</span>
               </div>
             </div>
-          `:g}
-    `}static{this.styles=[K.settingsBaseStyles]}};A([b({attribute:!1})],Sn.prototype,`hass`,void 0),A([b({type:Boolean})],Sn.prototype,`valveProtectionEnabled`,void 0),A([b({type:Number})],Sn.prototype,`valveProtectionInterval`,void 0),Sn=A([y(`rs-settings-valve`)],Sn),v(),S(),j();var Cn=class extends _{constructor(...e){super(...e),this.label=``,this.confirmMessage=``,this.disabled=!1,this.destructive=!1}static{this.styles=l`
+          `:h}
+    `}static{this.styles=[G.settingsBaseStyles]}};k([y({attribute:!1})],Tn.prototype,`hass`,void 0),k([y({type:Boolean})],Tn.prototype,`valveProtectionEnabled`,void 0),k([y({type:Number})],Tn.prototype,`valveProtectionInterval`,void 0),Tn=k([v(`rs-settings-valve`)],Tn),_(),x(),A();var En=class extends g{constructor(...e){super(...e),this.label=``,this.confirmMessage=``,this.disabled=!1,this.destructive=!1}static{this.styles=l`
     :host {
       display: block;
     }
@@ -5821,7 +5900,7 @@
       opacity: 0.5;
       cursor: not-allowed;
     }
-  `}render(){return h`
+  `}render(){return m`
       <button
         class="confirm-btn ${this.destructive?`destructive`:``}"
         ?disabled=${this.disabled}
@@ -5829,7 +5908,7 @@
       >
         ${this.label}
       </button>
-    `}_onClick(){this.disabled||this.confirmMessage&&!confirm(this.confirmMessage)||this.dispatchEvent(new CustomEvent(`confirmed`,{bubbles:!0,composed:!0}))}};A([b({type:String})],Cn.prototype,`label`,void 0),A([b({type:String})],Cn.prototype,`confirmMessage`,void 0),A([b({type:Boolean})],Cn.prototype,`disabled`,void 0),A([b({type:Boolean})],Cn.prototype,`destructive`,void 0),Cn=A([y(`rs-confirm-button`)],Cn),v(),S(),j();var wn=class extends _{constructor(...e){super(...e),this.compressorGroups=[],this._memberFilter=e=>{let t=e.entity_id;if(t.substring(t.indexOf(`.`)+1).startsWith(`roommind_`))return!1;for(let e of this.compressorGroups)if(e.members.includes(t)||e.master_entity===t)return!1;return!0},this._masterFilter=e=>{let t=e.entity_id;if(t.substring(t.indexOf(`.`)+1).startsWith(`roommind_`))return!1;for(let e of this.compressorGroups)if(e.members.includes(t)||e.master_entity===t)return!1;return!0}}static{this.styles=[L,l`
+    `}_onClick(){this.disabled||this.confirmMessage&&!confirm(this.confirmMessage)||this.dispatchEvent(new CustomEvent(`confirmed`,{bubbles:!0,composed:!0}))}};k([y({type:String})],En.prototype,`label`,void 0),k([y({type:String})],En.prototype,`confirmMessage`,void 0),k([y({type:Boolean})],En.prototype,`disabled`,void 0),k([y({type:Boolean})],En.prototype,`destructive`,void 0),En=k([v(`rs-confirm-button`)],En),_(),x(),A();var Dn=class extends g{constructor(...e){super(...e),this.compressorGroups=[],this._memberFilter=e=>{let t=e.entity_id;if(t.substring(t.indexOf(`.`)+1).startsWith(`roommind_`))return!1;for(let e of this.compressorGroups)if(e.members.includes(t)||e.master_entity===t)return!1;return!0},this._masterFilter=e=>{let t=e.entity_id;if(t.substring(t.indexOf(`.`)+1).startsWith(`roommind_`))return!1;for(let e of this.compressorGroups)if(e.members.includes(t)||e.master_entity===t)return!1;return!0}}static{this.styles=[I,l`
       :host {
         display: block;
       }
@@ -5909,26 +5988,26 @@
           grid-template-columns: 1fr;
         }
       }
-    `]}render(){let e=this.hass.language;return h`
-      ${this.compressorGroups.length===0?h`<div class="no-groups">${C(`compressor.no_groups`,e)}</div>`:this.compressorGroups.map((e,t)=>this._renderGroup(e,t))}
+    `]}render(){let e=this.hass.language;return m`
+      ${this.compressorGroups.length===0?m`<div class="no-groups">${S(`compressor.no_groups`,e)}</div>`:this.compressorGroups.map((e,t)=>this._renderGroup(e,t))}
       <ha-button class="add-button" @click=${this._addGroup}>
         <ha-icon icon="mdi:plus" slot="icon"></ha-icon>
-        ${C(`compressor.add_group`,e)}
+        ${S(`compressor.add_group`,e)}
       </ha-button>
-    `}_renderGroup(e,t){let n=this.hass.language;return h`
+    `}_renderGroup(e,t){let n=this.hass.language;return m`
       <div class="group-card">
         <ha-textfield
           .value=${e.name}
-          .label=${C(`compressor.group_name`,n)}
+          .label=${S(`compressor.group_name`,n)}
           @change=${e=>{let n=e.target.value;this._updateGroup(t,`name`,n)}}
         ></ha-textfield>
 
-        <div class="section-label">${C(`compressor.members`,n)}</div>
-        ${e.members.length>0?h`
+        <div class="section-label">${S(`compressor.members`,n)}</div>
+        ${e.members.length>0?m`
               <div class="member-list">
                 ${e.members.map(e=>this._renderMember(e,t))}
               </div>
-            `:g}
+            `:h}
         <ha-entity-picker
           .hass=${this.hass}
           .value=${``}
@@ -5936,38 +6015,38 @@
           .entityFilter=${this._memberFilter}
           @value-changed=${e=>{let n=e.detail?.value??``;if(!n)return;let r=[...this.compressorGroups];r[t]={...r[t],members:[...r[t].members,n]},this._fire(r);let i=e.target;i&&(i.value=``)}}
         ></ha-entity-picker>
-        <div class="field-hint">${C(`compressor.members_hint`,n)}</div>
+        <div class="field-hint">${S(`compressor.members_hint`,n)}</div>
 
         <div class="number-fields">
           <div>
             <ha-textfield
               type="number"
               .value=${String(e.min_run_minutes)}
-              .label=${C(`compressor.min_run`,n)}
-              .suffix=${C(`compressor.min_run_suffix`,n)}
+              .label=${S(`compressor.min_run`,n)}
+              .suffix=${S(`compressor.min_run_suffix`,n)}
               min="1"
               max="60"
               step="1"
               @change=${e=>{let n=parseInt(e.target.value,10);!isNaN(n)&&n>=1&&n<=60&&this._updateGroup(t,`min_run_minutes`,n)}}
             ></ha-textfield>
-            <div class="field-hint">${C(`compressor.min_run_hint`,n)}</div>
+            <div class="field-hint">${S(`compressor.min_run_hint`,n)}</div>
           </div>
           <div>
             <ha-textfield
               type="number"
               .value=${String(e.min_off_minutes)}
-              .label=${C(`compressor.min_off`,n)}
-              .suffix=${C(`compressor.min_off_suffix`,n)}
+              .label=${S(`compressor.min_off`,n)}
+              .suffix=${S(`compressor.min_off_suffix`,n)}
               min="1"
               max="30"
               step="1"
               @change=${e=>{let n=parseInt(e.target.value,10);!isNaN(n)&&n>=1&&n<=30&&this._updateGroup(t,`min_off_minutes`,n)}}
             ></ha-textfield>
-            <div class="field-hint">${C(`compressor.min_off_hint`,n)}</div>
+            <div class="field-hint">${S(`compressor.min_off_hint`,n)}</div>
           </div>
         </div>
 
-        <div class="section-label">${C(`compressor.master_entity`,n)}</div>
+        <div class="section-label">${S(`compressor.master_entity`,n)}</div>
         <ha-entity-picker
           .hass=${this.hass}
           .value=${e.master_entity||``}
@@ -5975,65 +6054,65 @@
           .entityFilter=${this._masterFilter}
           @value-changed=${e=>{this._updateGroup(t,`master_entity`,e.detail?.value??``)}}
         ></ha-entity-picker>
-        <div class="field-hint">${C(`compressor.master_entity_hint`,n)}</div>
+        <div class="field-hint">${S(`compressor.master_entity_hint`,n)}</div>
 
         <div class="field-row">
-          <ha-formfield .label=${C(`compressor.enforce_uniform_mode`,n)}>
+          <ha-formfield .label=${S(`compressor.enforce_uniform_mode`,n)}>
             <ha-switch
               .checked=${e.enforce_uniform_mode||!1}
               @change=${e=>{this._updateGroup(t,`enforce_uniform_mode`,e.target.checked)}}
             ></ha-switch>
           </ha-formfield>
-          <div class="field-hint">${C(`compressor.enforce_uniform_mode_hint`,n)}</div>
+          <div class="field-hint">${S(`compressor.enforce_uniform_mode_hint`,n)}</div>
         </div>
 
-        ${e.master_entity||e.enforce_uniform_mode?h`
+        ${e.master_entity||e.enforce_uniform_mode?m`
               <div class="field-row">
                 <ha-select
-                  .label=${C(`compressor.conflict_resolution`,n)}
+                  .label=${S(`compressor.conflict_resolution`,n)}
                   .value=${e.conflict_resolution||`heating_priority`}
-                  .options=${[{value:`heating_priority`,label:C(`compressor.conflict_heating_priority`,n)},{value:`cooling_priority`,label:C(`compressor.conflict_cooling_priority`,n)},{value:`majority`,label:C(`compressor.conflict_majority`,n)},{value:`outdoor_temp`,label:C(`compressor.conflict_outdoor_temp`,n)}]}
-                  @selected=${e=>{let n=F(e);n&&this._updateGroup(t,`conflict_resolution`,n)}}
+                  .options=${[{value:`heating_priority`,label:S(`compressor.conflict_heating_priority`,n)},{value:`cooling_priority`,label:S(`compressor.conflict_cooling_priority`,n)},{value:`majority`,label:S(`compressor.conflict_majority`,n)},{value:`outdoor_temp`,label:S(`compressor.conflict_outdoor_temp`,n)}]}
+                  @selected=${e=>{let n=P(e);n&&this._updateGroup(t,`conflict_resolution`,n)}}
                   @closed=${e=>e.stopPropagation()}
                   fixedMenuPosition
                   style="width: 100%;"
                 >
                 </ha-select>
-                <div class="field-hint">${C(`compressor.conflict_resolution_hint`,n)}</div>
+                <div class="field-hint">${S(`compressor.conflict_resolution_hint`,n)}</div>
               </div>
-            `:g}
+            `:h}
 
         <div class="field-row">
           <ha-entity-picker
             .hass=${this.hass}
             .value=${e.action_script||``}
             .includeDomains=${[`script`]}
-            .label=${C(`compressor.action_script`,n)}
+            .label=${S(`compressor.action_script`,n)}
             @value-changed=${e=>{this._updateGroup(t,`action_script`,e.detail?.value??``)}}
           ></ha-entity-picker>
-          <div class="field-hint">${C(`compressor.action_script_hint`,n)}</div>
+          <div class="field-hint">${S(`compressor.action_script_hint`,n)}</div>
         </div>
 
         <div class="delete-row">
           <rs-confirm-button
-            .label=${C(`compressor.delete`,n)}
-            .confirmMessage=${C(`compressor.delete_confirm`,n).replace(`{name}`,e.name||`#${t+1}`)}
+            .label=${S(`compressor.delete`,n)}
+            .confirmMessage=${S(`compressor.delete_confirm`,n).replace(`{name}`,e.name||`#${t+1}`)}
             destructive
             @confirmed=${()=>{this._fire(this.compressorGroups.filter((e,n)=>n!==t))}}
           ></rs-confirm-button>
         </div>
       </div>
-    `}_renderMember(e,t){let n=this.hass.states[e],r=!n,i=n?.attributes?.friendly_name||e,a=this.hass.entities[e]?.area_id,o=a?this.hass.areas[a]?.name:void 0;return h`
+    `}_renderMember(e,t){let n=this.hass.states[e],r=!n,i=n?.attributes?.friendly_name||e,a=this.hass.entities[e]?.area_id,o=a?this.hass.areas[a]?.name:void 0;return m`
       <div class="member-row">
         <span class="member-name ${r?`member-missing`:``}"
-          >${i}${o?h`<span class="member-area">(${o})</span>`:g}</span
+          >${i}${o?m`<span class="member-area">(${o})</span>`:h}</span
         >
         <ha-icon-button
           .path=${`M19,6.41L17.59,5L12,10.59L6.41,5L5,6.41L10.59,12L5,17.59L6.41,19L12,13.41L17.59,19L19,17.59L13.41,12L19,6.41Z`}
           @click=${()=>{let n=[...this.compressorGroups];n[t]={...n[t],members:n[t].members.filter(t=>t!==e)},this._fire(n)}}
         ></ha-icon-button>
       </div>
-    `}_updateGroup(e,t,n){let r=[...this.compressorGroups];r[e]={...r[e],[t]:n},this._fire(r)}_addGroup(){this._fire([...this.compressorGroups,{id:self.crypto?.randomUUID?.()??`${Date.now()}-${Math.random().toString(36).slice(2)}`,name:``,members:[],min_run_minutes:15,min_off_minutes:5,master_entity:``,conflict_resolution:`heating_priority`,action_script:``,enforce_uniform_mode:!1}])}_fire(e){this.dispatchEvent(new CustomEvent(`setting-changed`,{detail:{key:`compressorGroups`,value:e},bubbles:!0,composed:!0}))}};A([b({attribute:!1})],wn.prototype,`hass`,void 0),A([b({type:Array})],wn.prototype,`compressorGroups`,void 0),wn=A([y(`rs-settings-compressor`)],wn),v(),S(),j();var Tn=class extends K{constructor(...e){super(...e),this.moldDetectionEnabled=!1,this.moldHumidityThreshold=70,this.moldSustainedMinutes=30,this.moldPreventionEnabled=!1,this.moldPreventionIntensity=`medium`}render(){let e=this.hass.language;return h`
+    `}_updateGroup(e,t,n){let r=[...this.compressorGroups];r[e]={...r[e],[t]:n},this._fire(r)}_addGroup(){this._fire([...this.compressorGroups,{id:self.crypto?.randomUUID?.()??`${Date.now()}-${Math.random().toString(36).slice(2)}`,name:``,members:[],min_run_minutes:15,min_off_minutes:5,master_entity:``,conflict_resolution:`heating_priority`,action_script:``,enforce_uniform_mode:!1}])}_fire(e){this.dispatchEvent(new CustomEvent(`setting-changed`,{detail:{key:`compressorGroups`,value:e},bubbles:!0,composed:!0}))}};k([y({attribute:!1})],Dn.prototype,`hass`,void 0),k([y({type:Array})],Dn.prototype,`compressorGroups`,void 0),Dn=k([v(`rs-settings-compressor`)],Dn),_(),x(),A();var On=class extends G{constructor(...e){super(...e),this.moldDetectionEnabled=!1,this.moldHumidityThreshold=70,this.moldSustainedMinutes=30,this.moldPreventionEnabled=!1,this.moldPreventionIntensity=`medium`}render(){let e=this.hass.language;return m`
       <!-- Detection section -->
       <div class="settings-section first">
         <div class="toggle-row">
@@ -6043,21 +6122,21 @@
                 icon="mdi:bell-alert"
                 style="--mdc-icon-size: 18px; vertical-align: middle; margin-right: 4px"
               ></ha-icon>
-              ${C(`mold.detection`,e)}
+              ${S(`mold.detection`,e)}
             </span>
-            <span class="toggle-hint">${C(`mold.detection_desc`,e)}</span>
+            <span class="toggle-hint">${S(`mold.detection_desc`,e)}</span>
           </div>
           <ha-switch
             .checked=${this.moldDetectionEnabled}
             @change=${e=>this._fire(`moldDetectionEnabled`,e.target.checked)}
           ></ha-switch>
         </div>
-        ${this.moldDetectionEnabled?h`
+        ${this.moldDetectionEnabled?m`
               <div class="threshold-grid" style="margin-top: 12px">
                 <div class="threshold-field">
                   <ha-textfield
                     .value=${String(this.moldHumidityThreshold)}
-                    .label=${C(`mold.threshold`,e)}
+                    .label=${S(`mold.threshold`,e)}
                     .suffix=${`%`}
                     type="number"
                     step="1"
@@ -6065,12 +6144,12 @@
                     max="90"
                     @change=${e=>{let t=parseFloat(e.target.value);!isNaN(t)&&t>=50&&t<=90&&this._fire(`moldHumidityThreshold`,t)}}
                   ></ha-textfield>
-                  <span class="field-hint">${C(`mold.threshold_hint`,e)}</span>
+                  <span class="field-hint">${S(`mold.threshold_hint`,e)}</span>
                 </div>
                 <div class="threshold-field">
                   <ha-textfield
                     .value=${String(this.moldSustainedMinutes)}
-                    .label=${C(`mold.sustained`,e)}
+                    .label=${S(`mold.sustained`,e)}
                     .suffix=${`min`}
                     type="number"
                     step="5"
@@ -6078,10 +6157,10 @@
                     max="120"
                     @change=${e=>{let t=parseInt(e.target.value,10);!isNaN(t)&&t>=5&&t<=120&&this._fire(`moldSustainedMinutes`,t)}}
                   ></ha-textfield>
-                  <span class="field-hint">${C(`mold.sustained_hint`,e)}</span>
+                  <span class="field-hint">${S(`mold.sustained_hint`,e)}</span>
                 </div>
               </div>
-            `:g}
+            `:h}
       </div>
 
       <!-- Prevention section -->
@@ -6093,45 +6172,45 @@
                 icon="mdi:shield-check"
                 style="--mdc-icon-size: 18px; vertical-align: middle; margin-right: 4px"
               ></ha-icon>
-              ${C(`mold.prevention`,e)}
+              ${S(`mold.prevention`,e)}
             </span>
-            <span class="toggle-hint">${C(`mold.prevention_desc`,e)}</span>
+            <span class="toggle-hint">${S(`mold.prevention_desc`,e)}</span>
           </div>
           <ha-switch
             .checked=${this.moldPreventionEnabled}
             @change=${e=>this._fire(`moldPreventionEnabled`,e.target.checked)}
           ></ha-switch>
         </div>
-        ${this.moldPreventionEnabled?h`
+        ${this.moldPreventionEnabled?m`
               <div style="margin-top: 12px; display: flex; flex-direction: column; gap: 4px;">
                 <ha-select
                   style="width: 100%;"
                   .value=${this.moldPreventionIntensity}
-                  .label=${C(`mold.intensity`,e)}
-                  .options=${[{value:`light`,label:C(`mold.intensity_light`,e,{delta:String(E(1,this.hass)),unit:w(this.hass)})},{value:`medium`,label:C(`mold.intensity_medium`,e,{delta:String(E(2,this.hass)),unit:w(this.hass)})},{value:`strong`,label:C(`mold.intensity_strong`,e,{delta:String(E(3,this.hass)),unit:w(this.hass)})}]}
+                  .label=${S(`mold.intensity`,e)}
+                  .options=${[{value:`light`,label:S(`mold.intensity_light`,e,{delta:String(T(1,this.hass)),unit:C(this.hass)})},{value:`medium`,label:S(`mold.intensity_medium`,e,{delta:String(T(2,this.hass)),unit:C(this.hass)})},{value:`strong`,label:S(`mold.intensity_strong`,e,{delta:String(T(3,this.hass)),unit:C(this.hass)})}]}
                   fixedMenuPosition
-                  @selected=${e=>{let t=F(e);t&&t!==this.moldPreventionIntensity&&this._fire(`moldPreventionIntensity`,t)}}
+                  @selected=${e=>{let t=P(e);t&&t!==this.moldPreventionIntensity&&this._fire(`moldPreventionIntensity`,t)}}
                   @closed=${e=>e.stopPropagation()}
                 >
                   <ha-list-item value="light"
-                    >${C(`mold.intensity_light`,e,{delta:String(E(1,this.hass)),unit:w(this.hass)})}</ha-list-item
+                    >${S(`mold.intensity_light`,e,{delta:String(T(1,this.hass)),unit:C(this.hass)})}</ha-list-item
                   >
                   <ha-list-item value="medium"
-                    >${C(`mold.intensity_medium`,e,{delta:String(E(2,this.hass)),unit:w(this.hass)})}</ha-list-item
+                    >${S(`mold.intensity_medium`,e,{delta:String(T(2,this.hass)),unit:C(this.hass)})}</ha-list-item
                   >
                   <ha-list-item value="strong"
-                    >${C(`mold.intensity_strong`,e,{delta:String(E(3,this.hass)),unit:w(this.hass)})}</ha-list-item
+                    >${S(`mold.intensity_strong`,e,{delta:String(T(3,this.hass)),unit:C(this.hass)})}</ha-list-item
                   >
                 </ha-select>
-                <span class="field-hint">${C(`mold.intensity_hint`,e)}</span>
+                <span class="field-hint">${S(`mold.intensity_hint`,e)}</span>
               </div>
-            `:g}
+            `:h}
       </div>
-    `}static{this.styles=[K.settingsBaseStyles]}};A([b({attribute:!1})],Tn.prototype,`hass`,void 0),A([b({type:Boolean})],Tn.prototype,`moldDetectionEnabled`,void 0),A([b({type:Number})],Tn.prototype,`moldHumidityThreshold`,void 0),A([b({type:Number})],Tn.prototype,`moldSustainedMinutes`,void 0),A([b({type:Boolean})],Tn.prototype,`moldPreventionEnabled`,void 0),A([b({type:String})],Tn.prototype,`moldPreventionIntensity`,void 0),Tn=A([y(`rs-settings-mold`)],Tn),v(),S(),j();var En=class extends K{constructor(...e){super(...e),this.notificationsEnabled=!0,this.notificationTargets=[],this.notificationCooldown=60,this.moldPreventionEnabled=!1,this.moldPreventionNotify=!1}render(){let e=this.hass.language;return h`
+    `}static{this.styles=[G.settingsBaseStyles]}};k([y({attribute:!1})],On.prototype,`hass`,void 0),k([y({type:Boolean})],On.prototype,`moldDetectionEnabled`,void 0),k([y({type:Number})],On.prototype,`moldHumidityThreshold`,void 0),k([y({type:Number})],On.prototype,`moldSustainedMinutes`,void 0),k([y({type:Boolean})],On.prototype,`moldPreventionEnabled`,void 0),k([y({type:String})],On.prototype,`moldPreventionIntensity`,void 0),On=k([v(`rs-settings-mold`)],On),_(),x(),A();var K=class extends G{constructor(...e){super(...e),this.notificationsEnabled=!0,this.notificationTargets=[],this.notificationCooldown=60,this.moldPreventionEnabled=!1,this.moldPreventionNotify=!1,this.windowOpenNotificationMinutes=0}render(){let e=this.hass.language;return m`
       <div class="toggle-row">
         <div class="toggle-text">
-          <span class="toggle-label">${C(`notifications.enabled`,e)}</span>
-          <span class="toggle-hint">${C(`notifications.enabled_hint`,e)}</span>
+          <span class="toggle-label">${S(`notifications.enabled`,e)}</span>
+          <span class="toggle-hint">${S(`notifications.enabled_hint`,e)}</span>
         </div>
         <ha-switch
           .checked=${this.notificationsEnabled}
@@ -6139,12 +6218,12 @@
         ></ha-switch>
       </div>
 
-      ${this.notificationsEnabled?h`
+      ${this.notificationsEnabled?m`
             <div class="detail-section">
-              <p class="hint">${C(`notifications.desc`,e)}</p>
+              <p class="hint">${S(`notifications.desc`,e)}</p>
 
               <div class="target-list">
-                ${this.notificationTargets.map((t,n)=>{let r=t.entity_id?this.hass.states[t.entity_id]?.attributes?.friendly_name??t.entity_id.replace(`notify.`,``):C(`notifications.target_unnamed`,e);return h`
+                ${this.notificationTargets.map((t,n)=>{let r=t.entity_id?this.hass.states[t.entity_id]?.attributes?.friendly_name??t.entity_id.replace(`notify.`,``):S(`notifications.target_unnamed`,e);return m`
                     <div class="target-card">
                       <div class="target-header">
                         <ha-icon
@@ -6162,22 +6241,22 @@
                           .hass=${this.hass}
                           .value=${t.person_entity}
                           .includeDomains=${[`person`]}
-                          .label=${C(`notifications.target_person`,e)}
+                          .label=${S(`notifications.target_person`,e)}
                           allow-custom-entity
                           @value-changed=${e=>{let t=[...this.notificationTargets];t[n]={...t[n],person_entity:e.detail?.value??``},this._fire(`moldNotificationTargets`,t)}}
                         ></ha-entity-picker>
                         <ha-select
                           .value=${t.notify_when}
-                          .options=${[{value:`always`,label:C(`notifications.target_when_always`,e)},{value:`home_only`,label:C(`notifications.target_when_home`,e)}]}
+                          .options=${[{value:`always`,label:S(`notifications.target_when_always`,e)},{value:`home_only`,label:S(`notifications.target_when_home`,e)}]}
                           fixedMenuPosition
-                          @selected=${e=>{let t=F(e);if(!t)return;let r=[...this.notificationTargets];r[n]={...r[n],notify_when:t},this._fire(`moldNotificationTargets`,r)}}
+                          @selected=${e=>{let t=P(e);if(!t)return;let r=[...this.notificationTargets];r[n]={...r[n],notify_when:t},this._fire(`moldNotificationTargets`,r)}}
                           @closed=${e=>e.stopPropagation()}
                         >
                           <ha-list-item value="always"
-                            >${C(`notifications.target_when_always`,e)}</ha-list-item
+                            >${S(`notifications.target_when_always`,e)}</ha-list-item
                           >
                           <ha-list-item value="home_only"
-                            >${C(`notifications.target_when_home`,e)}</ha-list-item
+                            >${S(`notifications.target_when_home`,e)}</ha-list-item
                           >
                         </ha-select>
                       </div>
@@ -6190,18 +6269,18 @@
                   .hass=${this.hass}
                   .value=${``}
                   .includeDomains=${[`notify`]}
-                  .label=${C(`notifications.add_target_label`,e)}
+                  .label=${S(`notifications.add_target_label`,e)}
                   allow-custom-entity
                   @value-changed=${e=>{let t=e.detail?.value??``;if(!t)return;this._fire(`moldNotificationTargets`,[...this.notificationTargets,{entity_id:t,person_entity:``,notify_when:`always`}]);let n=e.target;n&&(n.value=``)}}
                 ></ha-entity-picker>
-                <span class="field-hint">${C(`notifications.add_target_hint`,e)}</span>
+                <span class="field-hint">${S(`notifications.add_target_hint`,e)}</span>
               </div>
 
               <div class="threshold-grid" style="margin-top: 12px">
                 <div class="threshold-field">
                   <ha-textfield
                     .value=${String(this.notificationCooldown)}
-                    .label=${C(`notifications.cooldown`,e)}
+                    .label=${S(`notifications.cooldown`,e)}
                     .suffix=${`min`}
                     type="number"
                     step="5"
@@ -6209,18 +6288,31 @@
                     max="1440"
                     @change=${e=>{let t=parseInt(e.target.value,10);!isNaN(t)&&t>=10&&t<=1440&&this._fire(`moldNotificationCooldown`,t)}}
                   ></ha-textfield>
-                  <span class="field-hint">${C(`notifications.cooldown_hint`,e)}</span>
+                  <span class="field-hint">${S(`notifications.cooldown_hint`,e)}</span>
+                </div>
+                <div class="threshold-field">
+                  <ha-textfield
+                    .value=${String(this.windowOpenNotificationMinutes)}
+                    .label=${S(`notifications.window_open_after`,e)}
+                    .suffix=${`min`}
+                    type="number"
+                    step="5"
+                    min="0"
+                    max="1440"
+                    @change=${e=>{let t=parseInt(e.target.value,10);!isNaN(t)&&t>=0&&t<=1440&&this._fire(`windowOpenNotificationMinutes`,t)}}
+                  ></ha-textfield>
+                  <span class="field-hint">${S(`notifications.window_open_after_hint`,e)}</span>
                 </div>
               </div>
 
-              ${this.moldPreventionEnabled?h`
+              ${this.moldPreventionEnabled?m`
                     <div class="toggle-row" style="margin-top: 12px">
                       <div class="toggle-text">
                         <span class="toggle-label"
-                          >${C(`notifications.mold_prevention_notify`,e)}</span
+                          >${S(`notifications.mold_prevention_notify`,e)}</span
                         >
                         <span class="toggle-hint"
-                          >${C(`notifications.mold_prevention_notify_hint`,e)}</span
+                          >${S(`notifications.mold_prevention_notify_hint`,e)}</span
                         >
                       </div>
                       <ha-switch
@@ -6228,10 +6320,10 @@
                         @change=${e=>this._fire(`moldPreventionNotify`,e.target.checked)}
                       ></ha-switch>
                     </div>
-                  `:g}
+                  `:h}
             </div>
-          `:g}
-    `}static{this.styles=[K.settingsBaseStyles,l`
+          `:h}
+    `}static{this.styles=[G.settingsBaseStyles,l`
       .hint {
         color: var(--secondary-text-color);
         font-size: 13px;
@@ -6288,35 +6380,35 @@
           padding-left: 0;
         }
       }
-    `]}};A([b({attribute:!1})],En.prototype,`hass`,void 0),A([b({type:Boolean})],En.prototype,`notificationsEnabled`,void 0),A([b({type:Array})],En.prototype,`notificationTargets`,void 0),A([b({type:Number})],En.prototype,`notificationCooldown`,void 0),A([b({type:Boolean})],En.prototype,`moldPreventionEnabled`,void 0),A([b({type:Boolean})],En.prototype,`moldPreventionNotify`,void 0),En=A([y(`rs-settings-notifications`)],En),v(),S(),j();var Dn=250,On=class extends K{constructor(...e){super(...e),this.rooms={},this.learningDisabledRooms=[],this.boostAppliedAt={},this.roomsLive={},this._showLearningExceptions=!1,this._boostSelectedRoom=``}render(){let e=this.hass.language,t=Object.entries(this.rooms).map(([e])=>({areaId:e,name:this.hass.areas?.[e]?.name??e})).sort((e,t)=>e.name.localeCompare(t.name)),n=Object.keys(this.rooms),r=n.length===0||this.learningDisabledRooms.length<n.length,i=this.learningDisabledRooms.filter(e=>n.includes(e)).length;return h`
+    `]}};k([y({attribute:!1})],K.prototype,`hass`,void 0),k([y({type:Boolean})],K.prototype,`notificationsEnabled`,void 0),k([y({type:Array})],K.prototype,`notificationTargets`,void 0),k([y({type:Number})],K.prototype,`notificationCooldown`,void 0),k([y({type:Boolean})],K.prototype,`moldPreventionEnabled`,void 0),k([y({type:Boolean})],K.prototype,`moldPreventionNotify`,void 0),k([y({type:Number})],K.prototype,`windowOpenNotificationMinutes`,void 0),K=k([v(`rs-settings-notifications`)],K),_(),x(),A();var kn=250,An=class extends G{constructor(...e){super(...e),this.rooms={},this.learningDisabledRooms=[],this.boostAppliedAt={},this.roomsLive={},this._showLearningExceptions=!1,this._boostSelectedRoom=``}render(){let e=this.hass.language,t=Object.entries(this.rooms).map(([e])=>({areaId:e,name:this.hass.areas?.[e]?.name??e})).sort((e,t)=>e.name.localeCompare(t.name)),n=Object.keys(this.rooms),r=n.length===0||this.learningDisabledRooms.length<n.length,i=this.learningDisabledRooms.filter(e=>n.includes(e)).length;return m`
       <!-- Learning toggle -->
       <div class="settings-section first">
         <div class="toggle-row">
           <div class="toggle-text">
-            <span class="toggle-label">${C(`settings.learning_title`,e)}</span>
-            <span class="toggle-hint">${C(`settings.learning_hint`,e)}</span>
+            <span class="toggle-label">${S(`settings.learning_title`,e)}</span>
+            <span class="toggle-hint">${S(`settings.learning_hint`,e)}</span>
           </div>
           <ha-switch
             .checked=${r}
             @change=${e=>{let t=e.target.checked;this._fire(`learningDisabledRooms`,t?[]:Object.keys(this.rooms)),t||(this._showLearningExceptions=!1)}}
           ></ha-switch>
         </div>
-        ${r&&t.length>0?h`
+        ${r&&t.length>0?m`
               <button
                 class="exceptions-link"
                 @click=${()=>{this._showLearningExceptions=!this._showLearningExceptions}}
               >
                 <span
-                  >${i>0?`${i} ${C(i===1?`settings.learning_room_paused`:`settings.learning_rooms_paused`,e)}`:C(`settings.learning_exceptions`,e)}</span
+                  >${i>0?`${i} ${S(i===1?`settings.learning_room_paused`:`settings.learning_rooms_paused`,e)}`:S(`settings.learning_exceptions`,e)}</span
                 >
                 <ha-icon
                   icon=${this._showLearningExceptions?`mdi:chevron-up`:`mdi:chevron-down`}
                   style="--mdc-icon-size: 16px"
                 ></ha-icon>
               </button>
-              ${this._showLearningExceptions?h`
+              ${this._showLearningExceptions?m`
                     <div class="room-toggles">
-                      ${t.map(e=>h`
+                      ${t.map(e=>m`
                           <div class="room-toggle-row">
                             <span class="room-toggle-name">${e.name}</span>
                             <ha-switch
@@ -6326,46 +6418,46 @@
                           </div>
                         `)}
                     </div>
-                  `:g}
-            `:g}
+                  `:h}
+            `:h}
       </div>
 
       <!-- Boost learning -->
       <div class="settings-section">
-        <span class="toggle-label">${C(`settings.boost_title`,e)}</span>
-        <p class="hint">${C(`settings.boost_hint`,e)}</p>
+        <span class="toggle-label">${S(`settings.boost_title`,e)}</span>
+        <p class="hint">${S(`settings.boost_hint`,e)}</p>
 
-        ${t.length>0?h`
+        ${t.length>0?m`
               <div class="room-select-row">
                 <ha-select
                   .value=${this._boostSelectedRoom}
-                  .label=${C(`settings.boost_room_select`,e)}
+                  .label=${S(`settings.boost_room_select`,e)}
                   .options=${t.map(e=>({value:e.areaId,label:e.name}))}
                   fixedMenuPosition
-                  @selected=${e=>{this._boostSelectedRoom=F(e)}}
+                  @selected=${e=>{this._boostSelectedRoom=P(e)}}
                   @closed=${e=>e.stopPropagation()}
                 >
-                  ${t.map(e=>h`<ha-list-item value=${e.areaId}>${e.name}</ha-list-item>`)}
+                  ${t.map(e=>m`<ha-list-item value=${e.areaId}>${e.name}</ha-list-item>`)}
                 </ha-select>
-                ${this._boostSelectedRoom?h`<ha-icon-button
+                ${this._boostSelectedRoom?m`<ha-icon-button
                       .path=${`M19,6.41L17.59,5L12,10.59L6.41,5L5,6.41L10.59,12L5,17.59L6.41,19L12,13.41L17.59,19L19,17.59L13.41,12L19,6.41Z`}
                       @click=${()=>{this._boostSelectedRoom=``}}
-                    ></ha-icon-button>`:g}
-                ${this._boostSelectedRoom&&this._isCooldown(this._boostSelectedRoom)?h`<span class="boost-status">
+                    ></ha-icon-button>`:h}
+                ${this._boostSelectedRoom&&this._isCooldown(this._boostSelectedRoom)?m`<span class="boost-status">
                       <ha-icon icon="mdi:check-circle-outline"></ha-icon>
-                      ${C(`settings.boost_cooldown`,e)}
-                    </span>`:h`<button
+                      ${S(`settings.boost_cooldown`,e)}
+                    </span>`:m`<button
                       class="boost-btn"
                       ?disabled=${!this._boostSelectedRoom||this._isCooldown(this._boostSelectedRoom)}
                       @click=${()=>this._boostSelectedRoom&&this._boostLearning(this._boostSelectedRoom)}
                     >
                       <ha-icon icon="mdi:lightning-bolt"></ha-icon>
-                      ${C(`settings.boost_btn`,e)}
+                      ${S(`settings.boost_btn`,e)}
                     </button>`}
               </div>
-            `:h`<p class="hint">${C(`settings.boost_no_rooms`,e)}</p>`}
+            `:m`<p class="hint">${S(`settings.boost_no_rooms`,e)}</p>`}
       </div>
-    `}_isCooldown(e){let t=this.roomsLive?.[e]?.n_observations??0,n=this.boostAppliedAt[e];return n!==void 0&&t-n<Dn}async _boostLearning(e){try{I(this,`saving`);let t=await this.hass.callWS({type:`roommind/model/boost_learning`,area_id:e});I(this,`saved`),this.dispatchEvent(new CustomEvent(`boost-applied`,{detail:{area_id:e,n_observations:t.n_observations},bubbles:!0,composed:!0}))}catch{I(this,`error`)}}static{this.styles=[K.settingsBaseStyles,l`
+    `}_isCooldown(e){let t=this.roomsLive?.[e]?.n_observations??0,n=this.boostAppliedAt[e];return n!==void 0&&t-n<kn}async _boostLearning(e){try{F(this,`saving`);let t=await this.hass.callWS({type:`roommind/model/boost_learning`,area_id:e});F(this,`saved`),this.dispatchEvent(new CustomEvent(`boost-applied`,{detail:{area_id:e,n_observations:t.n_observations},bubbles:!0,composed:!0}))}catch{F(this,`error`)}}static{this.styles=[G.settingsBaseStyles,l`
       .hint {
         color: var(--secondary-text-color);
         font-size: 13px;
@@ -6452,53 +6544,53 @@
         --mdc-icon-size: 16px;
         white-space: nowrap;
       }
-    `]}};A([b({attribute:!1})],On.prototype,`hass`,void 0),A([b({attribute:!1})],On.prototype,`rooms`,void 0),A([b({type:Array})],On.prototype,`learningDisabledRooms`,void 0),A([b({attribute:!1})],On.prototype,`boostAppliedAt`,void 0),A([b({attribute:!1})],On.prototype,`roomsLive`,void 0),A([x()],On.prototype,`_showLearningExceptions`,void 0),A([x()],On.prototype,`_boostSelectedRoom`,void 0),On=A([y(`rs-settings-learning`)],On),v(),S(),j();var kn=class extends K{constructor(...e){super(...e),this.rooms={},this._resetSelectedRoom=``}render(){let e=this.hass.language,t=Object.entries(this.rooms).map(([e])=>({areaId:e,name:this.hass.areas?.[e]?.name??e})).sort((e,t)=>e.name.localeCompare(t.name));return h`
+    `]}};k([y({attribute:!1})],An.prototype,`hass`,void 0),k([y({attribute:!1})],An.prototype,`rooms`,void 0),k([y({type:Array})],An.prototype,`learningDisabledRooms`,void 0),k([y({attribute:!1})],An.prototype,`boostAppliedAt`,void 0),k([y({attribute:!1})],An.prototype,`roomsLive`,void 0),k([b()],An.prototype,`_showLearningExceptions`,void 0),k([b()],An.prototype,`_boostSelectedRoom`,void 0),An=k([v(`rs-settings-learning`)],An),_(),x(),A();var jn=class extends G{constructor(...e){super(...e),this.rooms={},this._resetSelectedRoom=``}render(){let e=this.hass.language,t=Object.entries(this.rooms).map(([e])=>({areaId:e,name:this.hass.areas?.[e]?.name??e})).sort((e,t)=>e.name.localeCompare(t.name));return m`
       <div class="settings-section first">
         <div class="reset-row">
           <div class="reset-text">
-            <span class="toggle-label">${C(`settings.reset_all_label`,e)}</span>
-            <span class="toggle-hint">${C(`settings.reset_all_hint`,e)}</span>
+            <span class="toggle-label">${S(`settings.reset_all_label`,e)}</span>
+            <span class="toggle-hint">${S(`settings.reset_all_hint`,e)}</span>
           </div>
           <button class="reset-btn" @click=${this._resetAllModels}>
             <ha-icon icon="mdi:restart-alert"></ha-icon>
-            ${C(`settings.reset_all_btn`,e)}
+            ${S(`settings.reset_all_btn`,e)}
           </button>
         </div>
       </div>
 
       <div class="settings-section">
         <div class="reset-text" style="margin-bottom: 12px">
-          <span class="toggle-label">${C(`settings.reset_room_label`,e)}</span>
-          <span class="toggle-hint">${C(`settings.reset_room_hint`,e)}</span>
+          <span class="toggle-label">${S(`settings.reset_room_label`,e)}</span>
+          <span class="toggle-hint">${S(`settings.reset_room_hint`,e)}</span>
         </div>
-        ${t.length>0?h`
+        ${t.length>0?m`
               <div class="reset-room-row">
                 <ha-select
                   .value=${this._resetSelectedRoom}
-                  .label=${C(`settings.reset_room_select`,e)}
+                  .label=${S(`settings.reset_room_select`,e)}
                   .options=${t.map(e=>({value:e.areaId,label:e.name}))}
                   fixedMenuPosition
-                  @selected=${e=>{this._resetSelectedRoom=F(e)}}
+                  @selected=${e=>{this._resetSelectedRoom=P(e)}}
                   @closed=${e=>e.stopPropagation()}
                 >
-                  ${t.map(e=>h`<ha-list-item value=${e.areaId}>${e.name}</ha-list-item>`)}
+                  ${t.map(e=>m`<ha-list-item value=${e.areaId}>${e.name}</ha-list-item>`)}
                 </ha-select>
-                ${this._resetSelectedRoom?h`<ha-icon-button
+                ${this._resetSelectedRoom?m`<ha-icon-button
                       .path=${`M19,6.41L17.59,5L12,10.59L6.41,5L5,6.41L10.59,12L5,17.59L6.41,19L12,13.41L17.59,19L19,17.59L13.41,12L19,6.41Z`}
                       @click=${()=>{this._resetSelectedRoom=``}}
-                    ></ha-icon-button>`:g}
+                    ></ha-icon-button>`:h}
                 <button
                   class="reset-btn"
                   ?disabled=${!this._resetSelectedRoom}
                   @click=${()=>this._resetSelectedRoom&&this._resetRoomModel(this._resetSelectedRoom)}
                 >
                   <ha-icon icon="mdi:restart"></ha-icon>
-                  ${C(`settings.reset_btn`,e)}
+                  ${S(`settings.reset_btn`,e)}
                 </button>
               </div>
-            `:h`<p class="hint">${C(`settings.reset_no_rooms`,e)}</p>`}
+            `:m`<p class="hint">${S(`settings.reset_no_rooms`,e)}</p>`}
       </div>
-    `}async _resetRoomModel(e){let t=this.hass.language;if(confirm(C(`settings.reset_room_confirm`,t)))try{I(this,`saving`),await this.hass.callWS({type:`roommind/thermal/reset`,area_id:e}),I(this,`saved`)}catch{I(this,`error`)}}async _resetAllModels(){let e=this.hass.language;if(confirm(C(`settings.reset_all_confirm`,e)))try{I(this,`saving`),await this.hass.callWS({type:`roommind/thermal/reset_all`}),I(this,`saved`)}catch{I(this,`error`)}}static{this.styles=[K.settingsBaseStyles,l`
+    `}async _resetRoomModel(e){let t=this.hass.language;if(confirm(S(`settings.reset_room_confirm`,t)))try{F(this,`saving`),await this.hass.callWS({type:`roommind/thermal/reset`,area_id:e}),F(this,`saved`)}catch{F(this,`error`)}}async _resetAllModels(){let e=this.hass.language;if(confirm(S(`settings.reset_all_confirm`,e)))try{F(this,`saving`),await this.hass.callWS({type:`roommind/thermal/reset_all`}),F(this,`saved`)}catch{F(this,`error`)}}static{this.styles=[G.settingsBaseStyles,l`
       .hint {
         color: var(--secondary-text-color);
         font-size: 13px;
@@ -6561,11 +6653,11 @@
           gap: 12px;
         }
       }
-    `]}};A([b({attribute:!1})],kn.prototype,`hass`,void 0),A([b({attribute:!1})],kn.prototype,`rooms`,void 0),A([x()],kn.prototype,`_resetSelectedRoom`,void 0),kn=A([y(`rs-settings-reset`)],kn),v(),S(),j();var An={entity:{multiple:!0,filter:[{domain:`climate`}]}},q=class extends _{constructor(...e){super(...e),this.boilerEntity=``,this.boilerControlType=`climate`,this.bypassEntities=[],this.startupDelay=30,this.shutdownDelay=60,this.bypassTemperature=28,this.budgetEnabled=!1,this.powerSensor=``,this.powerMode=`available`,this.maxPower=3300,this.reserve=200,this.energyPricePerKwh=0,this._powerModeState={value:`available`,hasLocalChange:!1}}willUpdate(e){e.has(`powerMode`)&&(this._powerModeState=dn(this._powerModeState,this.powerMode))}render(){let e=(e,t)=>this.dispatchEvent(new CustomEvent(`setting-changed`,{detail:{key:e,value:t},bubbles:!0,composed:!0})),t=(t,n)=>h`<ha-textfield
+    `]}};k([y({attribute:!1})],jn.prototype,`hass`,void 0),k([y({attribute:!1})],jn.prototype,`rooms`,void 0),k([b()],jn.prototype,`_resetSelectedRoom`,void 0),jn=k([v(`rs-settings-reset`)],jn),_(),x(),A();var Mn={entity:{multiple:!0,filter:[{domain:`climate`}]}},q=class extends g{constructor(...e){super(...e),this.boilerEntity=``,this.boilerControlType=`climate`,this.bypassEntities=[],this.startupDelay=30,this.shutdownDelay=60,this.bypassTemperature=28,this.budgetEnabled=!1,this.powerSensor=``,this.powerMode=`available`,this.maxPower=3300,this.reserve=200,this.energyPricePerKwh=0,this._powerModeState={value:`available`,hasLocalChange:!1}}willUpdate(e){e.has(`powerMode`)&&(this._powerModeState=mn(this._powerModeState,this.powerMode))}render(){let e=(e,t)=>this.dispatchEvent(new CustomEvent(`setting-changed`,{detail:{key:e,value:t},bubbles:!0,composed:!0})),t=(t,n)=>m`<ha-textfield
         type="number"
         .value=${String(n)}
         @change=${n=>e(t,Number(n.target.value))}
-      ></ha-textfield>`,n=e=>{let t=e.detail,n=e.target,r=e.currentTarget;if(typeof t==`string`||Array.isArray(t))return t;if(t&&typeof t==`object`){let e=t;return e.value??e.values??e.selected}return n?.value??n?.values??n?.selected??r?.value??r?.values};return h`<div class="section">
+      ></ha-textfield>`,n=e=>{let t=e.detail,n=e.target,r=e.currentTarget;if(typeof t==`string`||Array.isArray(t))return t;if(t&&typeof t==`object`){let e=t;return e.value??e.values??e.selected}return n?.value??n?.values??n?.selected??r?.value??r?.values};return m`<div class="section">
         <b>Central boiler</b>
         <ha-entity-picker
           .hass=${this.hass}
@@ -6574,7 +6666,7 @@
           label="Boiler control entity"
           @value-changed=${t=>e(`boilerEntity`,t.detail.value||``)}
         ></ha-entity-picker>
-        ${this.boilerEntity?h`<ha-select
+        ${this.boilerEntity?m`<ha-select
                 .value=${this.boilerControlType}
                 label="Control type"
                 @selected=${t=>e(`boilerControlType`,t.detail.value)}
@@ -6587,20 +6679,20 @@
               </div>
               <ha-selector
                 .hass=${this.hass}
-                .selector=${An}
+                .selector=${Mn}
                 .value=${this.bypassEntities}
                 .label=${`Hydraulic bypass TRVs`}
-                @value-changed=${t=>{let r=n(t);console.debug(`RoomMind hydraulic bypass picker event`,{type:t.type,detail:t.detail,targetValue:t.target?.value,currentTargetValue:t.currentTarget?.value,value:r}),e(`bypassEntities`,cn(r))}}
+                @value-changed=${t=>{let r=n(t);console.debug(`RoomMind hydraulic bypass picker event`,{type:t.type,detail:t.detail,targetValue:t.target?.value,currentTargetValue:t.currentTarget?.value,value:r}),e(`bypassEntities`,dn(r))}}
               ></ha-selector>
               <label
                 >Forced bypass temperature
                 ${t(`bypassTemperature`,this.bypassTemperature)}</label
-              >`:g}
+              >`:h}
       </div>
       <div class="section">
-        <b>${C(`settings.energy_price`,this.hass.language)}</b>
+        <b>${S(`settings.energy_price`,this.hass.language)}</b>
         <label
-          >${C(`settings.energy_price_hint`,this.hass.language)}
+          >${S(`settings.energy_price_hint`,this.hass.language)}
           ${t(`energyPricePerKwh`,this.energyPricePerKwh)}</label
         >
       </div>
@@ -6616,7 +6708,7 @@
             @change=${t=>e(`budgetEnabled`,t.target.checked)}
           ></ha-switch>
         </div>
-        ${this.budgetEnabled?h`<ha-entity-picker
+        ${this.budgetEnabled?m`<ha-entity-picker
                 .hass=${this.hass}
                 .includeDomains=${[`sensor`]}
                 .value=${this.powerSensor}
@@ -6627,12 +6719,12 @@
                 .value=${this._powerModeState.value}
                 .options=${[{value:`available`,label:`Available power`},{value:`consumption`,label:`House consumption`}]}
                 label="Sensor reports"
-                @selected=${t=>{let n=F(t);console.debug(`RoomMind power sensor mode selected`,{type:t.type,detail:t.detail,targetValue:t.target?.value,currentTargetValue:t.currentTarget?.value,value:n}),this._powerModeState=un(n),e(`powerMode`,this._powerModeState.value)}}
+                @selected=${t=>{let n=P(t);console.debug(`RoomMind power sensor mode selected`,{type:t.type,detail:t.detail,targetValue:t.target?.value,currentTargetValue:t.currentTarget?.value,value:n}),this._powerModeState=pn(n),e(`powerMode`,this._powerModeState.value)}}
               ></ha-select>
               <div class="grid">
                 <label>Maximum house load (W) ${t(`maxPower`,this.maxPower)}</label
                 ><label>Safety reserve (W) ${t(`reserve`,this.reserve)}</label>
-              </div>`:g}
+              </div>`:h}
       </div>`}static{this.styles=l`
     .section {
       display: grid;
@@ -6664,7 +6756,7 @@
       color: var(--secondary-text-color);
       margin-top: 4px;
     }
-  `}};A([b({attribute:!1})],q.prototype,`hass`,void 0),A([b({type:String})],q.prototype,`boilerEntity`,void 0),A([b({type:String})],q.prototype,`boilerControlType`,void 0),A([b({type:Array})],q.prototype,`bypassEntities`,void 0),A([b({type:Number})],q.prototype,`startupDelay`,void 0),A([b({type:Number})],q.prototype,`shutdownDelay`,void 0),A([b({type:Number})],q.prototype,`bypassTemperature`,void 0),A([b({type:Boolean})],q.prototype,`budgetEnabled`,void 0),A([b({type:String})],q.prototype,`powerSensor`,void 0),A([b({type:String})],q.prototype,`powerMode`,void 0),A([b({type:Number})],q.prototype,`maxPower`,void 0),A([b({type:Number})],q.prototype,`reserve`,void 0),A([b({type:Number})],q.prototype,`energyPricePerKwh`,void 0),A([x()],q.prototype,`_powerModeState`,void 0),q=A([y(`rs-settings-heating-system`)],q),v(),S(),j();var J=class extends _{constructor(...e){super(...e),this.rooms={},this._groupByFloor=!1,this._climateControlActive=!0,this._temperatureRoundingMode=`nearest`,this._learningDisabledRooms=[],this._outdoorTempSensor=``,this._outdoorHumiditySensor=``,this._outdoorCoolingMin=16,this._outdoorHeatingMax=22,this._controlMode=`mpc`,this._comfortWeight=70,this._weatherEntity=``,this._outdoorUnavailableNotify=!0,this._predictionEnabled=!0,this._vacationActive=!1,this._vacationTemp=15,this._vacationUntil=``,this._presenceEnabled=!1,this._presencePersons=[],this._presenceAwayAction=`eco`,this._presenceClearsOverride=!1,this._scheduleOffAction=`eco`,this._valveProtectionEnabled=!1,this._valveProtectionInterval=7,this._moldDetectionEnabled=!1,this._moldHumidityThreshold=70,this._moldSustainedMinutes=30,this._moldNotificationCooldown=60,this._moldNotificationsEnabled=!0,this._moldNotificationTargets=[],this._moldPreventionEnabled=!1,this._moldPreventionIntensity=`medium`,this._moldPreventionNotify=!1,this._compressorGroups=[],this._boostAppliedAt={},this._boilerEntity=``,this._boilerControlType=`climate`,this._bypassEntities=[],this._startupDelay=30,this._shutdownDelay=60,this._bypassTemperature=28,this._budgetEnabled=!1,this._powerSensor=``,this._powerMode=`available`,this._powerModeDirty=!1,this._maxPower=3300,this._reserve=200,this._energyPricePerKwh=0,this._loaded=!1}connectedCallback(){super.connectedCallback(),this._loadSettings()}disconnectedCallback(){super.disconnectedCallback(),this._saveDebounce&&clearTimeout(this._saveDebounce)}async _loadSettings(){try{let e=(await this.hass.callWS({type:`roommind/settings/get`})).settings;this._groupByFloor=e.group_by_floor??!1,this._climateControlActive=e.climate_control_active??!0,this._temperatureRoundingMode=e.temperature_rounding_mode??`nearest`,this._learningDisabledRooms=e.learning_disabled_rooms??[],this._outdoorTempSensor=e.outdoor_temp_sensor??``,this._outdoorHumiditySensor=e.outdoor_humidity_sensor??``,this._outdoorCoolingMin=e.outdoor_cooling_min??16,this._outdoorHeatingMax=e.outdoor_heating_max??22,this._controlMode=e.control_mode??`mpc`,this._comfortWeight=e.comfort_weight??70,this._weatherEntity=e.weather_entity??``,this._outdoorUnavailableNotify=e.outdoor_unavailable_notify??!0,this._predictionEnabled=e.prediction_enabled??!0;let t=e.vacation_until;this._vacationActive=!!(t&&t>Date.now()/1e3),this._vacationTemp=e.vacation_temp??15,this._vacationUntil=t&&t>Date.now()/1e3&&t<3250368e4?this._tsToDatetimeLocal(t):``,this._presenceEnabled=e.presence_enabled??!1,this._presencePersons=e.presence_persons??[],this._presenceAwayAction=e.presence_away_action??`eco`,this._presenceClearsOverride=e.presence_clears_override??!1,this._scheduleOffAction=e.schedule_off_action??`eco`,this._valveProtectionEnabled=e.valve_protection_enabled??!1,this._valveProtectionInterval=e.valve_protection_interval_days??7,this._moldDetectionEnabled=e.mold_detection_enabled??!1,this._moldHumidityThreshold=e.mold_humidity_threshold??70,this._moldSustainedMinutes=e.mold_sustained_minutes??30,this._moldNotificationCooldown=e.mold_notification_cooldown??60,this._moldNotificationsEnabled=e.mold_notifications_enabled??!0,this._moldNotificationTargets=e.mold_notification_targets??[],this._moldPreventionEnabled=e.mold_prevention_enabled??!1,this._moldPreventionIntensity=e.mold_prevention_intensity??`medium`,this._moldPreventionNotify=e.mold_prevention_notify_enabled??!1,this._compressorGroups=e.compressor_groups??[],this._boostAppliedAt=e.boost_applied_at??{},this._boilerEntity=e.boiler_entity??``,this._boilerControlType=e.boiler_control_type??`climate`,this._bypassEntities=cn(e.hydraulic_bypass_entities),this._startupDelay=e.boiler_startup_delay_seconds??30,this._shutdownDelay=e.boiler_shutdown_delay_seconds??60,this._bypassTemperature=e.hydraulic_bypass_open_temperature??28,this._budgetEnabled=e.power_budget_enabled??!1,this._powerSensor=e.power_sensor??``,this._powerModeDirty||(this._powerMode=ln(e.power_sensor_mode)),this._maxPower=e.power_budget_max_watts??3300,this._reserve=e.power_budget_reserve_watts??200,this._energyPricePerKwh=e.energy_price_per_kwh??0}catch(e){console.debug(`[RoomMind] loadSettings:`,e)}finally{this._loaded=!0}}render(){if(!this._loaded)return h`<div class="loading">${C(`panel.loading`,this.hass.language)}</div>`;let e=this.hass.language;return h`
+  `}};k([y({attribute:!1})],q.prototype,`hass`,void 0),k([y({type:String})],q.prototype,`boilerEntity`,void 0),k([y({type:String})],q.prototype,`boilerControlType`,void 0),k([y({type:Array})],q.prototype,`bypassEntities`,void 0),k([y({type:Number})],q.prototype,`startupDelay`,void 0),k([y({type:Number})],q.prototype,`shutdownDelay`,void 0),k([y({type:Number})],q.prototype,`bypassTemperature`,void 0),k([y({type:Boolean})],q.prototype,`budgetEnabled`,void 0),k([y({type:String})],q.prototype,`powerSensor`,void 0),k([y({type:String})],q.prototype,`powerMode`,void 0),k([y({type:Number})],q.prototype,`maxPower`,void 0),k([y({type:Number})],q.prototype,`reserve`,void 0),k([y({type:Number})],q.prototype,`energyPricePerKwh`,void 0),k([b()],q.prototype,`_powerModeState`,void 0),q=k([v(`rs-settings-heating-system`)],q),_(),x(),A();var J=class extends g{constructor(...e){super(...e),this.rooms={},this._groupByFloor=!1,this._climateControlActive=!0,this._temperatureRoundingMode=`nearest`,this._learningDisabledRooms=[],this._outdoorTempSensor=``,this._outdoorHumiditySensor=``,this._outdoorCoolingMin=16,this._outdoorHeatingMax=22,this._controlMode=`mpc`,this._comfortWeight=70,this._weatherEntity=``,this._outdoorUnavailableNotify=!0,this._predictionEnabled=!0,this._vacationActive=!1,this._vacationTemp=15,this._vacationUntil=``,this._presenceEnabled=!1,this._presencePersons=[],this._presenceAwayAction=`eco`,this._presenceClearsOverride=!1,this._scheduleOffAction=`eco`,this._valveProtectionEnabled=!1,this._valveProtectionInterval=7,this._moldDetectionEnabled=!1,this._moldHumidityThreshold=70,this._moldSustainedMinutes=30,this._moldNotificationCooldown=60,this._moldNotificationsEnabled=!0,this._moldNotificationTargets=[],this._moldPreventionEnabled=!1,this._moldPreventionIntensity=`medium`,this._moldPreventionNotify=!1,this._windowOpenNotificationMinutes=0,this._compressorGroups=[],this._boostAppliedAt={},this._boilerEntity=``,this._boilerControlType=`climate`,this._bypassEntities=[],this._startupDelay=30,this._shutdownDelay=60,this._bypassTemperature=28,this._budgetEnabled=!1,this._powerSensor=``,this._powerMode=`available`,this._powerModeDirty=!1,this._maxPower=3300,this._reserve=200,this._energyPricePerKwh=0,this._loaded=!1}connectedCallback(){super.connectedCallback(),this._loadSettings()}disconnectedCallback(){super.disconnectedCallback(),this._saveDebounce&&clearTimeout(this._saveDebounce)}async _loadSettings(){try{let e=(await this.hass.callWS({type:`roommind/settings/get`})).settings;this._groupByFloor=e.group_by_floor??!1,this._climateControlActive=e.climate_control_active??!0,this._temperatureRoundingMode=e.temperature_rounding_mode??`nearest`,this._learningDisabledRooms=e.learning_disabled_rooms??[],this._outdoorTempSensor=e.outdoor_temp_sensor??``,this._outdoorHumiditySensor=e.outdoor_humidity_sensor??``,this._outdoorCoolingMin=e.outdoor_cooling_min??16,this._outdoorHeatingMax=e.outdoor_heating_max??22,this._controlMode=e.control_mode??`mpc`,this._comfortWeight=e.comfort_weight??70,this._weatherEntity=e.weather_entity??``,this._outdoorUnavailableNotify=e.outdoor_unavailable_notify??!0,this._predictionEnabled=e.prediction_enabled??!0;let t=e.vacation_until;this._vacationActive=!!(t&&t>Date.now()/1e3),this._vacationTemp=e.vacation_temp??15,this._vacationUntil=t&&t>Date.now()/1e3&&t<3250368e4?this._tsToDatetimeLocal(t):``,this._presenceEnabled=e.presence_enabled??!1,this._presencePersons=e.presence_persons??[],this._presenceAwayAction=e.presence_away_action??`eco`,this._presenceClearsOverride=e.presence_clears_override??!1,this._scheduleOffAction=e.schedule_off_action??`eco`,this._valveProtectionEnabled=e.valve_protection_enabled??!1,this._valveProtectionInterval=e.valve_protection_interval_days??7,this._moldDetectionEnabled=e.mold_detection_enabled??!1,this._moldHumidityThreshold=e.mold_humidity_threshold??70,this._moldSustainedMinutes=e.mold_sustained_minutes??30,this._moldNotificationCooldown=e.mold_notification_cooldown??60,this._moldNotificationsEnabled=e.mold_notifications_enabled??!0,this._moldNotificationTargets=e.mold_notification_targets??[],this._moldPreventionEnabled=e.mold_prevention_enabled??!1,this._moldPreventionIntensity=e.mold_prevention_intensity??`medium`,this._moldPreventionNotify=e.mold_prevention_notify_enabled??!1,this._windowOpenNotificationMinutes=e.window_open_notification_minutes??0,this._compressorGroups=e.compressor_groups??[],this._boostAppliedAt=e.boost_applied_at??{},this._boilerEntity=e.boiler_entity??``,this._boilerControlType=e.boiler_control_type??`climate`,this._bypassEntities=dn(e.hydraulic_bypass_entities),this._startupDelay=e.boiler_startup_delay_seconds??30,this._shutdownDelay=e.boiler_shutdown_delay_seconds??60,this._bypassTemperature=e.hydraulic_bypass_open_temperature??28,this._budgetEnabled=e.power_budget_enabled??!1,this._powerSensor=e.power_sensor??``,this._powerModeDirty||(this._powerMode=fn(e.power_sensor_mode)),this._maxPower=e.power_budget_max_watts??3300,this._reserve=e.power_budget_reserve_watts??200,this._energyPricePerKwh=e.energy_price_per_kwh??0}catch(e){console.debug(`[RoomMind] loadSettings:`,e)}finally{this._loaded=!0}}render(){if(!this._loaded)return m`<div class="loading">${S(`panel.loading`,this.hass.language)}</div>`;let e=this.hass.language;return m`
       <rs-settings-panel
         icon="mdi:home-thermometer"
         heading="Heating system"
@@ -6689,8 +6781,8 @@
 
       <rs-settings-panel
         icon="mdi:power"
-        .heading=${C(`settings.general_title`,e)}
-        .intro=${C(`settings.intro.general`,e)}
+        .heading=${S(`settings.general_title`,e)}
+        .intro=${S(`settings.intro.general`,e)}
       >
         <rs-settings-general
           .hass=${this.hass}
@@ -6703,8 +6795,8 @@
 
       <rs-settings-panel
         icon="mdi:thermometer"
-        .heading=${C(`settings.sensors_title`,e)}
-        .intro=${C(`settings.intro.sensors`,e)}
+        .heading=${S(`settings.sensors_title`,e)}
+        .intro=${S(`settings.intro.sensors`,e)}
       >
         <rs-settings-sensors
           .hass=${this.hass}
@@ -6718,8 +6810,8 @@
 
       <rs-settings-panel
         icon="mdi:tune-variant"
-        .heading=${C(`settings.control_title`,e)}
-        .intro=${C(`settings.intro.control`,e)}
+        .heading=${S(`settings.control_title`,e)}
+        .intro=${S(`settings.intro.control`,e)}
       >
         <rs-settings-control
           .hass=${this.hass}
@@ -6735,8 +6827,8 @@
 
       <rs-settings-panel
         icon="mdi:home-account"
-        .heading=${C(`presence.title`,e)}
-        .intro=${C(`settings.intro.presence`,e)}
+        .heading=${S(`presence.title`,e)}
+        .intro=${S(`settings.intro.presence`,e)}
       >
         <rs-settings-presence
           .hass=${this.hass}
@@ -6750,8 +6842,8 @@
 
       <rs-settings-panel
         icon="mdi:airplane"
-        .heading=${C(`vacation.title`,e)}
-        .intro=${C(`settings.intro.vacation`,e)}
+        .heading=${S(`vacation.title`,e)}
+        .intro=${S(`settings.intro.vacation`,e)}
       >
         <rs-settings-vacation
           .hass=${this.hass}
@@ -6764,8 +6856,8 @@
 
       <rs-settings-panel
         icon="mdi:shield-refresh"
-        .heading=${C(`valve_protection.title`,e)}
-        .intro=${C(`settings.intro.valve`,e)}
+        .heading=${S(`valve_protection.title`,e)}
+        .intro=${S(`settings.intro.valve`,e)}
       >
         <rs-settings-valve
           .hass=${this.hass}
@@ -6777,8 +6869,8 @@
 
       <rs-settings-panel
         icon="mdi:heat-pump-outline"
-        .heading=${C(`compressor.title`,e)}
-        .intro=${C(`settings.intro.compressor`,e)}
+        .heading=${S(`compressor.title`,e)}
+        .intro=${S(`settings.intro.compressor`,e)}
       >
         <rs-settings-compressor
           .hass=${this.hass}
@@ -6789,8 +6881,8 @@
 
       <rs-settings-panel
         icon="mdi:water-alert"
-        .heading=${C(`mold.title`,e)}
-        .intro=${C(`settings.intro.mold`,e)}
+        .heading=${S(`mold.title`,e)}
+        .intro=${S(`settings.intro.mold`,e)}
       >
         <rs-settings-mold
           .hass=${this.hass}
@@ -6805,10 +6897,10 @@
 
       <rs-settings-panel
         icon="mdi:bell-outline"
-        .heading=${C(`notifications.title`,e)}
-        .intro=${C(`settings.intro.notifications`,e)}
-        .badge=${C(`badge.beta`,e)}
-        .badgeHint=${C(`badge.beta_hint`,e)}
+        .heading=${S(`notifications.title`,e)}
+        .intro=${S(`settings.intro.notifications`,e)}
+        .badge=${S(`badge.beta`,e)}
+        .badgeHint=${S(`badge.beta_hint`,e)}
       >
         <rs-settings-notifications
           .hass=${this.hass}
@@ -6817,14 +6909,15 @@
           .notificationCooldown=${this._moldNotificationCooldown}
           .moldPreventionEnabled=${this._moldPreventionEnabled}
           .moldPreventionNotify=${this._moldPreventionNotify}
+          .windowOpenNotificationMinutes=${this._windowOpenNotificationMinutes}
           @setting-changed=${this._onSettingChanged}
         ></rs-settings-notifications>
       </rs-settings-panel>
 
       <rs-settings-panel
         icon="mdi:brain"
-        .heading=${C(`settings.learning_title`,e)}
-        .intro=${C(`settings.intro.learning`,e)}
+        .heading=${S(`settings.learning_title`,e)}
+        .intro=${S(`settings.intro.learning`,e)}
       >
         <rs-settings-learning
           .hass=${this.hass}
@@ -6839,12 +6932,12 @@
 
       <rs-settings-panel
         icon="mdi:restart"
-        .heading=${C(`settings.reset_title`,e)}
-        .intro=${C(`settings.intro.reset`,e)}
+        .heading=${S(`settings.reset_title`,e)}
+        .intro=${S(`settings.intro.reset`,e)}
       >
         <rs-settings-reset .hass=${this.hass} .rooms=${this.rooms}></rs-settings-reset>
       </rs-settings-panel>
-    `}_onBoostApplied(e){let{area_id:t,n_observations:n}=e.detail;this._boostAppliedAt={...this._boostAppliedAt,[t]:n}}_onSettingChanged(e){let{key:t,value:n}=e.detail;t===`bypassEntities`?this._bypassEntities=cn(n):t===`powerMode`?(this._powerMode=ln(n),this._powerModeDirty=!0):this[`_${t}`]=n,this._autoSave()}_tsToDatetimeLocal(e){let t=new Date(e*1e3),n=e=>String(e).padStart(2,`0`);return`${t.getFullYear()}-${n(t.getMonth()+1)}-${n(t.getDate())}T${n(t.getHours())}:${n(t.getMinutes())}`}_autoSave(){this._saveDebounce&&clearTimeout(this._saveDebounce),this._saveDebounce=setTimeout(()=>this._doSave(),500)}async _doSave(){I(this,`saving`);try{let e=this._bypassEntities,t=this._powerMode,{hydraulicBypassEntities:n,powerSensorMode:r}=fn(e,t),i={type:`roommind/settings/save`,group_by_floor:this._groupByFloor,climate_control_active:this._climateControlActive,temperature_rounding_mode:this._temperatureRoundingMode,learning_disabled_rooms:this._learningDisabledRooms,outdoor_temp_sensor:this._outdoorTempSensor,outdoor_humidity_sensor:this._outdoorHumiditySensor,outdoor_cooling_min:this._outdoorCoolingMin,outdoor_heating_max:this._outdoorHeatingMax,control_mode:this._controlMode,comfort_weight:this._comfortWeight,weather_entity:this._weatherEntity,outdoor_unavailable_notify:this._outdoorUnavailableNotify,prediction_enabled:this._predictionEnabled,vacation_temp:this._vacationTemp,vacation_until:this._vacationActive?this._vacationUntil?new Date(this._vacationUntil).getTime()/1e3:pn:null,presence_enabled:this._presenceEnabled,presence_persons:this._presencePersons.filter(e=>e),presence_away_action:this._presenceAwayAction,presence_clears_override:this._presenceClearsOverride,schedule_off_action:this._scheduleOffAction,valve_protection_enabled:this._valveProtectionEnabled,valve_protection_interval_days:this._valveProtectionInterval,compressor_groups:this._compressorGroups.filter(e=>e.members.length>0),boiler_entity:this._boilerEntity,boiler_control_type:this._boilerControlType,boiler_startup_delay_seconds:this._startupDelay,boiler_shutdown_delay_seconds:this._shutdownDelay,hydraulic_bypass_entities:n,hydraulic_bypass_open_temperature:this._bypassTemperature,power_budget_enabled:this._budgetEnabled,power_sensor:this._powerSensor,power_sensor_mode:r,power_budget_max_watts:this._maxPower,power_budget_reserve_watts:this._reserve,power_budget_unavailable_behavior:`boiler`,energy_price_per_kwh:this._energyPricePerKwh,mold_detection_enabled:this._moldDetectionEnabled,mold_humidity_threshold:this._moldHumidityThreshold,mold_sustained_minutes:this._moldSustainedMinutes,mold_notification_cooldown:this._moldNotificationCooldown,mold_notifications_enabled:this._moldNotificationsEnabled,mold_notification_targets:this._moldNotificationTargets.filter(e=>e.entity_id),mold_prevention_enabled:this._moldPreventionEnabled,mold_prevention_intensity:this._moldPreventionIntensity,mold_prevention_notify_enabled:this._moldPreventionNotify,mold_prevention_notify_targets:this._moldPreventionNotify?this._moldNotificationTargets.filter(e=>e.entity_id):[]};console.debug(`RoomMind heating settings save payload`,i),console.debug(`RoomMind heating settings save values`,typeof i.hydraulic_bypass_entities,i.hydraulic_bypass_entities,i.power_sensor_mode),console.error(`[RoomMind DEBUG FINAL PAYLOAD]`,{hydraulic_bypass_entities:i.hydraulic_bypass_entities,bypassIsArray:Array.isArray(i.hydraulic_bypass_entities),power_sensor_mode:i.power_sensor_mode,fullPayload:i}),await this.hass.callWS(i),this._powerMode===r&&(this._powerModeDirty=!1),I(this,`saved`)}catch{I(this,`error`)}}static{this.styles=l`
+    `}_onBoostApplied(e){let{area_id:t,n_observations:n}=e.detail;this._boostAppliedAt={...this._boostAppliedAt,[t]:n}}_onSettingChanged(e){let{key:t,value:n}=e.detail;t===`bypassEntities`?this._bypassEntities=dn(n):t===`powerMode`?(this._powerMode=fn(n),this._powerModeDirty=!0):this[`_${t}`]=n,this._autoSave()}_tsToDatetimeLocal(e){let t=new Date(e*1e3),n=e=>String(e).padStart(2,`0`);return`${t.getFullYear()}-${n(t.getMonth()+1)}-${n(t.getDate())}T${n(t.getHours())}:${n(t.getMinutes())}`}_autoSave(){this._saveDebounce&&clearTimeout(this._saveDebounce),this._saveDebounce=setTimeout(()=>this._doSave(),500)}async _doSave(){F(this,`saving`);try{let e=this._bypassEntities,t=this._powerMode,{hydraulicBypassEntities:n,powerSensorMode:r}=hn(e,t),i={type:`roommind/settings/save`,group_by_floor:this._groupByFloor,climate_control_active:this._climateControlActive,temperature_rounding_mode:this._temperatureRoundingMode,learning_disabled_rooms:this._learningDisabledRooms,outdoor_temp_sensor:this._outdoorTempSensor,outdoor_humidity_sensor:this._outdoorHumiditySensor,outdoor_cooling_min:this._outdoorCoolingMin,outdoor_heating_max:this._outdoorHeatingMax,control_mode:this._controlMode,comfort_weight:this._comfortWeight,weather_entity:this._weatherEntity,outdoor_unavailable_notify:this._outdoorUnavailableNotify,prediction_enabled:this._predictionEnabled,vacation_temp:this._vacationTemp,vacation_until:this._vacationActive?this._vacationUntil?new Date(this._vacationUntil).getTime()/1e3:gn:null,presence_enabled:this._presenceEnabled,presence_persons:this._presencePersons.filter(e=>e),presence_away_action:this._presenceAwayAction,presence_clears_override:this._presenceClearsOverride,schedule_off_action:this._scheduleOffAction,valve_protection_enabled:this._valveProtectionEnabled,valve_protection_interval_days:this._valveProtectionInterval,compressor_groups:this._compressorGroups.filter(e=>e.members.length>0),boiler_entity:this._boilerEntity,boiler_control_type:this._boilerControlType,boiler_startup_delay_seconds:this._startupDelay,boiler_shutdown_delay_seconds:this._shutdownDelay,hydraulic_bypass_entities:n,hydraulic_bypass_open_temperature:this._bypassTemperature,power_budget_enabled:this._budgetEnabled,power_sensor:this._powerSensor,power_sensor_mode:r,power_budget_max_watts:this._maxPower,power_budget_reserve_watts:this._reserve,power_budget_unavailable_behavior:`boiler`,energy_price_per_kwh:this._energyPricePerKwh,mold_detection_enabled:this._moldDetectionEnabled,mold_humidity_threshold:this._moldHumidityThreshold,mold_sustained_minutes:this._moldSustainedMinutes,mold_notification_cooldown:this._moldNotificationCooldown,mold_notifications_enabled:this._moldNotificationsEnabled,mold_notification_targets:this._moldNotificationTargets.filter(e=>e.entity_id),mold_prevention_enabled:this._moldPreventionEnabled,mold_prevention_intensity:this._moldPreventionIntensity,mold_prevention_notify_enabled:this._moldPreventionNotify,mold_prevention_notify_targets:this._moldPreventionNotify?this._moldNotificationTargets.filter(e=>e.entity_id):[],window_open_notification_minutes:this._windowOpenNotificationMinutes};console.debug(`RoomMind heating settings save payload`,i),console.debug(`RoomMind heating settings save values`,typeof i.hydraulic_bypass_entities,i.hydraulic_bypass_entities,i.power_sensor_mode),console.error(`[RoomMind DEBUG FINAL PAYLOAD]`,{hydraulic_bypass_entities:i.hydraulic_bypass_entities,bypassIsArray:Array.isArray(i.hydraulic_bypass_entities),power_sensor_mode:i.power_sensor_mode,fullPayload:i}),await this.hass.callWS(i),this._powerMode===r&&(this._powerModeDirty=!1),F(this,`saved`)}catch{F(this,`error`)}}static{this.styles=l`
     :host {
       display: flex;
       flex-direction: column;
@@ -6857,29 +6950,29 @@
       text-align: center;
       color: var(--secondary-text-color);
     }
-  `}};A([b({attribute:!1})],J.prototype,`hass`,void 0),A([b({attribute:!1})],J.prototype,`rooms`,void 0),A([x()],J.prototype,`_groupByFloor`,void 0),A([x()],J.prototype,`_climateControlActive`,void 0),A([x()],J.prototype,`_temperatureRoundingMode`,void 0),A([x()],J.prototype,`_learningDisabledRooms`,void 0),A([x()],J.prototype,`_outdoorTempSensor`,void 0),A([x()],J.prototype,`_outdoorHumiditySensor`,void 0),A([x()],J.prototype,`_outdoorCoolingMin`,void 0),A([x()],J.prototype,`_outdoorHeatingMax`,void 0),A([x()],J.prototype,`_controlMode`,void 0),A([x()],J.prototype,`_comfortWeight`,void 0),A([x()],J.prototype,`_weatherEntity`,void 0),A([x()],J.prototype,`_outdoorUnavailableNotify`,void 0),A([x()],J.prototype,`_predictionEnabled`,void 0),A([x()],J.prototype,`_vacationActive`,void 0),A([x()],J.prototype,`_vacationTemp`,void 0),A([x()],J.prototype,`_vacationUntil`,void 0),A([x()],J.prototype,`_presenceEnabled`,void 0),A([x()],J.prototype,`_presencePersons`,void 0),A([x()],J.prototype,`_presenceAwayAction`,void 0),A([x()],J.prototype,`_presenceClearsOverride`,void 0),A([x()],J.prototype,`_scheduleOffAction`,void 0),A([x()],J.prototype,`_valveProtectionEnabled`,void 0),A([x()],J.prototype,`_valveProtectionInterval`,void 0),A([x()],J.prototype,`_moldDetectionEnabled`,void 0),A([x()],J.prototype,`_moldHumidityThreshold`,void 0),A([x()],J.prototype,`_moldSustainedMinutes`,void 0),A([x()],J.prototype,`_moldNotificationCooldown`,void 0),A([x()],J.prototype,`_moldNotificationsEnabled`,void 0),A([x()],J.prototype,`_moldNotificationTargets`,void 0),A([x()],J.prototype,`_moldPreventionEnabled`,void 0),A([x()],J.prototype,`_moldPreventionIntensity`,void 0),A([x()],J.prototype,`_moldPreventionNotify`,void 0),A([x()],J.prototype,`_compressorGroups`,void 0),A([x()],J.prototype,`_boostAppliedAt`,void 0),A([x()],J.prototype,`_boilerEntity`,void 0),A([x()],J.prototype,`_boilerControlType`,void 0),A([x()],J.prototype,`_bypassEntities`,void 0),A([x()],J.prototype,`_startupDelay`,void 0),A([x()],J.prototype,`_shutdownDelay`,void 0),A([x()],J.prototype,`_bypassTemperature`,void 0),A([x()],J.prototype,`_budgetEnabled`,void 0),A([x()],J.prototype,`_powerSensor`,void 0),A([x()],J.prototype,`_powerMode`,void 0),A([x()],J.prototype,`_powerModeDirty`,void 0),A([x()],J.prototype,`_maxPower`,void 0),A([x()],J.prototype,`_reserve`,void 0),A([x()],J.prototype,`_energyPricePerKwh`,void 0),A([x()],J.prototype,`_loaded`,void 0),J=A([y(`rs-settings`)],J);function jn(e){let t=[...e.history,...e.detail];return t.length===0?null:[`timestamp,datetime,room_temp,outdoor_temp,target_temp,mode,predicted_temp,window_open,heating_power,solar_irradiance,blind_position,cover_reason,device_setpoint`,...t.map(e=>{let t=new Date(e.ts*1e3).toISOString(),n=e.room_temp??``,r=e.outdoor_temp??``,i=e.target_temp??``,a=e.predicted_temp??``,o=e.heating_power??``,s=e.solar_irradiance??``,c=e.blind_position??``,l=e.cover_reason??``,u=e.device_setpoint??``;return`${e.ts},${t},${n},${r},${i},${e.mode},${a},${e.window_open},${o},${s},${c},${l},${u}`})].join(`
-`)}function Mn(e,t,n){let r=new Blob([e],{type:`${n};charset=utf-8`}),i=URL.createObjectURL(r),a=document.createElement(`a`);a.href=i,a.download=t,a.click(),URL.revokeObjectURL(i)}function Nn(e,t,n,r,i,a,o){let s=e?.areas?.[n],c=(t[n]?.display_name||s?.name||n).replace(/\s+/g,`_`).toLowerCase();return a?`roommind_${a}_${c}.${o}`:`roommind_${c}_${new Date(r).toISOString().slice(0,10)}_${new Date(i).toISOString().slice(0,10)}.${o}`}function Pn(e){return navigator.clipboard?.writeText?(navigator.clipboard.writeText(e).catch(()=>{Fn(e)}),!0):Fn(e)}function Fn(e){let t=document.createElement(`textarea`);t.value=e,t.style.position=`fixed`,t.style.opacity=`0`,document.body.appendChild(t),t.select();let n=!1;try{n=document.execCommand(`copy`)}catch(e){console.debug(`[RoomMind] clipboard fallback:`,e)}return document.body.removeChild(t),n}v(),S(),j();var Y=class extends _{constructor(...e){super(...e),this.rooms={},this.selectedRoom=``,this.rangeStart=0,this.rangeEnd=0,this.activeQuick=`24h`,this.data=null,this.language=`en`,this._openDropdown=null,this._diagLoading=!1,this._boundCloseDropdowns=this._closeDropdowns.bind(this)}connectedCallback(){super.connectedCallback(),document.addEventListener(`click`,this._boundCloseDropdowns)}disconnectedCallback(){super.disconnectedCallback(),document.removeEventListener(`click`,this._boundCloseDropdowns)}updated(e){(e.has(`rooms`)||e.has(`selectedRoom`))&&this.selectedRoom&&this.updateComplete.then(()=>{let e=this.renderRoot?.querySelector(`ha-select`);e&&e.value!==this.selectedRoom&&(e.value=this.selectedRoom)})}render(){let e=this.language,t=this._getConfiguredRooms();return h`
+  `}};k([y({attribute:!1})],J.prototype,`hass`,void 0),k([y({attribute:!1})],J.prototype,`rooms`,void 0),k([b()],J.prototype,`_groupByFloor`,void 0),k([b()],J.prototype,`_climateControlActive`,void 0),k([b()],J.prototype,`_temperatureRoundingMode`,void 0),k([b()],J.prototype,`_learningDisabledRooms`,void 0),k([b()],J.prototype,`_outdoorTempSensor`,void 0),k([b()],J.prototype,`_outdoorHumiditySensor`,void 0),k([b()],J.prototype,`_outdoorCoolingMin`,void 0),k([b()],J.prototype,`_outdoorHeatingMax`,void 0),k([b()],J.prototype,`_controlMode`,void 0),k([b()],J.prototype,`_comfortWeight`,void 0),k([b()],J.prototype,`_weatherEntity`,void 0),k([b()],J.prototype,`_outdoorUnavailableNotify`,void 0),k([b()],J.prototype,`_predictionEnabled`,void 0),k([b()],J.prototype,`_vacationActive`,void 0),k([b()],J.prototype,`_vacationTemp`,void 0),k([b()],J.prototype,`_vacationUntil`,void 0),k([b()],J.prototype,`_presenceEnabled`,void 0),k([b()],J.prototype,`_presencePersons`,void 0),k([b()],J.prototype,`_presenceAwayAction`,void 0),k([b()],J.prototype,`_presenceClearsOverride`,void 0),k([b()],J.prototype,`_scheduleOffAction`,void 0),k([b()],J.prototype,`_valveProtectionEnabled`,void 0),k([b()],J.prototype,`_valveProtectionInterval`,void 0),k([b()],J.prototype,`_moldDetectionEnabled`,void 0),k([b()],J.prototype,`_moldHumidityThreshold`,void 0),k([b()],J.prototype,`_moldSustainedMinutes`,void 0),k([b()],J.prototype,`_moldNotificationCooldown`,void 0),k([b()],J.prototype,`_moldNotificationsEnabled`,void 0),k([b()],J.prototype,`_moldNotificationTargets`,void 0),k([b()],J.prototype,`_moldPreventionEnabled`,void 0),k([b()],J.prototype,`_moldPreventionIntensity`,void 0),k([b()],J.prototype,`_moldPreventionNotify`,void 0),k([b()],J.prototype,`_windowOpenNotificationMinutes`,void 0),k([b()],J.prototype,`_compressorGroups`,void 0),k([b()],J.prototype,`_boostAppliedAt`,void 0),k([b()],J.prototype,`_boilerEntity`,void 0),k([b()],J.prototype,`_boilerControlType`,void 0),k([b()],J.prototype,`_bypassEntities`,void 0),k([b()],J.prototype,`_startupDelay`,void 0),k([b()],J.prototype,`_shutdownDelay`,void 0),k([b()],J.prototype,`_bypassTemperature`,void 0),k([b()],J.prototype,`_budgetEnabled`,void 0),k([b()],J.prototype,`_powerSensor`,void 0),k([b()],J.prototype,`_powerMode`,void 0),k([b()],J.prototype,`_powerModeDirty`,void 0),k([b()],J.prototype,`_maxPower`,void 0),k([b()],J.prototype,`_reserve`,void 0),k([b()],J.prototype,`_energyPricePerKwh`,void 0),k([b()],J.prototype,`_loaded`,void 0),J=k([v(`rs-settings`)],J);function Nn(e){let t=[...e.history,...e.detail];return t.length===0?null:[`timestamp,datetime,room_temp,outdoor_temp,target_temp,mode,predicted_temp,window_open,heating_power,solar_irradiance,blind_position,cover_reason,device_setpoint`,...t.map(e=>{let t=new Date(e.ts*1e3).toISOString(),n=e.room_temp??``,r=e.outdoor_temp??``,i=e.target_temp??``,a=e.predicted_temp??``,o=e.heating_power??``,s=e.solar_irradiance??``,c=e.blind_position??``,l=e.cover_reason??``,u=e.device_setpoint??``;return`${e.ts},${t},${n},${r},${i},${e.mode},${a},${e.window_open},${o},${s},${c},${l},${u}`})].join(`
+`)}function Pn(e,t,n){let r=new Blob([e],{type:`${n};charset=utf-8`}),i=URL.createObjectURL(r),a=document.createElement(`a`);a.href=i,a.download=t,a.click(),URL.revokeObjectURL(i)}function Fn(e,t,n,r,i,a,o){let s=e?.areas?.[n],c=(t[n]?.display_name||s?.name||n).replace(/\s+/g,`_`).toLowerCase();return a?`roommind_${a}_${c}.${o}`:`roommind_${c}_${new Date(r).toISOString().slice(0,10)}_${new Date(i).toISOString().slice(0,10)}.${o}`}function In(e){return navigator.clipboard?.writeText?(navigator.clipboard.writeText(e).catch(()=>{Ln(e)}),!0):Ln(e)}function Ln(e){let t=document.createElement(`textarea`);t.value=e,t.style.position=`fixed`,t.style.opacity=`0`,document.body.appendChild(t),t.select();let n=!1;try{n=document.execCommand(`copy`)}catch(e){console.debug(`[RoomMind] clipboard fallback:`,e)}return document.body.removeChild(t),n}_(),x(),A();var Y=class extends g{constructor(...e){super(...e),this.rooms={},this.selectedRoom=``,this.rangeStart=0,this.rangeEnd=0,this.activeQuick=`24h`,this.data=null,this.language=`en`,this._openDropdown=null,this._diagLoading=!1,this._boundCloseDropdowns=this._closeDropdowns.bind(this)}connectedCallback(){super.connectedCallback(),document.addEventListener(`click`,this._boundCloseDropdowns)}disconnectedCallback(){super.disconnectedCallback(),document.removeEventListener(`click`,this._boundCloseDropdowns)}updated(e){(e.has(`rooms`)||e.has(`selectedRoom`))&&this.selectedRoom&&this.updateComplete.then(()=>{let e=this.renderRoot?.querySelector(`ha-select`);e&&e.value!==this.selectedRoom&&(e.value=this.selectedRoom)})}render(){let e=this.language,t=this._getConfiguredRooms();return m`
       ${this._renderRoomSelector(t,e)}
-      ${this.selectedRoom?this._renderRangeButtons(e):g}
-    `}_getConfiguredRooms(){return Object.entries(this.rooms).map(([e,t])=>{let n=this.hass?.areas?.[e];return{area_id:e,name:t.display_name||n?.name||e}})}_renderRoomSelector(e,t){return h`
+      ${this.selectedRoom?this._renderRangeButtons(e):h}
+    `}_getConfiguredRooms(){return Object.entries(this.rooms).map(([e,t])=>{let n=this.hass?.areas?.[e];return{area_id:e,name:t.display_name||n?.name||e}})}_renderRoomSelector(e,t){return m`
       <div class="selector-row">
         <ha-select
           .value=${this.selectedRoom}
-          .label=${C(`analytics.select_room`,t)}
+          .label=${S(`analytics.select_room`,t)}
           .options=${e.map(e=>({value:e.area_id,label:e.name}))}
           naturalMenuWidth
           fixedMenuPosition
           @selected=${this._onRoomSelected}
           @closed=${e=>e.stopPropagation()}
         >
-          ${e.map(e=>h` <ha-list-item value=${e.area_id}>${e.name}</ha-list-item> `)}
+          ${e.map(e=>m` <ha-list-item value=${e.area_id}>${e.name}</ha-list-item> `)}
         </ha-select>
       </div>
-    `}_renderRangeButtons(e){let t=[{key:`24h`,label:C(`analytics.range_1d`,e),days:1},{key:`2d`,label:C(`analytics.range_2d`,e),days:2},{key:`7d`,label:C(`analytics.range_7d`,e),days:7},{key:`30d`,label:C(`analytics.range_30d`,e),days:30}],n=this.data&&(this.data.history.length>0||this.data.detail.length>0),r=e=>new Date(e).toLocaleString(this.hass.language,{month:`2-digit`,day:`2-digit`,hour:`2-digit`,minute:`2-digit`});return h`
+    `}_renderRangeButtons(e){let t=[{key:`24h`,label:S(`analytics.range_1d`,e),days:1},{key:`2d`,label:S(`analytics.range_2d`,e),days:2},{key:`7d`,label:S(`analytics.range_7d`,e),days:7},{key:`30d`,label:S(`analytics.range_30d`,e),days:30}],n=this.data&&(this.data.history.length>0||this.data.detail.length>0),r=e=>new Date(e).toLocaleString(this.hass.language,{month:`2-digit`,day:`2-digit`,hour:`2-digit`,minute:`2-digit`});return m`
       <div class="range-row">
         <div class="range-controls">
           <div class="range-bar">
-            ${t.map(e=>h`
+            ${t.map(e=>m`
                 <button
                   class="range-chip"
                   ?active=${this.activeQuick===e.key}
@@ -6913,19 +7006,19 @@
               @click=${e=>{e.stopPropagation(),this._toggleDropdown(`csv`)}}
             >
               <ha-icon icon="mdi:download"></ha-icon>
-              ${C(`analytics.export`,e)}
+              ${S(`analytics.export`,e)}
               <ha-icon class="arrow-icon" icon="mdi:chevron-down"></ha-icon>
             </button>
-            ${this._openDropdown===`csv`?h`<div class="export-dropdown" @click=${e=>e.stopPropagation()}>
+            ${this._openDropdown===`csv`?m`<div class="export-dropdown" @click=${e=>e.stopPropagation()}>
                   <button @click=${this._exportCsv}>
                     <ha-icon icon="mdi:download"></ha-icon>
-                    ${C(`analytics.export_download`,e)}
+                    ${S(`analytics.export_download`,e)}
                   </button>
                   <button @click=${this._copyCsvToClipboard}>
                     <ha-icon icon="mdi:content-copy"></ha-icon>
-                    ${C(`analytics.export_clipboard`,e)}
+                    ${S(`analytics.export_clipboard`,e)}
                   </button>
-                </div>`:g}
+                </div>`:h}
           </div>
           <div class="export-split">
             <button
@@ -6934,23 +7027,23 @@
               @click=${e=>{e.stopPropagation(),this._toggleDropdown(`diag`)}}
             >
               <ha-icon icon=${this._diagLoading?`mdi:loading`:`mdi:bug-outline`}></ha-icon>
-              ${C(`analytics.copy_diagnostics`,e)}
+              ${S(`analytics.copy_diagnostics`,e)}
               <ha-icon class="arrow-icon" icon="mdi:chevron-down"></ha-icon>
             </button>
-            ${this._openDropdown===`diag`?h`<div class="export-dropdown" @click=${e=>e.stopPropagation()}>
+            ${this._openDropdown===`diag`?m`<div class="export-dropdown" @click=${e=>e.stopPropagation()}>
                   <button @click=${this._exportDiagnostics}>
                     <ha-icon icon="mdi:download"></ha-icon>
-                    ${C(`analytics.export_download`,e)}
+                    ${S(`analytics.export_download`,e)}
                   </button>
                   <button @click=${this._copyDiagnosticsToClipboard}>
                     <ha-icon icon="mdi:content-copy"></ha-icon>
-                    ${C(`analytics.export_clipboard`,e)}
+                    ${S(`analytics.export_clipboard`,e)}
                   </button>
-                </div>`:g}
+                </div>`:h}
           </div>
         </div>
       </div>
-    `}_onRoomSelected(e){let t=F(e);t&&t!==this.selectedRoom&&this.dispatchEvent(new CustomEvent(`room-selected`,{detail:{areaId:t},bubbles:!0,composed:!0}))}_onQuickRange(e,t){let n=new Date,r=new Date(n);r.setDate(r.getDate()-(t-1)),r.setHours(0,0,0,0),this.dispatchEvent(new CustomEvent(`range-changed`,{detail:{activeQuick:e,rangeStart:r.getTime(),rangeEnd:n.getTime(),chartAnchor:n.getTime()},bubbles:!0,composed:!0}))}_onDateRangeChanged(e){let{startDate:t,endDate:n}=e.detail.value;!t||!n||this.dispatchEvent(new CustomEvent(`range-changed`,{detail:{activeQuick:null,rangeStart:t.getTime(),rangeEnd:n.getTime(),chartAnchor:n.getTime()},bubbles:!0,composed:!0}))}_exportCsv(){if(!this.data)return;let e=jn(this.data);e&&(Mn(e,Nn(this.hass,this.rooms,this.selectedRoom,this.rangeStart,this.rangeEnd,``,`csv`),`text/csv`),this._openDropdown=null)}async _exportDiagnostics(){if(!this._diagLoading){this._diagLoading=!0,this._openDropdown=null;try{let e=await this.hass.callWS({type:`roommind/diagnostics/get`});Mn(JSON.stringify(e,null,2),`roommind_diagnostics.json`,`application/json`)}catch(e){console.warn(`[RoomMind] diagnostics export failed:`,e)}finally{this._diagLoading=!1}}}_copyCsvToClipboard(){if(!this.data)return;let e=jn(this.data);e&&(Pn(e),this._openDropdown=null)}async _copyDiagnosticsToClipboard(){if(!this._diagLoading){this._diagLoading=!0,this._openDropdown=null;try{let e=await this.hass.callWS({type:`roommind/diagnostics/get`});Pn(JSON.stringify(e,null,2))}catch(e){console.warn(`[RoomMind] diagnostics clipboard failed:`,e)}finally{this._diagLoading=!1}}}_toggleDropdown(e){this._openDropdown=this._openDropdown===e?null:e}_closeDropdowns(){this._openDropdown&&=null}static{this.styles=[L,l`
+    `}_onRoomSelected(e){let t=P(e);t&&t!==this.selectedRoom&&this.dispatchEvent(new CustomEvent(`room-selected`,{detail:{areaId:t},bubbles:!0,composed:!0}))}_onQuickRange(e,t){let n=new Date,r=new Date(n);r.setDate(r.getDate()-(t-1)),r.setHours(0,0,0,0),this.dispatchEvent(new CustomEvent(`range-changed`,{detail:{activeQuick:e,rangeStart:r.getTime(),rangeEnd:n.getTime(),chartAnchor:n.getTime()},bubbles:!0,composed:!0}))}_onDateRangeChanged(e){let{startDate:t,endDate:n}=e.detail.value;!t||!n||this.dispatchEvent(new CustomEvent(`range-changed`,{detail:{activeQuick:null,rangeStart:t.getTime(),rangeEnd:n.getTime(),chartAnchor:n.getTime()},bubbles:!0,composed:!0}))}_exportCsv(){if(!this.data)return;let e=Nn(this.data);e&&(Pn(e,Fn(this.hass,this.rooms,this.selectedRoom,this.rangeStart,this.rangeEnd,``,`csv`),`text/csv`),this._openDropdown=null)}async _exportDiagnostics(){if(!this._diagLoading){this._diagLoading=!0,this._openDropdown=null;try{let e=await this.hass.callWS({type:`roommind/diagnostics/get`});Pn(JSON.stringify(e,null,2),`roommind_diagnostics.json`,`application/json`)}catch(e){console.warn(`[RoomMind] diagnostics export failed:`,e)}finally{this._diagLoading=!1}}}_copyCsvToClipboard(){if(!this.data)return;let e=Nn(this.data);e&&(In(e),this._openDropdown=null)}async _copyDiagnosticsToClipboard(){if(!this._diagLoading){this._diagLoading=!0,this._openDropdown=null;try{let e=await this.hass.callWS({type:`roommind/diagnostics/get`});In(JSON.stringify(e,null,2))}catch(e){console.warn(`[RoomMind] diagnostics clipboard failed:`,e)}finally{this._diagLoading=!1}}}_toggleDropdown(e){this._openDropdown=this._openDropdown===e?null:e}_closeDropdowns(){this._openDropdown&&=null}static{this.styles=[I,l`
       :host {
         display: block;
       }
@@ -7144,7 +7237,7 @@
           font-size: 11px;
         }
       }
-    `]}};A([b({attribute:!1})],Y.prototype,`hass`,void 0),A([b({attribute:!1})],Y.prototype,`rooms`,void 0),A([b({type:String})],Y.prototype,`selectedRoom`,void 0),A([b({type:Number})],Y.prototype,`rangeStart`,void 0),A([b({type:Number})],Y.prototype,`rangeEnd`,void 0),A([b({type:String})],Y.prototype,`activeQuick`,void 0),A([b({attribute:!1})],Y.prototype,`data`,void 0),A([b({type:String})],Y.prototype,`language`,void 0),A([x()],Y.prototype,`_openDropdown`,void 0),A([x()],Y.prototype,`_diagLoading`,void 0),Y=A([y(`rs-analytics-toolbar`)],Y),v();var In=l`
+    `]}};k([y({attribute:!1})],Y.prototype,`hass`,void 0),k([y({attribute:!1})],Y.prototype,`rooms`,void 0),k([y({type:String})],Y.prototype,`selectedRoom`,void 0),k([y({type:Number})],Y.prototype,`rangeStart`,void 0),k([y({type:Number})],Y.prototype,`rangeEnd`,void 0),k([y({type:String})],Y.prototype,`activeQuick`,void 0),k([y({attribute:!1})],Y.prototype,`data`,void 0),k([y({type:String})],Y.prototype,`language`,void 0),k([b()],Y.prototype,`_openDropdown`,void 0),k([b()],Y.prototype,`_diagLoading`,void 0),Y=k([v(`rs-analytics-toolbar`)],Y),_();var Rn=l`
   .info-icon {
     --mdc-icon-size: 16px;
     color: var(--secondary-text-color);
@@ -7200,20 +7293,20 @@
   .info-panel .yaml-value {
     color: #0a3069;
   }
-`,Ln=108e5;function Rn(e,t){let{hass:n,language:r,chartAnchor:i,forecast:a,isOutdoor:o}=t,s=e=>T(e,n),c=[],l=[],u=[],d=[],f=[];for(let t of e){let e=t.ts*1e3;t.room_temp!==null&&c.push([e,s(t.room_temp)]),!o&&t.target_temp!==null&&l.push([e,s(t.target_temp)]),!o&&t.predicted_temp!==null&&u.push([e,s(t.predicted_temp)]),t.outdoor_temp!==null&&d.push([e,s(t.outdoor_temp)]),!o&&t.device_setpoint!=null&&f.push([e,s(t.device_setpoint)])}for(let e of a??[]){let t=e.ts*1e3;!o&&e.target_temp!==null&&l.push([t,s(e.target_temp)]),!o&&e.predicted_temp!==null&&u.push([t,s(e.predicted_temp)])}let p=[{id:`room_temp`,type:`line`,name:C(`analytics.temperature`,r),color:`rgb(255, 152, 0)`,data:c,showSymbol:!1,smooth:!0,lineStyle:{width:2},yAxisIndex:0}];o||p.push({id:`target_temp`,type:`line`,name:C(`analytics.target`,r),color:`rgb(76, 175, 80)`,data:l,showSymbol:!1,smooth:!1,lineStyle:{width:2,type:`dashed`},yAxisIndex:0}),u.length>0&&p.push({id:`predicted_temp`,type:`line`,name:C(`analytics.prediction`,r),color:`rgb(33, 150, 243)`,data:u,showSymbol:!1,smooth:!0,lineStyle:{width:2,type:`dotted`},yAxisIndex:0}),f.length>0&&p.push({id:`device_target`,type:`line`,name:`TRV / AC`,color:`rgb(156, 39, 176)`,data:f,showSymbol:!1,smooth:!1,step:`end`,lineStyle:{width:1,type:`dashed`},yAxisIndex:0}),d.length>0&&p.push({id:`outdoor_temp`,type:`line`,name:C(`analytics.outdoor`,r),color:`rgb(158, 158, 158)`,data:d,showSymbol:!1,smooth:!0,lineStyle:{width:1},yAxisIndex:0});let m=[],ee=[],te=[],ne=!1,re=!1,ie=!1;for(let t of e){let e=t.ts*1e3;t.mode===`heating`?(m.push([e,999]),ne=!0):m.push([e,null]),t.mode===`cooling`?(ee.push([e,999]),re=!0):ee.push([e,null]),t.window_open?(te.push([e,999]),ie=!0):te.push([e,null])}return ne&&p.push({id:`heating_events`,type:`line`,name:C(`analytics.heating_period`,r),color:`rgb(244, 67, 54)`,data:m,showSymbol:!1,lineStyle:{width:0},areaStyle:{color:`rgba(244, 67, 54, 0.08)`,origin:`start`},tooltip:{show:!1},yAxisIndex:0,z:-1,connectNulls:!1}),re&&p.push({id:`cooling_events`,type:`line`,name:C(`analytics.cooling_period`,r),color:`rgb(63, 81, 181)`,data:ee,showSymbol:!1,lineStyle:{width:0},areaStyle:{color:`rgba(63, 81, 181, 0.08)`,origin:`start`},tooltip:{show:!1},yAxisIndex:0,z:-1,connectNulls:!1}),ie&&p.push({id:`window_events`,type:`line`,name:C(`analytics.window_open_period`,r),color:`rgb(0, 150, 136)`,data:te,showSymbol:!1,lineStyle:{width:0},areaStyle:{color:`rgba(0, 150, 136, 0.1)`,origin:`start`},tooltip:{show:!1},yAxisIndex:0,z:-1,connectNulls:!1}),p.push({id:`now_marker`,type:`line`,name:``,color:`rgba(255,255,255,0.3)`,data:[[i,-999],[i,999]],showSymbol:!1,lineStyle:{width:1,type:`dashed`},yAxisIndex:0,tooltip:{show:!1},z:-2}),p}function zn(e,t,n){let{hass:r,language:i,chartAnchor:a,rangeStart:o,rangeEnd:s}=n,c=w(r),l={type:`value`,name:c};if(e.length>0){let t=1/0,n=-1/0;for(let r of e)r<t&&(t=r),r>n&&(n=r);let r=n-t,i=Math.max(r*.1,.5);l.min=Math.floor((t-i)*2)/2,l.max=Math.ceil((n+i)*2)/2}return{xAxis:{type:`time`,min:o,max:Math.abs(s-Date.now())<36e5?a+Ln:s},yAxis:l,dataZoom:[{type:`inside`,xAxisIndex:0,filterMode:`none`}],tooltip:{trigger:`axis`,axisPointer:{snap:!1},valueFormatter:e=>e.toFixed(1)+`\xA0`+c,formatter:e=>{if(!Array.isArray(e)||e.length===0)return``;let n=`<div style="font-weight:500;margin-bottom:4px">${new Date(e[0].value[0]).toLocaleTimeString([],{hour:`2-digit`,minute:`2-digit`})}</div>`,a=null,o=null;for(let t of e){if(t.seriesId?.endsWith(`_events`))continue;let e=t.value?.[1];e!=null&&(n+=`<div>${t.color?`<span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${t.color};margin-right:6px"></span>`:``}${t.seriesName}: ${e.toFixed(1)}\u00A0${c}</div>`,t.seriesId===`room_temp`&&(a=e),t.seriesId===`predicted_temp`&&(o=e))}if(a!==null&&o!==null){let e=a-o;n+=`<div style="border-top:1px solid rgba(128,128,128,0.3);margin-top:4px;padding-top:4px">Delta: ${e>=0?`+`:``}${e.toFixed(2)}\u00A0${c}</div>`}if(t.length>0){let a=e[0].value[0]/1e3,o=null,s=1/0;for(let e of t){let t=Math.abs(e.ts-a);t<s&&(s=t,o=e)}if(o){let e=[];if(o.mode===`heating`){let t=o.heating_power;t!=null&&t>0&&t<100?e.push(`${C(`analytics.heating_period`,i)} ${t}%`):e.push(C(`analytics.heating_period`,i)),o.device_setpoint!=null&&e.push(`TRV ${D(o.device_setpoint,r)}\u00A0${c}`)}else o.mode===`cooling`&&(e.push(C(`analytics.cooling_period`,i)),o.device_setpoint!=null&&e.push(`AC ${D(o.device_setpoint,r)}\u00A0${c}`));o.window_open&&e.push(C(`analytics.window_open_period`,i)),e.length>0&&(n+=`<div style="border-top:1px solid rgba(128,128,128,0.3);margin-top:4px;padding-top:4px;color:rgba(255,255,255,0.7)">${e.join(` · `)}</div>`),o.blind_position!=null&&(n+=`<div style="color:rgba(255,255,255,0.7)">${C(`analytics.blind_position`,i)} ${100-o.blind_position}%</div>`)}}let s=document.createElement(`div`);return s.innerHTML=n,s}},grid:{top:15,left:10,right:10,bottom:5,containLabel:!0}}}v(),S(),j();var X=class extends _{constructor(...e){super(...e),this.data=null,this.rangeStart=0,this.rangeEnd=0,this.chartAnchor=0,this.language=`en`,this.isOutdoor=!1,this._hiddenSeries=new Set([`outdoor_temp`,`device_target`]),this._chartInfoExpanded=!1}render(){let e=this.language,t=this.data?[...this.data.history,...this.data.detail]:[],n=[...t,...this.data?.forecast??[]],r={hass:this.hass,language:e,chartAnchor:this.chartAnchor,rangeStart:this.rangeStart,rangeEnd:this.rangeEnd,forecast:this.data?.forecast,isOutdoor:this.isOutdoor},i=t.length>0?Rn(t,r):[],a=[],o=i.map(e=>{let t=e.id,n=e.lineStyle||{},r=t.endsWith(`_events`);if(this._hiddenSeries.has(t)){let t={...e,lineStyle:{...n,width:0,opacity:0}};return e.areaStyle&&(t.areaStyle={...e.areaStyle,opacity:0}),t}if(!r&&t!==`now_marker`)for(let t of e.data)t&&t[1]!=null&&a.push(t[1]);let i={...e,lineStyle:{...n,opacity:1}};return e.areaStyle&&(i.areaStyle={...e.areaStyle,opacity:1}),i}),s=zn(a,n,r);return h`
+`,zn=108e5;function Bn(e,t){let{hass:n,language:r,chartAnchor:i,forecast:a,isOutdoor:o}=t,s=e=>w(e,n),c=[],l=[],u=[],d=[],f=[];for(let t of e){let e=t.ts*1e3;t.room_temp!==null&&c.push([e,s(t.room_temp)]),!o&&t.target_temp!==null&&l.push([e,s(t.target_temp)]),!o&&t.predicted_temp!==null&&u.push([e,s(t.predicted_temp)]),t.outdoor_temp!==null&&d.push([e,s(t.outdoor_temp)]),!o&&t.device_setpoint!=null&&f.push([e,s(t.device_setpoint)])}for(let e of a??[]){let t=e.ts*1e3;!o&&e.target_temp!==null&&l.push([t,s(e.target_temp)]),!o&&e.predicted_temp!==null&&u.push([t,s(e.predicted_temp)])}let p=[{id:`room_temp`,type:`line`,name:S(`analytics.temperature`,r),color:`rgb(255, 152, 0)`,data:c,showSymbol:!1,smooth:!0,lineStyle:{width:2},yAxisIndex:0}];o||p.push({id:`target_temp`,type:`line`,name:S(`analytics.target`,r),color:`rgb(76, 175, 80)`,data:l,showSymbol:!1,smooth:!1,lineStyle:{width:2,type:`dashed`},yAxisIndex:0}),u.length>0&&p.push({id:`predicted_temp`,type:`line`,name:S(`analytics.prediction`,r),color:`rgb(33, 150, 243)`,data:u,showSymbol:!1,smooth:!0,lineStyle:{width:2,type:`dotted`},yAxisIndex:0}),f.length>0&&p.push({id:`device_target`,type:`line`,name:`TRV / AC`,color:`rgb(156, 39, 176)`,data:f,showSymbol:!1,smooth:!1,step:`end`,lineStyle:{width:1,type:`dashed`},yAxisIndex:0}),d.length>0&&p.push({id:`outdoor_temp`,type:`line`,name:S(`analytics.outdoor`,r),color:`rgb(158, 158, 158)`,data:d,showSymbol:!1,smooth:!0,lineStyle:{width:1},yAxisIndex:0});let ee=[],te=[],ne=[],re=!1,ie=!1,ae=!1;for(let t of e){let e=t.ts*1e3;t.mode===`heating`?(ee.push([e,999]),re=!0):ee.push([e,null]),t.mode===`cooling`?(te.push([e,999]),ie=!0):te.push([e,null]),t.window_open?(ne.push([e,999]),ae=!0):ne.push([e,null])}return re&&p.push({id:`heating_events`,type:`line`,name:S(`analytics.heating_period`,r),color:`rgb(244, 67, 54)`,data:ee,showSymbol:!1,lineStyle:{width:0},areaStyle:{color:`rgba(244, 67, 54, 0.08)`,origin:`start`},tooltip:{show:!1},yAxisIndex:0,z:-1,connectNulls:!1}),ie&&p.push({id:`cooling_events`,type:`line`,name:S(`analytics.cooling_period`,r),color:`rgb(63, 81, 181)`,data:te,showSymbol:!1,lineStyle:{width:0},areaStyle:{color:`rgba(63, 81, 181, 0.08)`,origin:`start`},tooltip:{show:!1},yAxisIndex:0,z:-1,connectNulls:!1}),ae&&p.push({id:`window_events`,type:`line`,name:S(`analytics.window_open_period`,r),color:`rgb(0, 150, 136)`,data:ne,showSymbol:!1,lineStyle:{width:0},areaStyle:{color:`rgba(0, 150, 136, 0.1)`,origin:`start`},tooltip:{show:!1},yAxisIndex:0,z:-1,connectNulls:!1}),p.push({id:`now_marker`,type:`line`,name:``,color:`rgba(255,255,255,0.3)`,data:[[i,-999],[i,999]],showSymbol:!1,lineStyle:{width:1,type:`dashed`},yAxisIndex:0,tooltip:{show:!1},z:-2}),p}function Vn(e,t,n){let{hass:r,language:i,chartAnchor:a,rangeStart:o,rangeEnd:s}=n,c=C(r),l={type:`value`,name:c};if(e.length>0){let t=1/0,n=-1/0;for(let r of e)r<t&&(t=r),r>n&&(n=r);let r=n-t,i=Math.max(r*.1,.5);l.min=Math.floor((t-i)*2)/2,l.max=Math.ceil((n+i)*2)/2}return{xAxis:{type:`time`,min:o,max:Math.abs(s-Date.now())<36e5?a+zn:s},yAxis:l,dataZoom:[{type:`inside`,xAxisIndex:0,filterMode:`none`}],tooltip:{trigger:`axis`,axisPointer:{snap:!1},valueFormatter:e=>e.toFixed(1)+`\xA0`+c,formatter:e=>{if(!Array.isArray(e)||e.length===0)return``;let n=`<div style="font-weight:500;margin-bottom:4px">${new Date(e[0].value[0]).toLocaleTimeString([],{hour:`2-digit`,minute:`2-digit`})}</div>`,a=null,o=null;for(let t of e){if(t.seriesId?.endsWith(`_events`))continue;let e=t.value?.[1];e!=null&&(n+=`<div>${t.color?`<span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${t.color};margin-right:6px"></span>`:``}${t.seriesName}: ${e.toFixed(1)}\u00A0${c}</div>`,t.seriesId===`room_temp`&&(a=e),t.seriesId===`predicted_temp`&&(o=e))}if(a!==null&&o!==null){let e=a-o;n+=`<div style="border-top:1px solid rgba(128,128,128,0.3);margin-top:4px;padding-top:4px">Delta: ${e>=0?`+`:``}${e.toFixed(2)}\u00A0${c}</div>`}if(t.length>0){let a=e[0].value[0]/1e3,o=null,s=1/0;for(let e of t){let t=Math.abs(e.ts-a);t<s&&(s=t,o=e)}if(o){let e=[];if(o.mode===`heating`){let t=o.heating_power;t!=null&&t>0&&t<100?e.push(`${S(`analytics.heating_period`,i)} ${t}%`):e.push(S(`analytics.heating_period`,i)),o.device_setpoint!=null&&e.push(`TRV ${E(o.device_setpoint,r)}\u00A0${c}`)}else o.mode===`cooling`&&(e.push(S(`analytics.cooling_period`,i)),o.device_setpoint!=null&&e.push(`AC ${E(o.device_setpoint,r)}\u00A0${c}`));o.window_open&&e.push(S(`analytics.window_open_period`,i)),e.length>0&&(n+=`<div style="border-top:1px solid rgba(128,128,128,0.3);margin-top:4px;padding-top:4px;color:rgba(255,255,255,0.7)">${e.join(` · `)}</div>`),o.blind_position!=null&&(n+=`<div style="color:rgba(255,255,255,0.7)">${S(`analytics.blind_position`,i)} ${100-o.blind_position}%</div>`)}}let s=document.createElement(`div`);return s.innerHTML=n,s}},grid:{top:15,left:10,right:10,bottom:5,containLabel:!0}}}_(),x(),A();var X=class extends g{constructor(...e){super(...e),this.data=null,this.rangeStart=0,this.rangeEnd=0,this.chartAnchor=0,this.language=`en`,this.isOutdoor=!1,this._hiddenSeries=new Set([`outdoor_temp`,`device_target`]),this._chartInfoExpanded=!1}render(){let e=this.language,t=this.data?[...this.data.history,...this.data.detail]:[],n=[...t,...this.data?.forecast??[]],r={hass:this.hass,language:e,chartAnchor:this.chartAnchor,rangeStart:this.rangeStart,rangeEnd:this.rangeEnd,forecast:this.data?.forecast,isOutdoor:this.isOutdoor},i=t.length>0?Bn(t,r):[],a=[],o=i.map(e=>{let t=e.id,n=e.lineStyle||{},r=t.endsWith(`_events`);if(this._hiddenSeries.has(t)){let t={...e,lineStyle:{...n,width:0,opacity:0}};return e.areaStyle&&(t.areaStyle={...e.areaStyle,opacity:0}),t}if(!r&&t!==`now_marker`)for(let t of e.data)t&&t[1]!=null&&a.push(t[1]);let i={...e,lineStyle:{...n,opacity:1}};return e.areaStyle&&(i.areaStyle={...e.areaStyle,opacity:1}),i}),s=Vn(a,n,r);return m`
       <ha-card>
         <div class="card-header">
-          <span>${C(`analytics.temperature`,e)}</span>
+          <span>${S(`analytics.temperature`,e)}</span>
           <ha-icon
             class="info-icon chart-info-toggle ${this._chartInfoExpanded?`info-active`:``}"
             icon="mdi:information-outline"
             @click=${()=>{this._chartInfoExpanded=!this._chartInfoExpanded}}
           ></ha-icon>
         </div>
-        ${this._chartInfoExpanded?h`<div class="chart-info-panel">
-              ${this._renderMarkdown(C(`analytics.chart_info_body`,e))}
-            </div>`:g}
-        ${t.length>0?h`
+        ${this._chartInfoExpanded?m`<div class="chart-info-panel">
+              ${this._renderMarkdown(S(`analytics.chart_info_body`,e))}
+            </div>`:h}
+        ${t.length>0?m`
               <ha-chart-base
                 .hass=${this.hass}
                 .data=${o}
@@ -7222,14 +7315,14 @@
                 style="height: 300px"
               ></ha-chart-base>
               ${this._renderSeriesLegend(i)}
-            `:h`<div class="chart-empty">
+            `:m`<div class="chart-empty">
               <ha-icon icon="mdi:chart-line"></ha-icon>
-              <span>${C(`analytics.no_data`,e)}</span>
+              <span>${S(`analytics.no_data`,e)}</span>
             </div>`}
       </ha-card>
-    `}_renderSeriesLegend(e){let t=e.filter(e=>e.id!==`now_marker`);return h`
+    `}_renderSeriesLegend(e){let t=e.filter(e=>e.id!==`now_marker`);return m`
       <div class="series-legend">
-        ${t.map(e=>{let t=e.id,n=this._hiddenSeries.has(t);return h`
+        ${t.map(e=>{let t=e.id,n=this._hiddenSeries.has(t);return m`
             <button
               class="legend-item ${n?`legend-hidden`:``}"
               @click=${()=>this._toggleSeries(t)}
@@ -7241,9 +7334,9 @@
       </div>
     `}_renderMarkdown(e){return e.split(`
 
-`).map(e=>h`<p>
-          ${e.split(/(\*\*.*?\*\*)/).map(e=>e.startsWith(`**`)&&e.endsWith(`**`)?h`<strong>${e.slice(2,-2)}</strong>`:e)}
-        </p>`)}_toggleSeries(e){let t=new Set(this._hiddenSeries);t.has(e)?t.delete(e):t.add(e),this._hiddenSeries=t}static{this.styles=[In,l`
+`).map(e=>m`<p>
+          ${e.split(/(\*\*.*?\*\*)/).map(e=>e.startsWith(`**`)&&e.endsWith(`**`)?m`<strong>${e.slice(2,-2)}</strong>`:e)}
+        </p>`)}_toggleSeries(e){let t=new Set(this._hiddenSeries);t.has(e)?t.delete(e):t.add(e),this._hiddenSeries=t}static{this.styles=[Rn,l`
       :host {
         display: block;
       }
@@ -7337,68 +7430,68 @@
         --mdc-icon-size: 40px;
         font-size: 13px;
       }
-    `]}};A([b({attribute:!1})],X.prototype,`hass`,void 0),A([b({attribute:!1})],X.prototype,`data`,void 0),A([b({type:Number})],X.prototype,`rangeStart`,void 0),A([b({type:Number})],X.prototype,`rangeEnd`,void 0),A([b({type:Number})],X.prototype,`chartAnchor`,void 0),A([b({type:String})],X.prototype,`language`,void 0),A([b({type:Boolean})],X.prototype,`isOutdoor`,void 0),A([x()],X.prototype,`_hiddenSeries`,void 0),A([x()],X.prototype,`_chartInfoExpanded`,void 0),X=A([y(`rs-analytics-chart`)],X),v(),S(),j();var Bn=[`#03a9f4`,`#ff9800`,`#8bc34a`,`#9c27b0`,`#009688`,`#f44336`],Vn=108e5,Z=class extends _{constructor(...e){super(...e),this.data=null,this.rangeStart=0,this.rangeEnd=0,this.chartAnchor=0,this.language=`en`,this._hiddenSeries=new Set,this._chartInfoExpanded=!1}_points(){return this.data?[...this.data.history,...this.data.detail]:[]}_deviceIds(e,t){let n=new Set;for(let r of[...e,...t]){for(let e of Object.keys(r.ac_device_power_w??{}))n.add(e);for(let e of Object.keys(r.predicted_device_power_w??{}))n.add(e)}return[...n].sort()}_friendlyName(e){let t=this.hass.states[e]?.attributes?.friendly_name;return typeof t==`string`&&t?t:e.split(`.`).pop().replaceAll(`_`,` `)}_integrate(e){let t=e.filter(e=>e.value!=null).sort((e,t)=>e.ts-t.ts),n=0;for(let e=1;e<t.length;e++){let r=Math.min(Math.max(t[e].ts-t[e-1].ts,0),900)/3600;n+=(t[e-1].value+t[e].value)/2*r}return n/1e3}_connectForecast(e,t){if(e.length===0||t.length===0)return t;let n=e.reduce((e,t)=>t[0]>e[0]?t:e);return n[0]<t[0][0]?[n,...t]:t}_toggleSeries(e){let t=new Set(this._hiddenSeries);t.has(e)?t.delete(e):t.add(e),this._hiddenSeries=t}render(){let e=this._points(),t=this.data?.forecast??[];if(!(e.some(e=>e.ac_power_w!=null)||t.some(e=>e.predicted_power_w!=null)))return g;let n=this._deviceIds(e,t),r=e.filter(e=>e.ac_power_w!=null).map(e=>[e.ts*1e3,e.ac_power_w]),i=t.filter(e=>e.predicted_power_w!=null).map(e=>[e.ts*1e3,e.predicted_power_w]),a=getComputedStyle(this).getPropertyValue(`--primary-color`).trim()||`#03a9f4`,o=[{id:`room_power`,name:C(`analytics.energy_room_power`,this.language),type:`line`,showSymbol:!1,data:r,color:a,lineStyle:{width:2.5},emphasis:{disabled:!0}}];i.length>0&&o.push({id:`room_power_forecast`,name:C(`analytics.energy_forecast`,this.language),type:`line`,showSymbol:!1,data:this._connectForecast(r,i),color:a,lineStyle:{width:2,type:`dashed`},emphasis:{disabled:!0}}),n.forEach((n,r)=>{let i=Bn[r%Bn.length],a=e.filter(e=>e.ac_device_power_w?.[n]!=null).map(e=>[e.ts*1e3,e.ac_device_power_w[n]]),s=t.filter(e=>e.predicted_device_power_w?.[n]!=null).map(e=>[e.ts*1e3,e.predicted_device_power_w[n]]);o.push({id:`device_${n}`,name:this._friendlyName(n),type:`line`,showSymbol:!1,data:a,color:i,lineStyle:{width:1.5,opacity:.75},emphasis:{disabled:!0}}),s.length&&o.push({id:`device_forecast_${n}`,name:`${this._friendlyName(n)} · ${C(`analytics.energy_forecast_short`,this.language)}`,type:`line`,showSymbol:!1,data:this._connectForecast(a,s),color:i,lineStyle:{width:1.5,type:`dashed`,opacity:.75},emphasis:{disabled:!0}})});let s=[...e].reverse().find(e=>e.ac_power_w!=null),c=this._integrate(e.map(e=>({ts:e.ts,value:e.ac_power_w}))),l=this._integrate(t.map(e=>({ts:e.ts,value:e.predicted_power_w}))),u=[...e].reverse().find(e=>e.energy_learning_samples!=null)?.energy_learning_samples??0,d=[...t,...e].reverse().find(e=>e.energy_prediction_confidence!=null)?.energy_prediction_confidence,f=this.data?.energy_cost,p=[],m=o.map(e=>{let t=e.id;if(this._hiddenSeries.has(t))return{...e,lineStyle:{...e.lineStyle,width:0,opacity:0}};for(let t of e.data)p.push(t[1]);return e}),ee=p.length>0?Math.max(...p):0,te=Math.abs(this.rangeEnd-Date.now())<36e5;m.push({id:`now_marker`,name:``,type:`line`,color:`rgba(255,255,255,0.3)`,data:[[this.chartAnchor,-1],[this.chartAnchor,Math.max(ee*1.1,1)]],showSymbol:!1,lineStyle:{width:1,type:`dashed`},tooltip:{show:!1},z:-2});let ne={animation:!1,grid:{top:15,left:10,right:10,bottom:5,containLabel:!0},tooltip:{trigger:`axis`,axisPointer:{snap:!1},valueFormatter:e=>`${Math.round(e)} W`},xAxis:{type:`time`,min:this.rangeStart,max:te?this.chartAnchor+Vn:this.rangeEnd},yAxis:{type:`value`,min:0,name:`W`,nameGap:12,splitLine:{show:!0}},dataZoom:[{type:`inside`,xAxisIndex:0,filterMode:`none`}]};return h`
+    `]}};k([y({attribute:!1})],X.prototype,`hass`,void 0),k([y({attribute:!1})],X.prototype,`data`,void 0),k([y({type:Number})],X.prototype,`rangeStart`,void 0),k([y({type:Number})],X.prototype,`rangeEnd`,void 0),k([y({type:Number})],X.prototype,`chartAnchor`,void 0),k([y({type:String})],X.prototype,`language`,void 0),k([y({type:Boolean})],X.prototype,`isOutdoor`,void 0),k([b()],X.prototype,`_hiddenSeries`,void 0),k([b()],X.prototype,`_chartInfoExpanded`,void 0),X=k([v(`rs-analytics-chart`)],X),_(),x(),A();var Hn=[`#03a9f4`,`#ff9800`,`#8bc34a`,`#9c27b0`,`#009688`,`#f44336`],Un=108e5,Z=class extends g{constructor(...e){super(...e),this.data=null,this.rangeStart=0,this.rangeEnd=0,this.chartAnchor=0,this.language=`en`,this._hiddenSeries=new Set,this._chartInfoExpanded=!1}_points(){return this.data?[...this.data.history,...this.data.detail]:[]}_deviceIds(e,t){let n=new Set;for(let r of[...e,...t]){for(let e of Object.keys(r.ac_device_power_w??{}))n.add(e);for(let e of Object.keys(r.predicted_device_power_w??{}))n.add(e)}return[...n].sort()}_friendlyName(e){let t=this.hass.states[e]?.attributes?.friendly_name;return typeof t==`string`&&t?t:e.split(`.`).pop().replaceAll(`_`,` `)}_integrate(e){let t=e.filter(e=>e.value!=null).sort((e,t)=>e.ts-t.ts),n=0;for(let e=1;e<t.length;e++){let r=Math.min(Math.max(t[e].ts-t[e-1].ts,0),900)/3600;n+=(t[e-1].value+t[e].value)/2*r}return n/1e3}_connectForecast(e,t){if(e.length===0||t.length===0)return t;let n=e.reduce((e,t)=>t[0]>e[0]?t:e);return n[0]<t[0][0]?[n,...t]:t}_toggleSeries(e){let t=new Set(this._hiddenSeries);t.has(e)?t.delete(e):t.add(e),this._hiddenSeries=t}render(){let e=this._points(),t=this.data?.forecast??[];if(!(e.some(e=>e.ac_power_w!=null)||t.some(e=>e.predicted_power_w!=null)))return h;let n=this._deviceIds(e,t),r=e.filter(e=>e.ac_power_w!=null).map(e=>[e.ts*1e3,e.ac_power_w]),i=t.filter(e=>e.predicted_power_w!=null).map(e=>[e.ts*1e3,e.predicted_power_w]),a=getComputedStyle(this).getPropertyValue(`--primary-color`).trim()||`#03a9f4`,o=[{id:`room_power`,name:S(`analytics.energy_room_power`,this.language),type:`line`,showSymbol:!1,data:r,color:a,lineStyle:{width:2.5},emphasis:{disabled:!0}}];i.length>0&&o.push({id:`room_power_forecast`,name:S(`analytics.energy_forecast`,this.language),type:`line`,showSymbol:!1,data:this._connectForecast(r,i),color:a,lineStyle:{width:2,type:`dashed`},emphasis:{disabled:!0}}),n.forEach((n,r)=>{let i=Hn[r%Hn.length],a=e.filter(e=>e.ac_device_power_w?.[n]!=null).map(e=>[e.ts*1e3,e.ac_device_power_w[n]]),s=t.filter(e=>e.predicted_device_power_w?.[n]!=null).map(e=>[e.ts*1e3,e.predicted_device_power_w[n]]);o.push({id:`device_${n}`,name:this._friendlyName(n),type:`line`,showSymbol:!1,data:a,color:i,lineStyle:{width:1.5,opacity:.75},emphasis:{disabled:!0}}),s.length&&o.push({id:`device_forecast_${n}`,name:`${this._friendlyName(n)} · ${S(`analytics.energy_forecast_short`,this.language)}`,type:`line`,showSymbol:!1,data:this._connectForecast(a,s),color:i,lineStyle:{width:1.5,type:`dashed`,opacity:.75},emphasis:{disabled:!0}})});let s=[...e].reverse().find(e=>e.ac_power_w!=null),c=this._integrate(e.map(e=>({ts:e.ts,value:e.ac_power_w}))),l=this._integrate(t.map(e=>({ts:e.ts,value:e.predicted_power_w}))),u=[...e].reverse().find(e=>e.energy_learning_samples!=null)?.energy_learning_samples??0,d=[...t,...e].reverse().find(e=>e.energy_prediction_confidence!=null)?.energy_prediction_confidence,f=this.data?.energy_cost,p=[],ee=o.map(e=>{let t=e.id;if(this._hiddenSeries.has(t))return{...e,lineStyle:{...e.lineStyle,width:0,opacity:0}};for(let t of e.data)p.push(t[1]);return e}),te=p.length>0?Math.max(...p):0,ne=Math.abs(this.rangeEnd-Date.now())<36e5;ee.push({id:`now_marker`,name:``,type:`line`,color:`rgba(255,255,255,0.3)`,data:[[this.chartAnchor,-1],[this.chartAnchor,Math.max(te*1.1,1)]],showSymbol:!1,lineStyle:{width:1,type:`dashed`},tooltip:{show:!1},z:-2});let re={animation:!1,grid:{top:15,left:10,right:10,bottom:5,containLabel:!0},tooltip:{trigger:`axis`,axisPointer:{snap:!1},valueFormatter:e=>`${Math.round(e)} W`},xAxis:{type:`time`,min:this.rangeStart,max:ne?this.chartAnchor+Un:this.rangeEnd},yAxis:{type:`value`,min:0,name:`W`,nameGap:12,splitLine:{show:!0}},dataZoom:[{type:`inside`,xAxisIndex:0,filterMode:`none`}]};return m`
       <ha-card>
         <div class="card-header">
-          <span>${C(`analytics.energy_title`,this.language)}</span>
+          <span>${S(`analytics.energy_title`,this.language)}</span>
           <ha-icon
             class="info-icon chart-info-toggle ${this._chartInfoExpanded?`info-active`:``}"
             icon="mdi:information-outline"
             @click=${()=>{this._chartInfoExpanded=!this._chartInfoExpanded}}
           ></ha-icon>
         </div>
-        ${this._chartInfoExpanded?h`<div class="chart-info-panel">
-              ${C(`analytics.energy_chart_info_body`,this.language)}
-            </div>`:g}
+        ${this._chartInfoExpanded?m`<div class="chart-info-panel">
+              ${S(`analytics.energy_chart_info_body`,this.language)}
+            </div>`:h}
         <div class="stats">
           <div class="stat">
-            <span>${C(`analytics.energy_now`,this.language)}</span
+            <span>${S(`analytics.energy_now`,this.language)}</span
             ><strong
               >${s?.ac_power_w==null?`—`:`${Math.round(s.ac_power_w)} W`}</strong
             >
           </div>
           <div class="stat">
-            <span>${C(`analytics.energy_period`,this.language)}</span
+            <span>${S(`analytics.energy_period`,this.language)}</span
             ><strong>${c.toFixed(2)} kWh</strong>
           </div>
           <div class="stat">
-            <span>${C(`analytics.energy_next_3h`,this.language)}</span
+            <span>${S(`analytics.energy_next_3h`,this.language)}</span
             ><strong>${i.length>0?`${l.toFixed(2)} kWh`:`—`}</strong>
           </div>
           <div class="stat">
-            <span>${C(`analytics.energy_learning`,this.language)}</span
+            <span>${S(`analytics.energy_learning`,this.language)}</span
             ><strong>${u}</strong>
           </div>
           <div class="stat">
-            <span>${C(`analytics.energy_confidence`,this.language)}</span
+            <span>${S(`analytics.energy_confidence`,this.language)}</span
             ><strong
-              >${d?C(`analytics.energy_confidence_${d}`,this.language):`â€”`}</strong
+              >${d?S(`analytics.energy_confidence_${d}`,this.language):`â€”`}</strong
             >
           </div>
-          ${f?h`
+          ${f?m`
                 <div class="stat">
-                  <span>${C(`analytics.energy_cost_today`,this.language)}</span
+                  <span>${S(`analytics.energy_cost_today`,this.language)}</span
                   ><strong>€${f.today_eur.toFixed(2)}</strong>
                 </div>
                 <div class="stat">
-                  <span>${C(`analytics.energy_cost_7d`,this.language)}</span
+                  <span>${S(`analytics.energy_cost_7d`,this.language)}</span
                   ><strong>€${f.last_7d_eur.toFixed(2)}</strong>
                 </div>
                 <div class="stat">
-                  <span>${C(`analytics.energy_cost_next_3h`,this.language)}</span
+                  <span>${S(`analytics.energy_cost_next_3h`,this.language)}</span
                   ><strong>€${f.forecast_3h_eur.toFixed(2)}</strong>
                 </div>
-              `:g}
+              `:h}
         </div>
         <ha-chart-base
           .hass=${this.hass}
-          .data=${m}
-          .options=${ne}
+          .data=${ee}
+          .options=${re}
           .height=${`300px`}
           style="height: 300px"
         ></ha-chart-base>
         <div class="series-legend">
-          ${o.map(e=>{let t=e.id,n=this._hiddenSeries.has(t);return h`
+          ${o.map(e=>{let t=e.id,n=this._hiddenSeries.has(t);return m`
               <button
                 class="legend-item ${n?`legend-hidden`:``}"
                 @click=${()=>this._toggleSeries(t)}
@@ -7409,7 +7502,7 @@
             `})}
         </div>
       </ha-card>
-    `}static{this.styles=[In,l`
+    `}static{this.styles=[Rn,l`
     :host {
       display: block;
     }
@@ -7496,21 +7589,21 @@
         grid-template-columns: repeat(2, minmax(0, 1fr));
       }
     }
-    `]}};A([b({attribute:!1})],Z.prototype,`hass`,void 0),A([b({attribute:!1})],Z.prototype,`data`,void 0),A([b({type:Number})],Z.prototype,`rangeStart`,void 0),A([b({type:Number})],Z.prototype,`rangeEnd`,void 0),A([b({type:Number})],Z.prototype,`chartAnchor`,void 0),A([b({type:String})],Z.prototype,`language`,void 0),A([x()],Z.prototype,`_hiddenSeries`,void 0),A([x()],Z.prototype,`_chartInfoExpanded`,void 0),Z=A([y(`rs-energy-analytics-chart`)],Z),v(),S(),j();var Hn=class extends _{constructor(...e){super(...e),this.data=null,this.language=`en`,this._expandedStat=null}render(){let e=this.language,t=!!this.data?.model?.model,n=this.data?.model,r=n?.model,i=n?.confidence??0,a=n?.n_samples??0,o=n?.n_heating??0,s=n?.n_cooling??0,c=n?.applicable_modes??[],l=n?.prediction_std_idle,u=n?.prediction_std_heating,d=n?.mpc_active??!1,f=Math.round(i*100),p=new Set(c),m=p.has(`heating`),ee=p.has(`cooling`),te=o>=10,ne=s>=10,re=a-o-s>=10,ie=n?.n_observations??a,ae=[],oe=(t,n,r,i,a)=>{ae.push({id:t,labelKey:r,infoKey:a});let o=this._expandedStat===t;return h`
+    `]}};k([y({attribute:!1})],Z.prototype,`hass`,void 0),k([y({attribute:!1})],Z.prototype,`data`,void 0),k([y({type:Number})],Z.prototype,`rangeStart`,void 0),k([y({type:Number})],Z.prototype,`rangeEnd`,void 0),k([y({type:Number})],Z.prototype,`chartAnchor`,void 0),k([y({type:String})],Z.prototype,`language`,void 0),k([b()],Z.prototype,`_hiddenSeries`,void 0),k([b()],Z.prototype,`_chartInfoExpanded`,void 0),Z=k([v(`rs-energy-analytics-chart`)],Z),_(),x(),A();var Wn=class extends g{constructor(...e){super(...e),this.data=null,this.language=`en`,this._expandedStat=null}render(){let e=this.language,t=!!this.data?.model?.model,n=this.data?.model,r=n?.model,i=n?.confidence??0,a=n?.n_samples??0,o=n?.n_heating??0,s=n?.n_cooling??0,c=n?.applicable_modes??[],l=n?.prediction_std_idle,u=n?.prediction_std_heating,d=n?.mpc_active??!1,f=Math.round(i*100),p=new Set(c),ee=p.has(`heating`),te=p.has(`cooling`),ne=o>=10,re=s>=10,ie=a-o-s>=10,ae=n?.n_observations??a,oe=[],se=(t,n,r,i,a)=>{oe.push({id:t,labelKey:r,infoKey:a});let o=this._expandedStat===t;return m`
         <div class="model-stat ${o?`active`:``}" @click=${()=>this._toggleStat(t)}>
           <div class="stat-content">
             <span class="model-value ${n===`—`?`pending`:``}">${n}</span>
-            <span class="model-label">${C(r,e)}${i?` (${i})`:``}</span>
+            <span class="model-label">${S(r,e)}${i?` (${i})`:``}</span>
           </div>
           <ha-icon
             class="info-icon ${o?`info-active`:``}"
             icon="mdi:information-outline"
           ></ha-icon>
         </div>
-      `};return h`
+      `};return m`
       <ha-card>
         <div class="card-header">
-          <span>${C(`analytics.model_status`,e)}</span>
+          <span>${S(`analytics.model_status`,e)}</span>
         </div>
         <div class="card-content">
           <div class="confidence-hero">
@@ -7518,7 +7611,7 @@
               <div class="confidence-main">
                 <span class="confidence-value">${t?f+`%`:`0%`}</span>
                 <span class="confidence-label">
-                  ${C(`analytics.confidence`,e)}
+                  ${S(`analytics.confidence`,e)}
                   <ha-icon
                     class="info-icon ${this._expandedStat===`confidence`?`info-active`:``}"
                     icon="mdi:information-outline"
@@ -7527,9 +7620,9 @@
                 </span>
               </div>
               <div class="confidence-meta">
-                <span class="meta-value">${t?ie:0}</span>
+                <span class="meta-value">${t?ae:0}</span>
                 <span class="meta-label">
-                  ${C(`analytics.data_points`,e)}
+                  ${S(`analytics.data_points`,e)}
                   <ha-icon
                     class="info-icon ${this._expandedStat===`data_points`?`info-active`:``}"
                     icon="mdi:information-outline"
@@ -7543,36 +7636,36 @@
             </div>
             <div class="control-mode-badge ${d?`mpc`:`bangbang`}">
               <ha-icon icon=${d?`mdi:brain`:`mdi:school-outline`}></ha-icon>
-              ${C(d?`analytics.control_mode_mpc`:`analytics.control_mode_bangbang`,e)}
+              ${S(d?`analytics.control_mode_mpc`:`analytics.control_mode_bangbang`,e)}
             </div>
-            ${this._expandedStat===`confidence`?h`<div class="info-panel stat-info-panel">
-                  <strong>${C(`analytics.confidence`,e)}</strong>
-                  ${C(`analytics.info.confidence`,e)}
-                </div>`:g}
-            ${this._expandedStat===`data_points`?h`<div class="info-panel stat-info-panel">
-                  <strong>${C(`analytics.data_points`,e)}</strong>
-                  ${C(`analytics.info.data_points`,e)}
-                </div>`:g}
+            ${this._expandedStat===`confidence`?m`<div class="info-panel stat-info-panel">
+                  <strong>${S(`analytics.confidence`,e)}</strong>
+                  ${S(`analytics.info.confidence`,e)}
+                </div>`:h}
+            ${this._expandedStat===`data_points`?m`<div class="info-panel stat-info-panel">
+                  <strong>${S(`analytics.data_points`,e)}</strong>
+                  ${S(`analytics.info.data_points`,e)}
+                </div>`:h}
           </div>
 
           <div class="model-grid">
-            ${oe(`time_constant`,re&&r&&r.U>0?(1/r.U).toFixed(1)+`h`:`—`,`analytics.time_constant`,``,`analytics.info.time_constant`)}
-            ${m?oe(`heating_rate`,te&&r?E(r.Q_heat,this.hass).toFixed(1)+w(this.hass)+`/h`:`—`,`analytics.heating_rate`,``,`analytics.info.heating_rate`):g}
-            ${ee?oe(`cooling_rate`,ne&&r?E(r.Q_cool,this.hass).toFixed(1)+w(this.hass)+`/h`:`—`,`analytics.cooling_rate`,``,`analytics.info.cooling_rate`):g}
-            ${r&&r.Q_solar>.1?oe(`solar_gain`,E(r.Q_solar,this.hass).toFixed(1)+w(this.hass)+`/h`,`analytics.solar_gain`,``,`analytics.info.solar_gain`):g}
-            ${r&&n?.has_occupancy_sensors?oe(`occupancy_gain`,E(r.Q_occupancy,this.hass).toFixed(1)+w(this.hass)+`/h`,`analytics.occupancy_gain`,``,`analytics.info.occupancy_gain`):g}
-            ${oe(`accuracy_idle`,re&&l!=null?`±`+E(l,this.hass).toFixed(2)+w(this.hass):`—`,`analytics.accuracy_idle`,``,`analytics.info.accuracy_idle`)}
-            ${m?oe(`accuracy_heating`,te&&u!=null?`±`+E(u,this.hass).toFixed(2)+w(this.hass):`—`,`analytics.accuracy_heating`,``,`analytics.info.accuracy_heating`):g}
+            ${se(`time_constant`,ie&&r&&r.U>0?(1/r.U).toFixed(1)+`h`:`—`,`analytics.time_constant`,``,`analytics.info.time_constant`)}
+            ${ee?se(`heating_rate`,ne&&r?T(r.Q_heat,this.hass).toFixed(1)+C(this.hass)+`/h`:`—`,`analytics.heating_rate`,``,`analytics.info.heating_rate`):h}
+            ${te?se(`cooling_rate`,re&&r?T(r.Q_cool,this.hass).toFixed(1)+C(this.hass)+`/h`:`—`,`analytics.cooling_rate`,``,`analytics.info.cooling_rate`):h}
+            ${r&&r.Q_solar>.1?se(`solar_gain`,T(r.Q_solar,this.hass).toFixed(1)+C(this.hass)+`/h`,`analytics.solar_gain`,``,`analytics.info.solar_gain`):h}
+            ${r&&n?.has_occupancy_sensors?se(`occupancy_gain`,T(r.Q_occupancy,this.hass).toFixed(1)+C(this.hass)+`/h`,`analytics.occupancy_gain`,``,`analytics.info.occupancy_gain`):h}
+            ${se(`accuracy_idle`,ie&&l!=null?`±`+T(l,this.hass).toFixed(2)+C(this.hass):`—`,`analytics.accuracy_idle`,``,`analytics.info.accuracy_idle`)}
+            ${ee?se(`accuracy_heating`,ne&&u!=null?`±`+T(u,this.hass).toFixed(2)+C(this.hass):`—`,`analytics.accuracy_heating`,``,`analytics.info.accuracy_heating`):h}
           </div>
-          ${this._expandedStat&&ae.find(e=>e.id===this._expandedStat)?h`<div class="info-panel stat-info-panel">
+          ${this._expandedStat&&oe.find(e=>e.id===this._expandedStat)?m`<div class="info-panel stat-info-panel">
                 <strong
-                  >${C(ae.find(e=>e.id===this._expandedStat).labelKey,e)}</strong
+                  >${S(oe.find(e=>e.id===this._expandedStat).labelKey,e)}</strong
                 >
-                ${C(ae.find(e=>e.id===this._expandedStat).infoKey,e)}
-              </div>`:g}
+                ${S(oe.find(e=>e.id===this._expandedStat).infoKey,e)}
+              </div>`:h}
         </div>
       </ha-card>
-    `}_toggleStat(e){this._expandedStat=this._expandedStat===e?null:e}static{this.styles=[In,l`
+    `}_toggleStat(e){this._expandedStat=this._expandedStat===e?null:e}static{this.styles=[Rn,l`
       :host {
         display: block;
       }
@@ -7727,7 +7820,7 @@
           gap: 8px;
         }
       }
-    `]}};A([b({attribute:!1})],Hn.prototype,`hass`,void 0),A([b({attribute:!1})],Hn.prototype,`data`,void 0),A([b({type:String})],Hn.prototype,`language`,void 0),A([x()],Hn.prototype,`_expandedStat`,void 0),Hn=A([y(`rs-analytics-model`)],Hn),v(),S(),j();var Un,Q=class extends _{static{Un=this}constructor(...e){super(...e),this.rooms={},this.initialRoom=``,this.controlMode=`bangbang`,this._selectedRoom=``,this._rangeStart=new Date(new Date().setHours(0,0,0,0)).getTime(),this._rangeEnd=Date.now(),this._data=null,this._chartAnchor=Date.now(),this._loading=!1,this._activeQuick=`24h`,this._comparison=[],this._comparisonInfoExpanded=!1}static{this._comparisonQualityKeys={insufficient_samples:`analytics.comparison_quality_insufficient_samples`,no_power_measurements:`analytics.comparison_quality_no_power_measurements`,history_gaps:`analytics.comparison_quality_history_gaps`}}connectedCallback(){super.connectedCallback(),this._refreshInterval=setInterval(()=>this._silentRefresh(),6e4)}disconnectedCallback(){super.disconnectedCallback(),this._refreshInterval&&=(clearInterval(this._refreshInterval),void 0)}willUpdate(e){e.has(`initialRoom`)&&this.initialRoom&&(this._selectedRoom=this.initialRoom);let t=!1;if(e.has(`rooms`)&&!this._selectedRoom){let e=Object.keys(this.rooms);e.length>0&&(this._selectedRoom=e[0],t=!0,this.dispatchEvent(new CustomEvent(`room-selected`,{detail:{areaId:e[0]},bubbles:!0,composed:!0})))}(t||e.has(`_selectedRoom`)||e.has(`_rangeStart`)||e.has(`_rangeEnd`))&&this._selectedRoom&&this._fetchData()}render(){let e=this.hass.language;return h`
+    `]}};k([y({attribute:!1})],Wn.prototype,`hass`,void 0),k([y({attribute:!1})],Wn.prototype,`data`,void 0),k([y({type:String})],Wn.prototype,`language`,void 0),k([b()],Wn.prototype,`_expandedStat`,void 0),Wn=k([v(`rs-analytics-model`)],Wn),_(),x(),A();var Gn,Q=class extends g{static{Gn=this}constructor(...e){super(...e),this.rooms={},this.initialRoom=``,this.controlMode=`bangbang`,this._selectedRoom=``,this._rangeStart=new Date(new Date().setHours(0,0,0,0)).getTime(),this._rangeEnd=Date.now(),this._data=null,this._chartAnchor=Date.now(),this._loading=!1,this._activeQuick=`24h`,this._comparison=[],this._comparisonInfoExpanded=!1}static{this._comparisonQualityKeys={insufficient_samples:`analytics.comparison_quality_insufficient_samples`,no_power_measurements:`analytics.comparison_quality_no_power_measurements`,history_gaps:`analytics.comparison_quality_history_gaps`}}connectedCallback(){super.connectedCallback(),this._refreshInterval=setInterval(()=>this._silentRefresh(),6e4)}disconnectedCallback(){super.disconnectedCallback(),this._refreshInterval&&=(clearInterval(this._refreshInterval),void 0)}willUpdate(e){e.has(`initialRoom`)&&this.initialRoom&&(this._selectedRoom=this.initialRoom);let t=!1;if(e.has(`rooms`)&&!this._selectedRoom){let e=Object.keys(this.rooms);e.length>0&&(this._selectedRoom=e[0],t=!0,this.dispatchEvent(new CustomEvent(`room-selected`,{detail:{areaId:e[0]},bubbles:!0,composed:!0})))}(t||e.has(`_selectedRoom`)||e.has(`_rangeStart`)||e.has(`_rangeEnd`))&&this._selectedRoom&&this._fetchData()}render(){let e=this.hass.language;return m`
       <rs-analytics-toolbar
         .hass=${this.hass}
         .rooms=${this.rooms}
@@ -7740,7 +7833,7 @@
         @room-selected=${this._onRoomSelected}
         @range-changed=${this._onRangeChanged}
       ></rs-analytics-toolbar>
-      ${this._selectedRoom?this._loading?h`<div class="loading">${C(`panel.loading`,e)}</div>`:h`
+      ${this._selectedRoom?this._loading?m`<div class="loading">${S(`panel.loading`,e)}</div>`:m`
               <rs-analytics-chart
                 .hass=${this.hass}
                 .data=${this._data}
@@ -7750,7 +7843,7 @@
                 .language=${e}
                 .isOutdoor=${this.rooms[this._selectedRoom]?.is_outdoor??!1}
               ></rs-analytics-chart>
-              ${this.rooms[this._selectedRoom]?.is_outdoor?g:h`
+              ${this.rooms[this._selectedRoom]?.is_outdoor?h:m`
                     <rs-energy-analytics-chart
                       .hass=${this.hass}
                       .data=${this._data}
@@ -7759,28 +7852,28 @@
                       .chartAnchor=${this._chartAnchor}
                       .language=${e}
                     ></rs-energy-analytics-chart>
-                    ${this._comparison.length>1?h`<ha-card class="comparison">
+                    ${this._comparison.length>1?m`<ha-card class="comparison">
                           <div class="comparison-header">
-                            <h3>${C(`analytics.comparison_title`,e)}</h3>
+                            <h3>${S(`analytics.comparison_title`,e)}</h3>
                             <ha-icon
                               class="info-icon ${this._comparisonInfoExpanded?`info-active`:``}"
                               icon="mdi:information-outline"
                               @click=${()=>{this._comparisonInfoExpanded=!this._comparisonInfoExpanded}}
                             ></ha-icon>
                           </div>
-                          ${this._comparisonInfoExpanded?h`<div class="info-panel comparison-info-panel">
-                                ${C(`analytics.comparison_info`,e)}
-                              </div>`:g}
+                          ${this._comparisonInfoExpanded?m`<div class="info-panel comparison-info-panel">
+                                ${S(`analytics.comparison_info`,e)}
+                              </div>`:h}
                           <table>
-                            <thead><tr><th>${C(`analytics.comparison_room`,e)}</th><th>kWh</th><th>€</th><th>${C(`analytics.comparison_active`,e)}</th><th>${C(`analytics.comparison_efficiency`,e)}</th><th>${C(`analytics.comparison_target`,e)}</th></tr></thead>
+                            <thead><tr><th>${S(`analytics.comparison_room`,e)}</th><th>kWh</th><th>€</th><th>${S(`analytics.comparison_active`,e)}</th><th>${S(`analytics.comparison_efficiency`,e)}</th><th>${S(`analytics.comparison_target`,e)}</th></tr></thead>
                             <tbody>
-                              ${this._comparison.map(t=>h`<tr>
+                              ${this._comparison.map(t=>m`<tr>
                                   <td>
                                     ${t.name}
-                                    ${Array.isArray(t.data_quality)&&t.data_quality.length?h`<div class="comparison-quality">
-                                          ${C(`analytics.comparison_data_incomplete`,e)}:
-                                          ${t.data_quality.map(t=>C(Un._comparisonQualityKeys[t]??`analytics.comparison_data_incomplete`,e)).join(`, `)}
-                                        </div>`:g}
+                                    ${Array.isArray(t.data_quality)&&t.data_quality.length?m`<div class="comparison-quality">
+                                          ${S(`analytics.comparison_data_incomplete`,e)}:
+                                          ${t.data_quality.map(t=>S(Gn._comparisonQualityKeys[t]??`analytics.comparison_data_incomplete`,e)).join(`, `)}
+                                        </div>`:h}
                                   </td><td>${t.energy_kwh??`—`}</td><td>${t.cost_eur??`—`}</td>
                                   <td>${t.active_minutes==null?`—`:`${t.active_minutes} min`}</td>
                                   <td>${t.delta_t_per_kwh??`—`}</td>
@@ -7788,16 +7881,16 @@
                                 </tr>`)}
                             </tbody>
                           </table>
-                        </ha-card>`:g}
+                        </ha-card>`:h}
                     <rs-analytics-model
                     .hass=${this.hass}
                     .data=${this._data}
                     .language=${e}
                   ></rs-analytics-model>`}
-            `:h`
+            `:m`
             <div class="no-data">
               <ha-icon icon="mdi:chart-line" style="--mdc-icon-size: 48px; opacity: 0.4"></ha-icon>
-              <p>${C(`analytics.select_room`,e)}</p>
+              <p>${S(`analytics.select_room`,e)}</p>
             </div>
           `}
     `}_onRoomSelected(e){let t=e.detail.areaId;t&&t!==this._selectedRoom&&(this._selectedRoom=t,this.dispatchEvent(new CustomEvent(`room-selected`,{detail:{areaId:t},bubbles:!0,composed:!0})))}_onRangeChanged(e){let{activeQuick:t,rangeStart:n,rangeEnd:r,chartAnchor:i}=e.detail;this._activeQuick=t,this._rangeStart=n,this._rangeEnd=r,this._chartAnchor=i}_buildWsParams(){return{type:`roommind/analytics/get`,area_id:this._selectedRoom,start_ts:this._rangeStart/1e3,end_ts:this._rangeEnd/1e3}}async _fetchData(){if(this._selectedRoom){this._loading=!0,this._data=null,this._chartAnchor=this._rangeEnd;try{let e=await this.hass.callWS(this._buildWsParams());this._data=e;try{let e=await this.hass.callWS({type:`roommind/analytics/compare`,start_ts:this._rangeStart/1e3,end_ts:this._rangeEnd/1e3});this._comparison=e.rooms}catch(e){console.debug(`[RoomMind] comparison:`,e)}}catch(e){console.debug(`[RoomMind] fetchData:`,e),this._data=null}finally{this._loading=!1}}}async _silentRefresh(){if(!(!this._selectedRoom||this._loading))try{let e=await this.hass.callWS(this._buildWsParams());this._data=e;try{let e=await this.hass.callWS({type:`roommind/analytics/compare`,start_ts:this._rangeStart/1e3,end_ts:this._rangeEnd/1e3});this._comparison=e.rooms}catch(e){console.debug(`[RoomMind] comparison:`,e)}this._chartAnchor=Date.now()}catch(e){console.debug(`[RoomMind] silentRefresh:`,e)}}static{this.styles=l`
@@ -7842,7 +7935,7 @@
     table { width: 100%; border-collapse: collapse; font-size: 13px; }
     th, td { padding: 8px; text-align: right; border-top: 1px solid var(--divider-color); white-space: nowrap; }
     th:first-child, td:first-child { text-align: left; }
-  `}};A([b({attribute:!1})],Q.prototype,`hass`,void 0),A([b({type:Object})],Q.prototype,`rooms`,void 0),A([b()],Q.prototype,`initialRoom`,void 0),A([b()],Q.prototype,`controlMode`,void 0),A([x()],Q.prototype,`_selectedRoom`,void 0),A([x()],Q.prototype,`_rangeStart`,void 0),A([x()],Q.prototype,`_rangeEnd`,void 0),A([x()],Q.prototype,`_data`,void 0),A([x()],Q.prototype,`_chartAnchor`,void 0),A([x()],Q.prototype,`_loading`,void 0),A([x()],Q.prototype,`_activeQuick`,void 0),A([x()],Q.prototype,`_comparison`,void 0),A([x()],Q.prototype,`_comparisonInfoExpanded`,void 0),Q=Un=A([y(`rs-analytics`)],Q),v(),S(),j();var Wn=`M20,11V13H8L13.5,18.5L12.08,19.92L4.16,12L12.08,4.08L13.5,5.5L8,11H20Z`,Gn=`M19,4H15.5L14.5,3H9.5L8.5,4H5V6H19M6,19A2,2 0 0,0 8,21H16A2,2 0 0,0 18,19V7H6V19Z`,Kn=`M16,11.78L20.24,4.45L21.97,5.45L16.74,14.5L10.23,10.75L5.46,19H22V21H2V3H4V17.54L9.5,8L16,11.78Z`,qn=`M15 13V5A3 3 0 0 0 9 5V13A5 5 0 1 0 15 13M12 4A1 1 0 0 1 13 5V8H11V5A1 1 0 0 1 12 4Z`,$=class extends _{constructor(...e){super(...e),this.narrow=!1,this.route={path:``},this.panel={},this._activeTab=`areas`,this._rooms={},this._roomsLoaded=!1,this._selectedAreaId=null,this._analyticsRoom=``,this._vacationActive=!1,this._vacationTemp=null,this._vacationUntil=null,this._hiddenRooms=[],this._showHiddenRooms=!1,this._controlMode=`bangbang`,this._climateControlActive=!0,this._presenceEnabled=!1,this._valveProtectionEnabled=!1,this._anyoneHome=!0,this._presencePersons=[],this._presenceAwayAction=`eco`,this._saveStatus=`idle`,this._roomOrder=[],this._groupByFloor=!1,this._reorderMode=!1,this._elementsLoaded=!1,this._routeApplied=!1,this._areaInfosCache=[],this._onSaveStatus=e=>{e.stopPropagation(),this._saveStatusTimeout&&clearTimeout(this._saveStatusTimeout),this._saveStatus=e.detail.status,e.detail.status===`saved`&&(this._saveStatusTimeout=setTimeout(()=>{this._saveStatus=`idle`},2e3))}}static{this.styles=l`
+  `}};k([y({attribute:!1})],Q.prototype,`hass`,void 0),k([y({type:Object})],Q.prototype,`rooms`,void 0),k([y()],Q.prototype,`initialRoom`,void 0),k([y()],Q.prototype,`controlMode`,void 0),k([b()],Q.prototype,`_selectedRoom`,void 0),k([b()],Q.prototype,`_rangeStart`,void 0),k([b()],Q.prototype,`_rangeEnd`,void 0),k([b()],Q.prototype,`_data`,void 0),k([b()],Q.prototype,`_chartAnchor`,void 0),k([b()],Q.prototype,`_loading`,void 0),k([b()],Q.prototype,`_activeQuick`,void 0),k([b()],Q.prototype,`_comparison`,void 0),k([b()],Q.prototype,`_comparisonInfoExpanded`,void 0),Q=Gn=k([v(`rs-analytics`)],Q),_(),x(),A();var Kn=`M20,11V13H8L13.5,18.5L12.08,19.92L4.16,12L12.08,4.08L13.5,5.5L8,11H20Z`,qn=`M19,4H15.5L14.5,3H9.5L8.5,4H5V6H19M6,19A2,2 0 0,0 8,21H16A2,2 0 0,0 18,19V7H6V19Z`,Jn=`M16,11.78L20.24,4.45L21.97,5.45L16.74,14.5L10.23,10.75L5.46,19H22V21H2V3H4V17.54L9.5,8L16,11.78Z`,Yn=`M15 13V5A3 3 0 0 0 9 5V13A5 5 0 1 0 15 13M12 4A1 1 0 0 1 13 5V8H11V5A1 1 0 0 1 12 4Z`,$=class extends g{constructor(...e){super(...e),this.narrow=!1,this.route={path:``},this.panel={},this._activeTab=`areas`,this._rooms={},this._roomsLoaded=!1,this._selectedAreaId=null,this._analyticsRoom=``,this._vacationActive=!1,this._vacationTemp=null,this._vacationUntil=null,this._hiddenRooms=[],this._showHiddenRooms=!1,this._controlMode=`bangbang`,this._climateControlActive=!0,this._presenceEnabled=!1,this._valveProtectionEnabled=!1,this._anyoneHome=!0,this._presencePersons=[],this._presenceAwayAction=`eco`,this._saveStatus=`idle`,this._roomOrder=[],this._groupByFloor=!1,this._reorderMode=!1,this._elementsLoaded=!1,this._routeApplied=!1,this._areaInfosCache=[],this._onSaveStatus=e=>{e.stopPropagation(),this._saveStatusTimeout&&clearTimeout(this._saveStatusTimeout),this._saveStatus=e.detail.status,e.detail.status===`saved`&&(this._saveStatusTimeout=setTimeout(()=>{this._saveStatus=`idle`},2e3))}}static{this.styles=l`
     :host {
       display: block;
       font-family: var(--primary-font-family, Roboto, sans-serif);
@@ -8101,30 +8194,30 @@
       font-size: 14px;
       margin-left: auto;
     }
-  `}connectedCallback(){super.connectedCallback(),sn().then(()=>{this._elementsLoaded=!0}),this._loadRooms(),this._refreshInterval=setInterval(()=>this._loadRooms(),5e3),this.addEventListener(`save-status`,this._onSaveStatus),this._routeApplied||=(this._applyRoute(),!0),this._boundVisibilityHandler||(this._boundVisibilityHandler=()=>{if(!document.hidden){if(!this.isConnected){window.location.reload();return}this._loadRooms(),this.requestUpdate()}},document.addEventListener(`visibilitychange`,this._boundVisibilityHandler))}disconnectedCallback(){super.disconnectedCallback(),this._refreshInterval&&=(clearInterval(this._refreshInterval),void 0),this._saveStatusTimeout&&clearTimeout(this._saveStatusTimeout),this.removeEventListener(`save-status`,this._onSaveStatus),this._boundConnectionReady&&=(this.hass?.connection?.removeEventListener(`ready`,this._boundConnectionReady),void 0)}render(){if(!this._elementsLoaded||!this.hass)return h``;let e=this.hass.language,t=!!this._selectedAreaId,n=t?this.hass?.areas?.[this._selectedAreaId]:null,r={areas:C(`panel.tab.rooms`,e),analytics:C(`tabs.analytics`,e),settings:C(`panel.tab.settings`,e)};return h`
+  `}connectedCallback(){super.connectedCallback(),un().then(()=>{this._elementsLoaded=!0}),this._loadRooms(),this._refreshInterval=setInterval(()=>this._loadRooms(),5e3),this.addEventListener(`save-status`,this._onSaveStatus),this._routeApplied||=(this._applyRoute(),!0),this._boundVisibilityHandler||(this._boundVisibilityHandler=()=>{if(!document.hidden){if(!this.isConnected){window.location.reload();return}this._loadRooms(),this.requestUpdate()}},document.addEventListener(`visibilitychange`,this._boundVisibilityHandler))}disconnectedCallback(){super.disconnectedCallback(),this._refreshInterval&&=(clearInterval(this._refreshInterval),void 0),this._saveStatusTimeout&&clearTimeout(this._saveStatusTimeout),this.removeEventListener(`save-status`,this._onSaveStatus),this._boundConnectionReady&&=(this.hass?.connection?.removeEventListener(`ready`,this._boundConnectionReady),void 0)}render(){if(!this._elementsLoaded||!this.hass)return m``;let e=this.hass.language,t=!!this._selectedAreaId,n=t?this.hass?.areas?.[this._selectedAreaId]:null,r={areas:S(`panel.tab.rooms`,e),analytics:S(`tabs.analytics`,e),settings:S(`panel.tab.settings`,e)};return m`
       <div class="toolbar">
-        ${t?h`<ha-icon-button
-              .path=${Wn}
+        ${t?m`<ha-icon-button
+              .path=${Kn}
               @click=${this._onBackFromDetail}
-            ></ha-icon-button>`:h`<ha-menu-button .hass=${this.hass} .narrow=${this.narrow}></ha-menu-button>`}
+            ></ha-icon-button>`:m`<ha-menu-button .hass=${this.hass} .narrow=${this.narrow}></ha-menu-button>`}
         <div class="title">
-          ${t?this._rooms[this._selectedAreaId]?.display_name||n?.name||``:C(`panel.title`,e)}
+          ${t?this._rooms[this._selectedAreaId]?.display_name||n?.name||``:S(`panel.title`,e)}
         </div>
         ${this._renderSaveIndicator()}
-        ${t&&this._rooms[this._selectedAreaId]?h`<ha-icon-button
-                .path=${Kn}
+        ${t&&this._rooms[this._selectedAreaId]?m`<ha-icon-button
+                .path=${Jn}
                 @click=${this._onGoToAnalytics}
               ></ha-icon-button
-              ><ha-icon-button .path=${Gn} @click=${this._onDeleteRoom}></ha-icon-button>`:g}
-        ${!t&&this._activeTab===`analytics`&&this._analyticsRoom?h`<ha-icon-button
-              .path=${qn}
+              ><ha-icon-button .path=${qn} @click=${this._onDeleteRoom}></ha-icon-button>`:h}
+        ${!t&&this._activeTab===`analytics`&&this._analyticsRoom?m`<ha-icon-button
+              .path=${Yn}
               @click=${this._onGoToRoomFromAnalytics}
-            ></ha-icon-button>`:g}
+            ></ha-icon-button>`:h}
       </div>
 
-      ${t?g:h`
+      ${t?h:m`
             <div class="tabs">
-              ${Object.keys(r).map(e=>h`
+              ${Object.keys(r).map(e=>m`
                   <button
                     class="tab"
                     ?active=${this._activeTab===e}
@@ -8137,13 +8230,13 @@
           `}
 
       <div class="content">${this._renderTab()}</div>
-    `}_renderTab(){switch(this._activeTab){case`areas`:return this._renderAreas();case`analytics`:return h`<rs-analytics
+    `}_renderTab(){switch(this._activeTab){case`areas`:return this._renderAreas();case`analytics`:return m`<rs-analytics
           .hass=${this.hass}
           .rooms=${this._rooms}
           .initialRoom=${this._analyticsRoom}
           .controlMode=${this._controlMode}
           @room-selected=${this._onAnalyticsRoomSelected}
-        ></rs-analytics>`;case`settings`:return this._renderSettings();default:return g}}_renderAreas(){if(!this._roomsLoaded)return h`<div class="loading">${C(`panel.loading`,this.hass.language)}</div>`;if(this._selectedAreaId){let e=this.hass?.areas?.[this._selectedAreaId];if(e){let t=this._rooms[this._selectedAreaId]??null;return h`
+        ></rs-analytics>`;case`settings`:return this._renderSettings();default:return h}}_renderAreas(){if(!this._roomsLoaded)return m`<div class="loading">${S(`panel.loading`,this.hass.language)}</div>`;if(this._selectedAreaId){let e=this.hass?.areas?.[this._selectedAreaId];if(e){let t=this._rooms[this._selectedAreaId]??null;return m`
           <rs-room-detail
             .area=${e}
             .config=${t}
@@ -8155,95 +8248,95 @@
             @back-clicked=${this._onBackFromDetail}
             @room-updated=${this._onRoomUpdated}
           ></rs-room-detail>
-        `}this._selectedAreaId=null}let e=this._areaInfosCache,t=e.filter(e=>!this._hiddenRooms.includes(e.area.area_id)),n=e.filter(e=>this._hiddenRooms.includes(e.area.area_id));if(e.length===0)return h`
+        `}this._selectedAreaId=null}let e=this._areaInfosCache,t=e.filter(e=>!this._hiddenRooms.includes(e.area.area_id)),n=e.filter(e=>this._hiddenRooms.includes(e.area.area_id));if(e.length===0)return m`
         <div class="placeholder">
           <ha-icon icon="mdi:home" style="--mdc-icon-size: 56px; opacity: 0.4"></ha-icon>
           <p>
-            ${C(`panel.no_areas`,this.hass.language)}<br />${C(`panel.no_areas_hint`,this.hass.language)}
+            ${S(`panel.no_areas`,this.hass.language)}<br />${S(`panel.no_areas_hint`,this.hass.language)}
           </p>
         </div>
-      `;let r=t.filter(e=>e.config).length,i=t.filter(e=>e.config?.live?.mode===`heating`).length,a=t.filter(e=>e.config?.live?.mode===`cooling`).length,o=t.filter(e=>e.config?.live?.mold_risk_level===`warning`||e.config?.live?.mold_risk_level===`critical`).length,s=this._vacationActive||this._presenceEnabled&&!this._anyoneHome||o>0,c=this.hass.language;return h`
-      ${r>0||n.length>0?h`
+      `;let r=t.filter(e=>e.config).length,i=t.filter(e=>e.config?.live?.mode===`heating`).length,a=t.filter(e=>e.config?.live?.mode===`cooling`).length,o=t.filter(e=>e.config?.live?.mold_risk_level===`warning`||e.config?.live?.mold_risk_level===`critical`).length,s=this._vacationActive||this._presenceEnabled&&!this._anyoneHome||o>0,c=this.hass.language;return m`
+      ${r>0||n.length>0?m`
             <ha-card class="stats-bar">
-              ${r>0?h`
+              ${r>0?m`
                     <div class="stat">
                       <span class="stat-value">${r}</span>
-                      <span class="stat-label">${C(`panel.stat.rooms`,c)}</span>
+                      <span class="stat-label">${S(`panel.stat.rooms`,c)}</span>
                     </div>
                     <div class="stat">
                       <span class="stat-value" style="color: var(--warning-color, #ff9800)"
                         >${i}</span
                       >
-                      <span class="stat-label">${C(`panel.stat.heating`,c)}</span>
+                      <span class="stat-label">${S(`panel.stat.heating`,c)}</span>
                     </div>
                     <div class="stat">
                       <span class="stat-value" style="color: var(--info-color, #2196f3)"
                         >${a}</span
                       >
-                      <span class="stat-label">${C(`panel.stat.cooling`,c)}</span>
+                      <span class="stat-label">${S(`panel.stat.cooling`,c)}</span>
                     </div>
-                  `:g}
-              ${s?h`<div class="stats-separator"></div>`:g}
-              ${this._vacationActive?h`
+                  `:h}
+              ${s?m`<div class="stats-separator"></div>`:h}
+              ${this._vacationActive?m`
                     <div class="stat">
                       <span class="stat-value" style="color: var(--success-color, #4caf50)">
                         <ha-icon icon="mdi:airplane"></ha-icon>
                       </span>
-                      <span class="stat-label">${C(`panel.stat.vacation`,c)}</span>
+                      <span class="stat-label">${S(`panel.stat.vacation`,c)}</span>
                     </div>
-                  `:g}
-              ${this._presenceEnabled&&!this._anyoneHome?h`
+                  `:h}
+              ${this._presenceEnabled&&!this._anyoneHome?m`
                     <div class="stat">
                       <span class="stat-value" style="color: var(--secondary-text-color)">
                         <ha-icon icon="mdi:power"></ha-icon>
                       </span>
-                      <span class="stat-label">${C(`panel.stat.away`,c)}</span>
+                      <span class="stat-label">${S(`panel.stat.away`,c)}</span>
                     </div>
-                  `:g}
-              ${o>0?h`
+                  `:h}
+              ${o>0?m`
                     <div class="stat">
                       <span class="stat-value" style="color: var(--error-color, #f44336)"
                         >${o}</span
                       >
-                      <span class="stat-label">${C(`panel.stat.mold`,c)}</span>
+                      <span class="stat-label">${S(`panel.stat.mold`,c)}</span>
                     </div>
-                  `:g}
+                  `:h}
               <span class="stats-actions">
-                ${n.length>0?h`<ha-icon-button
+                ${n.length>0?m`<ha-icon-button
                       class="hidden-rooms-toggle"
-                      .path=${wt}
+                      .path=${Tt}
                       @click=${()=>{this._showHiddenRooms=!this._showHiddenRooms}}
-                    ></ha-icon-button>`:g}
-                ${this._reorderMode?h`<ha-button class="reorder-done" @click=${this._onReorderDone}>
-                      ${C(`panel.reorder_done`,c)}
-                    </ha-button>`:h`<ha-icon-button
+                    ></ha-icon-button>`:h}
+                ${this._reorderMode?m`<ha-button class="reorder-done" @click=${this._onReorderDone}>
+                      ${S(`panel.reorder_done`,c)}
+                    </ha-button>`:m`<ha-icon-button
                       class="reorder-btn"
                       .path=${`M9,3L5,7H8V14H10V7H13M16,17V10H14V17H11L15,21L19,17H16Z`}
                       @click=${()=>{this._reorderMode=!0}}
-                      title=${C(`panel.reorder`,c)}
+                      title=${S(`panel.reorder`,c)}
                     ></ha-icon-button>`}
               </span>
             </ha-card>
-          `:g}
-      ${this._showHiddenRooms&&n.length>0?h`
+          `:h}
+      ${this._showHiddenRooms&&n.length>0?m`
             <ha-card class="hidden-rooms-panel">
               <div class="hidden-rooms-header">
-                <span>${C(`panel.hidden_rooms`,c)} (${n.length})</span>
+                <span>${S(`panel.hidden_rooms`,c)} (${n.length})</span>
               </div>
-              ${n.map(e=>h`
+              ${n.map(e=>m`
                   <div class="hidden-room-row">
                     <span class="hidden-room-name">${e.area.name}</span>
                     <ha-button @click=${()=>this._unhideRoom(e.area.area_id)}>
-                      ${C(`panel.unhide`,c)}
+                      ${S(`panel.unhide`,c)}
                     </ha-button>
                   </div>
                 `)}
             </ha-card>
-          `:g}
-      ${this._getFloorGroups(t).map(e=>h`
-          ${e.name?h`<h4 class="floor-heading">${e.name}</h4>`:g}
+          `:h}
+      ${this._getFloorGroups(t).map(e=>m`
+          ${e.name?m`<h4 class="floor-heading">${e.name}</h4>`:h}
           <div class="area-grid">
-            ${e.items.map((t,n)=>h`
+            ${e.items.map((t,n)=>m`
                 <rs-area-card
                   .area=${t.area}
                   .config=${t.config}
@@ -8263,10 +8356,9 @@
               `)}
           </div>
         `)}
-    `}_renderSettings(){return h`<rs-settings .hass=${this.hass} .rooms=${this._rooms}></rs-settings>`}_computeAreaInfos(){if(!this.hass?.areas)return[];let e=Object.values(this.hass.areas).map(e=>{let t=yt(e.area_id,this.hass.entities,this.hass.devices).filter(e=>!e.entity_id.substring(e.entity_id.indexOf(`.`)+1).startsWith(`roommind_`)),n=t.filter(e=>e.entity_id.startsWith(`climate.`)).length,r=t.filter(e=>e.entity_id.startsWith(`sensor.`)&&this.hass.states[e.entity_id]?.attributes?.device_class===`temperature`).length;return{area:e,config:this._rooms[e.area_id]??null,climateEntityCount:n,tempSensorCount:r}}),t=new Map(this._roomOrder.map((e,t)=>[e,t]));return e.sort((e,n)=>{let r=t.get(e.area.area_id),i=t.get(n.area.area_id);if(r!==void 0&&i!==void 0)return r-i;if(r!==void 0)return-1;if(i!==void 0)return 1;let a=e.config?2:+(e.climateEntityCount>0),o=n.config?2:+(n.climateEntityCount>0);return a===o?e.area.name.localeCompare(n.area.name):o-a}),e}_getFloorGroups(e){if(!this._groupByFloor||!this.hass.floors)return[{name:``,items:e}];let t=this.hass.floors,n=this.hass.language,r=new Map,i=[];for(let t of e){let e=t.area.floor_id??null;r.has(e)||(r.set(e,[]),i.push(e)),r.get(e).push(t)}return i.sort((e,n)=>{if(e===null)return 1;if(n===null)return-1;let r=t[e],i=t[n];return r?.level!=null&&i?.level!=null?i.level-r.level:r?.level==null?i?.level==null?(r?.name??``).localeCompare(i?.name??``):1:-1}),i.map(e=>({name:e===null?C(`panel.floor_other`,n):t[e]?.name??C(`panel.floor_other`,n),items:r.get(e)}))}async _loadRooms(){if(this.hass)try{let e=await this.hass.callWS({type:`roommind/rooms/list`});this._rooms=e.rooms,this._vacationActive=e.vacation_active??!1,this._vacationTemp=e.vacation_temp??null,this._vacationUntil=e.vacation_until??null,this._hiddenRooms=e.hidden_rooms??[],this._roomOrder=e.room_order??[],this._groupByFloor=e.group_by_floor??!1,this._controlMode=e.control_mode??`bangbang`,this._climateControlActive=e.climate_control_active??!0,this._presenceEnabled=e.presence_enabled??!1,this._valveProtectionEnabled=e.valve_protection_enabled??!1,this._anyoneHome=e.anyone_home??!0,this._presencePersons=e.presence_persons??[],this._presenceAwayAction=e.presence_away_action??`eco`}catch(e){console.debug(`[RoomMind] loadRooms:`,e)}finally{this._roomsLoaded=!0}}_onBackFromDetail(){this._selectedAreaId=null,this._navigate(``)}async _onDeleteRoom(){if(!this._selectedAreaId)return;let e=this.hass?.areas?.[this._selectedAreaId];if(e&&confirm(C(`room.confirm_delete`,this.hass.language,{name:e.name})))try{await this.hass.callWS({type:`roommind/rooms/delete`,area_id:this._selectedAreaId}),this._selectedAreaId=null,this._navigate(``),this._loadRooms()}catch(e){console.debug(`[RoomMind] deleteRoom:`,e)}}_onTabClicked(e){this._activeTab=e,this._selectedAreaId=null,e===`areas`?this._navigate(``):this._navigate(`/${e}`)}_onAreaSelected(e){this._selectedAreaId=e.detail.areaId,this._navigate(`/room/${e.detail.areaId}`)}async _onHideRoom(e){let t=[...new Set([...this._hiddenRooms,e.detail.areaId])];this._hiddenRooms=t;try{await this.hass.callWS({type:`roommind/settings/save`,hidden_rooms:t})}catch(e){console.debug(`[RoomMind] hideRoom:`,e)}}async _unhideRoom(e){let t=this._hiddenRooms.filter(t=>t!==e);this._hiddenRooms=t,t.length===0&&(this._showHiddenRooms=!1);try{await this.hass.callWS({type:`roommind/settings/save`,hidden_rooms:t})}catch(e){console.debug(`[RoomMind] unhideRoom:`,e)}}_onGoToAnalytics(){this._selectedAreaId&&(this._analyticsRoom=this._selectedAreaId,this._selectedAreaId=null,this._activeTab=`analytics`,this._navigate(`/analytics/${this._analyticsRoom}`))}_onGoToRoomFromAnalytics(){this._analyticsRoom&&(this._selectedAreaId=this._analyticsRoom,this._activeTab=`areas`,this._navigate(`/room/${this._analyticsRoom}`))}_onAnalyticsRoomSelected(e){this._analyticsRoom=e.detail.areaId,this._navigate(`/analytics/${e.detail.areaId}`)}async _onMoveRoomUp(e){this._moveRoom(e.detail.areaId,-1)}async _onMoveRoomDown(e){this._moveRoom(e.detail.areaId,1)}async _moveRoom(e,t){let n=this._areaInfosCache.filter(e=>!this._hiddenRooms.includes(e.area.area_id));if(this._groupByFloor&&this.hass.floors){let r=this._getFloorGroups(n);for(let n of r){let i=n.items.map(e=>e.area.area_id),a=i.indexOf(e);if(a===-1)continue;let o=a+t;if(o<0||o>=i.length)return;[i[a],i[o]]=[i[o],i[a]];let s=r.flatMap(e=>e===n?i:e.items.map(e=>e.area.area_id));await this._saveRoomOrder(s);return}}else{let r=n.map(e=>e.area.area_id),i=r.indexOf(e);if(i===-1)return;let a=i+t;if(a<0||a>=r.length)return;[r[i],r[a]]=[r[a],r[i]],await this._saveRoomOrder(r)}}async _saveRoomOrder(e){this._roomOrder=e,this._areaInfosCache=this._computeAreaInfos();try{await this.hass.callWS({type:`roommind/settings/save`,room_order:e})}catch(e){console.debug(`[RoomMind] saveRoomOrder:`,e)}}_onReorderDone(){this._reorderMode=!1}_onRoomUpdated(){this._loadRooms()}_renderSaveIndicator(){if(this._saveStatus===`idle`)return g;let e=this.hass.language,t=this._saveStatus===`saving`?`mdi:content-save-outline`:this._saveStatus===`saved`?`mdi:check`:`mdi:alert-circle-outline`,n=this._saveStatus===`saving`?C(`settings.saving`,e):this._saveStatus===`saved`?C(`settings.saved`,e):C(`settings.error`,e);return h`
+    `}_renderSettings(){return m`<rs-settings .hass=${this.hass} .rooms=${this._rooms}></rs-settings>`}_computeAreaInfos(){if(!this.hass?.areas)return[];let e=Object.values(this.hass.areas).map(e=>{let t=bt(e.area_id,this.hass.entities,this.hass.devices).filter(e=>!e.entity_id.substring(e.entity_id.indexOf(`.`)+1).startsWith(`roommind_`)),n=t.filter(e=>e.entity_id.startsWith(`climate.`)).length,r=t.filter(e=>e.entity_id.startsWith(`sensor.`)&&this.hass.states[e.entity_id]?.attributes?.device_class===`temperature`).length;return{area:e,config:this._rooms[e.area_id]??null,climateEntityCount:n,tempSensorCount:r}}),t=new Map(this._roomOrder.map((e,t)=>[e,t]));return e.sort((e,n)=>{let r=t.get(e.area.area_id),i=t.get(n.area.area_id);if(r!==void 0&&i!==void 0)return r-i;if(r!==void 0)return-1;if(i!==void 0)return 1;let a=e.config?2:+(e.climateEntityCount>0),o=n.config?2:+(n.climateEntityCount>0);return a===o?e.area.name.localeCompare(n.area.name):o-a}),e}_getFloorGroups(e){if(!this._groupByFloor||!this.hass.floors)return[{name:``,items:e}];let t=this.hass.floors,n=this.hass.language,r=new Map,i=[];for(let t of e){let e=t.area.floor_id??null;r.has(e)||(r.set(e,[]),i.push(e)),r.get(e).push(t)}return i.sort((e,n)=>{if(e===null)return 1;if(n===null)return-1;let r=t[e],i=t[n];return r?.level!=null&&i?.level!=null?i.level-r.level:r?.level==null?i?.level==null?(r?.name??``).localeCompare(i?.name??``):1:-1}),i.map(e=>({name:e===null?S(`panel.floor_other`,n):t[e]?.name??S(`panel.floor_other`,n),items:r.get(e)}))}async _loadRooms(){if(this.hass)try{let e=await this.hass.callWS({type:`roommind/rooms/list`});this._rooms=e.rooms,this._vacationActive=e.vacation_active??!1,this._vacationTemp=e.vacation_temp??null,this._vacationUntil=e.vacation_until??null,this._hiddenRooms=e.hidden_rooms??[],this._roomOrder=e.room_order??[],this._groupByFloor=e.group_by_floor??!1,this._controlMode=e.control_mode??`bangbang`,this._climateControlActive=e.climate_control_active??!0,this._presenceEnabled=e.presence_enabled??!1,this._valveProtectionEnabled=e.valve_protection_enabled??!1,this._anyoneHome=e.anyone_home??!0,this._presencePersons=e.presence_persons??[],this._presenceAwayAction=e.presence_away_action??`eco`}catch(e){console.debug(`[RoomMind] loadRooms:`,e)}finally{this._roomsLoaded=!0}}_onBackFromDetail(){this._selectedAreaId=null,this._navigate(``)}async _onDeleteRoom(){if(!this._selectedAreaId)return;let e=this.hass?.areas?.[this._selectedAreaId];if(e&&confirm(S(`room.confirm_delete`,this.hass.language,{name:e.name})))try{await this.hass.callWS({type:`roommind/rooms/delete`,area_id:this._selectedAreaId}),this._selectedAreaId=null,this._navigate(``),this._loadRooms()}catch(e){console.debug(`[RoomMind] deleteRoom:`,e)}}_onTabClicked(e){this._activeTab=e,this._selectedAreaId=null,e===`areas`?this._navigate(``):this._navigate(`/${e}`)}_onAreaSelected(e){this._selectedAreaId=e.detail.areaId,this._navigate(`/room/${e.detail.areaId}`)}async _onHideRoom(e){let t=[...new Set([...this._hiddenRooms,e.detail.areaId])];this._hiddenRooms=t;try{await this.hass.callWS({type:`roommind/settings/save`,hidden_rooms:t})}catch(e){console.debug(`[RoomMind] hideRoom:`,e)}}async _unhideRoom(e){let t=this._hiddenRooms.filter(t=>t!==e);this._hiddenRooms=t,t.length===0&&(this._showHiddenRooms=!1);try{await this.hass.callWS({type:`roommind/settings/save`,hidden_rooms:t})}catch(e){console.debug(`[RoomMind] unhideRoom:`,e)}}_onGoToAnalytics(){this._selectedAreaId&&(this._analyticsRoom=this._selectedAreaId,this._selectedAreaId=null,this._activeTab=`analytics`,this._navigate(`/analytics/${this._analyticsRoom}`))}_onGoToRoomFromAnalytics(){this._analyticsRoom&&(this._selectedAreaId=this._analyticsRoom,this._activeTab=`areas`,this._navigate(`/room/${this._analyticsRoom}`))}_onAnalyticsRoomSelected(e){this._analyticsRoom=e.detail.areaId,this._navigate(`/analytics/${e.detail.areaId}`)}async _onMoveRoomUp(e){this._moveRoom(e.detail.areaId,-1)}async _onMoveRoomDown(e){this._moveRoom(e.detail.areaId,1)}async _moveRoom(e,t){let n=this._areaInfosCache.filter(e=>!this._hiddenRooms.includes(e.area.area_id));if(this._groupByFloor&&this.hass.floors){let r=this._getFloorGroups(n);for(let n of r){let i=n.items.map(e=>e.area.area_id),a=i.indexOf(e);if(a===-1)continue;let o=a+t;if(o<0||o>=i.length)return;[i[a],i[o]]=[i[o],i[a]];let s=r.flatMap(e=>e===n?i:e.items.map(e=>e.area.area_id));await this._saveRoomOrder(s);return}}else{let r=n.map(e=>e.area.area_id),i=r.indexOf(e);if(i===-1)return;let a=i+t;if(a<0||a>=r.length)return;[r[i],r[a]]=[r[a],r[i]],await this._saveRoomOrder(r)}}async _saveRoomOrder(e){this._roomOrder=e,this._areaInfosCache=this._computeAreaInfos();try{await this.hass.callWS({type:`roommind/settings/save`,room_order:e})}catch(e){console.debug(`[RoomMind] saveRoomOrder:`,e)}}_onReorderDone(){this._reorderMode=!1}_onRoomUpdated(){this._loadRooms()}_renderSaveIndicator(){if(this._saveStatus===`idle`)return h;let e=this.hass.language,t=this._saveStatus===`saving`?`mdi:content-save-outline`:this._saveStatus===`saved`?`mdi:check`:`mdi:alert-circle-outline`,n=this._saveStatus===`saving`?S(`settings.saving`,e):this._saveStatus===`saved`?S(`settings.saved`,e):S(`settings.error`,e);return m`
       <span class="save-indicator ${this._saveStatus}">
         <ha-icon .icon=${t}></ha-icon>
         ${n}
       </span>
-    `}willUpdate(e){e.has(`route`)&&this._routeApplied&&this._applyRoute(),(e.has(`_rooms`)||e.has(`hass`))&&(this._areaInfosCache=this._computeAreaInfos())}updated(e){e.has(`hass`)&&this.hass&&!this._roomsLoaded&&this._loadRooms(),e.has(`hass`)&&this.hass?.connection&&!this._boundConnectionReady&&(this._boundConnectionReady=()=>{this._loadRooms(),this.requestUpdate()},this.hass.connection.addEventListener(`ready`,this._boundConnectionReady))}_navigate(e){history.replaceState(null,``,`/roommind${e}`),window.dispatchEvent(new Event(`location-changed`))}_applyRoute(){let e=this.route?.path??``;e.startsWith(`/room/`)?(this._activeTab=`areas`,this._selectedAreaId=decodeURIComponent(e.slice(6))):e.startsWith(`/analytics/`)?(this._activeTab=`analytics`,this._selectedAreaId=null,this._analyticsRoom=decodeURIComponent(e.slice(11))):e===`/analytics`?(this._activeTab=`analytics`,this._selectedAreaId=null,this._analyticsRoom=``):e===`/settings`?(this._activeTab=`settings`,this._selectedAreaId=null):(this._activeTab=`areas`,this._selectedAreaId=null)}};A([b({attribute:!1})],$.prototype,`hass`,void 0),A([b({type:Boolean,reflect:!0})],$.prototype,`narrow`,void 0),A([b({type:Object})],$.prototype,`route`,void 0),A([b({type:Object})],$.prototype,`panel`,void 0),A([x()],$.prototype,`_activeTab`,void 0),A([x()],$.prototype,`_rooms`,void 0),A([x()],$.prototype,`_roomsLoaded`,void 0),A([x()],$.prototype,`_selectedAreaId`,void 0),A([x()],$.prototype,`_analyticsRoom`,void 0),A([x()],$.prototype,`_vacationActive`,void 0),A([x()],$.prototype,`_vacationTemp`,void 0),A([x()],$.prototype,`_vacationUntil`,void 0),A([x()],$.prototype,`_hiddenRooms`,void 0),A([x()],$.prototype,`_showHiddenRooms`,void 0),A([x()],$.prototype,`_controlMode`,void 0),A([x()],$.prototype,`_climateControlActive`,void 0),A([x()],$.prototype,`_presenceEnabled`,void 0),A([x()],$.prototype,`_valveProtectionEnabled`,void 0),A([x()],$.prototype,`_anyoneHome`,void 0),A([x()],$.prototype,`_presencePersons`,void 0),A([x()],$.prototype,`_presenceAwayAction`,void 0),A([x()],$.prototype,`_saveStatus`,void 0),A([x()],$.prototype,`_roomOrder`,void 0),A([x()],$.prototype,`_groupByFloor`,void 0),A([x()],$.prototype,`_reorderMode`,void 0),A([x()],$.prototype,`_elementsLoaded`,void 0),$=A([y(`roommind-panel`)],$)})();;(()=>{const t="rs-room-detail",m=e=>{if(!e.hass||!e.area?.area_id||e.shadowRoot.querySelector(".roommind-comfort-panel")||e._roommindComfortLoading)return;e._roommindComfortLoading=!0;e.hass.callWS({type:"roommind/rooms/list"}).then(r=>{let o=r.rooms?.[e.area.area_id];if(!o)return;let n=document.createElement("ha-card");n.className="roommind-comfort-panel";n.style.cssText="display:block;margin:16px 0;padding:0;overflow:hidden";n.innerHTML='<div style="display:flex;align-items:center;gap:10px;padding:16px 20px;border-bottom:1px solid var(--divider-color)"><ha-icon icon="mdi:weather-night" style="opacity:.75"></ha-icon><div style="flex:1;font-size:15px;font-weight:500">Comfort e automazioni stanza</div><button type="button" data-edit style="border:0;background:transparent;color:var(--primary-color);font:inherit;cursor:pointer">Configura</button></div><div data-summary style="padding:14px 20px;color:var(--secondary-text-color);font-size:13px"></div><div style="padding:0 20px 14px;color:var(--secondary-text-color);font-size:12px;line-height:1.45">La modalita notte modifica con gradualita setpoint e ventola nella fascia scelta. Il pre-condizionamento usa il modello termico e la pianificazione per arrivare al comfort in anticipo. Dopo una finestra, il recupero puo ripartire con una rampa; l umidita automatica usa la modalita dry solo quando non serve caldo o freddo.</div><div data-form style="display:none;padding:16px 20px;gap:12px;grid-template-columns:repeat(2,minmax(0,1fr))"><div style="grid-column:1/-1;font-weight:500">Profilo stanza</div><label style="grid-column:1/-1">Profilo attivo<br><select data-k="active_profile" style="width:100%"><option value="">Automatico</option><option value="work">Lavoro</option><option value="sleep">Sonno</option><option value="guests">Ospiti</option><option value="away">Assente</option></select></label><label style="grid-column:1/-1;display:flex;gap:8px;align-items:center"><input type="checkbox" data-k="night_mode_enabled"> Attiva comfort notturno</label><label>Inizio<br><input type="time" data-k="night_start" style="width:100%"></label><label>Fine<br><input type="time" data-k="night_end" style="width:100%"></label><label>Rampa (minuti)<br><input type="number" min="0" max="240" data-k="night_ramp_minutes" style="width:100%"></label><label>Ventola notturna<br><input type="text" data-k="night_fan_mode" style="width:100%"></label><label>Delta caldo (C)<br><input type="number" min="-5" max="0" step="0.1" data-k="night_heat_delta" style="width:100%"></label><label>Delta freddo (C)<br><input type="number" min="0" max="5" step="0.1" data-k="night_cool_delta" style="width:100%"></label><div style="grid-column:1/-1;border-top:1px solid var(--divider-color);padding-top:14px;font-weight:500">Comfort umidita</div><label style="grid-column:1/-1;display:flex;gap:8px;align-items:center"><input type="checkbox" data-k="humidity_comfort_enabled"> Gestione automatica umidita</label><label>Obiettivo (%)<br><input type="number" min="30" max="80" step="1" data-k="humidity_target" style="width:100%"></label><label>Priorita<br><select data-k="humidity_priority" style="width:100%"><option value="energy">Risparmio</option><option value="balanced">Bilanciata</option><option value="comfort">Comfort</option></select></label><div style="grid-column:1/-1;border-top:1px solid var(--divider-color);padding-top:14px;font-weight:500">Finestre e pre-condizionamento</div><label style="grid-column:1/-1;display:flex;gap:8px;align-items:center"><input type="checkbox" data-k="window_smart_recovery_enabled"> Ripristino graduale dopo la chiusura</label><label>Rampa finestra (minuti)<br><input type="number" min="0" max="120" data-k="window_recovery_ramp_minutes" style="width:100%"></label><label style="display:flex;gap:8px;align-items:center"><input type="checkbox" data-k="preconditioning_enabled"> Pre-condizionamento</label><div style="grid-column:1/-1;border-top:1px solid var(--divider-color);padding-top:14px;font-weight:500">Rilevamento anomalie</div><label style="grid-column:1/-1;display:flex;gap:8px;align-items:center"><input type="checkbox" data-k="anomaly_detection_enabled"> Avvisa nel pannello</label><label>Durata massima (minuti)<br><input type="number" min="30" max="1440" data-k="anomaly_max_run_minutes" style="width:100%"></label><label>Errore setpoint (C)<br><input type="number" min="0.5" max="10" step="0.1" data-k="anomaly_target_error_c" style="width:100%"></label><div style="grid-column:1/-1;border-top:1px solid var(--divider-color);padding-top:14px;font-weight:500">Deumidificazione</div><label style="grid-column:1/-1">Esponi come<br><select data-k="dry_entity_type" style="width:100%"><option value="switch">Interruttore</option><option value="humidifier">Deumidificatore</option></select></label><div data-status style="grid-column:1/-1;color:var(--secondary-text-color);font-size:12px"></div></div>';
-let f=n.querySelector("[data-form]"),u=n.querySelector("[data-summary]"),d=()=>{let l=o.live||{},p=o.active_profile||"automatico",c=l.comfort_score?.score;u.textContent=`Profilo: ${p}. Comfort notturno: ${o.night_mode_enabled?"attivo":"disattivato"}. Umidita: ${o.humidity_comfort_enabled?`${o.humidity_target||55}%`:"manuale"}. ${c==null?"Punteggio comfort in attesa dei dati.":`Punteggio comfort: ${c}/100.`}${l.anomalies?.length?` Avvisi: ${l.anomalies.map(a=>a.message).join(" ")}`:""}`};for(const i of n.querySelectorAll("[data-k]")){let k=i.dataset.k,v=o[k];if(i.type==="checkbox")i.checked=!!v;else i.value=v??(k==="night_start"?"22:00":k==="night_end"?"07:00":k==="night_ramp_minutes"?60:k==="night_heat_delta"?-0.5:k==="night_cool_delta"?0.5:k==="night_fan_mode"?"low":"switch");i.addEventListener("change",async()=>{let q={type:"roommind/rooms/save",area_id:e.area.area_id};for(const x of n.querySelectorAll("[data-k]")){let k=x.dataset.k;q[k]=x.type==="checkbox"?x.checked:["night_ramp_minutes","window_recovery_ramp_minutes","anomaly_max_run_minutes"].includes(k)?Number(x.value):["night_heat_delta","night_cool_delta","humidity_target","humidity_tolerance","anomaly_target_error_c"].includes(k)?Number(x.value):x.value}let s=n.querySelector("[data-status]");s.textContent="Salvataggio...";try{let a=await e.hass.callWS(q);o={...o,...a.room};d();s.textContent="Salvato"}catch(a){s.textContent=`Errore: ${a.message||a}`}})}d();n.querySelector("[data-edit]").addEventListener("click",()=>{f.style.display=f.style.display==="grid"?"none":"grid"});let p=e.shadowRoot.querySelector("rs-section-card")?.parentElement||e.shadowRoot;n.style.cssText+=";width:100%;box-sizing:border-box;column-span:all";p.append(n)}).finally(()=>e._roommindComfortLoading=!1)};customElements.whenDefined(t).then(()=>{let e=customElements.get(t),r=e.prototype.updated;e.prototype.updated=function(...o){r?.apply(this,o);queueMicrotask(()=>m(this))}})})();
+    `}willUpdate(e){e.has(`route`)&&this._routeApplied&&this._applyRoute(),(e.has(`_rooms`)||e.has(`hass`))&&(this._areaInfosCache=this._computeAreaInfos())}updated(e){e.has(`hass`)&&this.hass&&!this._roomsLoaded&&this._loadRooms(),e.has(`hass`)&&this.hass?.connection&&!this._boundConnectionReady&&(this._boundConnectionReady=()=>{this._loadRooms(),this.requestUpdate()},this.hass.connection.addEventListener(`ready`,this._boundConnectionReady))}_navigate(e){history.replaceState(null,``,`/roommind${e}`),window.dispatchEvent(new Event(`location-changed`))}_applyRoute(){let e=this.route?.path??``;e.startsWith(`/room/`)?(this._activeTab=`areas`,this._selectedAreaId=decodeURIComponent(e.slice(6))):e.startsWith(`/analytics/`)?(this._activeTab=`analytics`,this._selectedAreaId=null,this._analyticsRoom=decodeURIComponent(e.slice(11))):e===`/analytics`?(this._activeTab=`analytics`,this._selectedAreaId=null,this._analyticsRoom=``):e===`/settings`?(this._activeTab=`settings`,this._selectedAreaId=null):(this._activeTab=`areas`,this._selectedAreaId=null)}};k([y({attribute:!1})],$.prototype,`hass`,void 0),k([y({type:Boolean,reflect:!0})],$.prototype,`narrow`,void 0),k([y({type:Object})],$.prototype,`route`,void 0),k([y({type:Object})],$.prototype,`panel`,void 0),k([b()],$.prototype,`_activeTab`,void 0),k([b()],$.prototype,`_rooms`,void 0),k([b()],$.prototype,`_roomsLoaded`,void 0),k([b()],$.prototype,`_selectedAreaId`,void 0),k([b()],$.prototype,`_analyticsRoom`,void 0),k([b()],$.prototype,`_vacationActive`,void 0),k([b()],$.prototype,`_vacationTemp`,void 0),k([b()],$.prototype,`_vacationUntil`,void 0),k([b()],$.prototype,`_hiddenRooms`,void 0),k([b()],$.prototype,`_showHiddenRooms`,void 0),k([b()],$.prototype,`_controlMode`,void 0),k([b()],$.prototype,`_climateControlActive`,void 0),k([b()],$.prototype,`_presenceEnabled`,void 0),k([b()],$.prototype,`_valveProtectionEnabled`,void 0),k([b()],$.prototype,`_anyoneHome`,void 0),k([b()],$.prototype,`_presencePersons`,void 0),k([b()],$.prototype,`_presenceAwayAction`,void 0),k([b()],$.prototype,`_saveStatus`,void 0),k([b()],$.prototype,`_roomOrder`,void 0),k([b()],$.prototype,`_groupByFloor`,void 0),k([b()],$.prototype,`_reorderMode`,void 0),k([b()],$.prototype,`_elementsLoaded`,void 0),$=k([v(`roommind-panel`)],$)})();

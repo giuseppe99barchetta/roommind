@@ -2,13 +2,14 @@
 
 from __future__ import annotations
 
-from unittest.mock import AsyncMock, MagicMock
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
 from custom_components.roommind.repairs import (
     RestartRequiredFixFlow,
     async_create_fix_flow,
+    async_sync_room_issues,
 )
 
 
@@ -59,3 +60,28 @@ async def test_confirm_restart_triggers_restart():
     flow.hass.services.async_call.assert_called_once_with("homeassistant", "restart")
     flow.async_create_entry.assert_called_once_with(title="", data={})
     assert result == {"type": "create_entry"}
+
+
+@pytest.mark.asyncio
+async def test_sync_room_issues_creates_current_anomalies_and_clears_resolved():
+    hass = MagicMock()
+    hass.data = {"roommind": {"room_issue_ids": {"room_kitchen_long_run"}}}
+    rooms = {
+        "kitchen": {
+            "anomalies": [{"type": "sensor_stale"}],
+            "ac_efficiency_status": "possible_issue",
+        }
+    }
+
+    with (
+        patch("custom_components.roommind.repairs.ir.async_create_issue") as create_issue,
+        patch("custom_components.roommind.repairs.ir.async_delete_issue") as delete_issue,
+    ):
+        await async_sync_room_issues(hass, rooms, {"kitchen": {"display_name": "Kitchen"}})
+
+    assert create_issue.call_count == 2
+    assert {call.args[2] for call in create_issue.call_args_list} == {
+        "room_kitchen_sensor_stale",
+        "room_kitchen_ac_efficiency",
+    }
+    delete_issue.assert_called_once_with(hass, "roommind", "room_kitchen_long_run")

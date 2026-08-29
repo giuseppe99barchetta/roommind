@@ -81,6 +81,21 @@ export interface RoomLiveData {
   learning_paused_reason: "outdoor_unavailable" | null;
   compressor_protection_active: boolean;
   compressor_protection_reason: "min_off" | "min_run" | null;
+  smart_ventilation_active?: boolean;
+  force_off?: boolean;
+  decision_reasons?: string[];
+}
+
+export interface RoomReadinessItem {
+  key: "devices" | "temperature_sensor" | "schedule" | "predictive_control" | "climate_control";
+  status: "ready" | "recommended" | "missing";
+}
+
+export interface RoomReadiness {
+  level: "ready" | "basic" | "needs_setup";
+  items: RoomReadinessItem[];
+  ready_count: number;
+  total_count: number;
 }
 
 export type DeviceType = "trv" | "ac";
@@ -177,6 +192,7 @@ export interface RoomConfig {
   heat_source_hysteresis?: number;
   heat_source_min_dwell_minutes?: number;
   climate_control_enabled?: boolean;
+  readiness?: RoomReadiness;
   live?: RoomLiveData;
 }
 

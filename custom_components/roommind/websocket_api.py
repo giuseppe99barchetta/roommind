@@ -32,6 +32,7 @@ from .services.analytics_service import (
     build_analytics_data,
     build_comparison_data,
 )
+from .utils.room_insights import build_decision_reasons, build_room_readiness
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -343,7 +344,12 @@ async def websocket_list_rooms(
             "learning_paused_reason": learning_paused_reason,
             "compressor_protection_active": live.get("compressor_protection_active", False),
             "compressor_protection_reason": live.get("compressor_protection_reason"),
+            "smart_ventilation_active": live.get("smart_ventilation_active", False),
+            "force_off": live.get("force_off", False),
+            "heat_source_reason": live.get("heat_source_reason", "inactive"),
         }
+        room_data["readiness"] = build_room_readiness(room_config, settings, outdoor_available)
+        room_data["live"]["decision_reasons"] = build_decision_reasons(room_data["live"])
         result[area_id] = room_data
 
     # Vacation state from settings
