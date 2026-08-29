@@ -371,8 +371,6 @@ class RoomMindClimate(RoomMindOverrideClimate):
         if any(mode in caps.hvac_modes for mode in ("auto", "heat", "cool", "dry")):
             features |= ClimateEntityFeature.TARGET_TEMPERATURE
 
-        if caps.fan_modes:
-            features |= ClimateEntityFeature.FAN_MODE
         if caps.swing_modes:
             features |= ClimateEntityFeature.SWING_MODE
         if caps.swing_horizontal_modes:

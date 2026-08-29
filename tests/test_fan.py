@@ -43,6 +43,23 @@ def test_fan_exposes_speed_and_fan_only_state(mock_coordinator):
     assert entity.entity_registry_enabled_default is False
 
 
+@pytest.mark.asyncio
+async def test_fan_speed_is_forwarded_while_cooling_without_changing_hvac_mode(mock_coordinator):
+    mock_coordinator.hass.data[DOMAIN]["store"].get_room.return_value = _room(room_hvac_mode="cool")
+    mock_coordinator.hass.states.get.return_value = _state(mode="cool")
+    mock_coordinator.hass.data[DOMAIN]["store"].async_update_room = AsyncMock()
+    mock_coordinator.hass.services.async_call = AsyncMock()
+
+    entity = RoomMindFan(mock_coordinator, "living_room")
+    assert entity.is_on is True
+
+    await entity.async_set_percentage(50)
+
+    mock_coordinator.hass.services.async_call.assert_awaited_once_with(
+        "climate", "set_fan_mode", {"entity_id": "climate.ac", "fan_mode": "medium"}, blocking=True
+    )
+
+
 def test_fan_exposes_inverted_ultra_modes_in_physical_speed_order(mock_coordinator):
     mock_coordinator.hass.data[DOMAIN]["store"].get_room.return_value = _room(room_fan_mode="ultra_low")
     mock_coordinator.hass.states.get.return_value = _state(

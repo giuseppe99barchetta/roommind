@@ -62,6 +62,15 @@ class RoomMindFan(CoordinatorEntity, FanEntity):
             if mode.lower() not in {"auto", "off", "on"}
         ]
 
+    def _physical_ac_is_on(self) -> bool:
+        """Return whether any room AC is physically running."""
+        room = self.coordinator.hass.data[DOMAIN]["store"].get_room(self._area_id) or {}
+        return any(
+            state is not None and state.state not in {"off", "unknown", "unavailable"}
+            for entity_id in get_ac_eids(room.get("devices", []))
+            if (state := self.coordinator.hass.states.get(entity_id))
+        )
+
     @property
     def available(self) -> bool:
         room = self.coordinator.hass.data[DOMAIN]["store"].get_room(self._area_id) or {}
@@ -69,8 +78,7 @@ class RoomMindFan(CoordinatorEntity, FanEntity):
 
     @property
     def is_on(self) -> bool:
-        room = self.coordinator.hass.data[DOMAIN]["store"].get_room(self._area_id)
-        return bool(room and self._climate().hvac_mode == HVACMode.FAN_ONLY)
+        return self._physical_ac_is_on()
 
     @property
     def supported_features(self) -> FanEntityFeature:
@@ -96,14 +104,15 @@ class RoomMindFan(CoordinatorEntity, FanEntity):
         preset_mode: str | None = None,
         **kwargs: Any,
     ) -> None:
-        """Turn on fan-only, applying a requested speed before activation."""
+        """Apply a requested speed, or start fan-only when the AC is off."""
         if percentage is not None and percentage > 0:
             await self.async_set_percentage(percentage)
             return
-        await self._climate().async_set_hvac_mode(HVACMode.FAN_ONLY)
+        if not self.is_on:
+            await self._climate().async_set_hvac_mode(HVACMode.FAN_ONLY)
 
     async def async_turn_off(self, **kwargs: object) -> None:
-        if self.is_on:
+        if self._climate().hvac_mode == HVACMode.FAN_ONLY:
             await self._climate().async_set_hvac_mode(HVACMode.OFF)
 
     async def async_set_percentage(self, percentage: int) -> None:
@@ -114,8 +123,9 @@ class RoomMindFan(CoordinatorEntity, FanEntity):
         if not speeds:
             return
         climate = self._climate()
+        ac_was_on = self.is_on
         await climate.async_set_fan_mode(percentage_to_ordered_list_item(speeds, percentage))
-        if not self.is_on:
+        if not ac_was_on:
             # HomeKit sends Active and RotationSpeed together and expects the
             # speed write itself to start the fan. Saving the desired mode
             # first lets RoomMind apply it as part of the FAN_ONLY activation.
