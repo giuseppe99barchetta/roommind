@@ -120,6 +120,18 @@ _ROOM_SAVE_FIELDS = (
     "room_fan_mode",
     "room_swing_mode",
     "room_swing_horizontal_mode",
+    "night_mode_enabled",
+    "night_start",
+    "night_end",
+    "night_heat_delta",
+    "night_cool_delta",
+    "night_ramp_minutes",
+    "night_fan_mode",
+    "smart_ventilation_enabled",
+    "smart_ventilation_minutes",
+    "smart_ventilation_min_humidity",
+    "smart_ventilation_max_temp_delta",
+    "smart_ventilation_fan_mode",
 )
 
 _SETTINGS_SAVE_FIELDS = (
@@ -441,6 +453,18 @@ async def websocket_list_rooms(
         vol.Optional("room_fan_mode"): str,
         vol.Optional("room_swing_mode"): str,
         vol.Optional("room_swing_horizontal_mode"): str,
+        vol.Optional("night_mode_enabled"): bool,
+        vol.Optional("night_start"): vol.Match(r"^([01]\\d|2[0-3]):[0-5]\\d$"),
+        vol.Optional("night_end"): vol.Match(r"^([01]\\d|2[0-3]):[0-5]\\d$"),
+        vol.Optional("night_heat_delta"): vol.All(vol.Coerce(float), vol.Range(min=-5, max=0)),
+        vol.Optional("night_cool_delta"): vol.All(vol.Coerce(float), vol.Range(min=0, max=5)),
+        vol.Optional("night_ramp_minutes"): vol.All(vol.Coerce(int), vol.Range(min=0, max=240)),
+        vol.Optional("night_fan_mode"): str,
+        vol.Optional("smart_ventilation_enabled"): bool,
+        vol.Optional("smart_ventilation_minutes"): vol.All(vol.Coerce(int), vol.Range(min=1, max=120)),
+        vol.Optional("smart_ventilation_min_humidity"): vol.All(vol.Coerce(float), vol.Range(min=0, max=100)),
+        vol.Optional("smart_ventilation_max_temp_delta"): vol.All(vol.Coerce(float), vol.Range(min=0, max=5)),
+        vol.Optional("smart_ventilation_fan_mode"): str,
     }
 )
 @websocket_api.async_response

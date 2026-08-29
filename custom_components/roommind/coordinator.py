@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import logging
 import time
-from datetime import timedelta
+from datetime import datetime, timedelta
 from typing import Any
 
 from homeassistant.components.persistent_notification import async_create as async_create_notification
@@ -82,6 +82,7 @@ from .utils.device_utils import (
 )
 from .utils.device_utils import room_has_power_sensor as _room_has_power_sensor
 from .utils.history_store import HistoryStore
+from .utils.night_mode import apply_night_targets
 from .utils.notification_utils import NotificationThrottler, async_send_mold_notification, dismiss_mold_notification
 from .utils.schedule_utils import resolve_schedule_index
 from .utils.sensor_utils import read_sensor_value
@@ -245,6 +246,8 @@ class RoomMindCoordinator(DataUpdateCoordinator):
         self._energy_manager = EnergyManager(hass)
         self._mold_active_strategies: dict[str, str] = {}
         self._mold_restore_modes: dict[str, str] = {}
+        self._smart_ventilation_until: dict[str, float] = {}
+        self._night_fan_modes: dict[str, str] = {}
         # Residual heat tracking (heating → idle transition)
         self._residual_tracker = ResidualHeatTracker()
         # EKF training accumulation
@@ -474,6 +477,10 @@ class RoomMindCoordinator(DataUpdateCoordinator):
                             "occupancy": rs.get("q_occupancy", 0.0) > 0,
                             "current_humidity": rs.get("current_humidity"),
                             "energy_mode": rs.get("energy_mode"),
+                            "ventilation_active": any(
+                                (state := self.hass.states.get(entity_id)) is not None and state.state == "fan_only"
+                                for entity_id in get_ac_eids(rooms.get(area_id, {}).get("devices", []))
+                            ),
                             "ac_power_w": rs.get("ac_power_w"),
                             "ac_device_power_w": rs.get("ac_device_power_w"),
                             "ac_energy_today_kwh": rs.get("ac_energy_today_kwh"),
@@ -936,6 +943,9 @@ class RoomMindCoordinator(DataUpdateCoordinator):
         else:
             manual_aux_or_off = requested_hvac_mode in ("off", "dry", "fan_only")
             force_off = targets.heat is None and targets.cool is None or manual_aux_or_off
+            targets, night_progress = apply_night_targets(room, targets, datetime.now().astimezone())
+        if mold_prevention_effective:
+            night_progress = 0.0
         mold_prevention_active_room = mold_prevention_effective
         presence_away = not room.get("ignore_presence", False) and self._is_presence_away(room, settings)
         target_resolver = make_target_resolver(
@@ -1297,6 +1307,13 @@ class RoomMindCoordinator(DataUpdateCoordinator):
         else:
             mold_aux_activated: set[str] = set()
             try:
+                smart_ventilation_active = self._smart_ventilation_active(
+                    area_id, room, mode, targets, current_temp, current_humidity, window_open, force_off
+                )
+                if smart_ventilation_active:
+                    for device in control_room.get("devices", []):
+                        if device.get("type") == "ac":
+                            device["_roommind_smart_ventilation"] = room.get("smart_ventilation_fan_mode", "low")
                 await controller.async_apply(
                     mode,
                     targets,
@@ -1314,6 +1331,7 @@ class RoomMindCoordinator(DataUpdateCoordinator):
                     fan_only_presence_home=bool(settings.get("presence_enabled", False) and not presence_away),
                     fan_only_schedule_active=fan_only_schedule_active,
                 )
+                await self._async_apply_night_fan_mode(area_id, room, mode, night_progress > 0)
                 if mold_prevention_effective and mold_prevention_strategy == "dry" and not window_open:
                     # Unlike a persisted user DRY mode, prevention is an explicit
                     # automatic activation request. Respect compressor min-off and
@@ -1544,6 +1562,10 @@ class RoomMindCoordinator(DataUpdateCoordinator):
         room_state["window_open_minutes"] = window_open_minutes
         room_state["window_impact_c"] = window_impact_c
         room_state["window_recovery_minutes"] = window_recovery_minutes
+        room_state["night_mode_active"] = night_progress > 0
+        room_state["night_setback_progress"] = round(night_progress, 2)
+        room_state["smart_ventilation_active"] = self._smart_ventilation_until.get(area_id, 0) > time.monotonic()
+        room_state["smart_ventilation_until"] = self._smart_ventilation_until.get(area_id)
         room_state["power_budget_blocked"] = bool(budget_blocked_acs)
         forecast = self._prediction_forecasts.get(area_id, [])
         room_state["predicted_temp"] = forecast[-1]["temp"] if forecast else None
@@ -1731,6 +1753,67 @@ class RoomMindCoordinator(DataUpdateCoordinator):
                 display_pf = 0.0
 
         return display_mode, display_pf
+
+    def _smart_ventilation_active(
+        self,
+        area_id: str,
+        room: dict,
+        mode: str,
+        targets: TargetTemps,
+        current_temp: float | None,
+        current_humidity: float | None,
+        window_open: bool,
+        force_off: bool,
+    ) -> bool:
+        """Keep air circulating briefly after a completed cooling cycle."""
+        now = time.monotonic()
+        until = self._smart_ventilation_until.get(area_id, 0.0)
+        if until <= now:
+            self._smart_ventilation_until.pop(area_id, None)
+            completed_cooling = self._previous_modes.get(area_id) == MODE_COOLING and mode == MODE_IDLE
+            cool_target = targets.cool
+            humidity_ok = current_humidity is not None and current_humidity >= float(
+                room.get("smart_ventilation_min_humidity", 55.0)
+            )
+            temp_ok = (
+                current_temp is not None
+                and cool_target is not None
+                and current_temp <= cool_target + float(room.get("smart_ventilation_max_temp_delta", 0.5))
+            )
+            if (
+                room.get("smart_ventilation_enabled", False)
+                and completed_cooling
+                and humidity_ok
+                and temp_ok
+                and not window_open
+                and not force_off
+            ):
+                until = now + int(room.get("smart_ventilation_minutes", 15)) * 60
+                self._smart_ventilation_until[area_id] = until
+        return until > now and not window_open and not force_off
+
+    async def _async_apply_night_fan_mode(self, area_id: str, room: dict, mode: str, night_active: bool) -> None:
+        """Apply the quieter fan setting once per night transition and restore it after."""
+        if mode not in (MODE_HEATING, MODE_COOLING):
+            return
+        desired = str(room.get("night_fan_mode") if night_active else room.get("room_fan_mode") or "")
+        if not desired or self._night_fan_modes.get(area_id) == desired:
+            return
+        applied = False
+        for entity_id in get_ac_eids(room.get("devices", [])):
+            state = self.hass.states.get(entity_id)
+            if state is None or desired not in (state.attributes.get("fan_modes") or []):
+                continue
+            await self.hass.services.async_call(
+                "climate",
+                "set_fan_mode",
+                {"entity_id": entity_id, "fan_mode": desired},
+                blocking=True,
+                context=make_roommind_context(),
+            )
+            applied = True
+        if applied:
+            self._night_fan_modes[area_id] = desired
 
     def _build_room_state_dict(
         self,

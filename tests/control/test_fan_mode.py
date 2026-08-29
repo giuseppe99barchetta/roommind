@@ -66,6 +66,32 @@ async def test_async_idle_device_fan_only():
 
 
 @pytest.mark.asyncio
+async def test_smart_ventilation_overrides_normal_idle_action_temporarily():
+    """A cooling follow-up can use fan-only without changing saved device settings."""
+    clear_command_cache()
+    hass = build_hass()
+    state = MagicMock(state="cool", attributes={"hvac_modes": ["cool", "fan_only", "off"], "fan_modes": ["low"]})
+    hass.states.get = MagicMock(return_value=state)
+    devices = [
+        {
+            "entity_id": "climate.ac1",
+            "type": "ac",
+            "role": "auto",
+            "idle_action": "off",
+            "_roommind_smart_ventilation": "low",
+        }
+    ]
+
+    await async_idle_device(hass, "climate.ac1", devices, area_id="living_room")
+
+    assert hass.services.async_call.call_args_list[0][0][:3] == (
+        "climate",
+        "set_hvac_mode",
+        {"entity_id": "climate.ac1", "hvac_mode": "fan_only"},
+    )
+
+
+@pytest.mark.asyncio
 async def test_async_idle_device_fan_only_conditions_turn_off():
     """A failed fan-only condition falls back to the safe off action."""
     clear_command_cache()

@@ -75,6 +75,18 @@ def _migrate_room(room: dict) -> dict:
     room.setdefault("logical_heat_target", room.get("comfort_heat", DEFAULT_COMFORT_HEAT))
     room.setdefault("logical_cool_target", room.get("comfort_cool", DEFAULT_COMFORT_COOL))
     room.setdefault("room_hvac_mode", None)
+    room.setdefault("night_mode_enabled", False)
+    room.setdefault("night_start", "22:00")
+    room.setdefault("night_end", "07:00")
+    room.setdefault("night_heat_delta", -0.5)
+    room.setdefault("night_cool_delta", 0.5)
+    room.setdefault("night_ramp_minutes", 60)
+    room.setdefault("night_fan_mode", "low")
+    room.setdefault("smart_ventilation_enabled", False)
+    room.setdefault("smart_ventilation_minutes", 15)
+    room.setdefault("smart_ventilation_min_humidity", 55.0)
+    room.setdefault("smart_ventilation_max_temp_delta", 0.5)
+    room.setdefault("smart_ventilation_fan_mode", "low")
     return room
 
 
@@ -292,6 +304,18 @@ class RoomMindStore:
             "room_fan_mode": config.get("room_fan_mode", ""),
             "room_swing_mode": config.get("room_swing_mode", ""),
             "room_swing_horizontal_mode": config.get("room_swing_horizontal_mode", ""),
+            "night_mode_enabled": config.get("night_mode_enabled", False),
+            "night_start": config.get("night_start", "22:00"),
+            "night_end": config.get("night_end", "07:00"),
+            "night_heat_delta": config.get("night_heat_delta", -0.5),
+            "night_cool_delta": config.get("night_cool_delta", 0.5),
+            "night_ramp_minutes": config.get("night_ramp_minutes", 60),
+            "night_fan_mode": config.get("night_fan_mode", "low"),
+            "smart_ventilation_enabled": config.get("smart_ventilation_enabled", False),
+            "smart_ventilation_minutes": config.get("smart_ventilation_minutes", 15),
+            "smart_ventilation_min_humidity": config.get("smart_ventilation_min_humidity", 55.0),
+            "smart_ventilation_max_temp_delta": config.get("smart_ventilation_max_temp_delta", 0.5),
+            "smart_ventilation_fan_mode": config.get("smart_ventilation_fan_mode", "low"),
         }
         # Directional device sync for new rooms (truthiness check, not just presence)
         if "devices" in config and config["devices"]:

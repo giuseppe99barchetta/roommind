@@ -212,6 +212,7 @@ def _csv_to_points(rows: list[dict]) -> list[dict]:
                 "device_setpoint": _safe_float(row.get("device_setpoint", "")),
                 "current_humidity": _safe_float(row.get("current_humidity", "")),
                 "energy_mode": row.get("energy_mode", ""),
+                "ventilation_active": row.get("ventilation_active", "") in ("True", "true", "1"),
                 "ac_power_w": _safe_float(row.get("ac_power_w", "")),
                 "ac_device_power_w": _safe_power_map(row.get("ac_device_power_w_json", "")),
                 "ac_energy_today_kwh": _safe_float(row.get("ac_energy_today_kwh", "")),
@@ -226,6 +227,29 @@ def _csv_to_points(rows: list[dict]) -> list[dict]:
             }
         )
     return result
+
+
+def _operation_summary(points: list[dict], has_power_sensors: bool) -> dict[str, object]:
+    """Summarise per-room heating, cooling and ventilation time for reports."""
+    minutes = {"heating": 0.0, "cooling": 0.0, "ventilation": 0.0}
+    points = sorted(points, key=lambda point: point["ts"])
+    for previous, current in zip(points, points[1:], strict=False):
+        elapsed = min(max(current["ts"] - previous["ts"], 0.0), 900.0) / 60.0
+        if current.get("ventilation_active"):
+            minutes["ventilation"] += elapsed
+        elif current.get("energy_mode") in ("heating", "cooling"):
+            minutes[current["energy_mode"]] += elapsed
+    suggestions: list[str] = []
+    if not has_power_sensors:
+        suggestions.append("Configure an AC power sensor to measure energy and costs precisely.")
+    if minutes["ventilation"] >= 120:
+        suggestions.append("Review smart ventilation duration: the room has circulated air for over two hours in this period.")
+    return {
+        "heating_minutes": round(minutes["heating"]),
+        "cooling_minutes": round(minutes["cooling"]),
+        "ventilation_minutes": round(minutes["ventilation"]),
+        "suggestions": suggestions,
+    }
 
 
 async def _compute_target_forecast(
@@ -639,4 +663,5 @@ async def build_analytics_data(
         "model": model_info,
         "forecast": forecast,
         "energy_cost": energy_cost,
+        "operation_summary": _operation_summary(history + detail, has_power_sensors),
     }

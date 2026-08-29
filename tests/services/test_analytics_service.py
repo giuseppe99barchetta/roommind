@@ -9,9 +9,25 @@ import pytest
 
 from custom_components.roommind.services.analytics_service import (
     _compute_target_forecast,
+    _operation_summary,
     _safe_int,
     build_analytics_data,
 )
+
+
+def test_operation_summary_reports_fan_only_time_and_measurement_hint():
+    report = _operation_summary(
+        [
+            {"ts": 0, "energy_mode": "cooling", "ventilation_active": False},
+            {"ts": 600, "energy_mode": "idle", "ventilation_active": True},
+            {"ts": 1200, "energy_mode": "idle", "ventilation_active": True},
+        ],
+        has_power_sensors=False,
+    )
+
+    assert report["cooling_minutes"] == 0
+    assert report["ventilation_minutes"] == 20
+    assert report["suggestions"] == ["Configure an AC power sensor to measure energy and costs precisely."]
 
 # ---------------------------------------------------------------------------
 # _compute_target_forecast -- mold delta with heat_target=None

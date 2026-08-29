@@ -405,6 +405,16 @@ async def async_idle_device(
     commands (#183), and lowering to min_temp already stops all heat output.
     """
     idle_action, idle_fan_mode = get_idle_action(devices, entity_id)
+    smart_fan_mode = next(
+        (
+            str(device["_roommind_smart_ventilation"])
+            for device in devices
+            if device.get("entity_id") == entity_id and device.get("_roommind_smart_ventilation")
+        ),
+        "",
+    )
+    if smart_fan_mode and not force_off:
+        idle_action, idle_fan_mode = IDLE_ACTION_FAN_ONLY, smart_fan_mode
     if force_off and idle_action != IDLE_ACTION_LOW:
         idle_action = IDLE_ACTION_OFF
     elif idle_action == IDLE_ACTION_FAN_ONLY and not fan_only_conditions_met:

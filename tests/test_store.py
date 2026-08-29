@@ -730,3 +730,15 @@ async def test_migration_override_temp_on_load(store):
     assert "override_temp" not in room
     assert room["override_heat"] == 21.0
     assert room["override_cool"] == 24.0
+
+
+@pytest.mark.asyncio
+async def test_new_rooms_get_safe_night_and_smart_ventilation_defaults(store):
+    room = await store.async_save_room("bedroom", {})
+
+    assert room["night_mode_enabled"] is False
+    assert room["night_start"] == "22:00"
+    assert room["night_end"] == "07:00"
+    assert room["night_ramp_minutes"] == 60
+    assert room["smart_ventilation_enabled"] is False
+    assert room["smart_ventilation_minutes"] == 15
