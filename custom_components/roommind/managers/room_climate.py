@@ -9,6 +9,9 @@ from homeassistant.core import HomeAssistant
 from ..const import make_roommind_context
 from ..utils.device_utils import get_ac_eids, get_trv_eids
 
+_INVERTED_ULTRA_FAN_MODES = {"ultra_high": "quiet", "ultra_low": "turbo"}
+_FAN_MODE_ORDER = ("auto", "quiet", "low", "medium", "high", "turbo", "on", "off")
+
 
 @dataclass(frozen=True)
 class RoomClimateCapabilities:
@@ -18,6 +21,50 @@ class RoomClimateCapabilities:
     fan_modes: tuple[str, ...]
     swing_modes: tuple[str, ...]
     swing_horizontal_modes: tuple[str, ...]
+
+
+def _shared_ac_modes(hass: HomeAssistant, room: dict, attribute: str) -> tuple[str, ...]:
+    """Return modes shared by every AC, preserving the first AC's order."""
+    acs = get_ac_eids(room.get("devices", []))
+    ac_states = [hass.states.get(entity_id) for entity_id in acs]
+    ac_state = ac_states[0] if ac_states else None
+    if not ac_state or any(state is None for state in ac_states):
+        return ()
+    shared = set(ac_state.attributes.get(attribute, []))
+    for state in ac_states[1:]:
+        shared &= set(state.attributes.get(attribute, []))
+    return tuple(mode for mode in ac_state.attributes.get(attribute, []) if mode in shared)
+
+
+def _has_inverted_ultra_fan_modes(modes: tuple[str, ...]) -> bool:
+    return set(_INVERTED_ULTRA_FAN_MODES).issubset(mode.lower() for mode in modes)
+
+
+def room_fan_modes(modes: tuple[str, ...]) -> tuple[str, ...]:
+    """Return fan modes suitable for presentation to Home Assistant clients."""
+    if not _has_inverted_ultra_fan_modes(modes):
+        return modes
+    exposed = [_INVERTED_ULTRA_FAN_MODES.get(mode.lower(), mode) for mode in modes]
+    order = {mode: index for index, mode in enumerate(_FAN_MODE_ORDER)}
+    return tuple(sorted(exposed, key=lambda mode: order.get(mode.lower(), len(order))))
+
+
+def fan_mode_to_physical(modes: tuple[str, ...], fan_mode: str) -> str:
+    """Translate an exposed fan mode to the AC controller's value."""
+    if not _has_inverted_ultra_fan_modes(modes):
+        return fan_mode
+    inverse = {exposed: raw for raw, exposed in _INVERTED_ULTRA_FAN_MODES.items()}
+    raw_mode = inverse.get(fan_mode.lower())
+    if raw_mode is None:
+        return fan_mode
+    return next(mode for mode in modes if mode.lower() == raw_mode)
+
+
+def fan_mode_from_physical(modes: tuple[str, ...], fan_mode: str) -> str:
+    """Translate an AC controller fan mode to the exposed value."""
+    if not _has_inverted_ultra_fan_modes(modes):
+        return fan_mode
+    return _INVERTED_ULTRA_FAN_MODES.get(fan_mode.lower(), fan_mode)
 
 
 def room_capabilities(hass: HomeAssistant, room: dict) -> RoomClimateCapabilities:
@@ -41,20 +88,11 @@ def room_capabilities(hass: HomeAssistant, room: dict) -> RoomClimateCapabilitie
     if "fan_only" in ac_modes:
         modes.append("fan_only")
 
-    def shared_ac_modes(attribute: str) -> tuple[str, ...]:
-        """Return modes supported by every AC, preserving the first AC's order."""
-        if not ac_state or any(state is None for state in ac_states):
-            return ()
-        shared = set(ac_state.attributes.get(attribute, []))
-        for state in ac_states[1:]:
-            shared &= set(state.attributes.get(attribute, []))
-        return tuple(mode for mode in ac_state.attributes.get(attribute, []) if mode in shared)
-
     return RoomClimateCapabilities(
         tuple(modes),
-        shared_ac_modes("fan_modes"),
-        shared_ac_modes("swing_modes"),
-        shared_ac_modes("swing_horizontal_modes"),
+        room_fan_modes(_shared_ac_modes(hass, room, "fan_modes")),
+        _shared_ac_modes(hass, room, "swing_modes"),
+        _shared_ac_modes(hass, room, "swing_horizontal_modes"),
     )
 
 

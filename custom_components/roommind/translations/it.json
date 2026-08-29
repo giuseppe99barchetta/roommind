@@ -1,0 +1,16 @@
+{
+  "entity": {
+    "climate": {
+      "room_climate": {
+        "state_attributes": {
+          "fan_mode": {
+            "state": {
+              "quiet": "Silenziosa",
+              "turbo": "Turbo"
+            }
+          }
+        }
+      }
+    }
+  }
+}

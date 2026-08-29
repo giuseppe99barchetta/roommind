@@ -43,6 +43,19 @@ def test_fan_exposes_speed_and_fan_only_state(mock_coordinator):
     assert entity.entity_registry_enabled_default is False
 
 
+def test_fan_exposes_inverted_ultra_modes_in_physical_speed_order(mock_coordinator):
+    mock_coordinator.hass.data[DOMAIN]["store"].get_room.return_value = _room(room_fan_mode="ultra_low")
+    mock_coordinator.hass.states.get.return_value = _state(
+        fan_modes=["ultra_high", "low", "high", "medium", "ultra_low"]
+    )
+
+    entity = RoomMindFan(mock_coordinator, "living_room")
+
+    assert entity._speed_modes() == ["quiet", "low", "medium", "high", "turbo"]
+    assert entity.percentage == 100
+    assert entity.speed_count == 5
+
+
 @pytest.mark.asyncio
 async def test_fan_speed_is_forwarded_while_fan_only(mock_coordinator):
     mock_coordinator.hass.data[DOMAIN]["store"].get_room.return_value = _room()

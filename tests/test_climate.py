@@ -132,6 +132,31 @@ def test_canonical_multi_ac_uses_only_shared_fan_modes(mock_coordinator):
     assert entity.extra_state_attributes == {"fan_mode_unavailable": "auto"}
 
 
+@pytest.mark.asyncio
+async def test_canonical_inverted_ultra_fan_modes_are_named_and_forwarded_correctly(mock_coordinator):
+    """Controller-specific ultra modes are exposed in physical speed order."""
+    coordinator, store = mock_coordinator
+    store.get_room.return_value = _canonical_room(
+        [{"entity_id": "climate.ac", "type": "ac"}], room_hvac_mode="off", room_fan_mode="ultra_high"
+    )
+    store.async_update_room = AsyncMock()
+    coordinator.hass.states.get.return_value = MagicMock(
+        state="off",
+        attributes={
+            "hvac_modes": ["off", "cool", "fan_only"],
+            "fan_modes": ["ultra_high", "low", "high", "medium", "ultra_low"],
+        },
+    )
+    entity = RoomMindClimate(coordinator, "living_room")
+
+    assert entity.fan_modes == ["quiet", "low", "medium", "high", "turbo"]
+    assert entity.fan_mode == "quiet"
+
+    await entity.async_set_fan_mode("turbo")
+
+    store.async_update_room.assert_awaited_once_with("living_room", {"room_fan_mode": "ultra_low"})
+
+
 def test_canonical_fan_only_and_off_keep_last_temperature_target(mock_coordinator):
     """Inactive modes keep a stable thermal target for HA/HomeKit clients."""
     coordinator, store = mock_coordinator

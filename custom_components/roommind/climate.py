@@ -26,7 +26,13 @@ from .const import (
 )
 from .control.mpc_controller import async_turn_off_climate, resolve_hvac_mode
 from .coordinator import RoomMindCoordinator, _get_room_display_name
-from .managers.room_climate import RoomClimateCapabilities, room_capabilities
+from .managers.room_climate import (
+    RoomClimateCapabilities,
+    _shared_ac_modes,
+    fan_mode_from_physical,
+    fan_mode_to_physical,
+    room_capabilities,
+)
 from .utils.device_utils import get_ac_eids, get_all_entity_ids, get_trv_eids
 from .utils.temp_utils import celsius_to_ha_temp, quantize_temperature_for_entity
 
@@ -274,6 +280,7 @@ class RoomMindClimate(RoomMindOverrideClimate):
 
     _attr_entity_registry_enabled_default = True
     _attr_icon = "mdi:home-thermometer"
+    _attr_translation_key = "room_climate"
 
     def __init__(self, coordinator: RoomMindCoordinator, area_id: str) -> None:
         CoordinatorEntity.__init__(self, coordinator)
@@ -284,6 +291,9 @@ class RoomMindClimate(RoomMindOverrideClimate):
 
     def _capabilities(self) -> RoomClimateCapabilities:
         return room_capabilities(self.coordinator.hass, self._room() or {})
+
+    def _physical_fan_modes(self) -> tuple[str, ...]:
+        return _shared_ac_modes(self.coordinator.hass, self._room() or {}, "fan_modes")
 
     def _logical_targets(self) -> tuple[float, float]:
         room = self._room() or {}
@@ -417,12 +427,16 @@ class RoomMindClimate(RoomMindOverrideClimate):
     @property
     def fan_mode(self) -> str | None:
         fan_mode = (self._room() or {}).get("room_fan_mode")
+        if fan_mode:
+            fan_mode = fan_mode_from_physical(self._physical_fan_modes(), fan_mode)
         return fan_mode if fan_mode in self._capabilities().fan_modes else None
 
     @property
     def extra_state_attributes(self) -> dict[str, str]:
         """Expose a saved fan setting that cannot apply in the current HVAC mode."""
         fan_mode = (self._room() or {}).get("room_fan_mode")
+        if fan_mode:
+            fan_mode = fan_mode_from_physical(self._physical_fan_modes(), fan_mode)
         if fan_mode and fan_mode not in self._capabilities().fan_modes:
             return {"fan_mode_unavailable": fan_mode}
         return {}
@@ -679,7 +693,12 @@ class RoomMindClimate(RoomMindOverrideClimate):
     async def async_set_fan_mode(self, fan_mode: str) -> None:
         if fan_mode not in self._capabilities().fan_modes:
             raise ValueError(f"Unsupported fan mode: {fan_mode}")
-        await self._set_ac_option("room_fan_mode", "set_fan_mode", "fan_mode", fan_mode)
+        await self._set_ac_option(
+            "room_fan_mode",
+            "set_fan_mode",
+            "fan_mode",
+            fan_mode_to_physical(self._physical_fan_modes(), fan_mode),
+        )
         await self.coordinator.async_request_refresh()
 
     async def async_set_swing_mode(self, swing_mode: str) -> None:
