@@ -101,6 +101,7 @@ def test_canonical_mixed_room_capabilities_and_logical_cooling_target(mock_coord
     assert entity.hvac_mode == HVACMode.COOL
     assert entity.target_temperature == 26.0
     assert entity.fan_modes == ["low", "high"]
+    assert entity.supported_features & ClimateEntityFeature.FAN_MODE
 
 
 def test_canonical_multi_ac_uses_only_shared_fan_modes(mock_coordinator):
