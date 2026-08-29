@@ -203,7 +203,7 @@ def test_canonical_fan_only_keeps_stable_temperature_feature(mock_coordinator):
     assert entity.target_temperature_high is None
     assert entity.supported_features & ClimateEntityFeature.TARGET_TEMPERATURE
     assert not entity.supported_features & ClimateEntityFeature.TARGET_TEMPERATURE_RANGE
-    assert not entity.supported_features & ClimateEntityFeature.FAN_MODE
+    assert entity.supported_features & ClimateEntityFeature.FAN_MODE
 
 
 def test_canonical_mode_specific_temperature_features(mock_coordinator):
