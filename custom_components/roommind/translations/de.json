@@ -35,6 +35,20 @@
           }
         }
       }
+    },
+    "select": {
+      "dry_entity_type": {
+        "name": "{room} – Darstellung des Entfeuchtungsmodus",
+        "state": {
+          "humidifier": "Entfeuchter",
+          "switch": "Schalter"
+        }
+      }
+    },
+    "humidifier": {
+      "dry_dehumidifier": {
+        "name": "{room} Entfeuchter"
+      }
     }
   }
 }

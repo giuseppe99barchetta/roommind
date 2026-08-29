@@ -138,6 +138,7 @@ ROOM_ENTITY_SUFFIXES = (
     "_mode",
     "_climate_control",
     "_dehumidification",
+    "_dry_entity_type",
     "_fan",
     "_cover_auto",
     "_cover_paused",
@@ -278,6 +279,8 @@ class RoomMindCoordinator(DataUpdateCoordinator):
         self._switch_entity_areas: set[str] = set()
         self._climate_control_switch_areas: set[str] = set()
         self._dry_switch_entity_areas: set[str] = set()
+        self._dry_humidifier_entity_areas: set[str] = set()
+        self._dry_entity_type_select_areas: set[str] = set()
         self._binary_sensor_entity_areas: set[str] = set()
         self._climate_entity_areas: set[str] = set()
         self._fan_entity_areas: set[str] = set()
@@ -286,6 +289,8 @@ class RoomMindCoordinator(DataUpdateCoordinator):
         # Entity platform callbacks, set by platform async_setup_entry
         self.async_add_entities: Any = None
         self.async_add_switch_entities: Any = None
+        self.async_add_humidifier_entities: Any = None
+        self.async_add_select_entities: Any = None
         self.async_add_climate_entities: Any = None
         self.async_add_fan_entities: Any = None
         self.async_add_binary_sensor_entities: Any = None
@@ -2265,16 +2270,13 @@ class RoomMindCoordinator(DataUpdateCoordinator):
             self.async_add_switch_entities([RoomMindClimateControlSwitch(self, area_id)])
             self._climate_control_switch_areas.add(area_id)
 
-        if (
-            not room.get("is_outdoor", False)
-            and get_ac_eids(room.get("devices", []))
-            and area_id not in self._dry_switch_entity_areas
-            and self.async_add_switch_entities
-        ):
-            from .switch import RoomMindDrySwitch
+        if not room.get("is_outdoor", False) and get_ac_eids(room.get("devices", [])):
+            if area_id not in self._dry_entity_type_select_areas and self.async_add_select_entities:
+                from .select import RoomMindDryEntityTypeSelect
 
-            self.async_add_switch_entities([RoomMindDrySwitch(self, area_id)])
-            self._dry_switch_entity_areas.add(area_id)
+                self.async_add_select_entities([RoomMindDryEntityTypeSelect(self, area_id)])
+                self._dry_entity_type_select_areas.add(area_id)
+            await self._async_sync_dry_entity(area_id, room)
 
         # Cover entities: only create when covers are configured.
         # Not removed on save — cleanup_orphaned_entities() handles that at startup
@@ -2300,6 +2302,33 @@ class RoomMindCoordinator(DataUpdateCoordinator):
                 self._binary_sensor_entity_areas.add(area_id)
 
         await self.async_request_refresh()
+
+    async def _async_sync_dry_entity(self, area_id: str, room: dict) -> None:
+        """Create the selected Dry endpoint and remove the other representation."""
+        from homeassistant.helpers import entity_registry as er
+
+        selected_type = room.get("dry_entity_type", "switch")
+        other_type = "humidifier" if selected_type == "switch" else "switch"
+        other_entity_id = f"{other_type}.{DOMAIN}_{area_id}_dehumidification"
+        registry = er.async_get(self.hass)
+        if registry.async_get(other_entity_id):
+            registry.async_remove(other_entity_id)
+
+        if selected_type == "humidifier":
+            self._dry_switch_entity_areas.discard(area_id)
+            if area_id not in self._dry_humidifier_entity_areas and self.async_add_humidifier_entities:
+                from .humidifier import RoomMindDryDehumidifier
+
+                self.async_add_humidifier_entities([RoomMindDryDehumidifier(self, area_id)])
+                self._dry_humidifier_entity_areas.add(area_id)
+            return
+
+        self._dry_humidifier_entity_areas.discard(area_id)
+        if area_id not in self._dry_switch_entity_areas and self.async_add_switch_entities:
+            from .switch import RoomMindDrySwitch
+
+            self.async_add_switch_entities([RoomMindDrySwitch(self, area_id)])
+            self._dry_switch_entity_areas.add(area_id)
 
     async def async_room_removed(self, area_id: str) -> None:
         """Remove sensor entities for a deleted room and refresh data."""
@@ -2338,6 +2367,8 @@ class RoomMindCoordinator(DataUpdateCoordinator):
         self._switch_entity_areas.discard(area_id)
         self._climate_control_switch_areas.discard(area_id)
         self._dry_switch_entity_areas.discard(area_id)
+        self._dry_humidifier_entity_areas.discard(area_id)
+        self._dry_entity_type_select_areas.discard(area_id)
         self._binary_sensor_entity_areas.discard(area_id)
         self._climate_entity_areas.discard(area_id)
         self._fan_entity_areas.discard(area_id)
@@ -2391,7 +2422,17 @@ class RoomMindCoordinator(DataUpdateCoordinator):
             if suffix in ENERGY_ENTITY_SUFFIXES and not _room_has_power_sensor(rooms[area_id]):
                 # Energy sensors are invalid without an explicitly configured AC power sensor.
                 to_remove.append(entity_entry.entity_id)
-            if suffix in ("_dehumidification", "_fan") and not get_ac_eids(rooms[area_id].get("devices", [])):
+            if suffix == "_dehumidification":
+                room = rooms[area_id]
+                expected_domain = room.get("dry_entity_type", "switch")
+                if (
+                    not get_ac_eids(room.get("devices", []))
+                    or entity_entry.entity_id.split(".", 1)[0] != expected_domain
+                ):
+                    to_remove.append(entity_entry.entity_id)
+            if suffix == "_dry_entity_type" and not get_ac_eids(rooms[area_id].get("devices", [])):
+                to_remove.append(entity_entry.entity_id)
+            if suffix == "_fan" and not get_ac_eids(rooms[area_id].get("devices", [])):
                 to_remove.append(entity_entry.entity_id)
 
         for eid in to_remove:

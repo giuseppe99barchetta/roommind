@@ -35,6 +35,20 @@
           }
         }
       }
+    },
+    "select": {
+      "dry_entity_type": {
+        "name": "{room} Dry mode appearance",
+        "state": {
+          "humidifier": "Dehumidifier",
+          "switch": "Switch"
+        }
+      }
+    },
+    "humidifier": {
+      "dry_dehumidifier": {
+        "name": "{room} Dehumidifier"
+      }
     }
   }
 }

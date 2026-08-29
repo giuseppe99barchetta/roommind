@@ -36,6 +36,15 @@ def _room_has_ac(room: dict) -> bool:
     return bool(get_ac_eids(room.get("devices", [])))
 
 
+def _dry_entity_type(room: dict) -> str:
+    """Return the configured Home Assistant representation of Dry mode.
+
+    Existing stored rooms predate this setting and retain their switch
+    representation for backwards compatibility.
+    """
+    return room.get("dry_entity_type", "switch")
+
+
 async def async_setup_entry(
     hass: HomeAssistant,
     entry: ConfigEntry,
@@ -57,7 +66,7 @@ async def async_setup_entry(
         # state update.  Create the endpoint from the configured AC so it is
         # discoverable by HomeKit immediately; availability stays tied to the
         # live dry capability.
-        if _room_has_ac(room):
+        if _room_has_ac(room) and _dry_entity_type(room) == "switch":
             entities.append(RoomMindDrySwitch(coordinator, area_id))
             coordinator._dry_switch_entity_areas.add(area_id)
         if room.get("covers"):
@@ -147,7 +156,7 @@ class RoomMindDrySwitch(CoordinatorEntity, SwitchEntity):
     @property
     def available(self) -> bool:
         room = self.coordinator.hass.data[DOMAIN]["store"].get_room(self._area_id) or {}
-        return _room_supports_dry(self.coordinator.hass, room)
+        return _dry_entity_type(room) == "switch" and _room_supports_dry(self.coordinator.hass, room)
 
     @property
     def is_on(self) -> bool:

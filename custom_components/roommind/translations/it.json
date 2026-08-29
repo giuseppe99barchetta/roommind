@@ -11,6 +11,20 @@
           }
         }
       }
+    },
+    "select": {
+      "dry_entity_type": {
+        "name": "{room} — visualizzazione modalità Dry",
+        "state": {
+          "humidifier": "Deumidificatore",
+          "switch": "Interruttore"
+        }
+      }
+    },
+    "humidifier": {
+      "dry_dehumidifier": {
+        "name": "Deumidificatore {room}"
+      }
     }
   }
 }

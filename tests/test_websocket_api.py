@@ -505,11 +505,32 @@ async def test_save_room_minimal_only_area_id(ws_hass, store, connection):
     assert room["acs"] == []
     assert room["temperature_sensor"] == ""
     assert room["humidity_sensor"] == ""
+    assert room["dry_entity_type"] == "humidifier"
     assert room["climate_mode"] == "auto"
     assert room["schedules"] == []
     assert room["schedule_selector_entity"] == ""
     assert room["comfort_temp"] == 21.0
     assert room["eco_temp"] == 17.0
+
+
+@pytest.mark.asyncio
+async def test_save_room_accepts_dry_entity_type(ws_hass, store, connection):
+    """The Dry endpoint representation can be configured per room."""
+    await store.async_load()
+
+    await _save_room(
+        ws_hass,
+        connection,
+        {
+            "id": 2,
+            "type": "roommind/rooms/save",
+            "area_id": "hallway",
+            "dry_entity_type": "switch",
+        },
+    )
+
+    room = connection.send_result.call_args[0][1]["room"]
+    assert room["dry_entity_type"] == "switch"
 
 
 @pytest.mark.asyncio
