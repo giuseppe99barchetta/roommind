@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from typing import Any
+
 from homeassistant.components.climate import HVACMode
 from homeassistant.components.fan import FanEntity, FanEntityFeature
 from homeassistant.config_entries import ConfigEntry
@@ -83,11 +85,22 @@ class RoomMindFan(CoordinatorEntity, FanEntity):
         speeds = self._speed_modes()
         return ordered_list_item_to_percentage(speeds, mode) if mode in speeds else None
 
-    async def async_turn_on(self, **kwargs: object) -> None:
-        await self._climate().async_set_hvac_mode(HVACMode.FAN_ONLY)
-        percentage = kwargs.get("percentage")
-        if isinstance(percentage, int) and percentage > 0:
+    @property
+    def speed_count(self) -> int:
+        """Return the number of discrete speeds exposed by the AC."""
+        return len(self._speed_modes())
+
+    async def async_turn_on(
+        self,
+        percentage: int | None = None,
+        preset_mode: str | None = None,
+        **kwargs: Any,
+    ) -> None:
+        """Turn on fan-only, applying a requested speed before activation."""
+        if percentage is not None and percentage > 0:
             await self.async_set_percentage(percentage)
+            return
+        await self._climate().async_set_hvac_mode(HVACMode.FAN_ONLY)
 
     async def async_turn_off(self, **kwargs: object) -> None:
         if self.is_on:
@@ -100,4 +113,10 @@ class RoomMindFan(CoordinatorEntity, FanEntity):
         speeds = self._speed_modes()
         if not speeds:
             return
-        await self._climate().async_set_fan_mode(percentage_to_ordered_list_item(speeds, percentage))
+        climate = self._climate()
+        await climate.async_set_fan_mode(percentage_to_ordered_list_item(speeds, percentage))
+        if not self.is_on:
+            # HomeKit sends Active and RotationSpeed together and expects the
+            # speed write itself to start the fan. Saving the desired mode
+            # first lets RoomMind apply it as part of the FAN_ONLY activation.
+            await climate.async_set_hvac_mode(HVACMode.FAN_ONLY)

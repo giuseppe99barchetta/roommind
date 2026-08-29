@@ -38,6 +38,7 @@ def test_fan_exposes_speed_and_fan_only_state(mock_coordinator):
 
     assert entity.is_on is True
     assert entity.percentage == 33
+    assert entity.speed_count == 3
     assert entity.supported_features & FanEntityFeature.SET_SPEED
     assert entity.entity_registry_enabled_default is False
 
@@ -57,17 +58,17 @@ async def test_fan_speed_is_forwarded_while_fan_only(mock_coordinator):
 
 
 @pytest.mark.asyncio
-async def test_fan_turn_on_applies_a_requested_speed(mock_coordinator):
+async def test_fan_speed_starts_fan_only_when_off(mock_coordinator):
     mock_coordinator.hass.data[DOMAIN]["store"].get_room.return_value = _room(room_hvac_mode="off")
     mock_coordinator.hass.states.get.return_value = _state(mode="off")
     climate = MagicMock(async_set_hvac_mode=AsyncMock(), async_set_fan_mode=AsyncMock())
     entity = RoomMindFan(mock_coordinator, "living_room")
     entity._climate = MagicMock(return_value=climate)
 
-    await entity.async_turn_on(percentage=100)
+    await entity.async_set_percentage(100)
 
-    climate.async_set_hvac_mode.assert_awaited_once_with("fan_only")
     climate.async_set_fan_mode.assert_awaited_once_with("high")
+    climate.async_set_hvac_mode.assert_awaited_once_with("fan_only")
 
 
 @pytest.mark.asyncio
