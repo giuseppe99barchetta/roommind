@@ -630,5 +630,19 @@
   "card.comfort_good": "Good comfort",
   "card.comfort_fair": "Comfort needs attention",
   "card.comfort_poor": "Poor comfort",
-  "card.issues": "{count} active room issue(s)"
+  "card.issues": "{count} active room issue(s)",
+  "room.section.comfort": "Comfort & profiles",
+  "comfort.profiles": "Active comfort profile",
+  "comfort.profile.default": "Scheduled",
+  "comfort.profile.work": "Work",
+  "comfort.profile.sleep": "Sleep",
+  "comfort.profile.guests": "Guests",
+  "comfort.profile.away": "Away",
+  "comfort.night_mode": "Night mode",
+  "comfort.night_mode_hint": "Gradually adjusts the room targets during the selected night period.",
+  "comfort.night_start": "Start",
+  "comfort.night_end": "End",
+  "comfort.night_heat_delta": "Heating offset (°C)",
+  "comfort.night_cool_delta": "Cooling offset (°C)",
+  "comfort.night_ramp": "Transition time (min)"
 }

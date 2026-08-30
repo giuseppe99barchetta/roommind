@@ -35,5 +35,19 @@
   "card.comfort_good": "Comfort buono",
   "card.comfort_fair": "Il comfort richiede attenzione",
   "card.comfort_poor": "Comfort scarso",
-  "card.issues": "{count} problema/i attivo/i nella stanza"
+  "card.issues": "{count} problema/i attivo/i nella stanza",
+  "room.section.comfort": "Comfort e profili",
+  "comfort.profiles": "Profilo comfort attivo",
+  "comfort.profile.default": "Programmazione",
+  "comfort.profile.work": "Lavoro",
+  "comfort.profile.sleep": "Sonno",
+  "comfort.profile.guests": "Ospiti",
+  "comfort.profile.away": "Assente",
+  "comfort.night_mode": "Modalità notte",
+  "comfort.night_mode_hint": "Regola gradualmente i setpoint della stanza nell'orario notturno selezionato.",
+  "comfort.night_start": "Inizio",
+  "comfort.night_end": "Fine",
+  "comfort.night_heat_delta": "Riduzione riscaldamento (°C)",
+  "comfort.night_cool_delta": "Aumento raffrescamento (°C)",
+  "comfort.night_ramp": "Durata transizione (min)"
 }

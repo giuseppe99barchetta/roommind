@@ -161,6 +161,13 @@ export interface RoomConfig {
   comfort_cool: number;
   eco_heat: number;
   eco_cool: number;
+  active_profile?: "" | "work" | "sleep" | "guests" | "away";
+  night_mode_enabled?: boolean;
+  night_start?: string;
+  night_end?: string;
+  night_heat_delta?: number;
+  night_cool_delta?: number;
+  night_ramp_minutes?: number;
   override_heat?: number | null;
   override_cool?: number | null;
   override_until?: number | null;

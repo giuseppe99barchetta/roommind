@@ -20,6 +20,7 @@ import "./rs-device-section";
 import "./rs-sensor-section";
 import "./rs-section-card";
 import "./rs-override-section";
+import "./rs-comfort-section";
 import "./rs-presence-section";
 import "./rs-covers-section";
 import "./rs-heat-source-section";
@@ -63,6 +64,13 @@ export class RsRoomDetail extends LitElement {
   @state() private _comfortCool = 24.0;
   @state() private _ecoHeat = 17.0;
   @state() private _ecoCool = 27.0;
+  @state() private _activeProfile = "";
+  @state() private _nightModeEnabled = false;
+  @state() private _nightStart = "22:00";
+  @state() private _nightEnd = "07:00";
+  @state() private _nightHeatDelta = -0.5;
+  @state() private _nightCoolDelta = 0.5;
+  @state() private _nightRampMinutes = 60;
   @state() private _error = "";
   @state() private _dirty = false;
   @state() private _editing: EditableSection | null = null;
@@ -112,25 +120,15 @@ export class RsRoomDetail extends LitElement {
     }
 
     .detail-grid {
-      column-count: 3;
-      column-width: 360px;
-      column-gap: 16px;
-      column-fill: balance;
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(min(100%, 340px), 1fr));
+      gap: 16px;
+      align-items: start;
     }
 
-    .detail-grid > * {
-      display: block;
-      width: 100%;
-      break-inside: avoid;
-      page-break-inside: avoid;
-      margin-bottom: 16px;
-    }
+    .detail-grid > * { min-width: 0; }
 
-    @media (min-width: 1900px) {
-      .detail-grid {
-        column-count: 4;
-      }
-    }
+    .wide-card { grid-column: 1 / -1; }
 
     /* Section cards handled by rs-section-card */
 
@@ -272,6 +270,13 @@ export class RsRoomDetail extends LitElement {
       this._comfortCool = this.config.comfort_cool ?? 24.0;
       this._ecoHeat = this.config.eco_heat ?? this.config.eco_temp ?? 17.0;
       this._ecoCool = this.config.eco_cool ?? 27.0;
+      this._activeProfile = this.config.active_profile ?? "";
+      this._nightModeEnabled = this.config.night_mode_enabled ?? false;
+      this._nightStart = this.config.night_start ?? "22:00";
+      this._nightEnd = this.config.night_end ?? "07:00";
+      this._nightHeatDelta = this.config.night_heat_delta ?? -0.5;
+      this._nightCoolDelta = this.config.night_cool_delta ?? 0.5;
+      this._nightRampMinutes = this.config.night_ramp_minutes ?? 60;
       this._selectedPresencePersons = this.config.presence_persons ?? [];
       this._displayName = this.config.display_name ?? "";
       this._selectedCovers = new Set(this.config.covers ?? []);
@@ -315,6 +320,13 @@ export class RsRoomDetail extends LitElement {
       this._comfortCool = 24.0;
       this._ecoHeat = 17.0;
       this._ecoCool = 27.0;
+      this._activeProfile = "";
+      this._nightModeEnabled = false;
+      this._nightStart = "22:00";
+      this._nightEnd = "07:00";
+      this._nightHeatDelta = -0.5;
+      this._nightCoolDelta = 0.5;
+      this._nightRampMinutes = 60;
       this._selectedPresencePersons = [];
       this._displayName = "";
       this._selectedCovers = new Set();
@@ -469,6 +481,23 @@ export class RsRoomDetail extends LitElement {
                       `
                     : nothing}
                 </rs-section-card>
+
+                <rs-section-card
+                  icon="mdi:heart-outline"
+                  .heading=${localize("room.section.comfort", this.hass.language)}
+                >
+                  <rs-comfort-section
+                    .hass=${this.hass}
+                    .activeProfile=${this._activeProfile}
+                    .nightModeEnabled=${this._nightModeEnabled}
+                    .nightStart=${this._nightStart}
+                    .nightEnd=${this._nightEnd}
+                    .nightHeatDelta=${this._nightHeatDelta}
+                    .nightCoolDelta=${this._nightCoolDelta}
+                    .nightRampMinutes=${this._nightRampMinutes}
+                    @setting-changed=${this._onComfortSettingChanged}
+                  ></rs-comfort-section>
+                </rs-section-card>
               `
             : nothing}
           ${!this._isOutdoor
@@ -542,7 +571,8 @@ export class RsRoomDetail extends LitElement {
                   : nothing}
               `
             : nothing}
-          ${!this._isOutdoor
+          ${!this._isOutdoor &&
+          (this._selectedCovers.size > 0 || this._coversAutoEnabled || this._coverSchedules.length > 0)
             ? html`<rs-section-card
                 icon="mdi:blinds-horizontal"
                 .heading=${localize("room.section.covers", this.hass.language)}
@@ -611,15 +641,16 @@ export class RsRoomDetail extends LitElement {
             .checked=${this._isOutdoor}
             @toggle-changed=${this._onOutdoorToggle}
           ></rs-toggle-card>
-        </div>
-        ${!this._isOutdoor && this.config
-          ? html`<rs-room-insights
+          ${!this._isOutdoor && this.config
+            ? html`<rs-room-insights
+              class="wide-card"
               .hass=${this.hass}
               .readiness=${this.config.readiness}
               .decisionReasons=${this.config.live?.decision_reasons ?? []}
               .comfortScore=${this.config.live?.comfort_score}
             ></rs-room-insights>`
-          : nothing}
+            : nothing}
+        </div>
         ${this._error ? html`<div class="error">${this._error}</div>` : nothing}
         ${this._renderEditDialog()}
       </div>
@@ -998,6 +1029,19 @@ export class RsRoomDetail extends LitElement {
     this._autoSave();
   }
 
+  private _onComfortSettingChanged(e: CustomEvent<{ key: string; value: string | number | boolean }>) {
+    const { key, value } = e.detail;
+    e.stopPropagation();
+    if (key === "active_profile") this._activeProfile = value as string;
+    else if (key === "night_mode_enabled") this._nightModeEnabled = value as boolean;
+    else if (key === "night_start") this._nightStart = value as string;
+    else if (key === "night_end") this._nightEnd = value as string;
+    else if (key === "night_heat_delta") this._nightHeatDelta = value as number;
+    else if (key === "night_cool_delta") this._nightCoolDelta = value as number;
+    else if (key === "night_ramp_minutes") this._nightRampMinutes = value as number;
+    this._autoSave();
+  }
+
   // ---- Cover event handlers ----
 
   private _onCoversToggle(e: CustomEvent<{ entityId: string; checked: boolean }>) {
@@ -1121,6 +1165,13 @@ export class RsRoomDetail extends LitElement {
         comfort_cool: this._comfortCool,
         eco_heat: this._ecoHeat,
         eco_cool: this._ecoCool,
+        active_profile: this._activeProfile,
+        night_mode_enabled: this._nightModeEnabled,
+        night_start: this._nightStart,
+        night_end: this._nightEnd,
+        night_heat_delta: this._nightHeatDelta,
+        night_cool_delta: this._nightCoolDelta,
+        night_ramp_minutes: this._nightRampMinutes,
         presence_persons: this._selectedPresencePersons.filter((p) => p),
         display_name: this._displayName,
         covers: [...this._selectedCovers],
