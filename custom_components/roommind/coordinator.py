@@ -36,6 +36,7 @@ from .const import (
     OUTDOOR_UNAVAILABLE_NOTIFICATION_ID,
     OUTDOOR_UNAVAILABLE_NOTIFY_CYCLES,
     SCHEDULE_STATE_ON,
+    SENSOR_STALE_REPAIR_DELAY,
     THERMAL_SAVE_CYCLES,
     UPDATE_INTERVAL,
     TargetTemps,
@@ -1892,7 +1893,7 @@ class RoomMindCoordinator(DataUpdateCoordinator):
         sensor_state = self.hass.states.get(sensor_id) if sensor_id else None
         updated_at = getattr(sensor_state, "last_reported", None) or getattr(sensor_state, "last_updated", None)
         timestamp = updated_at.timestamp() if updated_at is not None else None
-        stale = isinstance(timestamp, (int, float)) and (time.time() - timestamp) > MAX_SENSOR_STALENESS * 3
+        stale = isinstance(timestamp, (int, float)) and (time.time() - timestamp) > SENSOR_STALE_REPAIR_DELAY
         # Home Assistant may still be restoring entity state when RoomMind
         # starts.  Match the control startup guard so a stale historical
         # timestamp cannot immediately create a false sensor repair.

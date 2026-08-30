@@ -10,7 +10,7 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
-from custom_components.roommind.const import MAX_SENSOR_STALENESS, MODE_IDLE, TargetTemps
+from custom_components.roommind.const import MAX_SENSOR_STALENESS, MODE_IDLE, SENSOR_STALE_REPAIR_DELAY, TargetTemps
 
 from .conftest import (
     MANAGED_ROOM,
@@ -246,7 +246,7 @@ def test_sensor_stale_repair_waits_for_startup_grace_period(hass, mock_config_en
     area_id = "living_room_abc12345"
     stale_sensor = SimpleNamespace(
         state="20.0",
-        last_reported=datetime.now(UTC) - timedelta(seconds=MAX_SENSOR_STALENESS * 3 + 1),
+        last_reported=datetime.now(UTC) - timedelta(seconds=SENSOR_STALE_REPAIR_DELAY + 1),
         last_updated=None,
     )
     hass.states.get = MagicMock(return_value=stale_sensor)
@@ -261,3 +261,21 @@ def test_sensor_stale_repair_waits_for_startup_grace_period(hass, mock_config_en
         area_id, SAMPLE_ROOM, 20.0, None, TargetTemps(heat=21.0, cool=24.0), MODE_IDLE
     )
     assert any(anomaly["type"] == "sensor_stale" for anomaly in anomalies)
+
+
+def test_sensor_stale_repair_tolerates_normal_reporting_cadence(hass, mock_config_entry):
+    """A valid battery sensor is not stale merely because it has not changed for 15 minutes."""
+    coordinator = _create_coordinator(hass, mock_config_entry)
+    coordinator._startup_ts = time.monotonic() - MAX_SENSOR_STALENESS - 1
+    hass.states.get = MagicMock(
+        return_value=SimpleNamespace(
+            state="20.0",
+            last_reported=datetime.now(UTC) - timedelta(seconds=SENSOR_STALE_REPAIR_DELAY - 1),
+            last_updated=None,
+        )
+    )
+
+    anomalies = coordinator._room_anomalies(
+        "living_room_abc12345", SAMPLE_ROOM, 20.0, None, TargetTemps(heat=21.0, cool=24.0), MODE_IDLE
+    )
+    assert not any(anomaly["type"] == "sensor_stale" for anomaly in anomalies)

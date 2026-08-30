@@ -91,6 +91,11 @@ UPDATE_INTERVAL = 30
 # before falling back to idle (~10 coordinator cycles at 30s).
 MAX_SENSOR_STALENESS = 300
 
+# Repairs should tolerate the normal reporting cadence of battery-powered
+# temperature sensors.  This is deliberately independent from the short
+# control-safety cache above.
+SENSOR_STALE_REPAIR_DELAY = 3600
+
 # Coordinator throttle intervals (in cycles of UPDATE_INTERVAL)
 HISTORY_WRITE_CYCLES = 6  # ~3 min at 30s cycle
 THERMAL_SAVE_CYCLES = 30  # ~15 min
