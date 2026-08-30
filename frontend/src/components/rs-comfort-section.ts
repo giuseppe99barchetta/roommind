@@ -22,18 +22,21 @@ export class RsComfortSection extends LitElement {
     :host { display: block; }
     .profile-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
     button {
-      border: 1px solid var(--divider-color, #444);
-      border-radius: 8px;
-      padding: 9px 10px;
+      border: 1px solid var(--divider-color, rgba(127, 127, 127, .35));
+      border-radius: 10px;
+      padding: 10px;
       color: var(--primary-text-color);
-      background: var(--secondary-background-color, rgba(127, 127, 127, 0.08));
+      background: transparent;
       cursor: pointer;
       font: inherit;
       font-size: 13px;
+      transition: background .15s ease, border-color .15s ease, color .15s ease;
     }
-    button.active { border-color: var(--primary-color); color: var(--primary-color); background: color-mix(in srgb, var(--primary-color) 12%, transparent); }
-    .profile-label { margin: 0 0 10px; color: var(--secondary-text-color); font-size: 12px; text-transform: uppercase; letter-spacing: .04em; }
-    .night { margin-top: 18px; padding-top: 14px; border-top: 1px solid var(--divider-color); }
+    button:hover { background: var(--secondary-background-color, rgba(127, 127, 127, .08)); }
+    button.active { border-color: var(--primary-color); color: var(--primary-color); background: color-mix(in srgb, var(--primary-color) 10%, transparent); }
+    button.default { grid-column: 1 / -1; }
+    .profile-label { margin: 0 0 10px; color: var(--secondary-text-color); font-size: 11px; text-transform: uppercase; letter-spacing: .06em; }
+    .night { margin-top: 20px; padding: 14px; border: 1px solid var(--divider-color); border-radius: 10px; background: var(--secondary-background-color, rgba(127, 127, 127, .05)); }
     .night-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; margin-top: 14px; }
     label { display: grid; gap: 5px; color: var(--secondary-text-color); font-size: 12px; }
     input { min-width: 0; box-sizing: border-box; width: 100%; padding: 8px; border: 1px solid var(--divider-color); border-radius: 6px; color: var(--primary-text-color); background: var(--card-background-color, transparent); font: inherit; }
@@ -47,7 +50,7 @@ export class RsComfortSection extends LitElement {
       <div class="profile-grid">
         ${PROFILES.map(
           (profile) => html`<button
-            class=${this.activeProfile === profile ? "active" : ""}
+            class=${`${profile ? "" : "default"} ${this.activeProfile === profile ? "active" : ""}`}
             @click=${() => this._emit("active_profile", profile)}
           >${localize(`comfort.profile.${profile || "default"}`, l)}</button>`,
         )}

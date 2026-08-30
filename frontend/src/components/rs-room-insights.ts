@@ -38,12 +38,17 @@ export class RsRoomInsights extends LitElement {
     ha-card {
       padding: 18px;
     }
+    .insights-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 24px;
+    }
     h3 {
       margin: 0 0 10px;
       font-size: 16px;
     }
     .subheading {
-      margin-top: 18px;
+      margin-top: 0;
     }
     .decision,
     .check {
@@ -87,6 +92,9 @@ export class RsRoomInsights extends LitElement {
     .comfort-score.poor ha-icon {
       color: var(--error-color, #db4437);
     }
+    @media (max-width: 680px) {
+      .insights-grid { grid-template-columns: 1fr; gap: 16px; }
+    }
   `;
 
   render() {
@@ -94,29 +102,32 @@ export class RsRoomInsights extends LitElement {
     const reasons = this.decisionReasons.length ? this.decisionReasons : ["mode_idle"];
     return html`
       <ha-card>
-        <h3>${localize("insights.decision.title", language)}</h3>
-        ${this.comfortScore
-          ? html`
-              <div class="comfort-score ${this.comfortScore.label}">
-                <ha-icon icon="mdi:heart"></ha-icon>
-                ${localize("card.comfort_score", language, { score: this.comfortScore.score })}
-              </div>
-            `
-          : nothing}
-        ${reasons
-          .slice(0, 3)
-          .map(
-            (reason) => html`
-              <div class="decision">
-                <ha-icon icon="mdi:information-outline"></ha-icon>${localize(
-                  DECISION_KEYS[reason] ?? "insights.decision.mode_idle",
-                  language,
-                )}
-              </div>
-            `,
-          )}
-        ${this.readiness
-          ? html`
+        <div class="insights-grid">
+          <section>
+            <h3>${localize("insights.decision.title", language)}</h3>
+            ${this.comfortScore
+              ? html`
+                  <div class="comfort-score ${this.comfortScore.label}">
+                    <ha-icon icon="mdi:heart"></ha-icon>
+                    ${localize("card.comfort_score", language, { score: this.comfortScore.score })}
+                  </div>
+                `
+              : nothing}
+            ${reasons
+              .slice(0, 3)
+              .map(
+                (reason) => html`
+                  <div class="decision">
+                    <ha-icon icon="mdi:information-outline"></ha-icon>${localize(
+                      DECISION_KEYS[reason] ?? "insights.decision.mode_idle",
+                      language,
+                    )}
+                  </div>
+                `,
+              )}
+          </section>
+          ${this.readiness
+            ? html`<section>
               <h3 class="subheading">${localize("insights.readiness.title", language)}</h3>
               <div class="summary">
                 ${localize(
@@ -142,8 +153,9 @@ export class RsRoomInsights extends LitElement {
                   </div>
                 `,
               )}
-            `
-          : nothing}
+                </section>`
+            : nothing}
+        </div>
       </ha-card>
     `;
   }

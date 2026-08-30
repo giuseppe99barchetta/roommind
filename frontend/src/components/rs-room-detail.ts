@@ -25,7 +25,6 @@ import "./rs-presence-section";
 import "./rs-covers-section";
 import "./rs-heat-source-section";
 import "../components/shared/rs-toggle-row";
-import "../components/shared/rs-toggle-card";
 import "../components/shared/rs-edit-dialog";
 import "../components/shared/rs-info-icon";
 import { localize } from "../utils/localize";
@@ -121,14 +120,29 @@ export class RsRoomDetail extends LitElement {
 
     .detail-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(min(100%, 340px), 1fr));
+      grid-template-columns: repeat(12, minmax(0, 1fr));
       gap: 16px;
       align-items: start;
     }
 
     .detail-grid > * { min-width: 0; }
 
-    .wide-card { grid-column: 1 / -1; }
+    .control-card, .comfort-card, .schedule-card { grid-column: span 4; }
+    .devices-card, .sensors-card { grid-column: span 6; }
+    .optional-card { grid-column: span 4; }
+    .insights-card { grid-column: 1 / -1; }
+
+    .control-card rs-toggle-row { margin-bottom: 16px; padding-bottom: 16px; border-bottom: 1px solid var(--divider-color); }
+
+    @media (max-width: 1050px) {
+      .control-card, .comfort-card, .schedule-card, .optional-card { grid-column: span 6; }
+      .devices-card, .sensors-card { grid-column: span 6; }
+    }
+
+    @media (max-width: 680px) {
+      .detail-grid { grid-template-columns: 1fr; }
+      .detail-grid > * { grid-column: 1; }
+    }
 
     /* Section cards handled by rs-section-card */
 
@@ -415,17 +429,10 @@ export class RsRoomDetail extends LitElement {
         <div class="detail-grid">
           ${!this._isOutdoor
             ? html`
-                <rs-toggle-card
-                  icon="mdi:power"
-                  .label=${localize("room.climate_control_toggle", this.hass.language)}
-                  .hint=${localize("room.climate_control_hint", this.hass.language)}
-                  .checked=${this._climateControlEnabled}
-                  @toggle-changed=${this._onClimateControlToggle}
-                ></rs-toggle-card>
-
                 <rs-section-card
-                  icon="mdi:cog"
-                  .heading=${localize("room.section.climate_mode", this.hass.language)}
+                  class="control-card"
+                  icon="mdi:tune-variant"
+                  .heading=${localize("room.climate_control_toggle", this.hass.language)}
                 >
                   <rs-info-icon slot="header-extras">
                     <b>${localize("mode.auto", this.hass.language)}</b> —
@@ -435,6 +442,12 @@ export class RsRoomDetail extends LitElement {
                     <b>${localize("mode.cool_only", this.hass.language)}</b> —
                     ${localize("mode.cool_only_desc", this.hass.language)}
                   </rs-info-icon>
+                  <rs-toggle-row
+                    .label=${localize("comfort.control_enabled", this.hass.language)}
+                    .hint=${localize("room.climate_control_hint", this.hass.language)}
+                    .checked=${this._climateControlEnabled}
+                    @toggle-changed=${this._onClimateControlToggle}
+                  ></rs-toggle-row>
                   <rs-climate-mode-selector
                     .climateMode=${this._climateMode}
                     .language=${this.hass.language}
@@ -443,6 +456,7 @@ export class RsRoomDetail extends LitElement {
                 </rs-section-card>
 
                 <rs-section-card
+                  class="schedule-card"
                   icon="mdi:calendar"
                   .heading=${localize("room.section.schedule", this.hass.language)}
                   editable
@@ -483,6 +497,7 @@ export class RsRoomDetail extends LitElement {
                 </rs-section-card>
 
                 <rs-section-card
+                  class="comfort-card"
                   icon="mdi:heart-outline"
                   .heading=${localize("room.section.comfort", this.hass.language)}
                 >
@@ -503,6 +518,7 @@ export class RsRoomDetail extends LitElement {
           ${!this._isOutdoor
             ? html`
                 <rs-section-card
+                  class="devices-card"
                   icon="mdi:power-plug"
                   .heading=${localize("room.section.devices", this.hass.language)}
                   editable
@@ -522,6 +538,7 @@ export class RsRoomDetail extends LitElement {
                 </rs-section-card>
 
                 <rs-section-card
+                  class="sensors-card"
                   icon="mdi:thermometer"
                   .heading=${localize("room.section.sensors", this.hass.language)}
                   editable
@@ -547,6 +564,7 @@ export class RsRoomDetail extends LitElement {
                 ${this.presenceEnabled &&
                 (this.presencePersons.length > 0 || this._selectedPresencePersons.length > 0)
                   ? html`<rs-section-card
+                      class="optional-card"
                       icon="mdi:home-account"
                       .heading=${localize("room.section.presence", this.hass.language)}
                       editable
@@ -574,6 +592,7 @@ export class RsRoomDetail extends LitElement {
           ${!this._isOutdoor &&
           (this._selectedCovers.size > 0 || this._coversAutoEnabled || this._coverSchedules.length > 0)
             ? html`<rs-section-card
+                class="optional-card"
                 icon="mdi:blinds-horizontal"
                 .heading=${localize("room.section.covers", this.hass.language)}
                 .badge=${localize("badge.beta", this.hass.language)}
@@ -617,6 +636,7 @@ export class RsRoomDetail extends LitElement {
           this._devices.some((d) => d.type === "trv") &&
           this._devices.some((d) => d.type === "ac")
             ? html`<rs-section-card
+                class="optional-card"
                 icon="mdi:swap-horizontal"
                 .heading=${localize("room.section.heat_source", this.hass.language)}
                 editable
@@ -634,16 +654,21 @@ export class RsRoomDetail extends LitElement {
               </rs-section-card>`
             : nothing}
 
-          <rs-toggle-card
+          <rs-section-card
+            class="optional-card"
             icon="mdi:tree"
-            .label=${localize("room.outdoor_toggle", this.hass.language)}
-            .hint=${localize("room.outdoor_hint", this.hass.language)}
-            .checked=${this._isOutdoor}
-            @toggle-changed=${this._onOutdoorToggle}
-          ></rs-toggle-card>
+            .heading=${localize("room.section.area", this.hass.language)}
+          >
+            <rs-toggle-row
+              .label=${localize("room.outdoor_toggle", this.hass.language)}
+              .hint=${localize("room.outdoor_hint", this.hass.language)}
+              .checked=${this._isOutdoor}
+              @toggle-changed=${this._onOutdoorToggle}
+            ></rs-toggle-row>
+          </rs-section-card>
           ${!this._isOutdoor && this.config
             ? html`<rs-room-insights
-              class="wide-card"
+              class="insights-card"
               .hass=${this.hass}
               .readiness=${this.config.readiness}
               .decisionReasons=${this.config.live?.decision_reasons ?? []}
