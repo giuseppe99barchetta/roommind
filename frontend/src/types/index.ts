@@ -68,6 +68,7 @@ export interface RoomLiveData {
     score: number;
     label: "excellent" | "good" | "fair" | "poor";
     factors: Record<string, number>;
+    breakdown: Record<string, { penalty: number; status: string }>;
   };
   anomalies?: Array<{ type: string; message: string }>;
   ac_efficiency_status?: "normal" | "possible_issue" | null;

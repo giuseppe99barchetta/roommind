@@ -29,6 +29,13 @@ def test_comfort_score_combines_temperature_humidity_and_window() -> None:
 
     assert result["score"] < 40
     assert result["label"] == "poor"
+    assert result["breakdown"] == {
+        "temperature": {"penalty": 45, "status": "below_target"},
+        "humidity": {"penalty": 25, "status": "above_target"},
+        "window": {"penalty": 15, "status": "open"},
+        "air_quality": {"penalty": 10, "status": "warning"},
+        "anomalies": {"penalty": 5, "status": "active"},
+    }
 
 
 def test_energy_suggestions_are_based_on_available_data() -> None:

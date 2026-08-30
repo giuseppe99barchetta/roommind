@@ -39,35 +39,52 @@ def calculate_comfort_score(
     """Score a room from 0 to 100 using only available measurements."""
     score = 100.0
     factors: dict[str, int] = {}
+    breakdown: dict[str, dict[str, int | str]] = {}
     if current_temp is None:
-        score -= 25
+        penalty = 25
+        score -= penalty
         factors["temperature"] = 0
+        breakdown["temperature"] = {"penalty": penalty, "status": "unavailable"}
     else:
         distance = 0.0
+        status = "on_target"
         if heat_target is not None and current_temp < heat_target:
             distance = heat_target - current_temp
+            status = "below_target"
         elif cool_target is not None and current_temp > cool_target:
             distance = current_temp - cool_target
+            status = "above_target"
         penalty = min(45, round(distance * 18))
         score -= penalty
         factors["temperature"] = 100 - penalty
+        breakdown["temperature"] = {"penalty": penalty, "status": status}
     if humidity is not None and humidity_target is not None:
         penalty = min(25, round(abs(humidity - humidity_target) * 2.5))
         score -= penalty
         factors["humidity"] = 100 - penalty
+        breakdown["humidity"] = {
+            "penalty": penalty,
+            "status": "below_target" if humidity < humidity_target else "above_target" if humidity > humidity_target else "on_target",
+        }
+    else:
+        breakdown["humidity"] = {"penalty": 0, "status": "unavailable"}
     if window_open:
         score -= 15
         factors["window"] = 0
+    breakdown["window"] = {"penalty": 15 if window_open else 0, "status": "open" if window_open else "closed"}
     risk_penalty = {"warning": 10, "critical": 25}.get(mold_risk_level or "", 0)
     score -= risk_penalty
     if risk_penalty:
         factors["air_quality"] = 100 - risk_penalty
+    breakdown["air_quality"] = {"penalty": risk_penalty, "status": mold_risk_level or "ok"}
     anomaly_penalty = min(20, 5 * len(anomalies or []))
     score -= anomaly_penalty
+    breakdown["anomalies"] = {"penalty": anomaly_penalty, "status": "active" if anomaly_penalty else "none"}
     return {
         "score": max(0, min(100, round(score))),
         "label": "excellent" if score >= 85 else "good" if score >= 70 else "fair" if score >= 50 else "poor",
         "factors": factors,
+        "breakdown": breakdown,
     }
 
 
