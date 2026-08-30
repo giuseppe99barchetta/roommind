@@ -4,11 +4,13 @@ from __future__ import annotations
 
 import logging
 import time
+from datetime import UTC, datetime, timedelta
+from types import SimpleNamespace
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
-from custom_components.roommind.const import MAX_SENSOR_STALENESS, MODE_IDLE
+from custom_components.roommind.const import MAX_SENSOR_STALENESS, MODE_IDLE, TargetTemps
 
 from .conftest import (
     MANAGED_ROOM,
@@ -236,3 +238,26 @@ def test_any_member_room_waiting_expires_with_grace_period(hass, mock_config_ent
 
     coordinator._startup_ts = time.monotonic() - MAX_SENSOR_STALENESS - 1
     assert coordinator._any_member_room_waiting(["climate.ac_living"], rooms) is False
+
+
+def test_sensor_stale_repair_waits_for_startup_grace_period(hass, mock_config_entry):
+    """A restored, old sensor timestamp must not create a repair immediately."""
+    coordinator = _create_coordinator(hass, mock_config_entry)
+    area_id = "living_room_abc12345"
+    stale_sensor = SimpleNamespace(
+        state="20.0",
+        last_reported=datetime.now(UTC) - timedelta(seconds=MAX_SENSOR_STALENESS * 3 + 1),
+        last_updated=None,
+    )
+    hass.states.get = MagicMock(return_value=stale_sensor)
+
+    anomalies = coordinator._room_anomalies(
+        area_id, SAMPLE_ROOM, 20.0, None, TargetTemps(heat=21.0, cool=24.0), MODE_IDLE
+    )
+    assert not any(anomaly["type"] == "sensor_stale" for anomaly in anomalies)
+
+    coordinator._startup_ts = time.monotonic() - MAX_SENSOR_STALENESS - 1
+    anomalies = coordinator._room_anomalies(
+        area_id, SAMPLE_ROOM, 20.0, None, TargetTemps(heat=21.0, cool=24.0), MODE_IDLE
+    )
+    assert any(anomaly["type"] == "sensor_stale" for anomaly in anomalies)

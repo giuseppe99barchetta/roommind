@@ -1893,7 +1893,14 @@ class RoomMindCoordinator(DataUpdateCoordinator):
         updated_at = getattr(sensor_state, "last_reported", None) or getattr(sensor_state, "last_updated", None)
         timestamp = updated_at.timestamp() if updated_at is not None else None
         stale = isinstance(timestamp, (int, float)) and (time.time() - timestamp) > MAX_SENSOR_STALENESS * 3
-        if sensor_id and (sensor_state is None or sensor_state.state in ("unknown", "unavailable") or stale):
+        # Home Assistant may still be restoring entity state when RoomMind
+        # starts.  Match the control startup guard so a stale historical
+        # timestamp cannot immediately create a false sensor repair.
+        if (
+            sensor_id
+            and not self._in_startup_grace_period()
+            and (sensor_state is None or sensor_state.state in ("unknown", "unavailable") or stale)
+        ):
             anomalies.append({"type": "sensor_stale", "message": "Il sensore di temperatura non sta aggiornando i dati."})
         target = targets.heat if mode == MODE_HEATING else targets.cool if mode == MODE_COOLING else None
         error = abs(current_temp - target) if current_temp is not None and target is not None else 0.0
@@ -2738,7 +2745,11 @@ class RoomMindCoordinator(DataUpdateCoordinator):
 
     def _waiting_for_first_reading(self, area_id: str) -> bool:
         """True while a room has had no valid reading since startup, within the grace period."""
-        return area_id not in self._had_valid_temp and time.monotonic() - self._startup_ts < MAX_SENSOR_STALENESS
+        return area_id not in self._had_valid_temp and self._in_startup_grace_period()
+
+    def _in_startup_grace_period(self) -> bool:
+        """Return whether RoomMind is still allowing HA states to settle after startup."""
+        return time.monotonic() - self._startup_ts < MAX_SENSOR_STALENESS
 
     def _any_member_room_waiting(self, members: list[str], rooms_config: dict[str, dict]) -> bool:
         """Return True when a Full Control member room has no temperature reading yet."""
