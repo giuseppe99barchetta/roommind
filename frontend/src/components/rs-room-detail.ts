@@ -617,6 +617,7 @@ export class RsRoomDetail extends LitElement {
               .hass=${this.hass}
               .readiness=${this.config.readiness}
               .decisionReasons=${this.config.live?.decision_reasons ?? []}
+              .comfortScore=${this.config.live?.comfort_score}
             ></rs-room-insights>`
           : nothing}
         ${this._error ? html`<div class="error">${this._error}</div>` : nothing}

@@ -1,7 +1,7 @@
 /** Room readiness checklist and plain-language explanation of current control. */
 import { LitElement, html, css, nothing } from "lit";
 import { customElement, property } from "lit/decorators.js";
-import type { HomeAssistant, RoomReadiness } from "../types";
+import type { HomeAssistant, RoomLiveData, RoomReadiness } from "../types";
 import { localize, type TranslationKey } from "../utils/localize";
 
 const DECISION_KEYS: Record<string, TranslationKey> = {
@@ -29,6 +29,7 @@ export class RsRoomInsights extends LitElement {
   @property({ attribute: false }) public hass!: HomeAssistant;
   @property({ attribute: false }) public readiness?: RoomReadiness;
   @property({ type: Array }) public decisionReasons: string[] = [];
+  @property({ attribute: false }) public comfortScore?: RoomLiveData["comfort_score"];
 
   static styles = css`
     :host {
@@ -68,6 +69,24 @@ export class RsRoomInsights extends LitElement {
       color: var(--secondary-text-color);
       font-size: 13px;
     }
+    .comfort-score {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin: 8px 0 2px;
+      color: var(--primary-text-color);
+      font-size: 14px;
+      font-weight: 500;
+    }
+    .comfort-score ha-icon {
+      color: var(--success-color, #4caf50);
+    }
+    .comfort-score.fair ha-icon {
+      color: var(--warning-color, #ff9800);
+    }
+    .comfort-score.poor ha-icon {
+      color: var(--error-color, #db4437);
+    }
   `;
 
   render() {
@@ -76,6 +95,14 @@ export class RsRoomInsights extends LitElement {
     return html`
       <ha-card>
         <h3>${localize("insights.decision.title", language)}</h3>
+        ${this.comfortScore
+          ? html`
+              <div class="comfort-score ${this.comfortScore.label}">
+                <ha-icon icon="mdi:heart"></ha-icon>
+                ${localize("card.comfort_score", language, { score: this.comfortScore.score })}
+              </div>
+            `
+          : nothing}
         ${reasons
           .slice(0, 3)
           .map(

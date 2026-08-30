@@ -96,6 +96,15 @@ export class RsAreaCard extends LitElement {
         display: flex;
         align-items: center;
         justify-content: space-between;
+        gap: 8px;
+      }
+
+      .card-status {
+        display: flex;
+        align-items: center;
+        justify-content: flex-end;
+        gap: 6px;
+        min-width: 0;
       }
 
       .area-name {
@@ -217,6 +226,7 @@ export class RsAreaCard extends LitElement {
         padding: 2px 8px 2px 6px;
         border-radius: 10px;
         --mdc-icon-size: 14px;
+        white-space: nowrap;
       }
 
       .comfort-badge.excellent,
@@ -454,8 +464,10 @@ export class RsAreaCard extends LitElement {
         <div class="card-inner">
           <div class="card-header">
             <h3 class="area-name">${this.config?.display_name || this.area.name}</h3>
-            ${isConfigured && live
-              ? html`
+            <span class="card-status">
+              ${isConfigured && live ? this._renderComfortScore(live) : nothing}
+              ${isConfigured && live
+                ? html`
                   <span class="mode-pill ${getModeClass(live.mode)}">
                     <span class="mode-dot"></span>
                     ${formatMode(live.mode, this.hass.language)}${live.heating_power > 0 &&
@@ -464,7 +476,8 @@ export class RsAreaCard extends LitElement {
                       : nothing}
                   </span>
                 `
-              : nothing}
+                : nothing}
+            </span>
           </div>
 
           ${isConfigured
@@ -507,7 +520,7 @@ export class RsAreaCard extends LitElement {
             : nothing}
         </span>
         <span class="badge-row">
-          ${this._renderComfortStatus(live)}
+          ${this._renderIssueStatus(live)}
           ${live.mold_risk_level && live.mold_risk_level !== "ok"
             ? html`<span class="mold-badge ${live.mold_risk_level}">
                 <ha-icon icon="mdi:water-alert"></ha-icon>
@@ -543,9 +556,8 @@ export class RsAreaCard extends LitElement {
     `;
   }
 
-  private _renderComfortStatus(live: NonNullable<RoomConfig["live"]>) {
+  private _renderComfortScore(live: NonNullable<RoomConfig["live"]>) {
     const score = live.comfort_score;
-    const anomalies = live.anomalies ?? [];
     return html`
       ${score
         ? html`<span
@@ -560,6 +572,12 @@ export class RsAreaCard extends LitElement {
             ${localize("card.comfort_score", this.hass.language, { score: score.score })}
           </span>`
         : nothing}
+    `;
+  }
+
+  private _renderIssueStatus(live: NonNullable<RoomConfig["live"]>) {
+    const anomalies = live.anomalies ?? [];
+    return html`
       ${anomalies.length
         ? html`<span
             class="issue-badge"

@@ -145,6 +145,15 @@
         display: flex;
         align-items: center;
         justify-content: space-between;
+        gap: 8px;
+      }
+
+      .card-status {
+        display: flex;
+        align-items: center;
+        justify-content: flex-end;
+        gap: 6px;
+        min-width: 0;
       }
 
       .area-name {
@@ -266,6 +275,7 @@
         padding: 2px 8px 2px 6px;
         border-radius: 10px;
         --mdc-icon-size: 14px;
+        white-space: nowrap;
       }
 
       .comfort-badge.excellent,
@@ -471,12 +481,15 @@
         <div class="card-inner">
           <div class="card-header">
             <h3 class="area-name">${this.config?.display_name||this.area.name}</h3>
-            ${r&&i?m`
+            <span class="card-status">
+              ${r&&i?this._renderComfortScore(i):h}
+              ${r&&i?m`
                   <span class="mode-pill ${xt(i.mode)}">
                     <span class="mode-dot"></span>
                     ${Ct(i.mode,this.hass.language)}${i.heating_power>0&&i.heating_power<100?m` ${i.heating_power}%`:h}
                   </span>
                 `:h}
+            </span>
           </div>
 
           ${r?this._renderConfigured():this.config?.live&&(this.config.live.current_temp!==null||this.config.live.current_humidity!==null)?this._renderSensorOnly():this._renderUnconfigured(e)}
@@ -495,7 +508,7 @@
           ${e.current_humidity===null?h:S(`card.humidity`,this.hass.language,{value:e.current_humidity.toFixed(0)})}
         </span>
         <span class="badge-row">
-          ${this._renderComfortStatus(e)}
+          ${this._renderIssueStatus(e)}
           ${e.mold_risk_level&&e.mold_risk_level!==`ok`?m`<span class="mold-badge ${e.mold_risk_level}">
                 <ha-icon icon="mdi:water-alert"></ha-icon>
                 ${e.mold_risk_level===`critical`?S(`card.mold_critical`,this.hass.language):S(`card.mold_warning`,this.hass.language)}
@@ -513,7 +526,7 @@
       ${!this.climateControlActive||this.config?.climate_control_enabled===!1?m`<div class="uncontrolled-hint">
             ${S(`card.not_controlled`,this.hass.language)}
           </div>`:h}
-    `}_renderComfortStatus(e){let t=e.comfort_score,n=e.anomalies??[];return m`
+    `}_renderComfortScore(e){let t=e.comfort_score;return m`
       ${t?m`<span
             class="comfort-badge ${t.label}"
             title=${S(`card.comfort_${t.label}`,this.hass.language)}
@@ -523,11 +536,12 @@
             ></ha-icon>
             ${S(`card.comfort_score`,this.hass.language,{score:t.score})}
           </span>`:h}
-      ${n.length?m`<span
+    `}_renderIssueStatus(e){let t=e.anomalies??[];return m`
+      ${t.length?m`<span
             class="issue-badge"
-            title=${S(`card.issues`,this.hass.language,{count:n.length})}
+            title=${S(`card.issues`,this.hass.language,{count:t.length})}
           >
-            <ha-icon icon="mdi:alert-circle"></ha-icon>${n.length}
+            <ha-icon icon="mdi:alert-circle"></ha-icon>${t.length}
           </span>`:h}
     `}_renderTargetInfo(e){if(e.target_temp===null&&e.heat_target===null)return h;let t=(this.config?.climate_mode??`auto`)===`auto`&&e.heat_target!=null&&e.cool_target!=null&&e.heat_target!==e.cool_target?m`<span class="target-value"
           >${E(e.heat_target,this.hass)} –
@@ -1130,9 +1144,33 @@
       color: var(--secondary-text-color);
       font-size: 13px;
     }
+    .comfort-score {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin: 8px 0 2px;
+      color: var(--primary-text-color);
+      font-size: 14px;
+      font-weight: 500;
+    }
+    .comfort-score ha-icon {
+      color: var(--success-color, #4caf50);
+    }
+    .comfort-score.fair ha-icon {
+      color: var(--warning-color, #ff9800);
+    }
+    .comfort-score.poor ha-icon {
+      color: var(--error-color, #db4437);
+    }
   `}render(){let e=this.hass.language,t=this.decisionReasons.length?this.decisionReasons:[`mode_idle`];return m`
       <ha-card>
         <h3>${S(`insights.decision.title`,e)}</h3>
+        ${this.comfortScore?m`
+              <div class="comfort-score ${this.comfortScore.label}">
+                <ha-icon icon="mdi:heart"></ha-icon>
+                ${S(`card.comfort_score`,e,{score:this.comfortScore.score})}
+              </div>
+            `:h}
         ${t.slice(0,3).map(t=>m`
               <div class="decision">
                 <ha-icon icon="mdi:information-outline"></ha-icon>${S(Ft[t]??`insights.decision.mode_idle`,e)}
@@ -1153,7 +1191,7 @@
                 `)}
             `:h}
       </ha-card>
-    `}};k([y({attribute:!1})],It.prototype,`hass`,void 0),k([y({attribute:!1})],It.prototype,`readiness`,void 0),k([y({type:Array})],It.prototype,`decisionReasons`,void 0),It=k([v(`rs-room-insights`)],It),_(),x(),A();var Lt=class extends g{constructor(...e){super(...e),this.climateMode=`auto`,this.language=`en`}static{this.styles=l`
+    `}};k([y({attribute:!1})],It.prototype,`hass`,void 0),k([y({attribute:!1})],It.prototype,`readiness`,void 0),k([y({type:Array})],It.prototype,`decisionReasons`,void 0),k([y({attribute:!1})],It.prototype,`comfortScore`,void 0),It=k([v(`rs-room-insights`)],It),_(),x(),A();var Lt=class extends g{constructor(...e){super(...e),this.climateMode=`auto`,this.language=`en`}static{this.styles=l`
     :host {
       display: block;
     }
@@ -5043,6 +5081,7 @@
               .hass=${this.hass}
               .readiness=${this.config.readiness}
               .decisionReasons=${this.config.live?.decision_reasons??[]}
+              .comfortScore=${this.config.live?.comfort_score}
             ></rs-room-insights>`:h}
         ${this._error?m`<div class="error">${this._error}</div>`:h}
         ${this._renderEditDialog()}
