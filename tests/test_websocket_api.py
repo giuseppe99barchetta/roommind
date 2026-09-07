@@ -1363,6 +1363,8 @@ async def test_save_settings_mold_fields(ws_hass, store, connection):
         ],
         "mold_prevention_enabled": True,
         "mold_prevention_intensity": "strong",
+        "mold_prevention_dehumidification_enabled": False,
+        "mold_prevention_dry_min_temperature": 22.5,
         "mold_prevention_notify_enabled": True,
         "mold_prevention_notify_targets": [],
     }
@@ -1379,6 +1381,8 @@ async def test_save_settings_mold_fields(ws_hass, store, connection):
     assert len(settings["mold_notification_targets"]) == 1
     assert settings["mold_prevention_enabled"] is True
     assert settings["mold_prevention_intensity"] == "strong"
+    assert settings["mold_prevention_dehumidification_enabled"] is False
+    assert settings["mold_prevention_dry_min_temperature"] == 22.5
 
 
 @pytest.mark.asyncio

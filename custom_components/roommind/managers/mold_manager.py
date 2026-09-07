@@ -12,6 +12,7 @@ from homeassistant.core import HomeAssistant
 from ..const import (
     DEFAULT_MOLD_COOLDOWN_MINUTES,
     DEFAULT_MOLD_HUMIDITY_THRESHOLD,
+    DEFAULT_MOLD_PREVENTION_DRY_MIN_TEMPERATURE,
     DEFAULT_MOLD_SUSTAINED_MINUTES,
     MOLD_HYSTERESIS,
     MOLD_RISK_CRITICAL,
@@ -141,13 +142,27 @@ class MoldManager:
                 and risk_level in (MOLD_RISK_WARNING, MOLD_RISK_CRITICAL)
             ):
                 intensity = settings.get("mold_prevention_intensity", "medium")
-                warm_weather = current_temp >= 23.0 or (
-                    outdoor_temp is not None and outdoor_temp >= 18.0 and current_temp >= 21.5
+                # A dry cycle can lower the room temperature.  Prefer it only
+                # when explicitly enabled and the room has enough thermal
+                # headroom; otherwise use the heating plan (which can route to
+                # a heat pump, gas boiler, or both).
+                dry_min_temperature = float(
+                    settings.get(
+                        "mold_prevention_dry_min_temperature",
+                        DEFAULT_MOLD_PREVENTION_DRY_MIN_TEMPERATURE,
+                    )
                 )
-                if can_dry and warm_weather:
+                dehumidification_enabled = settings.get(
+                    "mold_prevention_dehumidification_enabled", True
+                )
+                if (
+                    dehumidification_enabled
+                    and can_dry
+                    and current_temp >= dry_min_temperature
+                ):
                     result.prevention_strategy = "dry"
                     result.prevention_delta = 0.0
-                elif can_cool and current_temp >= 24.0:
+                elif dehumidification_enabled and can_cool and current_temp >= 24.0:
                     result.prevention_strategy = "cool"
                     result.prevention_delta = 0.0
                 else:

@@ -241,6 +241,8 @@ export interface GlobalSettings {
   mold_notification_targets?: NotificationTarget[];
   mold_prevention_enabled?: boolean;
   mold_prevention_intensity?: "light" | "medium" | "strong";
+  mold_prevention_dehumidification_enabled?: boolean;
+  mold_prevention_dry_min_temperature?: number;
   mold_prevention_notify_enabled?: boolean;
   mold_prevention_notify_targets?: NotificationTarget[];
   window_open_notification_minutes?: number;

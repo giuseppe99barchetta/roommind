@@ -71,5 +71,9 @@
   "comfort.night_end": "Fine",
   "comfort.night_heat_delta": "Riduzione riscaldamento (°C)",
   "comfort.night_cool_delta": "Aumento raffrescamento (°C)",
-  "comfort.night_ramp": "Durata transizione (min)"
+  "comfort.night_ramp": "Durata transizione (min)",
+  "mold.dehumidification": "Preferisci la deumidificazione quando sicura",
+  "mold.dehumidification_desc": "Usa prima la modalità dry del climatizzatore solo se la stanza è abbastanza calda; altrimenti RoomMind usa il piano configurato per pompa di calore / caldaia.",
+  "mold.dehumidification_min_temperature": "Temperatura ambiente minima per deumidificare",
+  "mold.dehumidification_min_temperature_hint": "Sotto questa temperatura, la prevenzione alza il setpoint di riscaldamento invece di avviare la modalità dry."
 }

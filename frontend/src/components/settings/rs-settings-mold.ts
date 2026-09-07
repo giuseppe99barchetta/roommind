@@ -7,7 +7,7 @@ import { RsSettingsBase } from "./rs-settings-base";
 import type { HomeAssistant } from "../../types";
 import { localize } from "../../utils/localize";
 import { getSelectValue } from "../../utils/events";
-import { tempUnit, toDisplayDelta } from "../../utils/temperature";
+import { tempRange, tempStep, tempUnit, toCelsius, toDisplay, toDisplayDelta } from "../../utils/temperature";
 
 @customElement("rs-settings-mold")
 export class RsSettingsMold extends RsSettingsBase {
@@ -18,9 +18,12 @@ export class RsSettingsMold extends RsSettingsBase {
   @property({ type: Boolean }) public moldPreventionEnabled = false;
   @property({ type: String }) public moldPreventionIntensity: "light" | "medium" | "strong" =
     "medium";
+  @property({ type: Boolean }) public moldPreventionDehumidificationEnabled = true;
+  @property({ type: Number }) public moldPreventionDryMinTemperature = 23;
 
   render() {
     const l = this.hass.language;
+    const dryTemperatureRange = tempRange(15, 30, this.hass);
 
     return html`
       <!-- Detection section -->
@@ -159,6 +162,46 @@ export class RsSettingsMold extends RsSettingsBase {
                   >
                 </ha-select>
                 <span class="field-hint">${localize("mold.intensity_hint", l)}</span>
+              </div>
+              <div class="settings-section" style="margin-top: 16px">
+                <div class="toggle-row">
+                  <div class="toggle-text">
+                    <span class="toggle-label">${localize("mold.dehumidification", l)}</span>
+                    <span class="toggle-hint">${localize("mold.dehumidification_desc", l)}</span>
+                  </div>
+                  <ha-switch
+                    .checked=${this.moldPreventionDehumidificationEnabled}
+                    @change=${(e: Event) =>
+                      this._fire(
+                        "moldPreventionDehumidificationEnabled",
+                        (e.target as HTMLInputElement).checked,
+                      )}
+                  ></ha-switch>
+                </div>
+                ${this.moldPreventionDehumidificationEnabled
+                  ? html`
+                      <div class="threshold-field" style="margin-top: 12px">
+                        <ha-textfield
+                          .value=${String(toDisplay(this.moldPreventionDryMinTemperature, this.hass))}
+                          .label=${localize("mold.dehumidification_min_temperature", l)}
+                          .suffix=${tempUnit(this.hass)}
+                          type="number"
+                          step=${tempStep(this.hass)}
+                          min=${dryTemperatureRange.min}
+                          max=${dryTemperatureRange.max}
+                          @change=${(e: Event) => {
+                            const v = parseFloat((e.target as HTMLInputElement).value);
+                            const celsius = toCelsius(v, this.hass);
+                            if (!isNaN(celsius) && celsius >= 15 && celsius <= 30)
+                              this._fire("moldPreventionDryMinTemperature", celsius);
+                          }}
+                        ></ha-textfield>
+                        <span class="field-hint"
+                          >${localize("mold.dehumidification_min_temperature_hint", l)}</span
+                        >
+                      </div>
+                    `
+                  : nothing}
               </div>
             `
           : nothing}

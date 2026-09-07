@@ -126,6 +126,7 @@ MOLD_SURFACE_RH_CRITICAL = 80.0  # estimated surface RH % — critical threshold
 DEFAULT_MOLD_HUMIDITY_THRESHOLD = 70.0  # room air RH % — notification trigger
 DEFAULT_MOLD_SUSTAINED_MINUTES = 30  # minutes risk must persist before notification
 DEFAULT_MOLD_COOLDOWN_MINUTES = 60  # minutes between repeated notifications per room
+DEFAULT_MOLD_PREVENTION_DRY_MIN_TEMPERATURE = 23.0  # °C — avoid cooling an already cool room
 MOLD_PREVENTION_DELTAS = {"light": 1.0, "medium": 2.0, "strong": 3.0}
 MOLD_HYSTERESIS = 5.0  # surface RH must drop this much below warning to clear
 MIN_MOLD_GROWTH_TEMP = 5.0  # °C — below this surface temp, mold risk negligible

@@ -200,6 +200,49 @@ def test_remove_room_no_op_for_unknown(mm):
     mm.remove_room("nonexistent")
 
 
+@pytest.mark.asyncio
+async def test_prevention_prefers_dehumidification_above_configured_temperature(mm):
+    """A dry-capable heat pump is used only above its configured safe temperature."""
+    with patch(
+        "custom_components.roommind.managers.mold_manager.calculate_mold_risk",
+        return_value=("warning", 75.0),
+    ):
+        result = await mm.evaluate(
+            area_id="living",
+            area_name="Living Room",
+            current_temp=22.0,
+            current_humidity=75.0,
+            outdoor_temp=5.0,
+            settings=_settings_prevention_notify(mold_prevention_dry_min_temperature=21.5),
+            can_dry=True,
+        )
+
+    assert result.prevention_strategy == "dry"
+    assert result.prevention_delta == 0.0
+
+
+@pytest.mark.asyncio
+async def test_prevention_falls_back_to_heating_when_dry_is_disabled(mm):
+    """Disabling dehumidification leaves anti-mold heating available."""
+    with patch(
+        "custom_components.roommind.managers.mold_manager.calculate_mold_risk",
+        return_value=("warning", 75.0),
+    ):
+        result = await mm.evaluate(
+            area_id="living",
+            area_name="Living Room",
+            current_temp=25.0,
+            current_humidity=75.0,
+            outdoor_temp=5.0,
+            settings=_settings_prevention_notify(mold_prevention_dehumidification_enabled=False),
+            can_dry=True,
+            can_cool=True,
+        )
+
+    assert result.prevention_strategy == "heat"
+    assert result.prevention_delta == 2.0
+
+
 # --- detection notification (tag_suffix="risk") ---
 
 

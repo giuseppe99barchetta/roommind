@@ -135,9 +135,12 @@ export class RsSettingsHeatingSystem extends LitElement {
                 .hass=${this.hass}
                 .selector=${HYDRAULIC_BYPASS_SELECTOR}
                 .value=${this.bypassEntities}
-                .label=${"Hydraulic bypass TRVs"}
+                .label=${"Hydraulic bypass TRVs (required for gas boiler safety)"}
                 @value-changed=${onBypassChanged}
               ></ha-selector>
+              <small
+                >RoomMind opens and verifies at least one bypass valve before starting the boiler, and keeps it open while the boiler runs.</small
+              >
               <label
                 >Forced bypass temperature
                 ${number("bypassTemperature", this.bypassTemperature)}</label
