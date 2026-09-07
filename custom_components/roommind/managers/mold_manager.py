@@ -152,14 +152,8 @@ class MoldManager:
                         DEFAULT_MOLD_PREVENTION_DRY_MIN_TEMPERATURE,
                     )
                 )
-                dehumidification_enabled = settings.get(
-                    "mold_prevention_dehumidification_enabled", True
-                )
-                if (
-                    dehumidification_enabled
-                    and can_dry
-                    and current_temp >= dry_min_temperature
-                ):
+                dehumidification_enabled = settings.get("mold_prevention_dehumidification_enabled", True)
+                if dehumidification_enabled and can_dry and current_temp >= dry_min_temperature:
                     result.prevention_strategy = "dry"
                     result.prevention_delta = 0.0
                 elif dehumidification_enabled and can_cool and current_temp >= 24.0:

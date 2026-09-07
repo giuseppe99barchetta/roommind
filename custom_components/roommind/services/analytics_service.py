@@ -167,9 +167,13 @@ async def build_comparison_data(
             week = 7 * 24 * 3600
             if custom_start is not None:
                 points = _csv_to_points(
-                    await hass.async_add_executor_job(history_store.read_history, area_id, None, custom_start, custom_end)
+                    await hass.async_add_executor_job(
+                        history_store.read_history, area_id, None, custom_start, custom_end
+                    )
                 ) + _csv_to_points(
-                    await hass.async_add_executor_job(history_store.read_detail, area_id, None, custom_start, custom_end)
+                    await hass.async_add_executor_job(
+                        history_store.read_detail, area_id, None, custom_start, custom_end
+                    )
                 )
             else:
                 points = _csv_to_points(
@@ -244,7 +248,9 @@ def _operation_summary(points: list[dict], has_power_sensors: bool) -> dict[str,
     if not has_power_sensors:
         suggestions.append("Configure an AC power sensor to measure energy and costs precisely.")
     if minutes["ventilation"] >= 120:
-        suggestions.append("Review smart ventilation duration: the room has circulated air for over two hours in this period.")
+        suggestions.append(
+            "Review smart ventilation duration: the room has circulated air for over two hours in this period."
+        )
     return {
         "heating_minutes": round(minutes["heating"]),
         "cooling_minutes": round(minutes["cooling"]),
@@ -634,9 +640,7 @@ async def build_analytics_data(
                 "device_setpoint": None,
                 "predicted_power_w": predicted_powers[i] if i < len(predicted_powers) else None,
                 "predicted_device_power_w": (predicted_device_powers[i] if i < len(predicted_device_powers) else {}),
-                "energy_prediction_confidence": (
-                    predicted_confidences[i] if i < len(predicted_confidences) else None
-                ),
+                "energy_prediction_confidence": (predicted_confidences[i] if i < len(predicted_confidences) else None),
             }
         )
 
@@ -650,7 +654,9 @@ async def build_analytics_data(
                 await hass.async_add_executor_job(history_store.read_history, area_id, week_age)
             ) + _csv_to_points(await hass.async_add_executor_job(history_store.read_detail, area_id, week_age))
         now = time.time()
-        today_start = datetime.fromtimestamp(now).astimezone().replace(hour=0, minute=0, second=0, microsecond=0).timestamp()
+        today_start = (
+            datetime.fromtimestamp(now).astimezone().replace(hour=0, minute=0, second=0, microsecond=0).timestamp()
+        )
         energy_cost = {
             "price_eur_kwh": price,
             "today_eur": round(_integrate_power_kwh(cost_points, today_start) * price, 2),

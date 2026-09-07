@@ -86,7 +86,7 @@ class HistoryStore:
         self._migrate_header(path)
 
         with open(path, "a", newline="") as f:
-            writer = csv.DictWriter(f, fieldnames=DETAIL_FIELDS)
+            writer = csv.DictWriter(f, fieldnames=DETAIL_FIELDS, extrasaction="ignore")
             if os.path.getsize(path) == 0:
                 writer.writeheader()
             writer.writerow(
@@ -295,7 +295,7 @@ class HistoryStore:
         path = self._history_path(area_id)
         file_exists = os.path.isfile(path)
         with open(path, "a", newline="") as f:
-            writer = csv.DictWriter(f, fieldnames=DETAIL_FIELDS)
+            writer = csv.DictWriter(f, fieldnames=DETAIL_FIELDS, extrasaction="ignore")
             if not file_exists:
                 writer.writeheader()
             writer.writerows(rows)
@@ -303,6 +303,6 @@ class HistoryStore:
     def _rewrite_csv(self, path: str, rows: list[dict]) -> None:
         self._ensure_dir()
         with open(path, "w", newline="") as f:
-            writer = csv.DictWriter(f, fieldnames=DETAIL_FIELDS)
+            writer = csv.DictWriter(f, fieldnames=DETAIL_FIELDS, extrasaction="ignore")
             writer.writeheader()
             writer.writerows(rows)

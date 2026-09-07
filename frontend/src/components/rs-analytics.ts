@@ -112,8 +112,7 @@ export class RsAnalytics extends LitElement {
                 .isOutdoor=${this.rooms[this._selectedRoom]?.is_outdoor ?? false}
               ></rs-analytics-chart>
               ${!this.rooms[this._selectedRoom]?.is_outdoor
-                ? html`
-                    <rs-energy-analytics-chart
+                ? html` <rs-energy-analytics-chart
                       .hass=${this.hass}
                       .data=${this._data}
                       .rangeStart=${this._rangeStart}
@@ -139,41 +138,61 @@ export class RsAnalytics extends LitElement {
                               </div>`
                             : nothing}
                           <table>
-                            <thead><tr><th>${localize("analytics.comparison_room", l)}</th><th>kWh</th><th>€</th><th>${localize("analytics.comparison_active", l)}</th><th>${localize("analytics.comparison_efficiency", l)}</th><th>${localize("analytics.comparison_target", l)}</th></tr></thead>
+                            <thead>
+                              <tr>
+                                <th>${localize("analytics.comparison_room", l)}</th>
+                                <th>kWh</th>
+                                <th>€</th>
+                                <th>${localize("analytics.comparison_active", l)}</th>
+                                <th>${localize("analytics.comparison_efficiency", l)}</th>
+                                <th>${localize("analytics.comparison_target", l)}</th>
+                              </tr>
+                            </thead>
                             <tbody>
                               ${this._comparison.map(
-                                (room) => html`<tr>
-                                  <td>
-                                    ${room.name}
-                                    ${Array.isArray(room.data_quality) && room.data_quality.length
-                                      ? html`<div class="comparison-quality">
-                                          ${localize("analytics.comparison_data_incomplete", l)}:
-                                          ${room.data_quality
-                                            .map((issue) =>
-                                              localize(
-                                                RsAnalytics._comparisonQualityKeys[issue] ??
-                                                  "analytics.comparison_data_incomplete",
-                                                l,
-                                              ),
-                                            )
-                                            .join(", ")}
-                                        </div>`
-                                      : nothing}
-                                  </td><td>${room.energy_kwh ?? "—"}</td><td>${room.cost_eur ?? "—"}</td>
-                                  <td>${room.active_minutes != null ? `${room.active_minutes} min` : "—"}</td>
-                                  <td>${room.delta_t_per_kwh ?? "—"}</td>
-                                  <td>${room.target_reach_minutes != null ? `${room.target_reach_minutes} min` : "—"}</td>
-                                </tr>`,
+                                (room) =>
+                                  html`<tr>
+                                    <td>
+                                      ${room.name}
+                                      ${Array.isArray(room.data_quality) && room.data_quality.length
+                                        ? html`<div class="comparison-quality">
+                                            ${localize("analytics.comparison_data_incomplete", l)}:
+                                            ${room.data_quality
+                                              .map((issue) =>
+                                                localize(
+                                                  RsAnalytics._comparisonQualityKeys[issue] ??
+                                                    "analytics.comparison_data_incomplete",
+                                                  l,
+                                                ),
+                                              )
+                                              .join(", ")}
+                                          </div>`
+                                        : nothing}
+                                    </td>
+                                    <td>${room.energy_kwh ?? "—"}</td>
+                                    <td>${room.cost_eur ?? "—"}</td>
+                                    <td>
+                                      ${room.active_minutes != null
+                                        ? `${room.active_minutes} min`
+                                        : "—"}
+                                    </td>
+                                    <td>${room.delta_t_per_kwh ?? "—"}</td>
+                                    <td>
+                                      ${room.target_reach_minutes != null
+                                        ? `${room.target_reach_minutes} min`
+                                        : "—"}
+                                    </td>
+                                  </tr>`,
                               )}
                             </tbody>
                           </table>
                         </ha-card>`
                       : nothing}
                     <rs-analytics-model
-                    .hass=${this.hass}
-                    .data=${this._data}
-                    .language=${l}
-                  ></rs-analytics-model>`
+                      .hass=${this.hass}
+                      .data=${this._data}
+                      .language=${l}
+                    ></rs-analytics-model>`
                 : nothing}
             `
         : html`
@@ -299,17 +318,64 @@ export class RsAnalytics extends LitElement {
       font-size: 14px;
     }
 
-    .comparison { margin: 0 0 16px; overflow-x: auto; padding: 12px 16px; }
-    .comparison-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
-    .comparison h3 { margin: 0; font-size: 16px; }
-    .comparison-info-panel { margin-bottom: 10px; }
-    .comparison-quality { margin-top: 3px; color: var(--warning-color, #ff9800); font-size: 11px; white-space: normal; }
-    .info-icon { --mdc-icon-size: 20px; color: var(--secondary-text-color); cursor: pointer; opacity: 0.5; }
-    .info-icon.info-active { color: var(--primary-color); opacity: 1; }
-    .info-panel { padding: 12px; border-radius: 8px; background: var(--secondary-background-color, rgba(128, 128, 128, 0.06)); font-size: 13px; line-height: 1.6; color: var(--secondary-text-color); }
-    table { width: 100%; border-collapse: collapse; font-size: 13px; }
-    th, td { padding: 8px; text-align: right; border-top: 1px solid var(--divider-color); white-space: nowrap; }
-    th:first-child, td:first-child { text-align: left; }
+    .comparison {
+      margin: 0 0 16px;
+      overflow-x: auto;
+      padding: 12px 16px;
+    }
+    .comparison-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 10px;
+    }
+    .comparison h3 {
+      margin: 0;
+      font-size: 16px;
+    }
+    .comparison-info-panel {
+      margin-bottom: 10px;
+    }
+    .comparison-quality {
+      margin-top: 3px;
+      color: var(--warning-color, #ff9800);
+      font-size: 11px;
+      white-space: normal;
+    }
+    .info-icon {
+      --mdc-icon-size: 20px;
+      color: var(--secondary-text-color);
+      cursor: pointer;
+      opacity: 0.5;
+    }
+    .info-icon.info-active {
+      color: var(--primary-color);
+      opacity: 1;
+    }
+    .info-panel {
+      padding: 12px;
+      border-radius: 8px;
+      background: var(--secondary-background-color, rgba(128, 128, 128, 0.06));
+      font-size: 13px;
+      line-height: 1.6;
+      color: var(--secondary-text-color);
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+    }
+    th,
+    td {
+      padding: 8px;
+      text-align: right;
+      border-top: 1px solid var(--divider-color);
+      white-space: nowrap;
+    }
+    th:first-child,
+    td:first-child {
+      text-align: left;
+    }
   `;
 }
 

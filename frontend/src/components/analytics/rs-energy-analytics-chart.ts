@@ -54,7 +54,9 @@ export class RsEnergyAnalyticsChart extends LitElement {
 
   private _connectForecast(measured: PowerPoint[], forecast: PowerPoint[]): PowerPoint[] {
     if (measured.length === 0 || forecast.length === 0) return forecast;
-    const lastMeasured = measured.reduce((latest, point) => (point[0] > latest[0] ? point : latest));
+    const lastMeasured = measured.reduce((latest, point) =>
+      point[0] > latest[0] ? point : latest,
+    );
     return lastMeasured[0] < forecast[0][0] ? [lastMeasured, ...forecast] : forecast;
   }
 
@@ -150,9 +152,9 @@ export class RsEnergyAnalyticsChart extends LitElement {
     const latestSamples =
       [...points].reverse().find((p) => p.energy_learning_samples != null)
         ?.energy_learning_samples ?? 0;
-    const latestConfidence =
-      [...forecast, ...points].reverse().find((p) => p.energy_prediction_confidence != null)
-        ?.energy_prediction_confidence;
+    const latestConfidence = [...forecast, ...points]
+      .reverse()
+      .find((p) => p.energy_prediction_confidence != null)?.energy_prediction_confidence;
     const cost = this.data?.energy_cost;
 
     const visiblePower: number[] = [];
@@ -171,7 +173,10 @@ export class RsEnergyAnalyticsChart extends LitElement {
       name: "",
       type: "line",
       color: "rgba(255,255,255,0.3)",
-      data: [[this.chartAnchor, -1], [this.chartAnchor, Math.max(maxPower * 1.1, 1)]],
+      data: [
+        [this.chartAnchor, -1],
+        [this.chartAnchor, Math.max(maxPower * 1.1, 1)],
+      ],
       showSymbol: false,
       lineStyle: { width: 1, type: "dashed" },
       tooltip: { show: false },
@@ -284,92 +289,92 @@ export class RsEnergyAnalyticsChart extends LitElement {
   static styles = [
     infoIconStyles,
     css`
-    :host {
-      display: block;
-    }
-    ha-card {
-      margin-bottom: 16px;
-    }
-    .card-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      padding: 16px 16px 0;
-      font-size: 16px;
-      font-weight: 500;
-    }
-    .chart-info-toggle {
-      --mdc-icon-size: 20px;
-    }
-    .chart-info-panel {
-      margin: 8px 16px 4px;
-      padding: 12px 14px;
-      border-radius: 8px;
-      background: var(--secondary-background-color, rgba(128, 128, 128, 0.06));
-      font-size: 13px;
-      line-height: 1.6;
-      color: var(--secondary-text-color);
-    }
-    .stats {
-      display: grid;
-      grid-template-columns: repeat(4, minmax(0, 1fr));
-      gap: 8px;
-      padding: 12px 16px 4px;
-    }
-    .stat {
-      background: var(--secondary-background-color);
-      border-radius: 10px;
-      padding: 10px 12px;
-      display: flex;
-      flex-direction: column;
-      gap: 3px;
-    }
-    .stat span {
-      font-size: 11px;
-      color: var(--secondary-text-color);
-    }
-    .stat strong {
-      font-size: 15px;
-      font-weight: 600;
-    }
-    .series-legend {
-      display: flex;
-      justify-content: center;
-      flex-wrap: wrap;
-      gap: 6px;
-      padding: 8px 16px 12px;
-    }
-    .legend-item {
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      padding: 4px 10px;
-      border: none;
-      border-radius: 12px;
-      background: transparent;
-      color: var(--primary-text-color);
-      font-size: 12px;
-      font-family: inherit;
-      cursor: pointer;
-      transition: opacity 0.2s;
-    }
-    .legend-item:hover {
-      background: var(--secondary-background-color, rgba(128, 128, 128, 0.1));
-    }
-    .legend-item.legend-hidden {
-      opacity: 0.35;
-    }
-    .legend-dot {
-      width: 8px;
-      height: 8px;
-      border-radius: 50%;
-      flex-shrink: 0;
-    }
-    @media (max-width: 700px) {
-      .stats {
-        grid-template-columns: repeat(2, minmax(0, 1fr));
+      :host {
+        display: block;
       }
-    }
+      ha-card {
+        margin-bottom: 16px;
+      }
+      .card-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 16px 16px 0;
+        font-size: 16px;
+        font-weight: 500;
+      }
+      .chart-info-toggle {
+        --mdc-icon-size: 20px;
+      }
+      .chart-info-panel {
+        margin: 8px 16px 4px;
+        padding: 12px 14px;
+        border-radius: 8px;
+        background: var(--secondary-background-color, rgba(128, 128, 128, 0.06));
+        font-size: 13px;
+        line-height: 1.6;
+        color: var(--secondary-text-color);
+      }
+      .stats {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 8px;
+        padding: 12px 16px 4px;
+      }
+      .stat {
+        background: var(--secondary-background-color);
+        border-radius: 10px;
+        padding: 10px 12px;
+        display: flex;
+        flex-direction: column;
+        gap: 3px;
+      }
+      .stat span {
+        font-size: 11px;
+        color: var(--secondary-text-color);
+      }
+      .stat strong {
+        font-size: 15px;
+        font-weight: 600;
+      }
+      .series-legend {
+        display: flex;
+        justify-content: center;
+        flex-wrap: wrap;
+        gap: 6px;
+        padding: 8px 16px 12px;
+      }
+      .legend-item {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        padding: 4px 10px;
+        border: none;
+        border-radius: 12px;
+        background: transparent;
+        color: var(--primary-text-color);
+        font-size: 12px;
+        font-family: inherit;
+        cursor: pointer;
+        transition: opacity 0.2s;
+      }
+      .legend-item:hover {
+        background: var(--secondary-background-color, rgba(128, 128, 128, 0.1));
+      }
+      .legend-item.legend-hidden {
+        opacity: 0.35;
+      }
+      .legend-dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        flex-shrink: 0;
+      }
+      @media (max-width: 700px) {
+        .stats {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+      }
     `,
   ];
 }

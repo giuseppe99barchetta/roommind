@@ -770,36 +770,40 @@ export class RsDeviceSection extends LitElement {
               : nothing}
             ${device.idle_action === "fan_only"
               ? html`<div class="detail-field fan-only-conditions">
-                  <div class="section-subtitle">${localize("devices.fan_only_conditions", lang)}</div>
+                  <div class="section-subtitle">
+                    ${localize("devices.fan_only_conditions", lang)}
+                  </div>
                   ${FAN_ONLY_OPTIONS.map(
-                    ({ option, label }) => html`<label class="fan-only-condition">
-                      <ha-checkbox
-                        .checked=${Boolean(device[option])}
-                        @change=${(e: Event) =>
-                          this._onFanOnlyOptionChange(
-                            entityId,
-                            option,
-                            (e.target as HTMLElement & { checked: boolean }).checked,
-                          )}
-                      ></ha-checkbox>
-                      ${localize(label, lang)}
-                    </label>`,
+                    ({ option, label }) =>
+                      html`<label class="fan-only-condition">
+                        <ha-checkbox
+                          .checked=${Boolean(device[option])}
+                          @change=${(e: Event) =>
+                            this._onFanOnlyOptionChange(
+                              entityId,
+                              option,
+                              (e.target as HTMLElement & { checked: boolean }).checked,
+                            )}
+                        ></ha-checkbox>
+                        ${localize(label, lang)}
+                      </label>`,
                   )}
                   <div class="section-subtitle">${localize("devices.fan_only_seasons", lang)}</div>
                   <div class="fan-only-seasons">
                     ${(["spring", "summer", "autumn", "winter"] as const).map(
-                      (season) => html`<label class="fan-only-condition">
-                        <ha-checkbox
-                          .checked=${(device.fan_only_seasons ?? []).includes(season)}
-                          @change=${(e: Event) =>
-                            this._onFanOnlySeasonChange(
-                              entityId,
-                              season,
-                              (e.target as HTMLElement & { checked: boolean }).checked,
-                            )}
-                        ></ha-checkbox>
-                        ${localize(`devices.fan_only_season_${season}` as TranslationKey, lang)}
-                      </label>`,
+                      (season) =>
+                        html`<label class="fan-only-condition">
+                          <ha-checkbox
+                            .checked=${(device.fan_only_seasons ?? []).includes(season)}
+                            @change=${(e: Event) =>
+                              this._onFanOnlySeasonChange(
+                                entityId,
+                                season,
+                                (e.target as HTMLElement & { checked: boolean }).checked,
+                              )}
+                          ></ha-checkbox>
+                          ${localize(`devices.fan_only_season_${season}` as TranslationKey, lang)}
+                        </label>`,
                     )}
                   </div>
                   <div class="fan-only-hint">${localize("devices.fan_only_season_hint", lang)}</div>

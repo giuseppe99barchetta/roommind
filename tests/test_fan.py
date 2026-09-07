@@ -21,13 +21,23 @@ def mock_coordinator():
 
 
 def _room(**overrides):
-    room = {"devices": [{"entity_id": "climate.ac", "type": "ac"}], "room_hvac_mode": "fan_only", "room_fan_mode": "low"}
+    room = {
+        "devices": [{"entity_id": "climate.ac", "type": "ac"}],
+        "room_hvac_mode": "fan_only",
+        "room_fan_mode": "low",
+    }
     room.update(overrides)
     return room
 
 
 def _state(mode="fan_only", fan_modes=None):
-    return MagicMock(state=mode, attributes={"hvac_modes": ["off", "cool", "fan_only"], "fan_modes": fan_modes or ["auto", "low", "medium", "high"]})
+    return MagicMock(
+        state=mode,
+        attributes={
+            "hvac_modes": ["off", "cool", "fan_only"],
+            "fan_modes": fan_modes or ["auto", "low", "medium", "high"],
+        },
+    )
 
 
 def test_fan_exposes_speed_and_fan_only_state(mock_coordinator):

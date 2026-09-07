@@ -29,6 +29,7 @@ def test_operation_summary_reports_fan_only_time_and_measurement_hint():
     assert report["ventilation_minutes"] == 20
     assert report["suggestions"] == ["Configure an AC power sensor to measure energy and costs precisely."]
 
+
 # ---------------------------------------------------------------------------
 # _compute_target_forecast -- mold delta with heat_target=None
 # ---------------------------------------------------------------------------
@@ -374,9 +375,7 @@ class TestBuildAnalyticsData:
         store.get_room.return_value = {
             "temperature_sensor": "sensor.temp",
             "room_hvac_mode": "fan_only",
-            "devices": [
-                {"entity_id": "climate.ac", "type": "ac", "power_sensor_entity_id": "sensor.ac_power"}
-            ],
+            "devices": [{"entity_id": "climate.ac", "type": "ac", "power_sensor_entity_id": "sensor.ac_power"}],
         }
 
         est = MagicMock()
@@ -912,8 +911,10 @@ def test_integrate_energy_cost_power_series():
     measured = [{"ts": 0, "ac_power_w": 1000}, {"ts": 3600, "ac_power_w": 1000}]
     forecast = [{"ts": 0, "predicted_power_w": 500}, {"ts": 3600, "predicted_power_w": 500}]
 
-    assert _integrate_power_kwh(measured) == 1.0
-    assert _integrate_forecast_kwh(forecast) == 0.5
+    # Long gaps are capped at 15 minutes so stale readings do not fabricate
+    # energy consumption across an unknown interval.
+    assert _integrate_power_kwh(measured) == 0.25
+    assert _integrate_forecast_kwh(forecast) == 0.125
 
 
 def test_comparison_metrics_reports_efficiency_and_target_time():
@@ -924,10 +925,10 @@ def test_comparison_metrics_reports_efficiency_and_target_time():
         {"ts": 3600, "ac_power_w": 1000, "energy_mode": "cooling", "room_temp": 26, "target_temp": 26},
     ]
     metrics = _comparison_metrics(points, 0.3)
-    assert metrics["energy_kwh"] == 1.0
-    assert metrics["cost_eur"] == 0.3
-    assert metrics["active_minutes"] == 60
-    assert metrics["delta_t_per_kwh"] == 2.0
+    assert metrics["energy_kwh"] == 0.25
+    assert metrics["cost_eur"] == 0.07
+    assert metrics["active_minutes"] == 15
+    assert metrics["delta_t_per_kwh"] == 8.0
     assert metrics["target_reach_minutes"] == 60
 
 

@@ -1717,11 +1717,11 @@ class MPCController:
                     self.hass,
                     eid,
                     self._devices,
-                area_id=self._area_id,
-                targets=targets,
-                force_off=force_off,
-                preserve_fan_only=preserve_physical_fan_only,
-                fan_only_conditions_met=fan_only_conditions_met,
+                    area_id=self._area_id,
+                    targets=targets,
+                    force_off=force_off,
+                    preserve_fan_only=preserve_physical_fan_only,
+                    fan_only_conditions_met=fan_only_conditions_met,
                 )
 
     def _proportional_deadband(self, eid: str, current_temp: float | None, effective_target: float) -> float | None:

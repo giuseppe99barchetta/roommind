@@ -139,7 +139,8 @@ export class RsSettingsHeatingSystem extends LitElement {
                 @value-changed=${onBypassChanged}
               ></ha-selector>
               <small
-                >RoomMind opens and verifies at least one bypass valve before starting the boiler, and keeps it open while the boiler runs.</small
+                >RoomMind opens and verifies at least one bypass valve before starting the boiler,
+                and keeps it open while the boiler runs.</small
               >
               <label
                 >Forced bypass temperature

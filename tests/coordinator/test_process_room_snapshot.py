@@ -74,6 +74,23 @@ NORMAL_ROOM_KEYS = {
     "heat_source_reason",
     "compressor_protection_active",
     "compressor_protection_reason",
+    "active_profile",
+    "anomalies",
+    "comfort_score",
+    "humidity_action",
+    "night_mode_active",
+    "night_setback_progress",
+    "power_budget_blocked",
+    "preconditioning_active",
+    "preconditioning_planned_at",
+    "preconditioning_started_at",
+    "predicted_temp",
+    "smart_ventilation_active",
+    "smart_ventilation_until",
+    "window_impact_c",
+    "window_open_minutes",
+    "window_recovery_minutes",
+    "window_recovery_progress",
 }
 
 OUTDOOR_ROOM_KEYS = {

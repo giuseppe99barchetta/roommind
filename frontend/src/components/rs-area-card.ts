@@ -468,14 +468,14 @@ export class RsAreaCard extends LitElement {
               ${isConfigured && live ? this._renderComfortScore(live) : nothing}
               ${isConfigured && live
                 ? html`
-                  <span class="mode-pill ${getModeClass(live.mode)}">
-                    <span class="mode-dot"></span>
-                    ${formatMode(live.mode, this.hass.language)}${live.heating_power > 0 &&
-                    live.heating_power < 100
-                      ? html` ${live.heating_power}%`
-                      : nothing}
-                  </span>
-                `
+                    <span class="mode-pill ${getModeClass(live.mode)}">
+                      <span class="mode-dot"></span>
+                      ${formatMode(live.mode, this.hass.language)}${live.heating_power > 0 &&
+                      live.heating_power < 100
+                        ? html` ${live.heating_power}%`
+                        : nothing}
+                    </span>
+                  `
                 : nothing}
             </span>
           </div>

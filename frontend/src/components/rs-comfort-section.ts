@@ -19,10 +19,16 @@ export class RsComfortSection extends LitElement {
   @property({ type: Number }) public nightRampMinutes = 60;
 
   static styles = css`
-    :host { display: block; }
-    .profile-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+    :host {
+      display: block;
+    }
+    .profile-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 8px;
+    }
     button {
-      border: 1px solid var(--divider-color, rgba(127, 127, 127, .35));
+      border: 1px solid var(--divider-color, rgba(127, 127, 127, 0.35));
       border-radius: 10px;
       padding: 10px;
       color: var(--primary-text-color);
@@ -30,17 +36,62 @@ export class RsComfortSection extends LitElement {
       cursor: pointer;
       font: inherit;
       font-size: 13px;
-      transition: background .15s ease, border-color .15s ease, color .15s ease;
+      transition:
+        background 0.15s ease,
+        border-color 0.15s ease,
+        color 0.15s ease;
     }
-    button:hover { background: var(--secondary-background-color, rgba(127, 127, 127, .08)); }
-    button.active { border-color: var(--primary-color); color: var(--primary-color); background: color-mix(in srgb, var(--primary-color) 10%, transparent); }
-    button.default { grid-column: 1 / -1; }
-    .profile-label { margin: 0 0 10px; color: var(--secondary-text-color); font-size: 11px; text-transform: uppercase; letter-spacing: .06em; }
-    .night { margin-top: 20px; padding: 14px; border: 1px solid var(--divider-color); border-radius: 10px; background: var(--secondary-background-color, rgba(127, 127, 127, .05)); }
-    .night-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; margin-top: 14px; }
-    label { display: grid; gap: 5px; color: var(--secondary-text-color); font-size: 12px; }
-    input { min-width: 0; box-sizing: border-box; width: 100%; padding: 8px; border: 1px solid var(--divider-color); border-radius: 6px; color: var(--primary-text-color); background: var(--card-background-color, transparent); font: inherit; }
-    .wide { grid-column: 1 / -1; }
+    button:hover {
+      background: var(--secondary-background-color, rgba(127, 127, 127, 0.08));
+    }
+    button.active {
+      border-color: var(--primary-color);
+      color: var(--primary-color);
+      background: color-mix(in srgb, var(--primary-color) 10%, transparent);
+    }
+    button.default {
+      grid-column: 1 / -1;
+    }
+    .profile-label {
+      margin: 0 0 10px;
+      color: var(--secondary-text-color);
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+    }
+    .night {
+      margin-top: 20px;
+      padding: 14px;
+      border: 1px solid var(--divider-color);
+      border-radius: 10px;
+      background: var(--secondary-background-color, rgba(127, 127, 127, 0.05));
+    }
+    .night-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 12px;
+      margin-top: 14px;
+    }
+    label {
+      display: grid;
+      gap: 5px;
+      color: var(--secondary-text-color);
+      font-size: 12px;
+    }
+    input {
+      min-width: 0;
+      box-sizing: border-box;
+      width: 100%;
+      padding: 8px;
+      border: 1px solid var(--divider-color);
+      border-radius: 6px;
+      color: var(--primary-text-color);
+      background: var(--card-background-color, transparent);
+      font: inherit;
+    }
+    .wide {
+      grid-column: 1 / -1;
+    }
   `;
 
   render() {
@@ -49,10 +100,13 @@ export class RsComfortSection extends LitElement {
       <p class="profile-label">${localize("comfort.profiles", l)}</p>
       <div class="profile-grid">
         ${PROFILES.map(
-          (profile) => html`<button
-            class=${`${profile ? "" : "default"} ${this.activeProfile === profile ? "active" : ""}`}
-            @click=${() => this._emit("active_profile", profile)}
-          >${localize(`comfort.profile.${profile || "default"}`, l)}</button>`,
+          (profile) =>
+            html`<button
+              class=${`${profile ? "" : "default"} ${this.activeProfile === profile ? "active" : ""}`}
+              @click=${() => this._emit("active_profile", profile)}
+            >
+              ${localize(`comfort.profile.${profile || "default"}`, l)}
+            </button>`,
         )}
       </div>
       <div class="night">
@@ -67,9 +121,31 @@ export class RsComfortSection extends LitElement {
           ? html`<div class="night-grid">
               ${this._timeField("comfort.night_start", this.nightStart, "night_start")}
               ${this._timeField("comfort.night_end", this.nightEnd, "night_end")}
-              ${this._numberField("comfort.night_heat_delta", this.nightHeatDelta, "night_heat_delta", -5, 0, 0.1)}
-              ${this._numberField("comfort.night_cool_delta", this.nightCoolDelta, "night_cool_delta", 0, 5, 0.1)}
-              ${this._numberField("comfort.night_ramp", this.nightRampMinutes, "night_ramp_minutes", 0, 240, 5, true)}
+              ${this._numberField(
+                "comfort.night_heat_delta",
+                this.nightHeatDelta,
+                "night_heat_delta",
+                -5,
+                0,
+                0.1,
+              )}
+              ${this._numberField(
+                "comfort.night_cool_delta",
+                this.nightCoolDelta,
+                "night_cool_delta",
+                0,
+                5,
+                0.1,
+              )}
+              ${this._numberField(
+                "comfort.night_ramp",
+                this.nightRampMinutes,
+                "night_ramp_minutes",
+                0,
+                240,
+                5,
+                true,
+              )}
             </div>`
           : ""}
       </div>
@@ -77,16 +153,46 @@ export class RsComfortSection extends LitElement {
   }
 
   private _timeField(label: Parameters<typeof localize>[0], value: string, key: string) {
-    return html`<label>${localize(label, this.hass.language)}<input type="time" .value=${value} @change=${(e: Event) => this._emit(key, (e.target as HTMLInputElement).value)} /></label>`;
+    return html`<label
+      >${localize(label, this.hass.language)}<input
+        type="time"
+        .value=${value}
+        @change=${(e: Event) => this._emit(key, (e.target as HTMLInputElement).value)}
+    /></label>`;
   }
 
-  private _numberField(label: Parameters<typeof localize>[0], value: number, key: string, min: number, max: number, step: number, wide = false) {
-    return html`<label class=${wide ? "wide" : ""}>${localize(label, this.hass.language)}<input type="number" min=${min} max=${max} step=${step} .value=${String(value)} @change=${(e: Event) => { const value = Number((e.target as HTMLInputElement).value); if (!Number.isNaN(value)) this._emit(key, value); }} /></label>`;
+  private _numberField(
+    label: Parameters<typeof localize>[0],
+    value: number,
+    key: string,
+    min: number,
+    max: number,
+    step: number,
+    wide = false,
+  ) {
+    return html`<label class=${wide ? "wide" : ""}
+      >${localize(label, this.hass.language)}<input
+        type="number"
+        min=${min}
+        max=${max}
+        step=${step}
+        .value=${String(value)}
+        @change=${(e: Event) => {
+          const value = Number((e.target as HTMLInputElement).value);
+          if (!Number.isNaN(value)) this._emit(key, value);
+        }}
+    /></label>`;
   }
 
   private _emit(key: string, value: string | number | boolean) {
-    this.dispatchEvent(new CustomEvent("setting-changed", { detail: { key, value }, bubbles: true, composed: true }));
+    this.dispatchEvent(
+      new CustomEvent("setting-changed", { detail: { key, value }, bubbles: true, composed: true }),
+    );
   }
 }
 
-declare global { interface HTMLElementTagNameMap { "rs-comfort-section": RsComfortSection; } }
+declare global {
+  interface HTMLElementTagNameMap {
+    "rs-comfort-section": RsComfortSection;
+  }
+}

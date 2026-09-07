@@ -407,9 +407,7 @@ async def websocket_list_rooms(
                     vol.Optional("fan_only_only_after_cooling", default=False): bool,
                     vol.Optional("fan_only_require_presence", default=False): bool,
                     vol.Optional("fan_only_require_schedule", default=False): bool,
-                    vol.Optional("fan_only_seasons", default=[]): [
-                        vol.In(["spring", "summer", "autumn", "winter"])
-                    ],
+                    vol.Optional("fan_only_seasons", default=[]): [vol.In(["spring", "summer", "autumn", "winter"])],
                     vol.Optional("setpoint_mode", default="proportional"): vol.In(["proportional", "direct"]),
                     vol.Optional("power_sensor_entity_id", default=""): str,
                 },

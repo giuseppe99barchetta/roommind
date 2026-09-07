@@ -340,9 +340,7 @@ class RoomMindCoordinator(DataUpdateCoordinator):
             nominal_w = float(room.get("heat_pump_power_watts", 0) or 0)
             physical_mode = self._energy_manager._physical_mode(self.hass, room, "idle")
             if physical_mode in ("heating", "cooling", "dry"):
-                running_loads[area_id] = self._energy_manager.budget_power_w(
-                    area_id, physical_mode, nominal_w
-                )
+                running_loads[area_id] = self._energy_manager.budget_power_w(area_id, physical_mode, nominal_w)
             elif self._heat_source_states.get(area_id) in ("heat_pump", "hybrid"):
                 running_loads[area_id] = self._energy_manager.budget_power_w(area_id, "heating", nominal_w)
         self._power_budget_manager.begin_cycle(self.hass, settings, running_loads)
@@ -1061,9 +1059,7 @@ class RoomMindCoordinator(DataUpdateCoordinator):
             raw_open,
             room.get("window_open_delay", 0),
             room.get("window_close_delay", 0),
-            room.get("window_recovery_ramp_minutes", 15)
-            if room.get("window_smart_recovery_enabled", False)
-            else 0,
+            room.get("window_recovery_ramp_minutes", 15) if room.get("window_smart_recovery_enabled", False) else 0,
         )
         if window_open:
             mode = MODE_IDLE
@@ -1230,19 +1226,13 @@ class RoomMindCoordinator(DataUpdateCoordinator):
         plan_uses_ac = heat_source_plan is None or any(
             command.device_type == "ac" and command.active for command in heat_source_plan.commands
         )
-        if (
-            ac_eids
-            and mode in (MODE_HEATING, MODE_COOLING)
-            and plan_uses_ac
-            and not native_budget_checked
-        ):
+        if ac_eids and mode in (MODE_HEATING, MODE_COOLING) and plan_uses_ac and not native_budget_checked:
             nominal_w = float(room.get("heat_pump_power_watts", 0) or 0)
             # A zero nominal power preserves the previous opt-out behavior for
             # rooms where the user has not supplied a safe AC rating.
             if nominal_w > 0:
                 already_running = any(
-                    (state := self.hass.states.get(entity_id)) is not None
-                    and state.state in ("heat", "cool", "dry")
+                    (state := self.hass.states.get(entity_id)) is not None and state.state in ("heat", "cool", "dry")
                     for entity_id in ac_eids
                 )
                 if not self._power_budget_manager.request_heat_pump(
@@ -1617,7 +1607,9 @@ class RoomMindCoordinator(DataUpdateCoordinator):
         anomalies = self._room_anomalies(area_id, room, current_temp, current_humidity, targets, mode)
         room_state["anomalies"] = anomalies
         room_state["humidity_action"] = (
-            "dehumidifying" if self._humidity_dry_requested(room, current_humidity, mode, window_open, force_off) else "idle"
+            "dehumidifying"
+            if self._humidity_dry_requested(room, current_humidity, mode, window_open, force_off)
+            else "idle"
         )
         room_state["active_profile"] = room.get("active_profile", "")
         room_state["comfort_score"] = calculate_comfort_score(
@@ -1902,7 +1894,9 @@ class RoomMindCoordinator(DataUpdateCoordinator):
             and not self._in_startup_grace_period()
             and (sensor_state is None or sensor_state.state in ("unknown", "unavailable") or stale)
         ):
-            anomalies.append({"type": "sensor_stale", "message": "Il sensore di temperatura non sta aggiornando i dati."})
+            anomalies.append(
+                {"type": "sensor_stale", "message": "Il sensore di temperatura non sta aggiornando i dati."}
+            )
         target = targets.heat if mode == MODE_HEATING else targets.cool if mode == MODE_COOLING else None
         error = abs(current_temp - target) if current_temp is not None and target is not None else 0.0
         started_at = self._mode_on_since.get(area_id)
@@ -1910,8 +1904,10 @@ class RoomMindCoordinator(DataUpdateCoordinator):
         max_run = float(room.get("anomaly_max_run_minutes", 240) or 240)
         if mode in (MODE_HEATING, MODE_COOLING) and run_minutes >= max_run:
             anomalies.append({"type": "long_run", "message": "Il climatizzatore e attivo da molto tempo."})
-        if mode in (MODE_HEATING, MODE_COOLING) and run_minutes >= 30 and error >= float(
-            room.get("anomaly_target_error_c", 1.5) or 1.5
+        if (
+            mode in (MODE_HEATING, MODE_COOLING)
+            and run_minutes >= 30
+            and error >= float(room.get("anomaly_target_error_c", 1.5) or 1.5)
         ):
             anomalies.append({"type": "target_not_reached", "message": "La stanza non sta raggiungendo il setpoint."})
         humidity_target = self._humidity_target(room)

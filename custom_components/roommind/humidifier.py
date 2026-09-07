@@ -76,9 +76,10 @@ class RoomMindDryDehumidifier(CoordinatorEntity, HumidifierEntity):
     def available(self) -> bool:
         """Only expose active control when Dry is supported and selected."""
         room = self._room()
-        return _is_humidifier_representation(room) and HVACMode.DRY.value in room_capabilities(
-            self.coordinator.hass, room
-        ).hvac_modes
+        return (
+            _is_humidifier_representation(room)
+            and HVACMode.DRY.value in room_capabilities(self.coordinator.hass, room).hvac_modes
+        )
 
     @property
     def is_on(self) -> bool:

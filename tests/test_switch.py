@@ -90,9 +90,7 @@ def test_create_room_switches(mock_coordinator):
 def test_dry_switch_is_on_only_while_drying(mock_coordinator):
     coordinator, store = mock_coordinator
     store.get_room.return_value = {"devices": [{"entity_id": "climate.ac", "type": "ac"}], "room_hvac_mode": "dry"}
-    coordinator.hass.states.get.return_value = MagicMock(
-        state="dry", attributes={"hvac_modes": ["off", "cool", "dry"]}
-    )
+    coordinator.hass.states.get.return_value = MagicMock(state="dry", attributes={"hvac_modes": ["off", "cool", "dry"]})
 
     assert RoomMindDrySwitch(coordinator, "living_room").is_on is True
 
@@ -123,9 +121,7 @@ async def test_async_setup_entry_creates_dry_switch_before_capabilities_arrive()
     coordinator._dry_switch_entity_areas = set()
 
     store = MagicMock()
-    store.get_rooms.return_value = {
-        "bedroom": {"devices": [{"entity_id": "climate.bedroom_ac", "type": "ac"}]}
-    }
+    store.get_rooms.return_value = {"bedroom": {"devices": [{"entity_id": "climate.bedroom_ac", "type": "ac"}]}}
 
     entry = MagicMock()
     entry.entry_id = "test_entry"

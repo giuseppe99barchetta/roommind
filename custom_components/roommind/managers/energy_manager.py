@@ -344,7 +344,11 @@ class EnergyManager:
         ):
             hours = min(max(now_ts - state.last_temp_ts, 0.0), 300.0) / 3600.0
             if hours > 0:
-                rate = (room_temp - state.last_temp) / hours if mode == "heating" else (state.last_temp - room_temp) / hours
+                rate = (
+                    (room_temp - state.last_temp) / hours
+                    if mode == "heating"
+                    else (state.last_temp - room_temp) / hours
+                )
                 if rate > 0 and power_w >= _MIN_ACTIVE_POWER_W:
                     state.rate_models.setdefault(mode, _RateStats()).add(rate, outdoor_delta or 0.0)
         state.last_temp = room_temp

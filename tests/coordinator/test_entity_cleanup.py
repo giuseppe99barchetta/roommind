@@ -149,9 +149,7 @@ class TestCoverageGaps:
 
         coordinator = _create_coordinator(hass, mock_config_entry)
         store = MagicMock()
-        store.get_rooms.return_value = {
-            "sala": {"devices": [{"entity_id": "climate.sala_ac", "type": "ac"}]}
-        }
+        store.get_rooms.return_value = {"sala": {"devices": [{"entity_id": "climate.sala_ac", "type": "ac"}]}}
         hass.data = {DOMAIN: {"store": store}}
 
         entries = []

@@ -7,7 +7,14 @@ import { RsSettingsBase } from "./rs-settings-base";
 import type { HomeAssistant } from "../../types";
 import { localize } from "../../utils/localize";
 import { getSelectValue } from "../../utils/events";
-import { tempRange, tempStep, tempUnit, toCelsius, toDisplay, toDisplayDelta } from "../../utils/temperature";
+import {
+  tempRange,
+  tempStep,
+  tempUnit,
+  toCelsius,
+  toDisplay,
+  toDisplayDelta,
+} from "../../utils/temperature";
 
 @customElement("rs-settings-mold")
 export class RsSettingsMold extends RsSettingsBase {
@@ -182,7 +189,9 @@ export class RsSettingsMold extends RsSettingsBase {
                   ? html`
                       <div class="threshold-field" style="margin-top: 12px">
                         <ha-textfield
-                          .value=${String(toDisplay(this.moldPreventionDryMinTemperature, this.hass))}
+                          .value=${String(
+                            toDisplay(this.moldPreventionDryMinTemperature, this.hass),
+                          )}
                           .label=${localize("mold.dehumidification_min_temperature", l)}
                           .suffix=${tempUnit(this.hass)}
                           type="number"

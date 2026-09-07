@@ -103,7 +103,11 @@ def test_energy_manager_flags_sustained_low_thermal_response_at_expected_power()
     now = 1_700_000_000.0
     for index in range(14):
         manager.update_room(
-            "studio", room, {"current_temp": 28 - index * 0.1, "target_temp": 24, "mode": "cooling"}, 32, now=now + index * 60
+            "studio",
+            room,
+            {"current_temp": 28 - index * 0.1, "target_temp": 24, "mode": "cooling"},
+            32,
+            now=now + index * 60,
         )
     result = manager.update_room(
         "studio", room, {"current_temp": 26.69, "target_temp": 24, "mode": "cooling"}, 32, now=now + 14 * 60
@@ -122,7 +126,11 @@ def test_energy_manager_compares_efficiency_at_similar_outdoor_conditions():
     now = 1_700_000_000.0
     for index in range(14):
         manager.update_room(
-            "studio", room, {"current_temp": 28 - index * 0.1, "target_temp": 24, "mode": "cooling"}, 32, now=now + index * 60
+            "studio",
+            room,
+            {"current_temp": 28 - index * 0.1, "target_temp": 24, "mode": "cooling"},
+            32,
+            now=now + index * 60,
         )
     result = manager.update_room(
         "studio", room, {"current_temp": 26.69, "target_temp": 24, "mode": "cooling"}, 10, now=now + 14 * 60

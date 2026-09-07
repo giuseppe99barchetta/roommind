@@ -65,7 +65,8 @@ export class RsSettingsGeneral extends RsSettingsBase {
               { value: "up", label: localize("settings.temperature_rounding_up", l) },
             ]}
             .selected=${this.temperatureRoundingMode}
-            @selected-changed=${(e: CustomEvent<string>) => this._fire("temperatureRoundingMode", e.detail)}
+            @selected-changed=${(e: CustomEvent<string>) =>
+              this._fire("temperatureRoundingMode", e.detail)}
           ></rs-radio-group>
         </div>
       </div>

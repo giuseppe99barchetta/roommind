@@ -28,7 +28,5 @@ async def test_dry_entity_type_select_switches_to_dehumidifier():
     await entity.async_select_option("humidifier")
 
     store.async_update_room.assert_awaited_once_with("bedroom", {"dry_entity_type": "humidifier"})
-    coordinator._async_sync_dry_entity.assert_awaited_once_with(
-        "bedroom", {"dry_entity_type": "humidifier"}
-    )
+    coordinator._async_sync_dry_entity.assert_awaited_once_with("bedroom", {"dry_entity_type": "humidifier"})
     coordinator.async_request_refresh.assert_awaited_once()

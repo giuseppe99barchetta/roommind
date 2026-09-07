@@ -7,7 +7,13 @@ from typing import Any
 DEFAULT_PROFILES: dict[str, dict[str, Any]] = {
     "work": {"label": "Lavoro", "heat_target": 21.0, "cool_target": 25.0, "humidity_target": 55.0, "fan_mode": "auto"},
     "sleep": {"label": "Sonno", "heat_target": 19.5, "cool_target": 26.0, "humidity_target": 55.0, "fan_mode": "low"},
-    "guests": {"label": "Ospiti", "heat_target": 21.5, "cool_target": 24.5, "humidity_target": 50.0, "fan_mode": "auto"},
+    "guests": {
+        "label": "Ospiti",
+        "heat_target": 21.5,
+        "cool_target": 24.5,
+        "humidity_target": 50.0,
+        "fan_mode": "auto",
+    },
     "away": {"label": "Assente", "heat_target": 17.0, "cool_target": 28.0, "humidity_target": 60.0, "fan_mode": "low"},
 }
 
@@ -64,7 +70,11 @@ def calculate_comfort_score(
         factors["humidity"] = 100 - penalty
         breakdown["humidity"] = {
             "penalty": penalty,
-            "status": "below_target" if humidity < humidity_target else "above_target" if humidity > humidity_target else "on_target",
+            "status": "below_target"
+            if humidity < humidity_target
+            else "above_target"
+            if humidity > humidity_target
+            else "on_target",
         }
     else:
         breakdown["humidity"] = {"penalty": 0, "status": "unavailable"}
@@ -102,5 +112,7 @@ def energy_suggestions(
     if heating_minutes + cooling_minutes >= 8 * 60:
         suggestions.append("Molte ore di climatizzazione: prova un profilo Eco o un setpoint meno estremo.")
     if target_error_c is not None and abs(target_error_c) >= 1.5:
-        suggestions.append("Il setpoint viene raggiunto con difficolta: controlla finestre, sensore e potenza del climatizzatore.")
+        suggestions.append(
+            "Il setpoint viene raggiunto con difficolta: controlla finestre, sensore e potenza del climatizzatore."
+        )
     return suggestions

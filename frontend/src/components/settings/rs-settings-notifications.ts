@@ -169,7 +169,9 @@ export class RsSettingsNotifications extends RsSettingsBase {
                         this._fire("windowOpenNotificationMinutes", v);
                     }}
                   ></ha-textfield>
-                  <span class="field-hint">${localize("notifications.window_open_after_hint", l)}</span>
+                  <span class="field-hint"
+                    >${localize("notifications.window_open_after_hint", l)}</span
+                  >
                 </div>
               </div>
 

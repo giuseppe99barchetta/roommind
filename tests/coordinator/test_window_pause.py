@@ -24,7 +24,9 @@ class TestRoomMindCoordinator:
     async def test_window_open_notification_is_opt_in(self, hass, mock_config_entry):
         """A zero threshold keeps window notifications disabled."""
         coordinator = _create_coordinator(hass, mock_config_entry)
-        with patch("custom_components.roommind.coordinator.async_send_mold_notification", new_callable=AsyncMock) as send:
+        with patch(
+            "custom_components.roommind.coordinator.async_send_mold_notification", new_callable=AsyncMock
+        ) as send:
             await coordinator._notify_window_open(
                 "living_room_abc12345",
                 True,
@@ -46,7 +48,9 @@ class TestRoomMindCoordinator:
         }
         with (
             patch("custom_components.roommind.coordinator._get_area_name", return_value="Living room"),
-            patch("custom_components.roommind.coordinator.async_send_mold_notification", new_callable=AsyncMock) as send,
+            patch(
+                "custom_components.roommind.coordinator.async_send_mold_notification", new_callable=AsyncMock
+            ) as send,
             patch("custom_components.roommind.coordinator.dismiss_mold_notification") as dismiss,
         ):
             await coordinator._notify_window_open("living_room_abc12345", True, 14, -0.5, settings)

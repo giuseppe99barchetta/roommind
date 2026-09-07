@@ -125,23 +125,52 @@ export class RsRoomDetail extends LitElement {
       align-items: start;
     }
 
-    .detail-grid > * { min-width: 0; }
+    .detail-grid > * {
+      min-width: 0;
+    }
 
-    .control-card, .comfort-card, .schedule-card { grid-column: span 4; }
-    .devices-card, .sensors-card { grid-column: span 6; }
-    .optional-card { grid-column: span 4; }
-    .insights-card { grid-column: 1 / -1; }
+    .control-card,
+    .comfort-card,
+    .schedule-card {
+      grid-column: span 4;
+    }
+    .devices-card,
+    .sensors-card {
+      grid-column: span 6;
+    }
+    .optional-card {
+      grid-column: span 4;
+    }
+    .insights-card {
+      grid-column: 1 / -1;
+    }
 
-    .control-card rs-toggle-row { margin-bottom: 16px; padding-bottom: 16px; border-bottom: 1px solid var(--divider-color); }
+    .control-card rs-toggle-row {
+      margin-bottom: 16px;
+      padding-bottom: 16px;
+      border-bottom: 1px solid var(--divider-color);
+    }
 
     @media (max-width: 1050px) {
-      .control-card, .comfort-card, .schedule-card, .optional-card { grid-column: span 6; }
-      .devices-card, .sensors-card { grid-column: span 6; }
+      .control-card,
+      .comfort-card,
+      .schedule-card,
+      .optional-card {
+        grid-column: span 6;
+      }
+      .devices-card,
+      .sensors-card {
+        grid-column: span 6;
+      }
     }
 
     @media (max-width: 680px) {
-      .detail-grid { grid-template-columns: 1fr; }
-      .detail-grid > * { grid-column: 1; }
+      .detail-grid {
+        grid-template-columns: 1fr;
+      }
+      .detail-grid > * {
+        grid-column: 1;
+      }
     }
 
     /* Section cards handled by rs-section-card */
@@ -590,7 +619,9 @@ export class RsRoomDetail extends LitElement {
               `
             : nothing}
           ${!this._isOutdoor &&
-          (this._selectedCovers.size > 0 || this._coversAutoEnabled || this._coverSchedules.length > 0)
+          (this._selectedCovers.size > 0 ||
+            this._coversAutoEnabled ||
+            this._coverSchedules.length > 0)
             ? html`<rs-section-card
                 class="optional-card"
                 icon="mdi:blinds-horizontal"
@@ -668,12 +699,12 @@ export class RsRoomDetail extends LitElement {
           </rs-section-card>
           ${!this._isOutdoor && this.config
             ? html`<rs-room-insights
-              class="insights-card"
-              .hass=${this.hass}
-              .readiness=${this.config.readiness}
-              .decisionReasons=${this.config.live?.decision_reasons ?? []}
-              .comfortScore=${this.config.live?.comfort_score}
-            ></rs-room-insights>`
+                class="insights-card"
+                .hass=${this.hass}
+                .readiness=${this.config.readiness}
+                .decisionReasons=${this.config.live?.decision_reasons ?? []}
+                .comfortScore=${this.config.live?.comfort_score}
+              ></rs-room-insights>`
             : nothing}
         </div>
         ${this._error ? html`<div class="error">${this._error}</div>` : nothing}
@@ -1054,7 +1085,9 @@ export class RsRoomDetail extends LitElement {
     this._autoSave();
   }
 
-  private _onComfortSettingChanged(e: CustomEvent<{ key: string; value: string | number | boolean }>) {
+  private _onComfortSettingChanged(
+    e: CustomEvent<{ key: string; value: string | number | boolean }>,
+  ) {
     const { key, value } = e.detail;
     e.stopPropagation();
     if (key === "active_profile") this._activeProfile = value as string;
