@@ -115,6 +115,7 @@ async def async_apply_ac_auxiliary_mode(
     if mode == "fan_only" and window_open and not keep_fan_on_window_open:
         return
 
+    state = None
     if mode in ("dry", "fan_only"):
         # Persisted RoomMind state is not an activation request. Auxiliary
         # modes are activated only by an explicit climate.roommind_* command.
@@ -129,11 +130,12 @@ async def async_apply_ac_auxiliary_mode(
         ("set_swing_mode", "room_swing_mode"),
         ("set_swing_horizontal_mode", "room_swing_horizontal_mode"),
     ):
-        if room.get(key):
+        attribute = service.removeprefix("set_")
+        if room.get(key) and (state is None or state.attributes.get(attribute) != room[key]):
             await hass.services.async_call(
                 "climate",
                 service,
-                {"entity_id": entity_id, service.removeprefix("set_"): room[key]},
+                {"entity_id": entity_id, attribute: room[key]},
                 blocking=True,
                 context=make_roommind_context(),
             )
