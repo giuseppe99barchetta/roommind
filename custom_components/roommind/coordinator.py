@@ -2,8 +2,11 @@
 
 from __future__ import annotations
 
+import asyncio
 import logging
 import time
+from collections.abc import AsyncIterator
+from contextlib import asynccontextmanager
 from datetime import datetime, timedelta
 from typing import Any
 
@@ -289,6 +292,11 @@ class RoomMindCoordinator(DataUpdateCoordinator):
         self._binary_sensor_entity_areas: set[str] = set()
         self._climate_entity_areas: set[str] = set()
         self._fan_entity_areas: set[str] = set()
+        # Serialize physical climate commands per room.  The generation lets a
+        # coordinator cycle discard a decision computed before a newer manual
+        # command from the canonical climate entity.
+        self._room_command_locks: dict[str, asyncio.Lock] = {}
+        self._manual_command_generations: dict[str, int] = {}
         # Per-entity cache of schedule blocks; fallback when schedule.get_schedule fails (#308)
         self._schedule_blocks_cache: dict[str, dict] = {}
         # Entity platform callbacks, set by platform async_setup_entry
@@ -312,6 +320,7 @@ class RoomMindCoordinator(DataUpdateCoordinator):
         """
         store = self.hass.data[DOMAIN]["store"]
         rooms = store.get_rooms()
+        command_generations = self._manual_command_generations.copy()
 
         # Read outdoor sensors from global settings
         settings = store.get_settings()
@@ -407,7 +416,12 @@ class RoomMindCoordinator(DataUpdateCoordinator):
         for rank, area_id in enumerate(room_order, start=1):
             room = rooms[area_id]
             try:
-                room_state = await self._async_process_room(room, settings, outdoor_forecast)
+                room_state = await self._async_process_room(
+                    room,
+                    settings,
+                    outdoor_forecast,
+                    command_generation=command_generations.get(area_id, 0),
+                )
                 room_state["coordination_priority"] = _coordination_priority(self.rooms.get(area_id, {}))
                 room_state["coordination_rank"] = rank
                 room_states[area_id] = room_state
@@ -807,7 +821,48 @@ class RoomMindCoordinator(DataUpdateCoordinator):
             pass
         return None
 
-    async def _async_process_room(self, room: dict, settings: dict, outdoor_forecast: list[dict]) -> dict:
+    @asynccontextmanager
+    async def async_manual_room_command(self, area_id: str) -> AsyncIterator[None]:
+        """Give a canonical manual command ownership over the next apply."""
+        self._manual_command_generations[area_id] = self._manual_command_generations.get(area_id, 0) + 1
+        lock = self._room_command_locks.setdefault(area_id, asyncio.Lock())
+        async with lock:
+            try:
+                yield
+            finally:
+                # Also invalidate a coordinator snapshot taken while this
+                # command was waiting for or holding the room lock.
+                self._manual_command_generations[area_id] += 1
+
+    async def _async_process_room(
+        self,
+        room: dict,
+        settings: dict,
+        outdoor_forecast: list[dict],
+        *,
+        command_generation: int | None = None,
+    ) -> dict:
+        """Process one room while serializing its physical climate commands."""
+        area_id = room.get("area_id", "unknown")
+        if command_generation is None:
+            command_generation = self._manual_command_generations.get(area_id, 0)
+        lock = self._room_command_locks.setdefault(area_id, asyncio.Lock())
+        async with lock:
+            return await self._async_process_room_locked(
+                room,
+                settings,
+                outdoor_forecast,
+                command_generation=command_generation,
+            )
+
+    async def _async_process_room_locked(
+        self,
+        room: dict,
+        settings: dict,
+        outdoor_forecast: list[dict],
+        *,
+        command_generation: int,
+    ) -> dict:
         """Process a single room: read sensor, evaluate schedule, apply control."""
         area_id = room.get("area_id", "unknown")
 
@@ -1087,7 +1142,12 @@ class RoomMindCoordinator(DataUpdateCoordinator):
             window_recovery_minutes = self._estimate_window_recovery_minutes(area_id, current_temp, targets, mode)
         await self._notify_window_open(area_id, window_open, window_open_minutes, window_impact_c, settings)
 
-        climate_active = settings.get("climate_control_active", True) and room.get("climate_control_enabled", True)
+        apply_control = command_generation == self._manual_command_generations.get(area_id, 0)
+        climate_active = (
+            apply_control
+            and settings.get("climate_control_active", True)
+            and room.get("climate_control_enabled", True)
+        )
         # Startup guard: Full Control room without any temperature reading yet —
         # leave devices in their current state instead of idling them.
         waiting_for_data = has_external_sensor and self._waiting_for_first_reading(area_id)

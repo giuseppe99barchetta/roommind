@@ -6,9 +6,13 @@ to catch regressions during future coordinator decomposition.
 
 from __future__ import annotations
 
+import asyncio
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
+from homeassistant.components.climate import HVACMode
+
+from custom_components.roommind.climate import RoomMindClimate
 
 from .conftest import (
     MANAGED_ROOM,
@@ -135,6 +139,108 @@ OUTDOOR_ROOM_KEYS = {
 
 class TestProcessRoomSnapshot:
     """Snapshot tests for _async_process_room return dict."""
+
+    @pytest.mark.asyncio
+    async def test_stale_apply_cannot_override_newer_manual_dry_command(self, hass, mock_config_entry):
+        """An update computed before fan_only -> dry cannot append an OFF."""
+        area_id = "living_room_abc12345"
+        room = {
+            **SAMPLE_ROOM,
+            "area_id": area_id,
+            "thermostats": [],
+            "acs": ["climate.living_room_ac"],
+            "devices": [{"entity_id": "climate.living_room_ac", "type": "ac"}],
+            "room_hvac_mode": "fan_only",
+        }
+        stale_room = {**room, "room_hvac_mode": "off"}
+        coordinator, store = _setup_coordinator(
+            hass,
+            mock_config_entry,
+            {area_id: room},
+            {"climate_control_active": False},
+        )
+        store.get_room.return_value = room
+        store.async_update_room = AsyncMock(side_effect=lambda _area_id, updates: room.update(updates))
+        coordinator.async_request_refresh = AsyncMock()
+
+        physical = MagicMock(
+            state="fan_only",
+            attributes={"hvac_modes": ["off", "cool", "heat", "dry", "fan_only", "auto"]},
+        )
+        hass.states.get = MagicMock(return_value=physical)
+        dry_started = asyncio.Event()
+        finish_dry = asyncio.Event()
+
+        async def apply_service(_domain, service, data, **_kwargs):
+            if service == "set_hvac_mode" and data["hvac_mode"] == "dry":
+                physical.state = "dry"
+                dry_started.set()
+                await finish_dry.wait()
+            elif service == "set_hvac_mode":
+                physical.state = data["hvac_mode"]
+
+        hass.services.async_call = AsyncMock(side_effect=apply_service)
+
+        async def apply_stale_decision(_room, _settings, _forecast, *, command_generation):
+            apply_control = command_generation == coordinator._manual_command_generations.get(area_id, 0)
+            if apply_control:
+                await hass.services.async_call(
+                    "climate",
+                    "set_hvac_mode",
+                    {"entity_id": "climate.living_room_ac", "hvac_mode": "off"},
+                    blocking=True,
+                )
+            return {}
+
+        coordinator._async_process_room_locked = AsyncMock(side_effect=apply_stale_decision)
+        entity = RoomMindClimate(coordinator, area_id)
+
+        manual = asyncio.create_task(entity.async_set_hvac_mode(HVACMode.DRY))
+        await dry_started.wait()
+        stale_apply = asyncio.create_task(
+            coordinator._async_process_room(
+                stale_room,
+                store.get_settings(),
+                [],
+                command_generation=0,
+            )
+        )
+        finish_dry.set()
+        await manual
+        await stale_apply
+
+        assert physical.state == "dry"
+        hvac_modes = [call.args[2]["hvac_mode"] for call in hass.services.async_call.await_args_list]
+        assert hvac_modes == ["dry"]
+        assert coordinator._async_process_room_locked.await_args.kwargs["command_generation"] == 0
+        assert coordinator._manual_command_generations[area_id] == 2
+
+    @pytest.mark.asyncio
+    async def test_current_generation_keeps_automatic_control_enabled(self, hass, mock_config_entry):
+        """A current coordinator decision is still applied normally."""
+        coordinator, store = _setup_coordinator(
+            hass,
+            mock_config_entry,
+            {"living_room_abc12345": SAMPLE_ROOM},
+        )
+
+        async def apply_current_decision(_room, _settings, _forecast, *, command_generation):
+            return {
+                "apply_control": command_generation
+                == coordinator._manual_command_generations.get("living_room_abc12345", 0)
+            }
+
+        coordinator._async_process_room_locked = AsyncMock(side_effect=apply_current_decision)
+
+        result = await coordinator._async_process_room(
+            SAMPLE_ROOM,
+            store.get_settings(),
+            [],
+            command_generation=0,
+        )
+
+        assert result["apply_control"] is True
+        assert coordinator._async_process_room_locked.await_args.kwargs["command_generation"] == 0
 
     @pytest.mark.asyncio
     async def test_normal_heating(self, hass, mock_config_entry):

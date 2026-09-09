@@ -92,9 +92,10 @@ async def test_auxiliary_mode_changes_only_horizontal_swing_when_it_differs():
 
 
 @pytest.mark.asyncio
-async def test_persisted_fan_only_does_not_turn_on_physical_ac():
+@pytest.mark.parametrize("mode", ["fan_only", "dry"])
+async def test_persisted_auxiliary_mode_does_not_turn_on_physical_ac(mode):
     hass = _hass("off")
 
-    await async_apply_ac_auxiliary_mode(hass, _room())
+    await async_apply_ac_auxiliary_mode(hass, _room(mode))
 
     hass.services.async_call.assert_not_awaited()

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import time
+from contextlib import nullcontext
 from unittest.mock import ANY, AsyncMock, MagicMock
 
 import pytest
@@ -20,6 +21,7 @@ from custom_components.roommind.const import (
     DOMAIN,
     OVERRIDE_CUSTOM,
 )
+from custom_components.roommind.managers.compressor_group_manager import CompressorGroupManager
 
 
 @pytest.fixture
@@ -27,6 +29,7 @@ def mock_coordinator():
     coordinator = MagicMock()
     coordinator.hass = MagicMock()
     coordinator.async_request_refresh = AsyncMock()
+    coordinator.async_manual_room_command.side_effect = lambda _area_id: nullcontext()
     store = MagicMock()
     coordinator.hass.data = {DOMAIN: {"store": store}}
     coordinator.data = {}
@@ -672,16 +675,103 @@ async def test_canonical_manual_fan_only_bypasses_automation_switches(mock_coord
     store.get_room.return_value = room
     store.get_settings.return_value = {"climate_control_active": global_enabled}
     store.async_update_room = AsyncMock()
-    coordinator.hass.states.get.return_value = MagicMock(
+    physical = MagicMock(
         state="off", attributes={"hvac_modes": ["off", "cool", "fan_only"]}
     )
-    coordinator.hass.services.async_call = AsyncMock()
+    coordinator.hass.states.get.return_value = physical
+
+    async def apply_service(_domain, service, data, **_kwargs):
+        if service == "set_hvac_mode":
+            physical.state = data["hvac_mode"]
+
+    coordinator.hass.services.async_call = AsyncMock(side_effect=apply_service)
 
     await RoomMindClimate(coordinator, "living_room").async_set_hvac_mode(HVACMode.FAN_ONLY)
 
     coordinator.hass.services.async_call.assert_any_await(
         "climate", "set_hvac_mode", {"entity_id": "climate.ac", "hvac_mode": "fan_only"}, blocking=True
     )
+    assert physical.state == "fan_only"
+
+
+@pytest.mark.asyncio
+async def test_canonical_manual_fan_only_to_dry_with_automation_disabled(mock_coordinator):
+    """A manual auxiliary transition is forwarded without an intermediate OFF."""
+    coordinator, store = mock_coordinator
+    room = _canonical_room(
+        [{"entity_id": "climate.ac", "type": "ac"}],
+        room_hvac_mode="fan_only",
+        climate_control_enabled=True,
+    )
+    store.get_room.return_value = room
+    store.get_settings.return_value = {"climate_control_active": False}
+    store.async_update_room = AsyncMock(side_effect=lambda _area_id, updates: room.update(updates))
+    physical = MagicMock(
+        state="fan_only",
+        attributes={"hvac_modes": ["off", "cool", "heat", "dry", "fan_only", "auto"]},
+    )
+    coordinator.hass.states.get.return_value = physical
+
+    async def apply_service(_domain, service, data, **_kwargs):
+        if service == "set_hvac_mode":
+            physical.state = data["hvac_mode"]
+
+    coordinator.hass.services.async_call = AsyncMock(side_effect=apply_service)
+
+    await RoomMindClimate(coordinator, "living_room").async_set_hvac_mode(HVACMode.DRY)
+
+    assert physical.state == "dry"
+    hvac_modes = [call.args[2]["hvac_mode"] for call in coordinator.hass.services.async_call.await_args_list]
+    assert hvac_modes == ["dry"]
+
+
+@pytest.mark.asyncio
+async def test_real_off_still_starts_compressor_minimum_off_lockout(mock_coordinator):
+    """The race fix must not weaken a real dry -> off -> dry lockout."""
+    coordinator, store = mock_coordinator
+    room = _canonical_room(
+        [{"entity_id": "climate.ac", "type": "ac"}],
+        room_hvac_mode="dry",
+    )
+    store.get_room.return_value = room
+    store.get_settings.return_value = {
+        "compressor_groups": [
+            {
+                "id": "acs",
+                "name": "ACs",
+                "members": ["climate.ac"],
+                "min_run_minutes": 15,
+                "min_off_minutes": 5,
+            }
+        ]
+    }
+    store.async_update_room = AsyncMock(side_effect=lambda _area_id, updates: room.update(updates))
+    coordinator._compressor_manager = CompressorGroupManager()
+    coordinator._compressor_manager.load_groups(store.get_settings()["compressor_groups"])
+    coordinator._compressor_manager.update_member("climate.ac", True)
+    physical = MagicMock(
+        state="dry",
+        attributes={"hvac_modes": ["off", "cool", "dry", "fan_only"], "min_temp": 16},
+    )
+    coordinator.hass.states.get.return_value = physical
+
+    async def apply_service(_domain, service, data, **_kwargs):
+        if service == "set_hvac_mode":
+            physical.state = data["hvac_mode"]
+
+    coordinator.hass.services.async_call = AsyncMock(side_effect=apply_service)
+    entity = RoomMindClimate(coordinator, "living_room")
+
+    await entity.async_set_hvac_mode(HVACMode.OFF)
+    with pytest.raises(ValueError, match="minimum-off protection"):
+        await entity.async_set_hvac_mode(HVACMode.DRY)
+
+    hvac_modes = [
+        call.args[2]["hvac_mode"]
+        for call in coordinator.hass.services.async_call.await_args_list
+        if call.args[1] == "set_hvac_mode"
+    ]
+    assert hvac_modes == ["off"]
 
 
 @pytest.mark.asyncio
@@ -1030,6 +1120,26 @@ async def test_fan_option_edited_while_off_is_deferred(mock_coordinator):
     await entity.async_set_fan_mode("high")
 
     store.async_update_room.assert_awaited_once_with("living_room", {"room_fan_mode": "high"})
+    coordinator.hass.services.async_call.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_manual_fan_option_matching_physical_state_is_not_resent(mock_coordinator):
+    coordinator, store = mock_coordinator
+    store.get_room.return_value = _canonical_room(
+        [{"entity_id": "climate.ac", "type": "ac"}],
+        room_hvac_mode="fan_only",
+        room_fan_mode="low",
+    )
+    store.async_update_room = AsyncMock()
+    coordinator.hass.states.get.return_value = MagicMock(
+        state="fan_only",
+        attributes={"hvac_modes": ["off", "fan_only"], "fan_modes": ["low", "high"], "fan_mode": "low"},
+    )
+
+    await RoomMindClimate(coordinator, "living_room").async_set_fan_mode("low")
+
+    store.async_update_room.assert_awaited_once_with("living_room", {"room_fan_mode": "low"})
     coordinator.hass.services.async_call.assert_not_called()
 
 

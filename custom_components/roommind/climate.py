@@ -610,12 +610,13 @@ class RoomMindClimate(RoomMindOverrideClimate):
         # is different: it is permission for RoomMind to choose one direction,
         # so it must never directly switch both heating and cooling hardware on.
         # Validate hard safety before persisting a mode that cannot be applied.
-        if mode != "auto":
-            self._manual_activation_guard(mode)
-            await self._async_apply_manual_hvac_mode(mode, heat, cool)
-        await self.coordinator.hass.data[DOMAIN]["store"].async_update_room(self._area_id, updates)
-        if mode != "off":
-            await self._async_apply_stored_ac_options()
+        async with self.coordinator.async_manual_room_command(self._area_id):
+            if mode != "auto":
+                self._manual_activation_guard(mode)
+                await self._async_apply_manual_hvac_mode(mode, heat, cool)
+            await self.coordinator.hass.data[DOMAIN]["store"].async_update_room(self._area_id, updates)
+            if mode != "off":
+                await self._async_apply_stored_ac_options()
         await self.coordinator.async_request_refresh()
 
     async def _async_apply_manual_hvac_mode(self, mode: str, heat: float, cool: float) -> None:
@@ -759,6 +760,8 @@ class RoomMindClimate(RoomMindOverrideClimate):
                 state = self.coordinator.hass.states.get(entity_id)
                 if state is None or value not in (state.attributes.get(supported_key) or []):
                     continue
+                if state.attributes.get(service_key) == value:
+                    continue
                 await self.coordinator.hass.services.async_call(
                     "climate", service, {"entity_id": entity_id, service_key: value}, blocking=True
                 )
@@ -768,10 +771,14 @@ class RoomMindClimate(RoomMindOverrideClimate):
         if not acs:
             raise ValueError("Room has no AC device")
         store = self.coordinator.hass.data[DOMAIN]["store"]
-        await store.async_update_room(self._area_id, {key: value})
-        if self.hvac_mode == HVACMode.OFF:
-            return
-        for entity_id in acs:
-            await self.coordinator.hass.services.async_call(
-                "climate", service, {"entity_id": entity_id, service_key: value}, blocking=True
-            )
+        async with self.coordinator.async_manual_room_command(self._area_id):
+            await store.async_update_room(self._area_id, {key: value})
+            if self.hvac_mode == HVACMode.OFF:
+                return
+            for entity_id in acs:
+                state = self.coordinator.hass.states.get(entity_id)
+                if state is not None and state.attributes.get(service_key) == value:
+                    continue
+                await self.coordinator.hass.services.async_call(
+                    "climate", service, {"entity_id": entity_id, service_key: value}, blocking=True
+                )
