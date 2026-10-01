@@ -194,6 +194,11 @@ def test_energy_prediction_confidence_sensor_value():
     assert sensor.native_value == "medium"
 
 
+def test_predicted_energy_sensor_has_no_state_class():
+    sensor = RoomMindPredictedEnergySensor(_make_coordinator(), "room_a")
+    assert sensor.state_class is None
+
+
 def test_energy_cost_sensors_use_live_euro_values():
     coordinator = _make_coordinator({"room_a": {"energy_cost_today_eur": 1.42, "predicted_energy_cost_1h_eur": 0.3}})
     assert RoomMindEnergyCostTodaySensor(coordinator, "room_a").native_value == 1.42

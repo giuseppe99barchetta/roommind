@@ -184,7 +184,6 @@ class RoomMindPredictedEnergySensor(_RoomMindBaseSensor):
     _data_key = "predicted_energy_1h_kwh"
     _attr_native_unit_of_measurement = "kWh"
     _attr_device_class = SensorDeviceClass.ENERGY
-    _attr_state_class = SensorStateClass.MEASUREMENT
 
     def __init__(self, coordinator: RoomMindCoordinator, area_id: str) -> None:
         super().__init__(coordinator, area_id, "predicted_energy_1h", "Predicted AC Energy 1h")
