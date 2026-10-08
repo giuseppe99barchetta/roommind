@@ -854,3 +854,49 @@ async def test_room_wall_factor_reaches_the_risk_level(mm):
     plain = await mm.evaluate("a", "A", 23.8, 64.5, 10.0, settings)
     corner = await mm.evaluate("b", "B", 23.8, 64.5, 10.0, settings, f_rsi=0.70)
     assert plain.risk_level == "warning" and corner.risk_level == "critical"
+
+
+@pytest.mark.asyncio
+async def test_radiator_only_room_warms_walls_in_season_without_runtime_cap(mm):
+    settings = {"mold_prevention_enabled": True, "mold_prevention_sustained_minutes": 0, "outdoor_heating_max": 15}
+    with (
+        patch("custom_components.roommind.managers.mold_manager.calculate_mold_risk", return_value=("warning", 74.0)),
+        patch("custom_components.roommind.managers.mold_manager.time") as clock,
+    ):
+        clock.time.return_value = 1000
+        bath = await mm.evaluate("bagno", "Bagno", 21.0, 68, 5.0, settings)
+        assert bath.prevention_strategy == "heat" and bath.heat_target == 21.5
+        # Heating is bounded by its target, not by the 30-minute DRY cap.
+        clock.time.return_value = 1000 + 45 * 60
+        assert (await mm.evaluate("bagno", "Bagno", 21.2, 68, 5.0, settings)).prevention_active
+        # Outside the heating season, or once warm enough, nothing is heated.
+        assert (await mm.evaluate("summer", "S", 21.0, 68, 18.0, settings)).prevention_strategy is None
+        assert (await mm.evaluate("warm", "W", 21.6, 68, 5.0, settings)).prevention_strategy is None
+
+
+@pytest.mark.asyncio
+async def test_italian_notifications_tell_what_to_do(mm):
+    mm.hass.config.language = "it"
+    settings = {**_settings_prevention_notify(), "mold_notification_targets": ["notify.mobile"]}
+    send = AsyncMock()
+    with (
+        patch("custom_components.roommind.managers.mold_manager.async_send_mold_notification", send),
+        patch("custom_components.roommind.managers.mold_manager.calculate_mold_risk", return_value=("warning", 82.0)),
+    ):
+        await mm.evaluate(
+            "studio",
+            "Studio",
+            21.0,
+            72,
+            5.0,
+            settings,
+            outdoor_humidity=80.0,
+            exposure_hours=30.0,
+            celsius_delta_to_ha_fn=lambda d: d,
+            ha_temp_unit_str_fn=lambda: "°C",
+        )
+    risk = next(c.kwargs for c in send.call_args_list if c.kwargs["tag_suffix"] == "risk")
+    assert risk["title"] == "RoomMind: rischio muffa – Studio"
+    assert "82%" in risk["message"] and "Apri le finestre" in risk["message"] and "30 h" in risk["message"]
+    prevention = next(c.kwargs for c in send.call_args_list if c.kwargs["tag_suffix"] == "prevention")
+    assert prevention["message"].startswith("Riscaldamento attivato")

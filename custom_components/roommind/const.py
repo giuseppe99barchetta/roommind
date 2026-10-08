@@ -140,6 +140,9 @@ DEFAULT_MOLD_PREVENTION_DRY_MIN_TEMPERATURE = 22.0  # °C — minimum temperatur
 MOLD_PREVENTION_DRY_STOP_TEMPERATURE = 21.0  # °C — hard stop using room sensor
 MOLD_PREVENTION_HEAT_BELOW_TEMPERATURE = 20.0  # °C — do not heat already warm rooms
 MOLD_PREVENTION_HEAT_TARGETS = {"light": 20.0, "medium": 20.5, "strong": 21.0}
+# Rooms without an AC DRY mode (e.g. a bathroom with radiators only): warm
+# walls are the only lever, so heating may go a little higher in season.
+MOLD_PREVENTION_NO_DRY_HEAT_TARGETS = {"light": 21.0, "medium": 21.5, "strong": 22.0}
 MOLD_PREVENTION_DELTAS = {"light": 1.0, "medium": 2.0, "strong": 3.0}
 MOLD_HYSTERESIS = 5.0  # surface RH must drop this much below warning to clear
 MIN_MOLD_GROWTH_TEMP = 5.0  # °C — below this surface temp, mold risk negligible

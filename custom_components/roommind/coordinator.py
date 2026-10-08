@@ -782,7 +782,7 @@ class RoomMindCoordinator(DataUpdateCoordinator):
         current_humidity: float | None,
         settings: dict,
         room: dict,
-    ) -> tuple[str, float | None, bool, float, str | None]:
+    ) -> tuple[str, float | None, bool, float, str | None, float | None]:
         """Evaluate mold risk and select an automatic prevention strategy."""
         ac_modes: set[str] = set()
         for eid in get_ac_eids(room.get("devices", [])):
@@ -808,6 +808,7 @@ class RoomMindCoordinator(DataUpdateCoordinator):
             window_open=self._is_window_open(room),
             f_rsi=float(room.get("mold_f_rsi", DEFAULT_MOLD_F_RSI) or DEFAULT_MOLD_F_RSI),
             exposure_hours=self._mold_exposure.get(area_id),
+            outdoor_humidity=self.outdoor_humidity,
             automation_enabled=automation_enabled,
             celsius_delta_to_ha_fn=lambda d: celsius_delta_to_ha(self.hass, d),  # type: ignore[misc]
             ha_temp_unit_str_fn=lambda: ha_temp_unit_str(self.hass),  # type: ignore[misc]
@@ -818,6 +819,7 @@ class RoomMindCoordinator(DataUpdateCoordinator):
             mold.prevention_active,
             mold.prevention_delta,
             mold.prevention_strategy,
+            mold.heat_target,
         )
 
     async def _notify_window_open(
@@ -980,6 +982,7 @@ class RoomMindCoordinator(DataUpdateCoordinator):
             mold_prevention_active_room,
             mold_prevention_temp_delta,
             mold_prevention_strategy,
+            mold_heat_target,
         ) = await self._evaluate_mold_risk(area_id, current_temp, current_humidity, settings, room)
 
         # Load schedule blocks once — used for both target temp resolution and MPC lookahead.
@@ -1060,10 +1063,13 @@ class RoomMindCoordinator(DataUpdateCoordinator):
                 if base_heat is None:
                     base_heat = room.get("eco_heat", room.get("eco_temp", DEFAULT_ECO_HEAT))
                 # Surface protection must not make an already comfortable room
-                # excessively warm: raise a cold room to 20–21 °C at most.
-                heat_target = max(float(base_heat), MOLD_PREVENTION_HEAT_TARGETS.get(
-                    settings.get("mold_prevention_intensity", "medium"), 20.5
-                ))
+                # excessively warm: 20–21 °C, or 21–22 °C for rooms without DRY.
+                heat_target = max(
+                    float(base_heat),
+                    mold_heat_target
+                    if mold_heat_target is not None
+                    else MOLD_PREVENTION_HEAT_TARGETS.get(settings.get("mold_prevention_intensity", "medium"), 20.5),
+                )
                 mold_prevention_temp_delta = max(0.0, heat_target - float(base_heat))
                 targets = TargetTemps(
                     heat=heat_target,

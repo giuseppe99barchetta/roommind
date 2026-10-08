@@ -15,14 +15,17 @@ from ..const import (
     DEFAULT_MOLD_HUMIDITY_THRESHOLD,
     DEFAULT_MOLD_PREVENTION_SUSTAINED_MINUTES,
     DEFAULT_MOLD_SUSTAINED_MINUTES,
+    DEFAULT_OUTDOOR_HEATING_MAX,
     MOLD_EXPOSURE_HIGH_HOURS,
     MOLD_HYSTERESIS,
     MOLD_PREVENTION_CRITICAL_SUSTAINED_MINUTES,
     MOLD_PREVENTION_DRY_STOP_TEMPERATURE,
     MOLD_PREVENTION_EARLY_SUSTAINED_MINUTES,
     MOLD_PREVENTION_HEAT_BELOW_TEMPERATURE,
+    MOLD_PREVENTION_HEAT_TARGETS,
     MOLD_PREVENTION_MAX_RUN_MINUTES,
     MOLD_PREVENTION_MIN_RUN_MINUTES,
+    MOLD_PREVENTION_NO_DRY_HEAT_TARGETS,
     MOLD_PREVENTION_PRE_NIGHT_SUSTAINED_MINUTES,
     MOLD_PREVENTION_REHEAT_MAX_RUN_MINUTES,
     MOLD_PREVENTION_RETRY_MINUTES,
@@ -32,7 +35,12 @@ from ..const import (
     MOLD_SURFACE_RH_EARLY,
     MOLD_SURFACE_RH_WARNING,
 )
-from ..utils.mold_utils import calculate_mold_risk, dry_start_temperature, mold_prevention_delta
+from ..utils.mold_utils import (
+    airing_recommended,
+    calculate_mold_risk,
+    dry_start_temperature,
+    mold_prevention_delta,
+)
 from ..utils.notification_utils import (
     NotificationThrottler,
     async_send_mold_notification,
@@ -78,6 +86,38 @@ def _as_float(value: object) -> float | None:
         return None
 
 
+# Notification texts: Italian for Italian installs, English otherwise.
+_TEXTS: dict[str, dict[str, str]] = {
+    "it": {
+        "risk_title": "RoomMind: rischio muffa – {room}",
+        "risk_body": "Parete più fredda stimata al {srh}% di umidità (aria al {rh}%).",
+        "advice_airing": "Apri le finestre 5–10 minuti: fuori l'aria è più secca.",
+        "advice_dry": "Se il rischio continua il condizionatore deumidificherà in automatico.",
+        "advice_no_dry": "Tieni chiusa la porta, asciuga le superfici bagnate ed evita panni stesi in casa.",
+        "exposure": "Ultimi 7 giorni: {hours} h con la parete all'80% o più.",
+        "prevention_title": "RoomMind: prevenzione muffa – {room}",
+        "prevention_dry": "Avviato il DRY del condizionatore (parete al {srh}%).",
+        "prevention_reheat": "DRY alternato al riscaldamento della pompa di calore, termosifoni spenti "
+        "(parete al {srh}%).",
+        "prevention_heat": "Riscaldamento attivato per scaldare le pareti fredde (parete al {srh}%).",
+        "prevention_cool": "Raffrescamento attivato per deumidificare (parete al {srh}%).",
+    },
+    "en": {
+        "risk_title": "RoomMind: Mold Risk Warning",
+        "risk_body": "Coldest wall estimated at {srh}% humidity (air {rh}%).",
+        "advice_airing": "Open the windows for 5–10 minutes: the outdoor air is drier.",
+        "advice_dry": "If the risk persists the AC will dehumidify automatically.",
+        "advice_no_dry": "Keep the door closed, wipe wet surfaces and avoid drying laundry indoors.",
+        "exposure": "Last 7 days: {hours} h with the wall at 80% or more.",
+        "prevention_title": "RoomMind: Mold Prevention",
+        "prevention_dry": "AC dry mode started (wall at {srh}%).",
+        "prevention_reheat": "DRY alternating with heat-pump heating, radiators off (wall at {srh}%).",
+        "prevention_heat": "Heating started to warm the cold walls (wall at {srh}%).",
+        "prevention_cool": "Cooling started to dehumidify (wall at {srh}%).",
+    },
+}
+
+
 @dataclass
 class MoldResult:
     """Result of mold risk evaluation for a room."""
@@ -87,6 +127,7 @@ class MoldResult:
     prevention_active: bool = False
     prevention_delta: float = 0.0
     prevention_strategy: str | None = None
+    heat_target: float | None = None
 
 
 class MoldManager:
@@ -119,6 +160,7 @@ class MoldManager:
         window_open: bool = False,
         f_rsi: float = DEFAULT_MOLD_F_RSI,
         exposure_hours: float | None = None,
+        outdoor_humidity: float | None = None,
         automation_enabled: bool = True,
         celsius_delta_to_ha_fn: Callable[[float], float] | None = None,
         ha_temp_unit_str_fn: Callable[[], str] | None = None,
@@ -174,17 +216,29 @@ class MoldManager:
                     cooldown,
                 ):
                     targets = settings.get("mold_notification_targets", [])
+                    text = self._texts()
+                    if airing_recommended(current_temp, current_humidity, outdoor_temp, outdoor_humidity, surface_rh):
+                        advice = text["advice_airing"]
+                    elif can_dry and settings.get("mold_prevention_enabled"):
+                        advice = text["advice_dry"]
+                    else:
+                        advice = text["advice_no_dry"]
+                    message = " ".join(
+                        part
+                        for part in (
+                            text["risk_body"].format(srh=f"{surface_rh:.0f}", rh=f"{current_humidity:.0f}"),
+                            advice,
+                            text["exposure"].format(hours=f"{exposure_hours:.0f}") if exposure_hours else "",
+                        )
+                        if part
+                    )
                     await async_send_mold_notification(
                         self.hass,
                         area_id,
                         area_name,
                         targets,
-                        message=(
-                            f"Mold risk in {area_name}: "
-                            f"{current_humidity:.0f}% humidity, "
-                            f"estimated surface RH {surface_rh:.0f}%"
-                        ),
-                        title="RoomMind: Mold Risk Warning",
+                        message=message,
+                        title=text["risk_title"].format(room=area_name),
                         tag_suffix="risk",
                     )
                     self._throttler.record_sent(f"detect_{area_id}")
@@ -259,7 +313,13 @@ class MoldManager:
         )
         max_run_minutes = MOLD_PREVENTION_REHEAT_MAX_RUN_MINUTES if reheat_allowed else MOLD_PREVENTION_MAX_RUN_MINUTES
         cooling_down = now < self._prevention_cooldown_until.get(area_id, 0)
-        timed_out = activated and now - self._prevention_started.get(area_id, now) >= max_run_minutes * 60
+        # The runtime cap exists because DRY cools; a heating session is
+        # bounded by its target and may run for as long as the wall needs it.
+        timed_out = (
+            activated
+            and self._prevention_strategy.get(area_id) != "heat"
+            and now - self._prevention_started.get(area_id, now) >= max_run_minutes * 60
+        )
         dry_too_cold = (
             activated
             and not reheat_allowed
@@ -300,11 +360,25 @@ class MoldManager:
                 # humidity rebounds after each switch.
                 result.prevention_strategy = "reheat"
                 result.prevention_delta = 0.0
+            elif (
+                surface_risky
+                and not can_dry
+                and outdoor_temp is not None
+                and outdoor_temp < float(settings.get("outdoor_heating_max", DEFAULT_OUTDOOR_HEATING_MAX))
+                and current_temp < MOLD_PREVENTION_NO_DRY_HEAT_TARGETS.get(intensity, 21.5)
+            ):
+                # No DRY available (radiators only, e.g. a bathroom): in the
+                # heating season warmer walls are the only way to stop
+                # condensation, so allow a slightly higher target.
+                result.prevention_strategy = "heat"
+                result.prevention_delta = mold_prevention_delta(intensity)
+                result.heat_target = MOLD_PREVENTION_NO_DRY_HEAT_TARGETS.get(intensity, 21.5)
             elif surface_risky and current_temp < MOLD_PREVENTION_HEAT_BELOW_TEMPERATURE:
                 # Heating only makes sense for genuinely cold rooms; cooling
                 # mode is NOT a substitute for dry on an unregulated AC.
                 result.prevention_strategy = "heat"
                 result.prevention_delta = mold_prevention_delta(intensity)
+                result.heat_target = MOLD_PREVENTION_HEAT_TARGETS.get(intensity, 20.5)
 
             if result.prevention_strategy is None:
                 should_prevent = False
@@ -329,20 +403,14 @@ class MoldManager:
                         "mold_prevention_notify_targets",
                         [],
                     )
+                    text = self._texts()
                     await async_send_mold_notification(
                         self.hass,
                         area_id,
                         area_name,
                         prev_targets,
-                        message=(
-                            f"Mold prevention active in {area_name}: "
-                            + (
-                                f"AC dehumidification enabled ({result.prevention_strategy})"
-                                if result.prevention_strategy in ("dry", "cool", "reheat")
-                                else "cold-room heating requested (target 20–21°C)"
-                            )
-                        ),
-                        title="RoomMind: Mold Prevention",
+                        message=text[f"prevention_{result.prevention_strategy}"].format(srh=f"{surface_rh:.0f}"),
+                        title=text["prevention_title"].format(room=area_name),
                         tag_suffix="prevention",
                     )
                     self._throttler.record_sent(
@@ -360,6 +428,10 @@ class MoldManager:
             dismiss_mold_notification(self.hass, area_id, "risk")
 
         return result
+
+    def _texts(self) -> dict[str, str]:
+        language = getattr(self.hass.config, "language", None)
+        return _TEXTS["it"] if isinstance(language, str) and language.startswith("it") else _TEXTS["en"]
 
     def remove_room(self, area_id: str) -> None:
         """Clean up state for a removed room."""
