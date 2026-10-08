@@ -40,9 +40,12 @@ export class RsHeroStatus extends LitElement {
       }
 
       ha-card {
-        padding: 28px 24px;
+        padding: 30px 30px 26px;
         position: relative;
         overflow: hidden;
+        --ha-card-border-radius: 22px;
+        --ha-card-box-shadow: none;
+        border: 1px solid var(--divider-color, rgba(128,128,128,.16));
       }
 
       .hero-accent {
@@ -50,7 +53,7 @@ export class RsHeroStatus extends LitElement {
         top: 0;
         left: 0;
         right: 0;
-        height: 4px;
+        height: 3px;
       }
 
       .hero-accent-heating {
@@ -77,8 +80,9 @@ export class RsHeroStatus extends LitElement {
       }
 
       .area-name {
-        font-size: 22px;
-        font-weight: 400;
+        font-size: clamp(21px, 3vw, 27px);
+        font-weight: 750;
+        letter-spacing: -.035em;
         color: var(--primary-text-color);
         margin: 0;
       }
@@ -86,25 +90,29 @@ export class RsHeroStatus extends LitElement {
       .hero-temps {
         display: flex;
         align-items: baseline;
-        gap: 8px;
+        gap: 9px;
+        flex-wrap: wrap;
       }
 
       .hero-current {
-        font-size: 48px;
-        font-weight: 300;
+        font-size: clamp(48px, 5vw, 64px);
+        font-weight: 450;
         color: var(--primary-text-color);
         line-height: 1;
+        letter-spacing: -.055em;
+        font-variant-numeric: tabular-nums;
       }
 
       .hero-unit {
-        font-size: 24px;
-        font-weight: 300;
+        font-size: 22px;
+        font-weight: 500;
         color: var(--secondary-text-color);
       }
 
       .hero-target {
         margin-left: auto;
         text-align: right;
+        min-width: 0;
       }
 
       .hero-target-label {
@@ -115,8 +123,9 @@ export class RsHeroStatus extends LitElement {
       }
 
       .hero-target-value {
-        font-size: 22px;
-        font-weight: 400;
+        font-size: 23px;
+        font-weight: 650;
+        letter-spacing: -.025em;
         color: var(--primary-text-color);
       }
 
@@ -259,6 +268,13 @@ export class RsHeroStatus extends LitElement {
         align-items: flex-end;
         gap: 2px;
         flex-shrink: 0;
+      }
+      @media (max-width: 550px) {
+        ha-card { padding: 23px 19px 22px; }
+        .hero-header { gap: 10px; align-items: flex-start; }
+        .hero-status-pills { gap: 6px; }
+        .hero-current { font-size: 48px; }
+        .hero-target-value { font-size: 19px; }
       }
       .control-mode-badge {
         display: inline-flex;

@@ -21,23 +21,27 @@ export class RsSectionCard extends LitElement {
     ha-card {
       overflow: hidden;
       min-width: 0;
+      --ha-card-border-radius: 18px;
+      --ha-card-box-shadow: none;
+      border: 1px solid var(--divider-color, rgba(128,128,128,.16));
     }
 
     .section-header {
       display: flex;
       align-items: center;
-      gap: 10px;
-      padding: 16px 20px 12px;
+      gap: 12px;
+      padding: 19px 22px 16px;
     }
 
     .section-icon {
-      --mdc-icon-size: 18px;
-      opacity: 0.7;
+      --mdc-icon-size: 20px;
+      color: var(--primary-color);
     }
 
     .section-title {
       font-size: 15px;
-      font-weight: 500;
+      font-weight: 700;
+      letter-spacing: -.02em;
       color: var(--primary-text-color);
       margin: 0;
       flex: 1;
@@ -47,7 +51,7 @@ export class RsSectionCard extends LitElement {
       --mdc-icon-button-size: 32px;
       --mdc-icon-size: 18px;
       color: var(--secondary-text-color);
-      margin: -4px -8px -4px 0;
+      margin: -4px -6px -4px 0;
       transition: opacity 0.15s ease;
     }
 
@@ -63,8 +67,10 @@ export class RsSectionCard extends LitElement {
     }
 
     .section-body {
-      padding: 0 20px 20px;
+      padding: 0 22px 22px;
     }
+    @media (hover: none) { .edit-btn { opacity: .75; } }
+    .edit-btn:focus-visible { opacity: 1; }
   `;
 
   render() {
@@ -82,6 +88,8 @@ export class RsSectionCard extends LitElement {
                 <ha-icon-button
                   class="edit-btn"
                   .path=${PENCIL_PATH}
+                  title=${this.heading}
+                  aria-label=${this.heading}
                   @click=${this._onEditClick}
                 ></ha-icon-button>
               `

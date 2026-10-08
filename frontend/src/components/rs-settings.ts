@@ -92,6 +92,7 @@ export class RsSettings extends LitElement {
   @state() private _reserve = 200;
   @state() private _energyPricePerKwh = 0;
   @state() private _loaded = false;
+  @state() private _category: "overview" | "system" | "protection" | "advanced" = "overview";
 
   private _saveDebounce?: ReturnType<typeof setTimeout>;
 
@@ -183,12 +184,56 @@ export class RsSettings extends LitElement {
     }
 
     const l = this.hass.language;
+    const categories = [
+      { id: "overview", icon: "mdi:view-dashboard-outline", count: 4 },
+      { id: "system", icon: "mdi:hvac", count: 4 },
+      { id: "protection", icon: "mdi:shield-check-outline", count: 3 },
+      { id: "advanced", icon: "mdi:tune-vertical", count: 2 },
+    ] as const;
 
     return html`
+      <div class="settings-intro">
+        <div class="eyebrow">ROOMMIND / ${localize("settings.hub.eyebrow", l)}</div>
+        <h1>${localize("settings.hub.title", l)}</h1>
+        <p>${localize("settings.hub.description", l)}</p>
+        <div class="control-status ${this._climateControlActive ? "running" : "paused"}">
+          <span class="status-dot"></span>
+          ${this._climateControlActive
+            ? localize("settings.hub.running", l)
+            : localize("settings.hub.paused", l)}
+        </div>
+      </div>
+      <div class="settings-workspace">
+        <nav class="settings-navigation" aria-label=${localize("settings.hub.navigation", l)}>
+          ${categories.map(
+            (category) => html`
+              <button
+                class="category-button ${this._category === category.id ? "selected" : ""}"
+                type="button"
+                aria-current=${this._category === category.id ? "page" : "false"}
+                @click=${() => { this._category = category.id; }}
+              >
+                <ha-icon icon=${category.icon}></ha-icon>
+                <span class="category-copy">
+                  <strong>${localize(`settings.hub.${category.id}`, l)}</strong>
+                  <small>${localize(`settings.hub.${category.id}_hint`, l)}</small>
+                </span>
+                <span class="category-count">${category.count}</span>
+              </button>
+            `,
+          )}
+        </nav>
+        <div class="settings-body">
+          <div class="category-heading">
+            <div class="eyebrow">${localize("settings.hub.category_label", l)}</div>
+            <h2>${localize(`settings.hub.${this._category}`, l)}</h2>
+            <p>${localize(`settings.hub.${this._category}_hint`, l)}</p>
+          </div>
       <rs-settings-panel
+        ?hidden=${this._category !== "system"}
         icon="mdi:home-thermometer"
-        heading="Heating system"
-        intro="Native boiler safety, hydraulic bypass and heat-pump power arbitration."
+        .heading=${localize("settings.hub.heating", l)}
+        .intro=${localize("settings.hub.heating_hint", l)}
         ><rs-settings-heating-system
           .hass=${this.hass}
           .boilerEntity=${this._boilerEntity}
@@ -208,6 +253,7 @@ export class RsSettings extends LitElement {
       </rs-settings-panel>
 
       <rs-settings-panel
+        ?hidden=${this._category !== "protection"}
         icon="mdi:shield-search"
         .heading=${localize("preview.title", l)}
         .intro=${localize("preview.intro", l)}
@@ -216,6 +262,7 @@ export class RsSettings extends LitElement {
       </rs-settings-panel>
 
       <rs-settings-panel
+        ?hidden=${this._category !== "overview"}
         icon="mdi:power"
         .heading=${localize("settings.general_title", l)}
         .intro=${localize("settings.intro.general", l)}
@@ -230,6 +277,7 @@ export class RsSettings extends LitElement {
       </rs-settings-panel>
 
       <rs-settings-panel
+        ?hidden=${this._category !== "system"}
         icon="mdi:thermometer"
         .heading=${localize("settings.sensors_title", l)}
         .intro=${localize("settings.intro.sensors", l)}
@@ -245,6 +293,7 @@ export class RsSettings extends LitElement {
       </rs-settings-panel>
 
       <rs-settings-panel
+        ?hidden=${this._category !== "overview"}
         icon="mdi:tune-variant"
         .heading=${localize("settings.control_title", l)}
         .intro=${localize("settings.intro.control", l)}
@@ -262,6 +311,7 @@ export class RsSettings extends LitElement {
       </rs-settings-panel>
 
       <rs-settings-panel
+        ?hidden=${this._category !== "overview"}
         icon="mdi:home-account"
         .heading=${localize("presence.title", l)}
         .intro=${localize("settings.intro.presence", l)}
@@ -277,6 +327,7 @@ export class RsSettings extends LitElement {
       </rs-settings-panel>
 
       <rs-settings-panel
+        ?hidden=${this._category !== "overview"}
         icon="mdi:airplane"
         .heading=${localize("vacation.title", l)}
         .intro=${localize("settings.intro.vacation", l)}
@@ -291,6 +342,7 @@ export class RsSettings extends LitElement {
       </rs-settings-panel>
 
       <rs-settings-panel
+        ?hidden=${this._category !== "system"}
         icon="mdi:shield-refresh"
         .heading=${localize("valve_protection.title", l)}
         .intro=${localize("settings.intro.valve", l)}
@@ -304,6 +356,7 @@ export class RsSettings extends LitElement {
       </rs-settings-panel>
 
       <rs-settings-panel
+        ?hidden=${this._category !== "system"}
         icon="mdi:heat-pump-outline"
         .heading=${localize("compressor.title", l)}
         .intro=${localize("settings.intro.compressor", l)}
@@ -316,6 +369,7 @@ export class RsSettings extends LitElement {
       </rs-settings-panel>
 
       <rs-settings-panel
+        ?hidden=${this._category !== "protection"}
         icon="mdi:water-alert"
         .heading=${localize("mold.title", l)}
         .intro=${localize("settings.intro.mold", l)}
@@ -335,6 +389,7 @@ export class RsSettings extends LitElement {
       </rs-settings-panel>
 
       <rs-settings-panel
+        ?hidden=${this._category !== "protection"}
         icon="mdi:bell-outline"
         .heading=${localize("notifications.title", l)}
         .intro=${localize("settings.intro.notifications", l)}
@@ -354,6 +409,7 @@ export class RsSettings extends LitElement {
       </rs-settings-panel>
 
       <rs-settings-panel
+        ?hidden=${this._category !== "advanced"}
         icon="mdi:brain"
         .heading=${localize("settings.learning_title", l)}
         .intro=${localize("settings.intro.learning", l)}
@@ -373,12 +429,15 @@ export class RsSettings extends LitElement {
       </rs-settings-panel>
 
       <rs-settings-panel
+        ?hidden=${this._category !== "advanced"}
         icon="mdi:restart"
         .heading=${localize("settings.reset_title", l)}
         .intro=${localize("settings.intro.reset", l)}
       >
         <rs-settings-reset .hass=${this.hass} .rooms=${this.rooms}></rs-settings-reset>
       </rs-settings-panel>
+        </div>
+      </div>
     `;
   }
 
@@ -510,10 +569,44 @@ export class RsSettings extends LitElement {
 
   static styles = css`
     :host {
-      display: flex;
-      flex-direction: column;
-      gap: 12px;
-      padding: 0 16px;
+      display: block;
+      --rs-ui-line: var(--divider-color, rgba(125, 125, 125, .16));
+    }
+    .settings-intro { padding: 12px 2px 30px; position: relative; }
+    .eyebrow { color: var(--secondary-text-color); text-transform: uppercase; font-size: 11px; letter-spacing: .13em; font-weight: 700; }
+    .settings-intro h1 { font-size: clamp(27px, 3vw, 38px); line-height: 1.15; letter-spacing: -.035em; margin: 10px 0 10px; font-weight: 700; }
+    .settings-intro p, .category-heading p { color: var(--secondary-text-color); font-size: 14px; line-height: 1.65; max-width: 620px; margin: 0; }
+    .control-status { display: inline-flex; gap: 8px; align-items: center; margin-top: 17px; padding: 8px 12px; border-radius: 999px; font-size: 12px; font-weight: 650; background: var(--secondary-background-color, rgba(128,128,128,.1)); }
+    .status-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--secondary-text-color); }
+    .running .status-dot { background: var(--success-color, #36a578); }
+    .settings-workspace { display: grid; grid-template-columns: 250px minmax(0, 1fr); gap: 34px; align-items: start; }
+    .settings-navigation { display: grid; gap: 6px; position: sticky; top: 132px; }
+    .category-button { display: flex; align-items: center; gap: 12px; text-align: left; border: 1px solid transparent; border-radius: 14px; padding: 12px 14px; font: inherit; color: var(--secondary-text-color); background: transparent; cursor: pointer; min-height: 64px; transition: background .18s ease, border-color .18s ease; }
+    .category-button:hover { background: var(--secondary-background-color, rgba(128,128,128,.08)); }
+    .category-button.selected { color: var(--primary-text-color); border-color: var(--rs-ui-line); background: var(--card-background-color); box-shadow: 0 3px 18px rgba(0,0,0,.04); }
+    .category-button ha-icon { --mdc-icon-size: 21px; flex-shrink: 0; }
+    .category-button.selected ha-icon { color: var(--primary-color); }
+    .category-copy { display: grid; gap: 4px; min-width: 0; flex: 1; }
+    .category-copy strong { font-size: 14px; font-weight: 650; }
+    .category-copy small { font-size: 11px; opacity: .75; line-height: 1.3; }
+    .category-count { font-size: 11px; opacity: .55; font-variant-numeric: tabular-nums; }
+    .category-button:focus-visible { outline: 2px solid var(--primary-color); outline-offset: 2px; }
+    .settings-body { display: grid; gap: 12px; min-width: 0; }
+    .category-heading { padding: 5px 0 13px; }
+    .category-heading h2 { font-size: 23px; font-weight: 650; letter-spacing: -.025em; margin: 8px 0 6px; }
+    rs-settings-panel[hidden] { display: none !important; }
+    @media (max-width: 850px) {
+      .settings-workspace { display: block; }
+      .settings-navigation { display: flex; overflow-x: auto; gap: 8px; position: relative; top: auto; padding: 0 0 14px; margin-bottom: 20px; scrollbar-width: thin; }
+      .category-button { flex: 0 0 auto; min-height: 48px; padding: 10px 13px; white-space: nowrap; }
+      .category-copy small, .category-count { display: none; }
+      .category-copy { display: block; }
+      .settings-intro { padding-bottom: 22px; }
+    }
+    @media (max-width: 500px) {
+      .settings-intro h1 { font-size: 28px; }
+      .category-button ha-icon { --mdc-icon-size: 18px; }
+      .category-heading h2 { font-size: 21px; }
     }
 
     .loading {

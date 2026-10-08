@@ -36,22 +36,26 @@ export class RsSettingsPanel extends LitElement {
     :host {
       display: block;
     }
+    :host([hidden]) { display: none !important; }
+    ha-expansion-panel { --ha-card-border-radius: 16px; --ha-card-box-shadow: none; }
 
     .panel-header {
       display: flex;
       align-items: center;
-      gap: 10px;
+      gap: 13px;
+      min-height: 44px;
       --mdc-icon-size: 20px;
-      color: var(--secondary-text-color);
+      color: var(--primary-color, var(--secondary-text-color));
     }
 
     .panel-header span {
       color: var(--primary-text-color);
-      font-weight: 500;
+      font-weight: 650;
+      font-size: 14px;
     }
 
     .panel-content {
-      padding: 16px 16px 16px;
+      padding: 12px 20px 22px;
     }
 
     .section-intro {
@@ -59,8 +63,7 @@ export class RsSettingsPanel extends LitElement {
       font-size: 13px;
       line-height: 1.5;
       margin: 0 0 16px;
-      padding: 2px 0 2px 12px;
-      border-left: 3px solid var(--divider-color);
+      padding: 0;
     }
   `;
 }

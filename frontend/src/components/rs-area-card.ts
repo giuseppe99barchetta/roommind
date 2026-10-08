@@ -31,17 +31,22 @@ export class RsAreaCard extends LitElement {
         cursor: pointer;
         transition:
           box-shadow 0.2s ease,
-          transform 0.15s ease;
+          transform 0.2s ease,
+          border-color 0.2s ease;
         overflow: hidden;
         position: relative;
         height: 100%;
         box-sizing: border-box;
+        --ha-card-border-radius: 18px;
+        --ha-card-box-shadow: none;
+        border: 1px solid var(--divider-color, rgba(128,128,128,.16));
       }
 
       ha-card:hover {
-        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
-        transform: translateY(-1px);
+        box-shadow: 0 12px 30px rgba(0, 0, 0, 0.075);
+        transform: translateY(-2px);
       }
+      ha-card:focus-visible { outline: 2px solid var(--primary-color); outline-offset: 3px; }
 
       .hide-btn {
         --mdc-icon-button-size: 28px;
@@ -50,8 +55,8 @@ export class RsAreaCard extends LitElement {
         opacity: 0;
         transition: opacity 0.2s ease;
         position: absolute;
-        top: 8px;
-        right: 8px;
+        top: 12px;
+        right: 10px;
       }
 
       ha-card:hover .hide-btn {
@@ -61,14 +66,16 @@ export class RsAreaCard extends LitElement {
       .hide-btn:hover {
         opacity: 1 !important;
       }
+      @media (hover: none) { .hide-btn { opacity: .65; } }
+      ha-card:focus-within .hide-btn { opacity: 1; }
 
       /* Colored left accent based on mode */
       .accent {
         position: absolute;
         left: 0;
         top: 0;
-        bottom: 0;
-        width: 4px;
+        right: 0;
+        height: 3px;
       }
 
       .accent-heating {
@@ -88,7 +95,7 @@ export class RsAreaCard extends LitElement {
       }
 
       .card-inner {
-        padding: 20px 20px 16px;
+        padding: 24px 22px 20px;
       }
 
       /* Header row: name + badge */
@@ -108,19 +115,24 @@ export class RsAreaCard extends LitElement {
       }
 
       .area-name {
-        font-size: 15px;
-        font-weight: 500;
+        font-size: 17px;
+        font-weight: 700;
         color: var(--primary-text-color);
         margin: 0;
-        letter-spacing: 0.01em;
+        letter-spacing: -.025em;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        min-width: 0;
       }
 
       /* Card-specific mode-pill overrides (smaller than default) */
       .mode-pill {
         gap: 5px;
-        font-size: 12px;
-        padding: 3px 10px;
-        border-radius: 12px;
+        font-size: 11px;
+        font-weight: 650;
+        padding: 5px 10px;
+        border-radius: 999px;
       }
 
       .mode-dot {
@@ -133,26 +145,31 @@ export class RsAreaCard extends LitElement {
         display: flex;
         align-items: baseline;
         gap: 8px;
-        margin: 12px 0 0 0;
+        margin: 23px 0 0 0;
+        flex-wrap: wrap;
       }
 
       .current-temp {
-        font-size: 36px;
-        font-weight: 300;
+        font-size: 46px;
+        font-weight: 500;
         color: var(--primary-text-color);
         line-height: 1;
+        font-variant-numeric: tabular-nums;
+        letter-spacing: -.05em;
       }
 
       .temp-unit {
         font-size: 18px;
-        font-weight: 300;
+        font-weight: 500;
         color: var(--secondary-text-color);
       }
 
       .target-info {
-        font-size: 13px;
+        font-size: 12px;
         color: var(--secondary-text-color);
         margin-left: auto;
+        text-align: right;
+        line-height: 1.45;
       }
 
       .target-value {
@@ -186,8 +203,11 @@ export class RsAreaCard extends LitElement {
         display: flex;
         align-items: center;
         justify-content: space-between;
-        margin-top: 8px;
+        margin-top: 18px;
         min-height: 20px;
+        padding-top: 14px;
+        border-top: 1px solid var(--divider-color, rgba(128,128,128,.16));
+        gap: 10px;
       }
 
       .humidity-info {
@@ -289,6 +309,7 @@ export class RsAreaCard extends LitElement {
         display: flex;
         gap: 6px;
         flex-wrap: wrap;
+        justify-content: flex-end;
       }
 
       .no-temp {
@@ -432,12 +453,20 @@ export class RsAreaCard extends LitElement {
         : "accent-unconfigured";
 
     return html`
-      <ha-card @click=${this._onCardClick}>
+      <ha-card
+        role="button"
+        tabindex="0"
+        aria-label=${this.config?.display_name || this.area.name}
+        @click=${this._onCardClick}
+        @keydown=${this._onCardKeydown}
+      >
         <div class="accent ${accentClass}"></div>
         ${!this.reordering
           ? html`<ha-icon-button
               class="hide-btn"
               .path=${mdiEyeOff}
+              title=${localize("panel.hidden_rooms", this.hass.language)}
+              aria-label=${localize("panel.hidden_rooms", this.hass.language)}
               @click=${this._onHideClick}
             ></ha-icon-button>`
           : nothing}
@@ -465,7 +494,10 @@ export class RsAreaCard extends LitElement {
           <div class="card-header">
             <h3 class="area-name">${this.config?.display_name || this.area.name}</h3>
             <span class="card-status">
-              ${isConfigured && live ? this._renderComfortScore(live) : nothing}
+              ${isConfigured && live && live.comfort_score &&
+              (live.comfort_score.label === "poor" || live.comfort_score.label === "fair")
+                ? this._renderComfortScore(live)
+                : nothing}
               ${isConfigured && live
                 ? html`
                     <span class="mode-pill ${getModeClass(live.mode)}">
@@ -499,7 +531,7 @@ export class RsAreaCard extends LitElement {
       return html`<div class="waiting">${localize("card.waiting", this.hass.language)}</div>`;
     }
 
-    const showMpcIcon = this.controlMode === "mpc";
+    const showMpcIcon = this.controlMode === "mpc" && !live.mpc_active;
 
     return html`
       <div class="temp-section">
@@ -548,7 +580,7 @@ export class RsAreaCard extends LitElement {
             : nothing}
         </span>
       </div>
-      ${!this.climateControlActive || this.config?.climate_control_enabled === false
+      ${this.climateControlActive && this.config?.climate_control_enabled === false
         ? html`<div class="uncontrolled-hint">
             ${localize("card.not_controlled", this.hass.language)}
           </div>`
@@ -698,6 +730,12 @@ export class RsAreaCard extends LitElement {
         composed: true,
       }),
     );
+  }
+
+  private _onCardKeydown(e: KeyboardEvent) {
+    if (e.target !== e.currentTarget || (e.key !== "Enter" && e.key !== " ")) return;
+    e.preventDefault();
+    this._onCardClick();
   }
 
   private _onMoveUp(e: Event) {

@@ -73,6 +73,7 @@ export class RsRoomDetail extends LitElement {
   @state() private _error = "";
   @state() private _dirty = false;
   @state() private _editing: EditableSection | null = null;
+  @state() private _detailView: "overview" | "equipment" | "advanced" = "overview";
   @state() private _selectedPresencePersons: string[] = [];
   @state() private _displayName = "";
   @state() private _selectedCovers: Set<string> = new Set();
@@ -115,8 +116,18 @@ export class RsRoomDetail extends LitElement {
     .detail-layout {
       display: flex;
       flex-direction: column;
-      gap: 16px;
+      gap: 22px;
     }
+    .detail-navigation { display: flex; align-items: center; gap: 8px; overflow-x: auto; padding: 4px; border-radius: 15px; background: var(--secondary-background-color, rgba(127,127,127,.09)); scrollbar-width: thin; }
+    .detail-tab { display: inline-flex; align-items: center; justify-content: center; gap: 9px; flex: 1 0 auto; white-space: nowrap; padding: 12px 14px; min-height: 44px; border: 1px solid transparent; border-radius: 12px; background: transparent; color: var(--secondary-text-color); font: inherit; font-size: 13px; font-weight: 600; cursor: pointer; transition: background .2s ease, color .2s ease, box-shadow .2s ease; }
+    .detail-tab ha-icon { --mdc-icon-size: 19px; }
+    .detail-tab:hover { color: var(--primary-text-color); }
+    .detail-tab[aria-pressed="true"] { background: var(--card-background-color); color: var(--primary-text-color); box-shadow: 0 2px 10px rgba(0,0,0,.06); }
+    .detail-tab[aria-pressed="true"] ha-icon { color: var(--primary-color); }
+    .detail-tab:focus-visible { outline: 2px solid var(--primary-color); outline-offset: -2px; }
+    .detail-grid[data-view="overview"] > :not([data-group="overview"]),
+    .detail-grid[data-view="equipment"] > :not([data-group="equipment"]),
+    .detail-grid[data-view="advanced"] > :not([data-group="advanced"]) { display: none; }
 
     .detail-grid {
       display: grid;
@@ -171,6 +182,9 @@ export class RsRoomDetail extends LitElement {
       .detail-grid > * {
         grid-column: 1;
       }
+      .detail-navigation { border-radius: 12px; }
+      .detail-tab { padding: 10px 12px; font-size: 12px; }
+      .detail-tab ha-icon { --mdc-icon-size: 17px; }
     }
 
     /* Section cards handled by rs-section-card */
@@ -262,6 +276,7 @@ export class RsRoomDetail extends LitElement {
     const areaChanged = currentAreaId !== this._prevAreaId;
 
     if (areaChanged) {
+      this._detailView = "overview";
       this._initFromConfig();
       this._prevAreaId = currentAreaId;
     } else if (changedProps.has("config") && !this._dirty) {
@@ -455,11 +470,29 @@ export class RsRoomDetail extends LitElement {
           @display-name-changed=${this._onDisplayNameChanged}
         ></rs-hero-status>
 
-        <div class="detail-grid">
+        <nav class="detail-navigation" aria-label=${localize("room.nav.description", this.hass.language)}>
+          ${([
+            ["overview", "mdi:thermostat", "room.nav.overview"],
+            ["equipment", "mdi:devices", "room.nav.equipment"],
+            ["advanced", "mdi:creation-outline", "room.nav.advanced"],
+          ] as const).map(([view, icon, label]) => html`
+            <button
+              class="detail-tab"
+              type="button"
+              aria-pressed=${this._detailView === view ? "true" : "false"}
+              @click=${() => { this._detailView = view; }}
+            >
+              <ha-icon icon=${icon}></ha-icon>${localize(label, this.hass.language)}
+            </button>
+          `)}
+        </nav>
+
+        <div class="detail-grid" data-view=${this._detailView}>
           ${!this._isOutdoor
             ? html`
                 <rs-section-card
                   class="control-card"
+                  data-group="overview"
                   icon="mdi:tune-variant"
                   .heading=${localize("room.climate_control_toggle", this.hass.language)}
                 >
@@ -486,6 +519,7 @@ export class RsRoomDetail extends LitElement {
 
                 <rs-section-card
                   class="schedule-card"
+                  data-group="overview"
                   icon="mdi:calendar"
                   .heading=${localize("room.section.schedule", this.hass.language)}
                   editable
@@ -527,6 +561,7 @@ export class RsRoomDetail extends LitElement {
 
                 <rs-section-card
                   class="comfort-card"
+                  data-group="overview"
                   icon="mdi:heart-outline"
                   .heading=${localize("room.section.comfort", this.hass.language)}
                 >
@@ -548,6 +583,7 @@ export class RsRoomDetail extends LitElement {
             ? html`
                 <rs-section-card
                   class="devices-card"
+                  data-group="equipment"
                   icon="mdi:power-plug"
                   .heading=${localize("room.section.devices", this.hass.language)}
                   editable
@@ -568,6 +604,7 @@ export class RsRoomDetail extends LitElement {
 
                 <rs-section-card
                   class="sensors-card"
+                  data-group="equipment"
                   icon="mdi:thermometer"
                   .heading=${localize("room.section.sensors", this.hass.language)}
                   editable
@@ -594,6 +631,7 @@ export class RsRoomDetail extends LitElement {
                 (this.presencePersons.length > 0 || this._selectedPresencePersons.length > 0)
                   ? html`<rs-section-card
                       class="optional-card"
+                      data-group="advanced"
                       icon="mdi:home-account"
                       .heading=${localize("room.section.presence", this.hass.language)}
                       editable
@@ -624,6 +662,7 @@ export class RsRoomDetail extends LitElement {
             this._coverSchedules.length > 0)
             ? html`<rs-section-card
                 class="optional-card"
+                data-group="advanced"
                 icon="mdi:blinds-horizontal"
                 .heading=${localize("room.section.covers", this.hass.language)}
                 .badge=${localize("badge.beta", this.hass.language)}
@@ -667,6 +706,7 @@ export class RsRoomDetail extends LitElement {
           this._devices.some((d) => d.type === "ac")
             ? html`<rs-section-card
                 class="optional-card"
+                data-group="overview"
                 icon="mdi:swap-horizontal"
                 .heading=${localize("room.section.heat_source", this.hass.language)}
                 editable
@@ -690,6 +730,7 @@ export class RsRoomDetail extends LitElement {
 
           <rs-section-card
             class="optional-card"
+            data-group="equipment"
             icon="mdi:tree"
             .heading=${localize("room.section.area", this.hass.language)}
           >
@@ -703,6 +744,7 @@ export class RsRoomDetail extends LitElement {
           ${!this._isOutdoor && this.config
             ? html`<rs-room-insights
                 class="insights-card"
+                data-group="advanced"
                 .hass=${this.hass}
                 .readiness=${this.config.readiness}
                 .decisionReasons=${this.config.live?.decision_reasons ?? []}
