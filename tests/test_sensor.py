@@ -50,7 +50,7 @@ async def test_setup_entry_creates_entities(hass, mock_config_entry, store):
     add_entities.assert_called_once()
     entities = add_entities.call_args[0][0]
     room_entities = [e for e in entities if getattr(e, "_area_id", None) == "room_a"]
-    assert len(room_entities) == 4
+    assert len(room_entities) == 6
     assert not any(isinstance(e, RoomMindPowerSensor) for e in room_entities)
     assert not any(isinstance(e, RoomMindEnergyTodaySensor) for e in room_entities)
 
@@ -91,14 +91,14 @@ async def test_setup_entry_multiple_rooms(hass, mock_config_entry, store):
     await async_setup_entry(hass, mock_config_entry, add_entities)
 
     entities = add_entities.call_args[0][0]
-    assert sum(getattr(e, "_area_id", None) in {"room_a", "room_b"} for e in entities) == 8
+    assert sum(getattr(e, "_area_id", None) in {"room_a", "room_b"} for e in entities) == 12
 
 
 def test_create_room_entities():
     """_create_room_entities returns target temp and mode sensors."""
     coordinator = _make_coordinator()
     entities = _create_room_entities(coordinator, "room_a")
-    assert len(entities) == 4
+    assert len(entities) == 6
     assert isinstance(entities[0], RoomMindTargetTemperatureSensor)
     assert isinstance(entities[1], RoomMindModeSensor)
     assert not any(isinstance(e, RoomMindPowerSensor) for e in entities)
@@ -183,9 +183,9 @@ def test_energy_entities_require_configured_ac_power_sensor():
     }
     outdoor = {**measured, "is_outdoor": True}
 
-    assert len(_create_room_entities(coordinator, "sala", plain)) == 4
-    assert len(_create_room_entities(coordinator, "sala", measured)) == 12
-    assert len(_create_room_entities(coordinator, "terrazzo", outdoor)) == 4
+    assert len(_create_room_entities(coordinator, "sala", plain)) == 6
+    assert len(_create_room_entities(coordinator, "sala", measured)) == 14
+    assert len(_create_room_entities(coordinator, "terrazzo", outdoor)) == 6
 
 
 def test_energy_prediction_confidence_sensor_value():

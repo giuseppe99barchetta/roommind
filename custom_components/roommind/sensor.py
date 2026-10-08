@@ -41,6 +41,8 @@ def _create_room_entities(
         RoomMindModeSensor(coordinator, area_id),
         RoomMindHeatSourceSensor(coordinator, area_id),
         RoomMindHeatSourceReasonSensor(coordinator, area_id),
+        RoomMindMoldSurfaceHumiditySensor(coordinator, area_id),
+        RoomMindMoldExposureSensor(coordinator, area_id),
     ]
     if _room_has_power_sensor(room):
         entities.extend(_create_room_energy_entities(coordinator, area_id))
@@ -148,6 +150,30 @@ class RoomMindHeatSourceReasonSensor(_RoomMindBaseSensor):
 
     def __init__(self, coordinator: RoomMindCoordinator, area_id: str) -> None:
         super().__init__(coordinator, area_id, "heat_source_reason", "Heat Source Reason")
+
+
+class RoomMindMoldSurfaceHumiditySensor(_RoomMindBaseSensor):
+    """Estimated RH on the room's coldest wall spot (calibrated by mold_f_rsi)."""
+
+    _data_key = "mold_surface_rh"
+    _attr_native_unit_of_measurement = "%"
+    _attr_state_class = SensorStateClass.MEASUREMENT
+    _attr_icon = "mdi:wall"
+
+    def __init__(self, coordinator: RoomMindCoordinator, area_id: str) -> None:
+        super().__init__(coordinator, area_id, "mold_surface_humidity", "Wall Surface Humidity")
+
+
+class RoomMindMoldExposureSensor(_RoomMindBaseSensor):
+    """Hours in the last 7 days with the coldest wall at or above 80 % RH."""
+
+    _data_key = "mold_exposure_hours_7d"
+    _attr_native_unit_of_measurement = "h"
+    _attr_state_class = SensorStateClass.MEASUREMENT
+    _attr_icon = "mdi:water-alert"
+
+    def __init__(self, coordinator: RoomMindCoordinator, area_id: str) -> None:
+        super().__init__(coordinator, area_id, "mold_exposure_7d", "Mold Exposure 7 Days")
 
 
 class RoomMindPowerSensor(_RoomMindBaseSensor):

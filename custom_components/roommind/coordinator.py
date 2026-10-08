@@ -26,6 +26,7 @@ from .const import (
     DEFAULT_COMFORT_HEAT,
     DEFAULT_ECO_COOL,
     DEFAULT_ECO_HEAT,
+    DEFAULT_MOLD_F_RSI,
     DEFAULT_MOLD_PREVENTION_DRY_MIN_TEMPERATURE,
     DEFAULT_OUTDOOR_HEATING_MAX,
     DOMAIN,
@@ -38,6 +39,8 @@ from .const import (
     MODE_HEATING,
     MODE_IDLE,
     MOLD_BOOTSTRAP_LOOKBACK_SECONDS,
+    MOLD_EXPOSURE_DAYS,
+    MOLD_EXPOSURE_REFRESH_SECONDS,
     MOLD_PREVENTION_DRY_STOP_TEMPERATURE,
     MOLD_PREVENTION_HEAT_TARGETS,
     MOLD_PREVENTION_MAX_RUN_MINUTES,
@@ -99,7 +102,7 @@ from .utils.device_utils import (
 )
 from .utils.device_utils import room_has_power_sensor as _room_has_power_sensor
 from .utils.history_store import HistoryStore
-from .utils.mold_utils import absolute_humidity, airing_recommended, dry_start_temperature
+from .utils.mold_utils import absolute_humidity, airing_recommended, dry_start_temperature, mold_exposure_hours
 from .utils.night_mode import apply_night_targets, night_phase
 from .utils.notification_utils import NotificationThrottler, async_send_mold_notification, dismiss_mold_notification
 from .utils.schedule_utils import resolve_schedule_index
@@ -265,6 +268,8 @@ class RoomMindCoordinator(DataUpdateCoordinator):
         self._mold_active_strategies: dict[str, str] = {}
         self._airing_rooms: set[str] = set()
         self._mold_bootstrapped: set[str] = set()
+        self._mold_exposure: dict[str, float] = {}
+        self._mold_exposure_at: dict[str, float] = {}
         self._mold_restore_modes: dict[str, str] = {}
         self._humidity_dry_started: dict[str, float] = {}
         self._humidity_dry_retry_after: dict[str, float] = {}
@@ -397,17 +402,31 @@ class RoomMindCoordinator(DataUpdateCoordinator):
         if self._history_store is not None and (
             settings.get("mold_detection_enabled") or settings.get("mold_prevention_enabled")
         ):
-            for area_id in rooms:
-                if area_id in self._mold_bootstrapped:
-                    continue
-                self._mold_bootstrapped.add(area_id)
-                try:
-                    rows = await self.hass.async_add_executor_job(
-                        self._history_store.read_detail, area_id, MOLD_BOOTSTRAP_LOOKBACK_SECONDS
-                    )
-                    self._mold_manager.bootstrap(area_id, rows, settings)
-                except Exception:  # noqa: BLE001
-                    _LOGGER.warning("Mold timer bootstrap failed for '%s'", area_id)
+            for area_id, room in rooms.items():
+                f_rsi = float(room.get("mold_f_rsi", DEFAULT_MOLD_F_RSI) or DEFAULT_MOLD_F_RSI)
+                if area_id not in self._mold_bootstrapped:
+                    self._mold_bootstrapped.add(area_id)
+                    try:
+                        rows = await self.hass.async_add_executor_job(
+                            self._history_store.read_detail, area_id, MOLD_BOOTSTRAP_LOOKBACK_SECONDS
+                        )
+                        self._mold_manager.bootstrap(area_id, rows, settings, f_rsi=f_rsi)
+                    except Exception:  # noqa: BLE001
+                        _LOGGER.warning("Mold timer bootstrap failed for '%s'", area_id)
+                # Hourly: hours of near-condensation on the coldest wall this week.
+                if time.time() - self._mold_exposure_at.get(area_id, 0.0) >= MOLD_EXPOSURE_REFRESH_SECONDS:
+                    self._mold_exposure_at[area_id] = time.time()
+                    try:
+                        window = MOLD_EXPOSURE_DAYS * 24 * 3600
+                        history = await self.hass.async_add_executor_job(
+                            self._history_store.read_history, area_id, window
+                        )
+                        detail = await self.hass.async_add_executor_job(
+                            self._history_store.read_detail, area_id, window
+                        )
+                        self._mold_exposure[area_id] = mold_exposure_hours(history + detail, f_rsi)
+                    except Exception:  # noqa: BLE001
+                        _LOGGER.warning("Mold exposure history failed for '%s'", area_id)
 
         # Bootstrap before building budget reservations: the first coordinator
         # cycle after a restart can use historical AC peaks without waiting for
@@ -787,6 +806,8 @@ class RoomMindCoordinator(DataUpdateCoordinator):
             # Raw contact state: an open window makes DRY pointless at once,
             # independent of the climate-pause delays.
             window_open=self._is_window_open(room),
+            f_rsi=float(room.get("mold_f_rsi", DEFAULT_MOLD_F_RSI) or DEFAULT_MOLD_F_RSI),
+            exposure_hours=self._mold_exposure.get(area_id),
             automation_enabled=automation_enabled,
             celsius_delta_to_ha_fn=lambda d: celsius_delta_to_ha(self.hass, d),  # type: ignore[misc]
             ha_temp_unit_str_fn=lambda: ha_temp_unit_str(self.hass),  # type: ignore[misc]
@@ -1779,6 +1800,7 @@ class RoomMindCoordinator(DataUpdateCoordinator):
         else:
             self._airing_rooms.discard(area_id)
         room_state["airing_recommended"] = airing
+        room_state["mold_exposure_hours_7d"] = self._mold_exposure.get(area_id)
         room_state["indoor_abs_humidity"] = (
             round(absolute_humidity(current_temp, current_humidity), 1)
             if current_temp is not None and current_humidity is not None
@@ -2815,6 +2837,8 @@ class RoomMindCoordinator(DataUpdateCoordinator):
         self._mold_restore_modes.pop(area_id, None)
         self._airing_rooms.discard(area_id)
         self._mold_bootstrapped.discard(area_id)
+        self._mold_exposure.pop(area_id, None)
+        self._mold_exposure_at.pop(area_id, None)
         self._heat_source_states.pop(area_id, None)
         if self._history_store:
             await self.hass.async_add_executor_job(self._history_store.remove_room, area_id)

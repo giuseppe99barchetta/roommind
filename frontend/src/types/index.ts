@@ -169,6 +169,7 @@ export interface RoomConfig {
   eco_cool: number;
   active_profile?: "" | "work" | "sleep" | "guests" | "away";
   night_mode_enabled?: boolean;
+  mold_f_rsi?: number;
   night_start?: string;
   night_end?: string;
   night_heat_delta?: number;

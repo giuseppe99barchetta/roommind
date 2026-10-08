@@ -56,6 +56,7 @@ export class RsRoomDetail extends LitElement {
   @state() private _windowOpenDelay = 0;
   @state() private _windowCloseDelay = 0;
   @state() private _keepFanOnlyOnWindowOpen = true;
+  @state() private _moldFRsi = 0.8;
   @state() private _climateMode: ClimateMode = "auto";
   @state() private _schedules: ScheduleEntry[] = [];
   @state() private _scheduleSelectorEntity = "";
@@ -321,6 +322,7 @@ export class RsRoomDetail extends LitElement {
       this._windowOpenDelay = this.config.window_open_delay ?? 0;
       this._windowCloseDelay = this.config.window_close_delay ?? 0;
       this._keepFanOnlyOnWindowOpen = this.config.keep_fan_only_on_window_open ?? true;
+      this._moldFRsi = this.config.mold_f_rsi ?? 0.8;
       this._climateMode = this.config.climate_mode;
       this._schedules = this.config.schedules ?? [];
       this._scheduleSelectorEntity = this.config.schedule_selector_entity ?? "";
@@ -371,6 +373,7 @@ export class RsRoomDetail extends LitElement {
       this._windowOpenDelay = 0;
       this._windowCloseDelay = 0;
       this._keepFanOnlyOnWindowOpen = true;
+      this._moldFRsi = 0.8;
       this._climateMode = "auto";
       this._schedules = [];
       this._scheduleSelectorEntity = "";
@@ -621,6 +624,7 @@ export class RsRoomDetail extends LitElement {
                     .windowOpenDelay=${this._windowOpenDelay}
                     .windowCloseDelay=${this._windowCloseDelay}
                     .keepFanOnlyOnWindowOpen=${this._keepFanOnlyOnWindowOpen}
+                    .moldFRsi=${this._moldFRsi}
                     .heatingSystemType=${resolveHeatingSystemType(this._devices)}
                     .language=${this.hass.language}
                     @sensor-changed=${this._onSensorChanged}
@@ -894,6 +898,7 @@ export class RsRoomDetail extends LitElement {
             .windowOpenDelay=${this._windowOpenDelay}
             .windowCloseDelay=${this._windowCloseDelay}
             .keepFanOnlyOnWindowOpen=${this._keepFanOnlyOnWindowOpen}
+            .moldFRsi=${this._moldFRsi}
             .heatingSystemType=${resolveHeatingSystemType(this._devices)}
             .language=${this.hass.language}
             @sensor-changed=${this._onSensorChanged}
@@ -1107,6 +1112,8 @@ export class RsRoomDetail extends LitElement {
       this._windowCloseDelay = value as number;
     } else if (key === "keep_fan_only_on_window_open") {
       this._keepFanOnlyOnWindowOpen = value as boolean;
+    } else if (key === "mold_f_rsi") {
+      this._moldFRsi = value as number;
     }
     this._autoSave();
   }
@@ -1283,6 +1290,7 @@ export class RsRoomDetail extends LitElement {
         covers: [...this._selectedCovers],
         climate_control_enabled: this._climateControlEnabled,
         keep_fan_only_on_window_open: this._keepFanOnlyOnWindowOpen,
+        mold_f_rsi: this._moldFRsi,
         covers_auto_enabled: this._coversAutoEnabled,
         covers_deploy_threshold: this._coversDeployThreshold,
         covers_min_position: this._coversMinPosition,

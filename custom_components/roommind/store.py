@@ -16,6 +16,7 @@ from .const import (
     DEFAULT_HEAT_SOURCE_AC_MIN_OUTDOOR,
     DEFAULT_HEAT_SOURCE_OUTDOOR_THRESHOLD,
     DEFAULT_HEAT_SOURCE_PRIMARY_DELTA,
+    DEFAULT_MOLD_F_RSI,
     DOMAIN,
 )
 from .utils.device_utils import (
@@ -85,6 +86,7 @@ def _migrate_room(room: dict) -> dict:
     room.setdefault("smart_ventilation_enabled", False)
     room.setdefault("smart_ventilation_minutes", 15)
     room.setdefault("smart_ventilation_max_humidity", 55.0)
+    room.setdefault("mold_f_rsi", DEFAULT_MOLD_F_RSI)
     room.setdefault("smart_ventilation_max_temp_delta", 0.5)
     room.setdefault("smart_ventilation_fan_mode", "low")
     room.setdefault("window_smart_recovery_enabled", False)
@@ -326,6 +328,7 @@ class RoomMindStore:
             "smart_ventilation_enabled": config.get("smart_ventilation_enabled", False),
             "smart_ventilation_minutes": config.get("smart_ventilation_minutes", 15),
             "smart_ventilation_max_humidity": config.get("smart_ventilation_max_humidity", 55.0),
+            "mold_f_rsi": config.get("mold_f_rsi", DEFAULT_MOLD_F_RSI),
             "smart_ventilation_max_temp_delta": config.get("smart_ventilation_max_temp_delta", 0.5),
             "smart_ventilation_fan_mode": config.get("smart_ventilation_fan_mode", "low"),
             "window_smart_recovery_enabled": config.get("window_smart_recovery_enabled", False),

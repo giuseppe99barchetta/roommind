@@ -11,9 +11,11 @@ from homeassistant.core import HomeAssistant
 
 from ..const import (
     DEFAULT_MOLD_COOLDOWN_MINUTES,
+    DEFAULT_MOLD_F_RSI,
     DEFAULT_MOLD_HUMIDITY_THRESHOLD,
     DEFAULT_MOLD_PREVENTION_SUSTAINED_MINUTES,
     DEFAULT_MOLD_SUSTAINED_MINUTES,
+    MOLD_EXPOSURE_HIGH_HOURS,
     MOLD_HYSTERESIS,
     MOLD_PREVENTION_CRITICAL_SUSTAINED_MINUTES,
     MOLD_PREVENTION_DRY_STOP_TEMPERATURE,
@@ -46,10 +48,14 @@ MOLD_BOOTSTRAP_MAX_GAP_SECONDS = 15 * 60
 
 
 def _risk_flags(
-    t_room: float, rh_room: float, t_outdoor: float | None, threshold: float
+    t_room: float,
+    rh_room: float,
+    t_outdoor: float | None,
+    threshold: float,
+    f_rsi: float = DEFAULT_MOLD_F_RSI,
 ) -> tuple[str, float, dict[str, bool]]:
     """Return (risk_level, surface_rh, timer conditions) for one observation."""
-    risk_level, surface_rh = calculate_mold_risk(t_room, rh_room, t_outdoor)
+    risk_level, surface_rh = calculate_mold_risk(t_room, rh_room, t_outdoor, f_rsi)
     surface_risky = risk_level in (MOLD_RISK_WARNING, MOLD_RISK_CRITICAL)
     return (
         risk_level,
@@ -111,6 +117,8 @@ class MoldManager:
         can_heat_pump: bool = False,
         night_phase: str | None = None,
         window_open: bool = False,
+        f_rsi: float = DEFAULT_MOLD_F_RSI,
+        exposure_hours: float | None = None,
         automation_enabled: bool = True,
         celsius_delta_to_ha_fn: Callable[[float], float] | None = None,
         ha_temp_unit_str_fn: Callable[[], str] | None = None,
@@ -131,7 +139,7 @@ class MoldManager:
             "mold_humidity_threshold",
             DEFAULT_MOLD_HUMIDITY_THRESHOLD,
         )
-        risk_level, surface_rh, flags = _risk_flags(current_temp, current_humidity, outdoor_temp, threshold)
+        risk_level, surface_rh, flags = _risk_flags(current_temp, current_humidity, outdoor_temp, threshold, f_rsi)
         result.risk_level = risk_level
         result.surface_rh = surface_rh
 
@@ -212,11 +220,14 @@ class MoldManager:
             * 60
         )
         critical_sustained = min(sustained, MOLD_PREVENTION_CRITICAL_SUSTAINED_MINUTES * 60)
+        # A wall that already spent many hours near condensation this week
+        # gets no grace period: the early zone acts sooner and also at night.
+        high_exposure = (exposure_hours or 0.0) >= MOLD_EXPOSURE_HIGH_HOURS
         # Before a room's night window, dry the early zone sooner so the room
         # is dry at bedtime; during the night the early zone is left alone.
         early_sustained = (
             MOLD_PREVENTION_PRE_NIGHT_SUSTAINED_MINUTES
-            if night_phase == "pre_night"
+            if night_phase == "pre_night" or high_exposure
             else MOLD_PREVENTION_EARLY_SUSTAINED_MINUTES
         ) * 60
         ready = (
@@ -259,7 +270,7 @@ class MoldManager:
             self._prevention_cooldown_until[area_id] = now + MOLD_PREVENTION_RETRY_MINUTES * 60
         # Quiet night: below the warning zone a sleeping room is not woken by
         # the compressor; timers keep running so DRY starts at night end.
-        quiet_night = night_phase == "night" and not surface_risky
+        quiet_night = night_phase == "night" and not surface_risky and not high_exposure
         # An open window ends the session without a retry pause: nothing can
         # be dried meanwhile, so it must not burn the session's runtime cap.
         # Risk timers keep running and prevention resumes once it closes.
@@ -363,7 +374,14 @@ class MoldManager:
         self._throttler.clear(f"detect_{area_id}")
         self._throttler.clear(f"prevent_{area_id}")
 
-    def bootstrap(self, area_id: str, rows: list[dict], settings: dict, now: float | None = None) -> None:
+    def bootstrap(
+        self,
+        area_id: str,
+        rows: list[dict],
+        settings: dict,
+        now: float | None = None,
+        f_rsi: float = DEFAULT_MOLD_F_RSI,
+    ) -> None:
         """Rebuild risk timers from persisted history after a restart.
 
         Without this, every Home Assistant restart would restart the 1–2 hour
@@ -387,7 +405,7 @@ class MoldManager:
             if previous_ts is not None and ts - previous_ts > MOLD_BOOTSTRAP_MAX_GAP_SECONDS:
                 since.clear()
             previous_ts = ts
-            for name, active in _risk_flags(t, rh, t_out, threshold)[2].items():
+            for name, active in _risk_flags(t, rh, t_out, threshold, f_rsi)[2].items():
                 if active:
                     since.setdefault(name, ts)
                 else:

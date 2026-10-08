@@ -832,3 +832,25 @@ async def test_restarted_sessions_and_restart_do_not_repeat_notifications(mm):
         clock.time.return_value = now + 120
         await mm.evaluate("bed", "Bed", 23.8, 72, 20.5, settings, **kwargs)
         assert len(send.call_args_list) == 1
+
+
+@pytest.mark.asyncio
+async def test_high_weekly_exposure_skips_grace_and_quiet_night(mm):
+    now = 100_000.0
+    mm.bootstrap("bed", _humid_rows(now - 31 * 60, now - 60), _EARLY, now=now)
+    with patch("custom_components.roommind.managers.mold_manager.time") as clock:
+        clock.time.return_value = now
+        low = await mm.evaluate("bed", "Bed", 23.8, 64.5, 20.5, _EARLY, can_dry=True, exposure_hours=5.0)
+        assert not low.prevention_active
+        high = await mm.evaluate(
+            "bed", "Bed", 23.8, 64.5, 20.5, _EARLY, can_dry=True, night_phase="night", exposure_hours=30.0
+        )
+        assert high.prevention_active and high.prevention_strategy == "dry"
+
+
+@pytest.mark.asyncio
+async def test_room_wall_factor_reaches_the_risk_level(mm):
+    settings = {"mold_detection_enabled": True, "mold_notifications_enabled": False}
+    plain = await mm.evaluate("a", "A", 23.8, 64.5, 10.0, settings)
+    corner = await mm.evaluate("b", "B", 23.8, 64.5, 10.0, settings, f_rsi=0.70)
+    assert plain.risk_level == "warning" and corner.risk_level == "critical"

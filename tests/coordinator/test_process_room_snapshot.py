@@ -81,6 +81,7 @@ NORMAL_ROOM_KEYS = {
     "active_profile",
     "anomalies",
     "airing_recommended",
+    "mold_exposure_hours_7d",
     "indoor_abs_humidity",
     "comfort_score",
     "humidity_action",

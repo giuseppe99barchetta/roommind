@@ -503,6 +503,7 @@ class TestMoldReheatAndAiring:
         hass.services.async_call = AsyncMock()
         now = time.time()
         history = MagicMock()
+        history.read_history.return_value = []
         history.read_detail.return_value = [
             {
                 "timestamp": str(now - minutes * 60),
@@ -520,7 +521,9 @@ class TestMoldReheatAndAiring:
         # The room has been in the early zone for 2.5 h: DRY starts on the
         # first cycle after a restart instead of waiting two more hours.
         assert data["rooms"]["living_room_abc12345"]["mold_prevention_strategy"] == "dry"
-        history.read_detail.assert_called_once()
+        history.read_detail.assert_any_call("living_room_abc12345", 3 * 3600)
+        # Warm humid air on an average wall: well below 80 % surface RH.
+        assert data["rooms"]["living_room_abc12345"]["mold_exposure_hours_7d"] == 0.0
 
 
 class TestHumidityComfortAndCoilDrying:

@@ -17,6 +17,7 @@ from ..const import (
     AIRING_ABS_HUMIDITY_OFF,
     AIRING_ABS_HUMIDITY_ON,
     AIRING_MIN_INDOOR_RH,
+    DEFAULT_MOLD_F_RSI,
     DEFAULT_MOLD_PREVENTION_DRY_MIN_TEMPERATURE,
     MIN_MOLD_GROWTH_TEMP,
     MOLD_PREVENTION_DELTAS,
@@ -88,6 +89,7 @@ def calculate_mold_risk(
     t_room: float,
     rh_room: float,
     t_outdoor: float | None,
+    f_rsi: float = DEFAULT_MOLD_F_RSI,
 ) -> tuple[str, float]:
     """Calculate mold risk level and estimated surface RH.
 
@@ -98,13 +100,14 @@ def calculate_mold_risk(
         t_room: Indoor air temperature in °C.
         rh_room: Indoor relative humidity in % (0-100).
         t_outdoor: Outdoor temperature in °C, or None if unavailable.
+        f_rsi: Temperature factor of the room's coldest wall spot.
 
     Returns:
         Tuple of (risk_level, surface_rh_percent).
         risk_level is one of MOLD_RISK_OK / MOLD_RISK_WARNING / MOLD_RISK_CRITICAL.
     """
     if t_outdoor is not None:
-        t_surface = estimate_surface_temp(t_room, t_outdoor)
+        t_surface = estimate_surface_temp(t_room, t_outdoor, f_rsi)
 
         # Below MIN_MOLD_GROWTH_TEMP mold growth is negligible
         if t_surface < MIN_MOLD_GROWTH_TEMP:
@@ -128,6 +131,39 @@ def _risk_from_surface_rh(srh: float) -> str:
     if srh >= MOLD_SURFACE_RH_WARNING:
         return MOLD_RISK_WARNING
     return MOLD_RISK_OK
+
+
+def mold_exposure_hours(
+    rows: list[dict],
+    f_rsi: float = DEFAULT_MOLD_F_RSI,
+    max_gap_seconds: float = 15 * 60,
+) -> float:
+    """Hours with estimated surface RH at or above the critical 80 %.
+
+    *rows* are RoomMind history rows (timestamp, room_temp, current_humidity,
+    outdoor_temp).  Each sample counts until the next one, capped at
+    *max_gap_seconds* so outages are not counted as exposure.
+    """
+    samples = []
+    for row in rows:
+        try:
+            ts = float(row["timestamp"])
+            t_room = float(row["room_temp"])
+            rh = float(row["current_humidity"])
+        except (KeyError, TypeError, ValueError):
+            continue
+        try:
+            t_out: float | None = float(row.get("outdoor_temp"))  # type: ignore[arg-type]
+        except (TypeError, ValueError):
+            t_out = None
+        samples.append((ts, t_room, rh, t_out))
+    samples.sort()
+    seconds = 0.0
+    for current, following in zip(samples, samples[1:], strict=False):
+        ts, t_room, rh, t_out = current
+        if calculate_mold_risk(t_room, rh, t_out, f_rsi)[1] >= MOLD_SURFACE_RH_CRITICAL:
+            seconds += min(following[0] - ts, max_gap_seconds)
+    return round(seconds / 3600, 1)
 
 
 def absolute_humidity(temp: float, rh: float) -> float:

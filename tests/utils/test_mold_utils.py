@@ -209,3 +209,25 @@ def test_surface_rh_thresholds_exact():
     assert _risk_from_surface_rh(70.0) == "warning"
     assert _risk_from_surface_rh(79.9) == "warning"
     assert _risk_from_surface_rh(80.0) == "critical"
+
+
+def test_colder_wall_factor_raises_surface_rh():
+    from custom_components.roommind.utils.mold_utils import calculate_mold_risk
+
+    # Bedroom tonight with 10 °C outside: an average wall vs a corner.
+    assert calculate_mold_risk(23.8, 64.5, 10.0)[0] == "warning"
+    level, srh = calculate_mold_risk(23.8, 64.5, 10.0, f_rsi=0.70)
+    assert level == "critical" and srh > 80
+
+
+def test_mold_exposure_hours_counts_critical_time_and_caps_gaps():
+    from custom_components.roommind.utils.mold_utils import mold_exposure_hours
+
+    def row(ts, rh):
+        return {"timestamp": ts, "room_temp": "20", "current_humidity": rh, "outdoor_temp": "5"}
+
+    rows = [row(i * 300, "80") for i in range(25)]  # 2 h critical at 5-min steps
+    rows += [row(25 * 300 + 4 * 3600, "80")]  # 4 h outage counts 15 min, then 5 more critical min
+    rows += [row(25 * 300 + 4 * 3600 + 300, "45")]
+    assert mold_exposure_hours(rows) == 2.3  # 2 h + 15 min + 5 min
+    assert mold_exposure_hours([row(0, "45"), row(300, "45")]) == 0.0

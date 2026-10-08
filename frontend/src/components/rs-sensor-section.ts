@@ -6,6 +6,14 @@ import { localize } from "../utils/localize";
 import { openEntityInfo } from "../utils/events";
 import { tempUnit } from "../utils/temperature";
 import { inputStyles } from "../styles/input-styles";
+import { getSelectValue } from "../utils/events";
+
+// Wall temperature factor presets (DIN 4108-2) for the coldest wall spot.
+const F_RSI_PRESETS = [
+  { value: 0.8, key: "devices.wall_preset_plain" },
+  { value: 0.7, key: "devices.wall_preset_corner" },
+  { value: 0.6, key: "devices.wall_preset_bridge" },
+] as const;
 
 type SensorKind = "temp" | "humidity" | "occupancy" | "window";
 
@@ -20,6 +28,10 @@ export class RsSensorSection extends LitElement {
   @property({ type: Number }) public windowOpenDelay = 0;
   @property({ type: Number }) public windowCloseDelay = 0;
   @property({ type: Boolean }) public keepFanOnlyOnWindowOpen = true;
+  @property({ type: Number }) public moldFRsi = 0.8;
+  @state() private _calcSurface = "";
+  @state() private _calcRoom = "";
+  @state() private _calcOutdoor = "";
   @property({ type: String }) public heatingSystemType = "";
   @property({ type: Boolean }) public editing = false;
   @property() public language = "en";
@@ -433,6 +445,10 @@ export class RsSensorSection extends LitElement {
         ? html`
             <div class="section-subtitle">${localize("devices.humidity_sensors", lang)}</div>
             ${this._renderSensorViewRow(this.humiditySensor, "humidity")}
+            <div class="delay-view">
+              ${localize("devices.wall_factor", lang)}: ${this.moldFRsi.toFixed(2)}
+              (${this._wallPresetLabel(lang)})
+            </div>
           `
         : nothing}
       ${hasOccupancySensors
@@ -606,6 +622,7 @@ export class RsSensorSection extends LitElement {
         areaSensors: areaHumiditySensors,
         externalSensors: externalHumiditySensor ? [externalHumiditySensor] : [],
         selectedCount: this.humiditySensor ? 1 : 0,
+        extras: this._renderHumidityExtras(lang),
       })}
       ${this._renderBlock({
         kind: "occupancy",
@@ -674,6 +691,111 @@ export class RsSensorSection extends LitElement {
           `
         : nothing}
     `;
+  }
+
+  private _wallPresetLabel(lang: string) {
+    const preset = F_RSI_PRESETS.find((p) => Math.abs(p.value - this.moldFRsi) < 0.005);
+    return localize(preset ? preset.key : "devices.wall_preset_measured", lang);
+  }
+
+  private _renderHumidityExtras(lang: string) {
+    if (!this.humiditySensor) return nothing;
+    const preset = F_RSI_PRESETS.find((p) => Math.abs(p.value - this.moldFRsi) < 0.005);
+    const surface = parseFloat(this._calcSurface);
+    const room = parseFloat(this._calcRoom);
+    const outdoor = parseFloat(this._calcOutdoor);
+    const measured = (surface - outdoor) / (room - outdoor);
+    const measuredOk = room - outdoor >= 5 && measured >= 0.5 && measured <= 0.95;
+    const unit = tempUnit(this.hass);
+    return html`
+      <div class="fan-window-toggle-text" style="margin-top: 10px">
+        <span class="fan-window-toggle-label">${localize("devices.wall_factor", lang)}</span>
+        <span class="fan-window-toggle-hint">${localize("devices.wall_factor_hint", lang)}</span>
+      </div>
+      <div class="delay-fields">
+        <ha-select
+          .label=${localize("devices.wall_preset", lang)}
+          .value=${preset ? String(preset.value) : "custom"}
+          fixedMenuPosition
+          @selected=${(e: Event) => {
+            const v = getSelectValue(e);
+            if (v && v !== "custom") this._fireWallFactor(parseFloat(v));
+          }}
+          @closed=${(e: Event) => e.stopPropagation()}
+        >
+          ${F_RSI_PRESETS.map(
+            (p) =>
+              html`<ha-list-item value=${String(p.value)}
+                >${localize(p.key, lang)} (${p.value.toFixed(2)})</ha-list-item
+              >`,
+          )}
+          <ha-list-item value="custom"
+            >${localize("devices.wall_preset_measured", lang)}</ha-list-item
+          >
+        </ha-select>
+        <ha-textfield
+          type="number"
+          min="0.5"
+          max="0.95"
+          step="0.01"
+          .label=${localize("devices.wall_factor", lang)}
+          .value=${this.moldFRsi.toFixed(2)}
+          @change=${(e: Event) =>
+            this._fireWallFactor(parseFloat((e.target as HTMLInputElement).value))}
+        ></ha-textfield>
+      </div>
+      <div class="fan-window-toggle-hint" style="margin-top: 10px">
+        ${localize("devices.wall_measure_hint", lang)}
+      </div>
+      <div class="delay-fields">
+        ${(
+          [
+            [
+              "devices.wall_measure_surface",
+              this._calcSurface,
+              (v: string) => (this._calcSurface = v),
+            ],
+            ["devices.wall_measure_room", this._calcRoom, (v: string) => (this._calcRoom = v)],
+            [
+              "devices.wall_measure_outdoor",
+              this._calcOutdoor,
+              (v: string) => (this._calcOutdoor = v),
+            ],
+          ] as const
+        ).map(
+          ([key, value, set]) =>
+            html`<ha-textfield
+              type="number"
+              step="0.1"
+              .suffix=${unit}
+              .label=${localize(key, lang)}
+              .value=${value}
+              @input=${(e: Event) => set((e.target as HTMLInputElement).value)}
+            ></ha-textfield>`,
+        )}
+      </div>
+      ${measuredOk
+        ? html`<ha-button @click=${() => this._fireWallFactor(Math.round(measured * 100) / 100)}>
+            ${localize("devices.wall_measure_apply", lang, { value: measured.toFixed(2) })}
+          </ha-button>`
+        : this._calcSurface && this._calcRoom && this._calcOutdoor
+          ? html`<div class="delay-hint">
+              <ha-icon icon="mdi:information-outline"></ha-icon>
+              ${localize("devices.wall_measure_invalid", lang)}
+            </div>`
+          : nothing}
+    `;
+  }
+
+  private _fireWallFactor(value: number) {
+    if (isNaN(value) || value < 0.5 || value > 0.95) return;
+    this.dispatchEvent(
+      new CustomEvent("sensor-changed", {
+        detail: { key: "mold_f_rsi", value },
+        bubbles: true,
+        composed: true,
+      }),
+    );
   }
 
   private _renderGlobalAdd(lang: string) {
