@@ -26,6 +26,7 @@ from .const import (
     DEFAULT_COMFORT_HEAT,
     DEFAULT_ECO_COOL,
     DEFAULT_ECO_HEAT,
+    DEFAULT_MOLD_PREVENTION_DRY_MIN_TEMPERATURE,
     DEFAULT_OUTDOOR_HEATING_MAX,
     DOMAIN,
     HEATING_BOOST_TARGET,
@@ -36,6 +37,10 @@ from .const import (
     MODE_COOLING,
     MODE_HEATING,
     MODE_IDLE,
+    MOLD_PREVENTION_DRY_STOP_TEMPERATURE,
+    MOLD_PREVENTION_HEAT_TARGETS,
+    MOLD_PREVENTION_MAX_RUN_MINUTES,
+    MOLD_PREVENTION_RETRY_MINUTES,
     OUTDOOR_UNAVAILABLE_NOTIFICATION_ID,
     OUTDOOR_UNAVAILABLE_NOTIFY_CYCLES,
     SCHEDULE_STATE_ON,
@@ -251,6 +256,8 @@ class RoomMindCoordinator(DataUpdateCoordinator):
         self._energy_manager = EnergyManager(hass)
         self._mold_active_strategies: dict[str, str] = {}
         self._mold_restore_modes: dict[str, str] = {}
+        self._humidity_dry_started: dict[str, float] = {}
+        self._humidity_dry_retry_after: dict[str, float] = {}
         self._smart_ventilation_until: dict[str, float] = {}
         self._night_fan_modes: dict[str, str] = {}
         # Residual heat tracking (heating → idle transition)
@@ -985,8 +992,14 @@ class RoomMindCoordinator(DataUpdateCoordinator):
                 base_heat = targets.heat
                 if base_heat is None:
                     base_heat = room.get("eco_heat", room.get("eco_temp", DEFAULT_ECO_HEAT))
+                # Surface protection must not make an already comfortable room
+                # excessively warm: raise a cold room to 20–21 °C at most.
+                heat_target = max(float(base_heat), MOLD_PREVENTION_HEAT_TARGETS.get(
+                    settings.get("mold_prevention_intensity", "medium"), 20.5
+                ))
+                mold_prevention_temp_delta = max(0.0, heat_target - float(base_heat))
                 targets = TargetTemps(
-                    heat=float(base_heat) + mold_prevention_temp_delta,
+                    heat=heat_target,
                     cool=None,
                 )
             elif mold_prevention_strategy == "cool":
@@ -1396,12 +1409,22 @@ class RoomMindCoordinator(DataUpdateCoordinator):
                     if self._boiler_manager.state in ("preopening", "on", "poststop")
                     else set()
                 )
+                # An auxiliary DRY cycle must not receive OFF on every
+                # coordinator tick before being re-commanded DRY.
+                comfort_dry_requested = self._humidity_dry_requested(
+                    area_id, room, current_temp, current_humidity, mode, window_open, force_off
+                ) if not mold_prevention_effective else False
+                preserve_dry_acs = (
+                    set(get_ac_eids(room.get("devices", [])))
+                    if (mold_prevention_effective and mold_prevention_strategy == "dry" and not window_open)
+                    or comfort_dry_requested else set()
+                )
                 await controller.async_apply(
                     mode,
                     targets,
                     power_fraction=power_fraction,
                     current_temp=current_temp,
-                    exclude_eids=cycling_eids | budget_blocked_acs | bypass_held,
+                    exclude_eids=cycling_eids | budget_blocked_acs | bypass_held | preserve_dry_acs,
                     heating_boost_target=device_max_temp,
                     ac_heating_boost_target=ac_device_max_temp,
                     cooling_boost_target=device_min_temp,
@@ -1497,7 +1520,7 @@ class RoomMindCoordinator(DataUpdateCoordinator):
                                     mold_aux_activated.add(ac_eid)
                     if restored:
                         self._mold_restore_modes.pop(area_id, None)
-                elif self._humidity_dry_requested(room, current_humidity, mode, window_open, force_off):
+                elif comfort_dry_requested:
                     for ac_eid in get_ac_eids(room.get("devices", [])):
                         ac_state = self.hass.states.get(ac_eid)
                         if ac_state is None or "dry" not in (ac_state.attributes.get("hvac_modes") or []):
@@ -1519,6 +1542,7 @@ class RoomMindCoordinator(DataUpdateCoordinator):
                             blocking=True,
                             context=make_roommind_context(),
                         )
+                        self._humidity_dry_started.setdefault(area_id, time.monotonic())
                 elif requested_hvac_mode in ("dry", "fan_only"):
                     # Persisted auxiliary state is preservation-only; it must not
                     # power an AC back on after restart or an external power-off.
@@ -1685,7 +1709,7 @@ class RoomMindCoordinator(DataUpdateCoordinator):
         room_state["anomalies"] = anomalies
         room_state["humidity_action"] = (
             "dehumidifying"
-            if self._humidity_dry_requested(room, current_humidity, mode, window_open, force_off)
+            if self._humidity_dry_requested(area_id, room, current_temp, current_humidity, mode, window_open, force_off)
             else "idle"
         )
         room_state["active_profile"] = room.get("active_profile", "")
@@ -1929,7 +1953,9 @@ class RoomMindCoordinator(DataUpdateCoordinator):
 
     def _humidity_dry_requested(
         self,
+        area_id: str,
         room: dict,
+        current_temp: float | None,
         humidity: float | None,
         mode: str,
         window_open: bool,
@@ -1937,7 +1963,28 @@ class RoomMindCoordinator(DataUpdateCoordinator):
     ) -> bool:
         """Request AC dry mode only when it does not conflict with thermal control."""
         target = self._humidity_target(room)
-        if target is None or humidity is None or mode != MODE_IDLE or window_open or force_off:
+        if target is None or humidity is None or current_temp is None or mode != MODE_IDLE or window_open or force_off:
+            self._humidity_dry_started.pop(area_id, None)
+            return False
+        if self._mold_manager.dry_retry_blocked(area_id):
+            self._humidity_dry_started.pop(area_id, None)
+            return False
+        now = time.monotonic()
+        started = self._humidity_dry_started.get(area_id)
+        stop_temp = max(MOLD_PREVENTION_DRY_STOP_TEMPERATURE,
+                        float(room.get("humidity_dry_min_temperature", DEFAULT_MOLD_PREVENTION_DRY_MIN_TEMPERATURE)) - 1.0)
+        if started is not None and (current_temp <= stop_temp or now - started >= MOLD_PREVENTION_MAX_RUN_MINUTES * 60):
+            self._humidity_dry_started.pop(area_id, None)
+            self._humidity_dry_retry_after[area_id] = now + MOLD_PREVENTION_RETRY_MINUTES * 60
+            return False
+        if now < self._humidity_dry_retry_after.get(area_id, 0):
+            return False
+        if started is not None and current_temp > stop_temp and humidity > target + 2.0:
+            return True
+        if started is not None:
+            self._humidity_dry_started.pop(area_id, None)
+            return False
+        if current_temp < float(room.get("humidity_dry_min_temperature", DEFAULT_MOLD_PREVENTION_DRY_MIN_TEMPERATURE)):
             return False
         tolerance = max(0.0, float(room.get("humidity_tolerance", 5.0) or 0))
         multiplier = {"comfort": 0.5, "balanced": 1.0, "energy": 1.5}.get(

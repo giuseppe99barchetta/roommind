@@ -147,11 +147,11 @@ export class RsSettings extends LitElement {
       this._moldNotificationsEnabled = s.mold_notifications_enabled ?? true;
       this._moldNotificationTargets = s.mold_notification_targets ?? [];
       this._moldPreventionEnabled = s.mold_prevention_enabled ?? false;
-      this._moldPreventionSustainedMinutes = s.mold_prevention_sustained_minutes ?? 15;
+      this._moldPreventionSustainedMinutes = s.mold_prevention_sustained_minutes ?? 60;
       this._moldPreventionIntensity = s.mold_prevention_intensity ?? "medium";
       this._moldPreventionDehumidificationEnabled =
         s.mold_prevention_dehumidification_enabled ?? true;
-      this._moldPreventionDryMinTemperature = s.mold_prevention_dry_min_temperature ?? 23;
+      this._moldPreventionDryMinTemperature = s.mold_prevention_dry_min_temperature ?? 22;
       this._moldPreventionNotify = s.mold_prevention_notify_enabled ?? false;
       this._windowOpenNotificationMinutes = s.window_open_notification_minutes ?? 0;
       this._compressorGroups = s.compressor_groups ?? [];

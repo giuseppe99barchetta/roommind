@@ -93,9 +93,9 @@ class TestMoldRiskDetection:
 
         room = data["rooms"]["living_room_abc12345"]
         assert room["mold_prevention_active"] is True
-        assert room["mold_prevention_delta"] == 2.0
-        # Target temp should be comfort (21) + delta (2) = 23
-        assert room["target_temp"] == 23.0
+        assert room["mold_prevention_delta"] == 0.0
+        # Heating never raises an already configured 21°C comfort target.
+        assert room["target_temp"] == 21.0
 
     @pytest.mark.asyncio
     async def test_mold_prevention_intensity_light(
@@ -124,8 +124,8 @@ class TestMoldRiskDetection:
         data = await coordinator._async_update_data()
 
         room = data["rooms"]["living_room_abc12345"]
-        assert room["mold_prevention_delta"] == 1.0
-        assert room["target_temp"] == 22.0
+        assert room["mold_prevention_delta"] == 0.0
+        assert room["target_temp"] == 21.0
 
     @pytest.mark.asyncio
     async def test_mold_no_humidity_sensor_skipped(
@@ -204,8 +204,8 @@ class TestMoldRiskDetection:
         data = await coordinator._async_update_data()
 
         room = data["rooms"]["living_room_abc12345"]
-        assert room["mold_prevention_delta"] == 3.0
-        assert room["target_temp"] == 24.0
+        assert room["mold_prevention_delta"] == 0.0
+        assert room["target_temp"] == 21.0
 
     @pytest.mark.asyncio
     async def test_mold_sustained_timer_no_notification_before_threshold(
@@ -354,8 +354,8 @@ class TestMoldRiskDetection:
 
         room = data["rooms"]["living_room_abc12345"]
         assert room["mold_risk_level"] == "warning"
-        assert room["mold_prevention_active"] is True
-        assert room["mold_prevention_delta"] == 2.0
+        assert room["mold_prevention_active"] is False
+        assert room["mold_prevention_delta"] == 0.0
 
     @pytest.mark.asyncio
     async def test_mold_no_outdoor_sensor_fallback(

@@ -38,7 +38,7 @@ async def test_warning_must_persist_but_critical_risk_responds_faster():
     manager = MoldManager(MagicMock())
     settings = {
         "mold_prevention_enabled": True,
-        "mold_prevention_sustained_minutes": 15,
+        "mold_prevention_sustained_minutes": 60,
         "mold_notifications_enabled": False,
     }
     with (
@@ -49,19 +49,19 @@ async def test_warning_must_persist_but_critical_risk_responds_faster():
         clock.time.return_value = 1000
         first = await manager.evaluate("studio", "Studio", 25, 65, 20, settings, can_dry=True)
         assert not first.prevention_active
-        clock.time.return_value = 1899
+        clock.time.return_value = 4599
         before = await manager.evaluate("studio", "Studio", 25, 65, 20, settings, can_dry=True)
         assert not before.prevention_active
-        clock.time.return_value = 1900
+        clock.time.return_value = 4600
         ready = await manager.evaluate("studio", "Studio", 25, 65, 20, settings, can_dry=True)
         assert ready.prevention_active and ready.prevention_strategy == "dry"
 
-        # A different room starts in critical state: wait 2 minutes, not 15.
+        # Critical risk responds after 10 minutes rather than 60.
         risk.return_value = ("critical", 83.0)
         clock.time.return_value = 2000
         urgent = await manager.evaluate("bagno", "Bagno", 19, 75, 5, settings)
         assert not urgent.prevention_active
-        clock.time.return_value = 2120
+        clock.time.return_value = 2600
         urgent = await manager.evaluate("bagno", "Bagno", 19, 75, 5, settings)
         assert urgent.prevention_active and urgent.prevention_strategy == "heat"
 
@@ -83,14 +83,14 @@ async def test_prevention_uses_hysteresis_and_minimum_run_time():
     ):
         clock.time.return_value = 1000
         risk.return_value = ("warning", 72.0)
-        assert (await manager.evaluate("studio", "Studio", 25, 70, 15, settings)).prevention_active
+        assert (await manager.evaluate("studio", "Studio", 25, 70, 15, settings, can_dry=True)).prevention_active
         clock.time.return_value = 1300
         risk.return_value = ("ok", 68.0)
-        assert (await manager.evaluate("studio", "Studio", 25, 60, 15, settings)).prevention_active
+        assert (await manager.evaluate("studio", "Studio", 25, 60, 15, settings, can_dry=True)).prevention_active
         risk.return_value = ("ok", 60.0)
-        assert (await manager.evaluate("studio", "Studio", 25, 55, 15, settings)).prevention_active
+        assert (await manager.evaluate("studio", "Studio", 25, 55, 15, settings, can_dry=True)).prevention_active
         clock.time.return_value = 1601
-        assert not (await manager.evaluate("studio", "Studio", 25, 55, 15, settings)).prevention_active
+        assert not (await manager.evaluate("studio", "Studio", 25, 55, 15, settings, can_dry=True)).prevention_active
         assert manager._prevention_started == {}
 
 
@@ -286,8 +286,8 @@ async def test_prevention_prefers_dehumidification_above_configured_temperature(
 
 
 @pytest.mark.asyncio
-async def test_prevention_falls_back_to_heating_when_dry_is_disabled(mm):
-    """Disabling dehumidification leaves anti-mold heating available."""
+async def test_prevention_does_not_heat_warm_room_when_dry_is_disabled(mm):
+    """Disabling DRY must not trigger heat in a room already at 25°C."""
     with patch(
         "custom_components.roommind.managers.mold_manager.calculate_mold_risk",
         return_value=("warning", 75.0),
@@ -303,8 +303,8 @@ async def test_prevention_falls_back_to_heating_when_dry_is_disabled(mm):
             can_cool=True,
         )
 
-    assert result.prevention_strategy == "heat"
-    assert result.prevention_delta == 2.0
+    assert result.prevention_strategy is None
+    assert result.prevention_active is False
 
 
 # --- detection notification (tag_suffix="risk") ---
@@ -580,3 +580,73 @@ async def test_no_humidity_returns_early(mm):
     assert result.risk_level == "ok"
     assert result.surface_rh is None
     assert result.prevention_active is False
+
+
+@pytest.mark.asyncio
+async def test_early_surface_watch_requires_two_hours_and_safe_dry(mm):
+    settings = {"mold_prevention_enabled": True, "mold_prevention_sustained_minutes": 60}
+    with (
+        patch("custom_components.roommind.managers.mold_manager.calculate_mold_risk", return_value=("ok", 66.0)),
+        patch("custom_components.roommind.managers.mold_manager.time") as clock,
+    ):
+        clock.time.return_value = 1000
+        assert not (await mm.evaluate("bed", "Bed", 23, 62, 20, settings, can_dry=True)).prevention_active
+        clock.time.return_value = 8199
+        assert not (await mm.evaluate("bed", "Bed", 23, 62, 20, settings, can_dry=True)).prevention_active
+        clock.time.return_value = 8200
+        ready = await mm.evaluate("bed", "Bed", 23, 62, 20, settings, can_dry=True)
+        assert ready.prevention_active and ready.prevention_strategy == "dry"
+
+
+@pytest.mark.asyncio
+async def test_dry_stops_at_21_and_cannot_restart_during_cooldown(mm):
+    settings = {"mold_prevention_enabled": True, "mold_prevention_sustained_minutes": 0}
+    with (
+        patch("custom_components.roommind.managers.mold_manager.calculate_mold_risk", return_value=("warning", 73.0)),
+        patch("custom_components.roommind.managers.mold_manager.time") as clock,
+        patch("custom_components.roommind.managers.mold_manager.dismiss_mold_notification"),
+    ):
+        clock.time.return_value = 1000
+        start = await mm.evaluate("bed", "Bed", 22, 65, 10, settings, can_dry=True)
+        assert start.prevention_active and start.prevention_strategy == "dry"
+        clock.time.return_value = 1300
+        continue_dry = await mm.evaluate("bed", "Bed", 21.5, 65, 10, settings, can_dry=True)
+        assert continue_dry.prevention_active and continue_dry.prevention_strategy == "dry"
+        clock.time.return_value = 1600
+        stop = await mm.evaluate("bed", "Bed", 21, 65, 10, settings, can_dry=True)
+        assert not stop.prevention_active and stop.prevention_strategy is None
+        clock.time.return_value = 1700
+        assert mm.dry_retry_blocked("bed")
+        assert not (await mm.evaluate("bed", "Bed", 23, 65, 10, settings, can_dry=True)).prevention_active
+        clock.time.return_value = 5200
+        again = await mm.evaluate("bed", "Bed", 23, 65, 10, settings, can_dry=True)
+        assert again.prevention_active and again.prevention_strategy == "dry"
+
+
+@pytest.mark.asyncio
+async def test_no_heating_or_cooling_in_20_to_22_degree_gap(mm):
+    settings = {"mold_prevention_enabled": True, "mold_prevention_sustained_minutes": 0}
+    with patch("custom_components.roommind.managers.mold_manager.calculate_mold_risk", return_value=("critical", 85.0)):
+        for temp in (20.0, 21.0, 21.9):
+            result = await mm.evaluate("bed", "Bed", temp, 78, 5, settings, can_dry=True, can_cool=True)
+            assert result.prevention_strategy is None
+            assert not result.prevention_active
+        # Below 20°C, only the heat plan is allowed.
+        cold = await mm.evaluate("cold", "Cold", 19.0, 78, 5, settings, can_dry=True)
+        assert cold.prevention_active and cold.prevention_strategy == "heat"
+
+
+@pytest.mark.asyncio
+async def test_dry_cycle_maximum_runtime_and_retry_pause(mm):
+    settings = {"mold_prevention_enabled": True, "mold_prevention_sustained_minutes": 0}
+    with (
+        patch("custom_components.roommind.managers.mold_manager.calculate_mold_risk", return_value=("warning", 75.0)),
+        patch("custom_components.roommind.managers.mold_manager.time") as clock,
+        patch("custom_components.roommind.managers.mold_manager.dismiss_mold_notification"),
+    ):
+        clock.time.return_value = 1000
+        assert (await mm.evaluate("bed", "Bed", 24, 67, 5, settings, can_dry=True)).prevention_active
+        clock.time.return_value = 2800
+        assert not (await mm.evaluate("bed", "Bed", 23, 67, 5, settings, can_dry=True)).prevention_active
+        clock.time.return_value = 2801
+        assert mm.dry_retry_blocked("bed")

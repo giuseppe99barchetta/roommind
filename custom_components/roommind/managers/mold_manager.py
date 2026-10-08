@@ -17,10 +17,16 @@ from ..const import (
     DEFAULT_MOLD_SUSTAINED_MINUTES,
     MOLD_HYSTERESIS,
     MOLD_PREVENTION_CRITICAL_SUSTAINED_MINUTES,
+    MOLD_PREVENTION_DRY_STOP_TEMPERATURE,
+    MOLD_PREVENTION_EARLY_SUSTAINED_MINUTES,
+    MOLD_PREVENTION_HEAT_BELOW_TEMPERATURE,
+    MOLD_PREVENTION_MAX_RUN_MINUTES,
     MOLD_PREVENTION_MIN_RUN_MINUTES,
+    MOLD_PREVENTION_RETRY_MINUTES,
     MOLD_RISK_CRITICAL,
     MOLD_RISK_OK,
     MOLD_RISK_WARNING,
+    MOLD_SURFACE_RH_EARLY,
     MOLD_SURFACE_RH_WARNING,
 )
 from ..utils.mold_utils import calculate_mold_risk, mold_prevention_delta
@@ -52,8 +58,11 @@ class MoldManager:
         self._risk_since: dict[str, float] = {}
         self._prevention_active: dict[str, bool] = {}
         self._surface_risk_since: dict[str, float] = {}
+        self._early_risk_since: dict[str, float] = {}
         self._critical_risk_since: dict[str, float] = {}
         self._prevention_started: dict[str, float] = {}
+        self._prevention_cooldown_until: dict[str, float] = {}
+        self._prevention_strategy: dict[str, str] = {}
         self._throttler = NotificationThrottler()
 
     async def evaluate(
@@ -147,6 +156,14 @@ class MoldManager:
             self._risk_since.pop(area_id, None)
             self._throttler.clear(f"detect_{area_id}")
 
+        # Early dry-only intervention is intentionally more conservative than
+        # an alarm: the surface estimate alone is not a moisture measurement.
+        early_risky = surface_rh >= MOLD_SURFACE_RH_EARLY and current_humidity >= 60.0
+        if early_risky:
+            self._early_risk_since.setdefault(area_id, now)
+        else:
+            self._early_risk_since.pop(area_id, None)
+
         surface_risky = risk_level in (MOLD_RISK_WARNING, MOLD_RISK_CRITICAL)
         if surface_risky:
             self._surface_risk_since.setdefault(area_id, now)
@@ -166,40 +183,67 @@ class MoldManager:
             * 60
         )
         critical_sustained = min(sustained, MOLD_PREVENTION_CRITICAL_SUSTAINED_MINUTES * 60)
-        ready = surface_risky and (
-            now - self._surface_risk_since[area_id] >= sustained
-            or (risk_level == MOLD_RISK_CRITICAL and now - self._critical_risk_since[area_id] >= critical_sustained)
+        ready = (
+            surface_risky
+            and (
+                now - self._surface_risk_since[area_id] >= sustained
+                or (risk_level == MOLD_RISK_CRITICAL and now - self._critical_risk_since[area_id] >= critical_sustained)
+            )
+        ) or (
+            early_risky
+            and now - self._early_risk_since[area_id] >= MOLD_PREVENTION_EARLY_SUSTAINED_MINUTES * 60
         )
-        # Once active, hold until the surface RH is 5 points below the warning
-        # threshold AND the minimum run time has elapsed.
+        # Once active, hold for at least ten minutes (unless the room gets
+        # too cold); later stop when the surface returns below the early zone.
         held = activated and (
             surface_rh >= MOLD_SURFACE_RH_WARNING - MOLD_HYSTERESIS
             or now - self._prevention_started.get(area_id, now) < MOLD_PREVENTION_MIN_RUN_MINUTES * 60
         )
-        should_prevent = bool(settings.get("mold_prevention_enabled") and automation_enabled and (ready or held))
+        # Earlier RoomMind settings allowed DRY as low as 20°C. Respect any
+        # *higher* user threshold, but enforce the new 22°C safety minimum.
+        dry_min_temperature = max(
+            DEFAULT_MOLD_PREVENTION_DRY_MIN_TEMPERATURE,
+            float(settings.get("mold_prevention_dry_min_temperature", DEFAULT_MOLD_PREVENTION_DRY_MIN_TEMPERATURE)),
+        )
+        dry_stop_temperature = max(MOLD_PREVENTION_DRY_STOP_TEMPERATURE, dry_min_temperature - 1.0)
+        cooling_down = now < self._prevention_cooldown_until.get(area_id, 0)
+        timed_out = activated and now - self._prevention_started.get(area_id, now) >= MOLD_PREVENTION_MAX_RUN_MINUTES * 60
+        dry_too_cold = (
+            activated
+            and self._prevention_strategy.get(area_id) == "dry"
+            and current_temp <= dry_stop_temperature
+        )
+        if timed_out or dry_too_cold:
+            self._prevention_cooldown_until[area_id] = now + MOLD_PREVENTION_RETRY_MINUTES * 60
+        should_prevent = bool(
+            settings.get("mold_prevention_enabled")
+            and automation_enabled
+            and (ready or held)
+            and not (cooling_down or timed_out or dry_too_cold)
+        )
         if should_prevent:
             intensity = settings.get("mold_prevention_intensity", "medium")
             # A dry cycle can lower the room temperature.  Prefer it only
             # when explicitly enabled and the room has enough thermal
             # headroom; otherwise use the heating plan (which can route to
             # a heat pump, gas boiler, or both).
-            dry_min_temperature = float(
-                settings.get(
-                    "mold_prevention_dry_min_temperature",
-                    DEFAULT_MOLD_PREVENTION_DRY_MIN_TEMPERATURE,
-                )
-            )
             dehumidification_enabled = settings.get("mold_prevention_dehumidification_enabled", True)
-            if dehumidification_enabled and can_dry and current_temp >= dry_min_temperature:
+            continuing_dry = activated and self._prevention_strategy.get(area_id) == "dry"
+            can_start_dry = current_temp >= dry_min_temperature
+            can_continue_dry = continuing_dry and current_temp > dry_stop_temperature
+            if dehumidification_enabled and can_dry and (can_start_dry or can_continue_dry):
                 result.prevention_strategy = "dry"
                 result.prevention_delta = 0.0
-            elif dehumidification_enabled and can_cool and current_temp >= 24.0:
-                result.prevention_strategy = "cool"
-                result.prevention_delta = 0.0
-            else:
+            elif surface_risky and current_temp < MOLD_PREVENTION_HEAT_BELOW_TEMPERATURE:
+                # Heating only makes sense for genuinely cold rooms; cooling
+                # mode is NOT a substitute for dry on an unregulated AC.
                 result.prevention_strategy = "heat"
                 result.prevention_delta = mold_prevention_delta(intensity)
 
+            if result.prevention_strategy is None:
+                should_prevent = False
+
+        if should_prevent:
             if not activated:
                 self._prevention_active[area_id] = True
                 self._prevention_started[area_id] = now
@@ -223,8 +267,7 @@ class MoldManager:
                             + (
                                 f"AC dehumidification enabled ({result.prevention_strategy})"
                                 if result.prevention_strategy in ("dry", "cool")
-                                else f"temperature raised by "
-                                f"{celsius_delta_to_ha_fn(result.prevention_delta):.0f}{ha_temp_unit_str_fn()}"
+                                else "cold-room heating requested (target 20–21°C)"
                             )
                         ),
                         title="RoomMind: Mold Prevention",
@@ -233,10 +276,12 @@ class MoldManager:
                     self._throttler.record_sent(
                         f"prevent_{area_id}",
                     )
+            self._prevention_strategy[area_id] = result.prevention_strategy
             result.prevention_active = True
         elif activated:
             self._prevention_active.pop(area_id, None)
             self._prevention_started.pop(area_id, None)
+            self._prevention_strategy.pop(area_id, None)
             dismiss_mold_notification(self.hass, area_id, "prevention")
             self._throttler.clear(f"prevent_{area_id}")
 
@@ -250,7 +295,14 @@ class MoldManager:
         self._risk_since.pop(area_id, None)
         self._prevention_active.pop(area_id, None)
         self._surface_risk_since.pop(area_id, None)
+        self._early_risk_since.pop(area_id, None)
         self._critical_risk_since.pop(area_id, None)
         self._prevention_started.pop(area_id, None)
+        self._prevention_cooldown_until.pop(area_id, None)
+        self._prevention_strategy.pop(area_id, None)
         self._throttler.clear(f"detect_{area_id}")
         self._throttler.clear(f"prevent_{area_id}")
+
+    def dry_retry_blocked(self, area_id: str) -> bool:
+        """Share the anti-mold cooldown with the independent humidity-control path."""
+        return time.time() < self._prevention_cooldown_until.get(area_id, 0)

@@ -13,7 +13,6 @@ import {
   tempUnit,
   toCelsius,
   toDisplay,
-  toDisplayDelta,
 } from "../../utils/temperature";
 
 @customElement("rs-settings-mold")
@@ -23,11 +22,11 @@ export class RsSettingsMold extends RsSettingsBase {
   @property({ type: Number }) public moldHumidityThreshold = 70;
   @property({ type: Number }) public moldSustainedMinutes = 30;
   @property({ type: Boolean }) public moldPreventionEnabled = false;
-  @property({ type: Number }) public moldPreventionSustainedMinutes = 15;
+  @property({ type: Number }) public moldPreventionSustainedMinutes = 60;
   @property({ type: String }) public moldPreventionIntensity: "light" | "medium" | "strong" =
     "medium";
   @property({ type: Boolean }) public moldPreventionDehumidificationEnabled = true;
-  @property({ type: Number }) public moldPreventionDryMinTemperature = 23;
+  @property({ type: Number }) public moldPreventionDryMinTemperature = 22;
 
   render() {
     const l = this.hass.language;
@@ -140,21 +139,21 @@ export class RsSettingsMold extends RsSettingsBase {
                     {
                       value: "light",
                       label: localize("mold.intensity_light", l, {
-                        delta: String(toDisplayDelta(1, this.hass)),
+                        delta: String(toDisplay(20, this.hass)),
                         unit: tempUnit(this.hass),
                       }),
                     },
                     {
                       value: "medium",
                       label: localize("mold.intensity_medium", l, {
-                        delta: String(toDisplayDelta(2, this.hass)),
+                        delta: String(toDisplay(20.5, this.hass)),
                         unit: tempUnit(this.hass),
                       }),
                     },
                     {
                       value: "strong",
                       label: localize("mold.intensity_strong", l, {
-                        delta: String(toDisplayDelta(3, this.hass)),
+                        delta: String(toDisplay(21, this.hass)),
                         unit: tempUnit(this.hass),
                       }),
                     },
@@ -169,19 +168,19 @@ export class RsSettingsMold extends RsSettingsBase {
                 >
                   <ha-list-item value="light"
                     >${localize("mold.intensity_light", l, {
-                      delta: String(toDisplayDelta(1, this.hass)),
+                      delta: String(toDisplay(20, this.hass)),
                       unit: tempUnit(this.hass),
                     })}</ha-list-item
                   >
                   <ha-list-item value="medium"
                     >${localize("mold.intensity_medium", l, {
-                      delta: String(toDisplayDelta(2, this.hass)),
+                      delta: String(toDisplay(20.5, this.hass)),
                       unit: tempUnit(this.hass),
                     })}</ha-list-item
                   >
                   <ha-list-item value="strong"
                     >${localize("mold.intensity_strong", l, {
-                      delta: String(toDisplayDelta(3, this.hass)),
+                      delta: String(toDisplay(21, this.hass)),
                       unit: tempUnit(this.hass),
                     })}</ha-list-item
                   >
