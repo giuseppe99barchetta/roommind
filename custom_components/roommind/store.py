@@ -84,7 +84,7 @@ def _migrate_room(room: dict) -> dict:
     room.setdefault("night_fan_mode", "low")
     room.setdefault("smart_ventilation_enabled", False)
     room.setdefault("smart_ventilation_minutes", 15)
-    room.setdefault("smart_ventilation_min_humidity", 55.0)
+    room.setdefault("smart_ventilation_max_humidity", 55.0)
     room.setdefault("smart_ventilation_max_temp_delta", 0.5)
     room.setdefault("smart_ventilation_fan_mode", "low")
     room.setdefault("window_smart_recovery_enabled", False)
@@ -325,7 +325,7 @@ class RoomMindStore:
             "night_fan_mode": config.get("night_fan_mode", "low"),
             "smart_ventilation_enabled": config.get("smart_ventilation_enabled", False),
             "smart_ventilation_minutes": config.get("smart_ventilation_minutes", 15),
-            "smart_ventilation_min_humidity": config.get("smart_ventilation_min_humidity", 55.0),
+            "smart_ventilation_max_humidity": config.get("smart_ventilation_max_humidity", 55.0),
             "smart_ventilation_max_temp_delta": config.get("smart_ventilation_max_temp_delta", 0.5),
             "smart_ventilation_fan_mode": config.get("smart_ventilation_fan_mode", "low"),
             "window_smart_recovery_enabled": config.get("window_smart_recovery_enabled", False),

@@ -784,6 +784,9 @@ class RoomMindCoordinator(DataUpdateCoordinator):
             can_cool=bool(ac_modes & {"cool", "heat_cool", "auto"}),
             can_heat_pump="heat" in ac_modes and room.get("climate_mode", "auto") != CLIMATE_MODE_COOL_ONLY,
             night_phase=night_phase(room, datetime.now().astimezone(), MOLD_PREVENTION_PRE_NIGHT_LEAD_MINUTES),
+            # Raw contact state: an open window makes DRY pointless at once,
+            # independent of the climate-pause delays.
+            window_open=self._is_window_open(room),
             automation_enabled=automation_enabled,
             celsius_delta_to_ha_fn=lambda d: celsius_delta_to_ha(self.hass, d),  # type: ignore[misc]
             ha_temp_unit_str_fn=lambda: ha_temp_unit_str(self.hass),  # type: ignore[misc]
@@ -1986,15 +1989,21 @@ class RoomMindCoordinator(DataUpdateCoordinator):
         window_open: bool,
         force_off: bool,
     ) -> bool:
-        """Keep air circulating briefly after a completed cooling cycle."""
+        """Dry the AC coil with the fan briefly after a completed cooling cycle.
+
+        The fan re-evaporates the condensate on the coil into the room, so it
+        runs only while the room air is dry enough to absorb it harmlessly;
+        in a humid room it would undo the dehumidification of the cycle.
+        (Replaces the former ``smart_ventilation_min_humidity`` lower bound.)
+        """
         now = time.monotonic()
         until = self._smart_ventilation_until.get(area_id, 0.0)
         if until <= now:
             self._smart_ventilation_until.pop(area_id, None)
             completed_cooling = self._previous_modes.get(area_id) == MODE_COOLING and mode == MODE_IDLE
             cool_target = targets.cool
-            humidity_ok = current_humidity is not None and current_humidity >= float(
-                room.get("smart_ventilation_min_humidity", 55.0)
+            humidity_ok = current_humidity is not None and current_humidity <= float(
+                room.get("smart_ventilation_max_humidity", 55.0)
             )
             temp_ok = (
                 current_temp is not None
@@ -2037,7 +2046,20 @@ class RoomMindCoordinator(DataUpdateCoordinator):
     ) -> bool:
         """Request AC dry mode only when it does not conflict with thermal control."""
         target = self._humidity_target(room)
-        if target is None or humidity is None or current_temp is None or mode != MODE_IDLE or window_open or force_off:
+        # Humidity comfort is an explicit per-room opt-in, so a room the user
+        # switched OFF (no heating/cooling) may still be dried. Manual DRY /
+        # fan-only keep the AC untouched, and a sleeping room stays quiet.
+        blocked = force_off and room.get("room_hvac_mode") != "off"
+        quiet_night = night_phase(room, datetime.now().astimezone(), 0) == "night"
+        if (
+            target is None
+            or humidity is None
+            or current_temp is None
+            or mode != MODE_IDLE
+            or window_open
+            or blocked
+            or quiet_night
+        ):
             self._humidity_dry_started.pop(area_id, None)
             return False
         if self._mold_manager.dry_retry_blocked(area_id):

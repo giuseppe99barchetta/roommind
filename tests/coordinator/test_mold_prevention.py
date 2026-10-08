@@ -521,3 +521,44 @@ class TestMoldReheatAndAiring:
         # first cycle after a restart instead of waiting two more hours.
         assert data["rooms"]["living_room_abc12345"]["mold_prevention_strategy"] == "dry"
         history.read_detail.assert_called_once()
+
+
+class TestHumidityComfortAndCoilDrying:
+    def _coordinator(self, hass, mock_config_entry):
+        hass.data = {"roommind": {"store": _make_store_mock({})}}
+        return _create_coordinator(hass, mock_config_entry)
+
+    @pytest.mark.parametrize(
+        ("room_mode", "night", "force_off", "expected"),
+        [
+            ("off", False, True, True),  # OFF room can still be dried
+            (None, False, False, True),
+            ("dry", False, True, False),  # manual DRY untouched
+            ("fan_only", False, True, False),
+            ("off", True, True, False),  # quiet at night
+        ],
+    )
+    def test_comfort_dry_gates(self, hass, mock_config_entry, room_mode, night, force_off, expected):
+        coordinator = self._coordinator(hass, mock_config_entry)
+        room = {
+            "humidity_comfort_enabled": True,
+            "humidity_target": 55,
+            "room_hvac_mode": room_mode,
+            "night_mode_enabled": night,
+            "night_start": "00:00",
+            "night_end": "23:59",
+        }
+        result = coordinator._humidity_dry_requested("bed", room, 24.0, 64.0, "idle", False, force_off)
+        assert result is expected
+
+    @pytest.mark.parametrize(("humidity", "expected"), [(50.0, True), (64.0, False)])
+    def test_coil_drying_fan_only_in_dry_air(self, hass, mock_config_entry, humidity, expected):
+        from custom_components.roommind.const import TargetTemps
+
+        coordinator = self._coordinator(hass, mock_config_entry)
+        coordinator._previous_modes["bed"] = "cooling"
+        room = {"smart_ventilation_enabled": True}
+        active = coordinator._smart_ventilation_active(
+            "bed", room, "idle", TargetTemps(heat=None, cool=24.0), 24.0, humidity, False, False
+        )
+        assert active is expected

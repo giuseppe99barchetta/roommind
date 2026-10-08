@@ -786,3 +786,49 @@ async def test_pre_night_dries_early_zone_after_30_minutes(mm):
         assert not day.prevention_active
         pre = await mm.evaluate("bed", "Bed", 23.8, 64.5, 20.5, _EARLY, can_dry=True, night_phase="pre_night")
         assert pre.prevention_active and pre.prevention_strategy == "dry"
+
+
+@pytest.mark.asyncio
+async def test_open_window_pauses_without_burning_runtime_or_retry_pause(mm):
+    now = 100_000.0
+    mm.bootstrap("bed", _humid_rows(now - 150 * 60, now - 60), _EARLY, now=now)
+    with (
+        patch("custom_components.roommind.managers.mold_manager.time") as clock,
+        patch("custom_components.roommind.managers.mold_manager.dismiss_mold_notification"),
+    ):
+        clock.time.return_value = now
+        assert (await mm.evaluate("bed", "Bed", 23.8, 64.5, 20.5, _EARLY, can_dry=True)).prevention_active
+        clock.time.return_value = now + 25 * 60
+        paused = await mm.evaluate("bed", "Bed", 23.8, 64.5, 20.5, _EARLY, can_dry=True, window_open=True)
+        assert not paused.prevention_active
+        assert not mm.dry_retry_blocked("bed")
+        # Closed again 20 min later: a fresh session starts immediately and
+        # is not cut by the 30-minute cap of the interrupted one.
+        clock.time.return_value = now + 45 * 60
+        assert (await mm.evaluate("bed", "Bed", 23.8, 64.5, 20.5, _EARLY, can_dry=True)).prevention_active
+        clock.time.return_value = now + 70 * 60
+        assert (await mm.evaluate("bed", "Bed", 23.8, 64.5, 20.5, _EARLY, can_dry=True)).prevention_active
+
+
+@pytest.mark.asyncio
+async def test_restarted_sessions_and_restart_do_not_repeat_notifications(mm):
+    now = 100_000.0
+    settings = {**_settings_prevention_notify(), "mold_prevention_sustained_minutes": 60}
+    mm.bootstrap("bed", _humid_rows(now - 150 * 60, now - 60, current_humidity="72"), settings, now=now)
+    send = AsyncMock()
+    with (
+        patch("custom_components.roommind.managers.mold_manager.async_send_mold_notification", send),
+        patch("custom_components.roommind.managers.mold_manager.dismiss_mold_notification"),
+        patch("custom_components.roommind.managers.mold_manager.time") as clock,
+    ):
+        kwargs = {"can_dry": True, "celsius_delta_to_ha_fn": lambda d: d, "ha_temp_unit_str_fn": lambda: "°C"}
+        clock.time.return_value = now
+        await mm.evaluate("bed", "Bed", 23.8, 72, 20.5, settings, **kwargs)
+        titles = [c.kwargs["title"] for c in send.call_args_list]
+        # Risk warning was already sent before the restart; prevention announces once.
+        assert titles == ["RoomMind: Mold Prevention"]
+        clock.time.return_value = now + 60
+        await mm.evaluate("bed", "Bed", 23.8, 72, 20.5, settings, window_open=True, **kwargs)
+        clock.time.return_value = now + 120
+        await mm.evaluate("bed", "Bed", 23.8, 72, 20.5, settings, **kwargs)
+        assert len(send.call_args_list) == 1

@@ -110,6 +110,7 @@ class MoldManager:
         can_cool: bool = False,
         can_heat_pump: bool = False,
         night_phase: str | None = None,
+        window_open: bool = False,
         automation_enabled: bool = True,
         celsius_delta_to_ha_fn: Callable[[float], float] | None = None,
         ha_temp_unit_str_fn: Callable[[], str] | None = None,
@@ -259,11 +260,14 @@ class MoldManager:
         # Quiet night: below the warning zone a sleeping room is not woken by
         # the compressor; timers keep running so DRY starts at night end.
         quiet_night = night_phase == "night" and not surface_risky
+        # An open window ends the session without a retry pause: nothing can
+        # be dried meanwhile, so it must not burn the session's runtime cap.
+        # Risk timers keep running and prevention resumes once it closes.
         should_prevent = bool(
             settings.get("mold_prevention_enabled")
             and automation_enabled
             and (ready or held)
-            and not (cooling_down or timed_out or dry_too_cold or quiet_night)
+            and not (cooling_down or timed_out or dry_too_cold or quiet_night or window_open)
         )
         if should_prevent:
             intensity = settings.get("mold_prevention_intensity", "medium")
@@ -298,11 +302,17 @@ class MoldManager:
             if not activated:
                 self._prevention_active[area_id] = True
                 self._prevention_started[area_id] = now
+                # Sessions can restart often (window, night, DRY/HEAT limits):
+                # announce at most once per notification cooldown.
                 if (
                     settings.get("mold_prevention_notify_enabled")
                     and settings.get("mold_notifications_enabled", True)
                     and celsius_delta_to_ha_fn is not None
                     and ha_temp_unit_str_fn is not None
+                    and self._throttler.should_send(
+                        f"prevent_{area_id}",
+                        settings.get("mold_notification_cooldown", DEFAULT_MOLD_COOLDOWN_MINUTES) * 60,
+                    )
                 ):
                     prev_targets = settings.get(
                         "mold_prevention_notify_targets",
@@ -334,7 +344,6 @@ class MoldManager:
             self._prevention_started.pop(area_id, None)
             self._prevention_strategy.pop(area_id, None)
             dismiss_mold_notification(self.hass, area_id, "prevention")
-            self._throttler.clear(f"prevent_{area_id}")
 
         if not is_risky and surface_rh < MOLD_SURFACE_RH_WARNING - MOLD_HYSTERESIS:
             dismiss_mold_notification(self.hass, area_id, "risk")
@@ -391,6 +400,9 @@ class MoldManager:
         }
         for name, started in since.items():
             timers[name].setdefault(area_id, started)
+        if "risk" in since:
+            # A sustained risk was already announced before the restart.
+            self._throttler.record_sent(f"detect_{area_id}")
 
     def dry_retry_blocked(self, area_id: str) -> bool:
         """Share the anti-mold cooldown with the independent humidity-control path."""
