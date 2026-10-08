@@ -484,3 +484,40 @@ class TestMoldReheatAndAiring:
         assert data["rooms"]["living_room_abc12345"]["airing_recommended"] is True
         assert data["airing_rooms"] == ["living_room_abc12345"]
         assert data["outdoor_abs_humidity"] == pytest.approx(5.8, abs=0.2)
+
+    @pytest.mark.asyncio
+    async def test_restart_resumes_early_zone_timer_from_history(self, hass, mock_config_entry):
+        import time
+
+        room = {**_HYBRID_ROOM, "room_hvac_mode": "off"}
+        store = _make_store_mock(
+            {"living_room_abc12345": room},
+            {"mold_prevention_enabled": True, "mold_prevention_sustained_minutes": 60},
+        )
+        hass.data = {"roommind": {"store": store}}
+        hass.states.get = MagicMock(
+            side_effect=make_mock_states_get(
+                temp="23.8", humidity="64.5", outdoor_temp="20.5", extra={"climate.living_ac": _AC_STATE}
+            )
+        )
+        hass.services.async_call = AsyncMock()
+        now = time.time()
+        history = MagicMock()
+        history.read_detail.return_value = [
+            {
+                "timestamp": str(now - minutes * 60),
+                "room_temp": "23.8",
+                "current_humidity": "64.5",
+                "outdoor_temp": "20.5",
+            }
+            for minutes in range(150, 0, -3)
+        ]
+
+        coordinator = _create_coordinator(hass, mock_config_entry)
+        coordinator._history_store = history
+        data = await coordinator._async_update_data()
+
+        # The room has been in the early zone for 2.5 h: DRY starts on the
+        # first cycle after a restart instead of waiting two more hours.
+        assert data["rooms"]["living_room_abc12345"]["mold_prevention_strategy"] == "dry"
+        history.read_detail.assert_called_once()

@@ -21,6 +21,7 @@ from ..const import (
     MOLD_PREVENTION_HEAT_BELOW_TEMPERATURE,
     MOLD_PREVENTION_MAX_RUN_MINUTES,
     MOLD_PREVENTION_MIN_RUN_MINUTES,
+    MOLD_PREVENTION_PRE_NIGHT_SUSTAINED_MINUTES,
     MOLD_PREVENTION_REHEAT_MAX_RUN_MINUTES,
     MOLD_PREVENTION_RETRY_MINUTES,
     MOLD_RISK_CRITICAL,
@@ -37,6 +38,38 @@ from ..utils.notification_utils import (
 )
 
 _LOGGER = logging.getLogger(__name__)
+
+
+# Restart recovery: rows are written every ~3 min; a longer hole means the
+# condition was not observed and its timer must restart.
+MOLD_BOOTSTRAP_MAX_GAP_SECONDS = 15 * 60
+
+
+def _risk_flags(
+    t_room: float, rh_room: float, t_outdoor: float | None, threshold: float
+) -> tuple[str, float, dict[str, bool]]:
+    """Return (risk_level, surface_rh, timer conditions) for one observation."""
+    risk_level, surface_rh = calculate_mold_risk(t_room, rh_room, t_outdoor)
+    surface_risky = risk_level in (MOLD_RISK_WARNING, MOLD_RISK_CRITICAL)
+    return (
+        risk_level,
+        surface_rh,
+        {
+            "risk": rh_room >= threshold or surface_risky,
+            # Early dry-only intervention is intentionally more conservative
+            # than an alarm: the surface estimate is not a moisture measurement.
+            "early_risk": surface_rh >= MOLD_SURFACE_RH_EARLY and rh_room >= 60.0,
+            "surface_risk": surface_risky,
+            "critical_risk": risk_level == MOLD_RISK_CRITICAL,
+        },
+    )
+
+
+def _as_float(value: object) -> float | None:
+    try:
+        return float(value)  # type: ignore[arg-type]
+    except (TypeError, ValueError):
+        return None
 
 
 @dataclass
@@ -76,6 +109,7 @@ class MoldManager:
         can_dry: bool = False,
         can_cool: bool = False,
         can_heat_pump: bool = False,
+        night_phase: str | None = None,
         automation_enabled: bool = True,
         celsius_delta_to_ha_fn: Callable[[float], float] | None = None,
         ha_temp_unit_str_fn: Callable[[], str] | None = None,
@@ -92,21 +126,16 @@ class MoldManager:
         if current_humidity is None or current_temp is None:
             return result
 
-        risk_level, surface_rh = calculate_mold_risk(
-            current_temp,
-            current_humidity,
-            outdoor_temp,
-        )
-        result.risk_level = risk_level
-        result.surface_rh = surface_rh
-
         threshold = settings.get(
             "mold_humidity_threshold",
             DEFAULT_MOLD_HUMIDITY_THRESHOLD,
         )
+        risk_level, surface_rh, flags = _risk_flags(current_temp, current_humidity, outdoor_temp, threshold)
+        result.risk_level = risk_level
+        result.surface_rh = surface_rh
 
         now = time.time()
-        is_risky = current_humidity >= threshold or risk_level in (MOLD_RISK_WARNING, MOLD_RISK_CRITICAL)
+        is_risky = flags["risk"]
         sustained_minutes = settings.get(
             "mold_sustained_minutes",
             DEFAULT_MOLD_SUSTAINED_MINUTES,
@@ -157,15 +186,13 @@ class MoldManager:
             self._risk_since.pop(area_id, None)
             self._throttler.clear(f"detect_{area_id}")
 
-        # Early dry-only intervention is intentionally more conservative than
-        # an alarm: the surface estimate alone is not a moisture measurement.
-        early_risky = surface_rh >= MOLD_SURFACE_RH_EARLY and current_humidity >= 60.0
+        early_risky = flags["early_risk"]
         if early_risky:
             self._early_risk_since.setdefault(area_id, now)
         else:
             self._early_risk_since.pop(area_id, None)
 
-        surface_risky = risk_level in (MOLD_RISK_WARNING, MOLD_RISK_CRITICAL)
+        surface_risky = flags["surface_risk"]
         if surface_risky:
             self._surface_risk_since.setdefault(area_id, now)
         else:
@@ -184,16 +211,20 @@ class MoldManager:
             * 60
         )
         critical_sustained = min(sustained, MOLD_PREVENTION_CRITICAL_SUSTAINED_MINUTES * 60)
+        # Before a room's night window, dry the early zone sooner so the room
+        # is dry at bedtime; during the night the early zone is left alone.
+        early_sustained = (
+            MOLD_PREVENTION_PRE_NIGHT_SUSTAINED_MINUTES
+            if night_phase == "pre_night"
+            else MOLD_PREVENTION_EARLY_SUSTAINED_MINUTES
+        ) * 60
         ready = (
             surface_risky
             and (
                 now - self._surface_risk_since[area_id] >= sustained
                 or (risk_level == MOLD_RISK_CRITICAL and now - self._critical_risk_since[area_id] >= critical_sustained)
             )
-        ) or (
-            early_risky
-            and now - self._early_risk_since[area_id] >= MOLD_PREVENTION_EARLY_SUSTAINED_MINUTES * 60
-        )
+        ) or (early_risky and now - self._early_risk_since[area_id] >= early_sustained)
         # Once active, hold for at least ten minutes (unless the room gets
         # too cold); later stop when the surface returns below the early zone.
         held = activated and (
@@ -225,11 +256,14 @@ class MoldManager:
         )
         if timed_out or dry_too_cold:
             self._prevention_cooldown_until[area_id] = now + MOLD_PREVENTION_RETRY_MINUTES * 60
+        # Quiet night: below the warning zone a sleeping room is not woken by
+        # the compressor; timers keep running so DRY starts at night end.
+        quiet_night = night_phase == "night" and not surface_risky
         should_prevent = bool(
             settings.get("mold_prevention_enabled")
             and automation_enabled
             and (ready or held)
-            and not (cooling_down or timed_out or dry_too_cold)
+            and not (cooling_down or timed_out or dry_too_cold or quiet_night)
         )
         if should_prevent:
             intensity = settings.get("mold_prevention_intensity", "medium")
@@ -319,6 +353,44 @@ class MoldManager:
         self._prevention_strategy.pop(area_id, None)
         self._throttler.clear(f"detect_{area_id}")
         self._throttler.clear(f"prevent_{area_id}")
+
+    def bootstrap(self, area_id: str, rows: list[dict], settings: dict, now: float | None = None) -> None:
+        """Rebuild risk timers from persisted history after a restart.
+
+        Without this, every Home Assistant restart would restart the 1–2 hour
+        persistence windows even though the room has been humid all along.
+        Only the latest uninterrupted run that reaches (almost) now counts.
+        """
+        now = time.time() if now is None else now
+        threshold = settings.get("mold_humidity_threshold", DEFAULT_MOLD_HUMIDITY_THRESHOLD)
+        samples = sorted(
+            (ts, t, rh, _as_float(row.get("outdoor_temp")))
+            for row in rows
+            if (ts := _as_float(row.get("timestamp"))) is not None
+            and (t := _as_float(row.get("room_temp"))) is not None
+            and (rh := _as_float(row.get("current_humidity"))) is not None
+        )
+        if not samples or now - samples[-1][0] > MOLD_BOOTSTRAP_MAX_GAP_SECONDS:
+            return
+        since: dict[str, float] = {}
+        previous_ts: float | None = None
+        for ts, t, rh, t_out in samples:
+            if previous_ts is not None and ts - previous_ts > MOLD_BOOTSTRAP_MAX_GAP_SECONDS:
+                since.clear()
+            previous_ts = ts
+            for name, active in _risk_flags(t, rh, t_out, threshold)[2].items():
+                if active:
+                    since.setdefault(name, ts)
+                else:
+                    since.pop(name, None)
+        timers = {
+            "risk": self._risk_since,
+            "early_risk": self._early_risk_since,
+            "surface_risk": self._surface_risk_since,
+            "critical_risk": self._critical_risk_since,
+        }
+        for name, started in since.items():
+            timers[name].setdefault(area_id, started)
 
     def dry_retry_blocked(self, area_id: str) -> bool:
         """Share the anti-mold cooldown with the independent humidity-control path."""

@@ -37,9 +37,11 @@ from .const import (
     MODE_COOLING,
     MODE_HEATING,
     MODE_IDLE,
+    MOLD_BOOTSTRAP_LOOKBACK_SECONDS,
     MOLD_PREVENTION_DRY_STOP_TEMPERATURE,
     MOLD_PREVENTION_HEAT_TARGETS,
     MOLD_PREVENTION_MAX_RUN_MINUTES,
+    MOLD_PREVENTION_PRE_NIGHT_LEAD_MINUTES,
     MOLD_PREVENTION_RETRY_MINUTES,
     OUTDOOR_UNAVAILABLE_NOTIFICATION_ID,
     OUTDOOR_UNAVAILABLE_NOTIFY_CYCLES,
@@ -98,7 +100,7 @@ from .utils.device_utils import (
 from .utils.device_utils import room_has_power_sensor as _room_has_power_sensor
 from .utils.history_store import HistoryStore
 from .utils.mold_utils import absolute_humidity, airing_recommended, dry_start_temperature
-from .utils.night_mode import apply_night_targets
+from .utils.night_mode import apply_night_targets, night_phase
 from .utils.notification_utils import NotificationThrottler, async_send_mold_notification, dismiss_mold_notification
 from .utils.schedule_utils import resolve_schedule_index
 from .utils.sensor_utils import read_sensor_value
@@ -262,6 +264,7 @@ class RoomMindCoordinator(DataUpdateCoordinator):
         self._energy_manager = EnergyManager(hass)
         self._mold_active_strategies: dict[str, str] = {}
         self._airing_rooms: set[str] = set()
+        self._mold_bootstrapped: set[str] = set()
         self._mold_restore_modes: dict[str, str] = {}
         self._humidity_dry_started: dict[str, float] = {}
         self._humidity_dry_retry_after: dict[str, float] = {}
@@ -388,6 +391,23 @@ class RoomMindCoordinator(DataUpdateCoordinator):
                     self._energy_manager.bootstrap(area_id, history + detail)
                 except Exception:  # noqa: BLE001
                     _LOGGER.warning("Energy history bootstrap failed for '%s'", area_id)
+
+        # Mold persistence timers survive restarts: replay the last hours of
+        # RoomMind's own history once per room before the first evaluation.
+        if self._history_store is not None and (
+            settings.get("mold_detection_enabled") or settings.get("mold_prevention_enabled")
+        ):
+            for area_id in rooms:
+                if area_id in self._mold_bootstrapped:
+                    continue
+                self._mold_bootstrapped.add(area_id)
+                try:
+                    rows = await self.hass.async_add_executor_job(
+                        self._history_store.read_detail, area_id, MOLD_BOOTSTRAP_LOOKBACK_SECONDS
+                    )
+                    self._mold_manager.bootstrap(area_id, rows, settings)
+                except Exception:  # noqa: BLE001
+                    _LOGGER.warning("Mold timer bootstrap failed for '%s'", area_id)
 
         # Bootstrap before building budget reservations: the first coordinator
         # cycle after a restart can use historical AC peaks without waiting for
@@ -763,6 +783,7 @@ class RoomMindCoordinator(DataUpdateCoordinator):
             can_dry="dry" in ac_modes,
             can_cool=bool(ac_modes & {"cool", "heat_cool", "auto"}),
             can_heat_pump="heat" in ac_modes and room.get("climate_mode", "auto") != CLIMATE_MODE_COOL_ONLY,
+            night_phase=night_phase(room, datetime.now().astimezone(), MOLD_PREVENTION_PRE_NIGHT_LEAD_MINUTES),
             automation_enabled=automation_enabled,
             celsius_delta_to_ha_fn=lambda d: celsius_delta_to_ha(self.hass, d),  # type: ignore[misc]
             ha_temp_unit_str_fn=lambda: ha_temp_unit_str(self.hass),  # type: ignore[misc]
@@ -2771,6 +2792,7 @@ class RoomMindCoordinator(DataUpdateCoordinator):
         self._mold_active_strategies.pop(area_id, None)
         self._mold_restore_modes.pop(area_id, None)
         self._airing_rooms.discard(area_id)
+        self._mold_bootstrapped.discard(area_id)
         self._heat_source_states.pop(area_id, None)
         if self._history_store:
             await self.hass.async_add_executor_job(self._history_store.remove_room, area_id)

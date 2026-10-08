@@ -699,3 +699,90 @@ async def test_reheat_closes_20_to_22_gap_only_when_enabled_and_heat_pump_presen
         # Cold rooms keep the regular heating plan.
         cold = await mm.evaluate("d", "D", 19.0, 78, 5, _REHEAT, can_dry=True, can_heat_pump=True)
         assert cold.prevention_strategy == "heat"
+
+
+_EARLY = {"mold_prevention_enabled": True, "mold_prevention_sustained_minutes": 60}
+
+
+def _humid_rows(start: float, end: float, step: float = 180.0, **overrides):
+    """History rows like the bedroom tonight: 23.8 °C, 64.5 %, 20.5 °C outside (surface ≈ 67 %)."""
+    row = {"room_temp": "23.8", "current_humidity": "64.5", "outdoor_temp": "20.5", **overrides}
+    rows, ts = [], start
+    while ts <= end:
+        rows.append({"timestamp": str(ts), **row})
+        ts += step
+    return rows
+
+
+@pytest.mark.asyncio
+async def test_bootstrap_restores_early_timer_after_restart(mm):
+    now = 100_000.0
+    mm.bootstrap("bed", _humid_rows(now - 150 * 60, now - 60), _EARLY, now=now)
+    with patch("custom_components.roommind.managers.mold_manager.time") as clock:
+        clock.time.return_value = now
+        result = await mm.evaluate("bed", "Bed", 23.8, 64.5, 20.5, _EARLY, can_dry=True)
+    assert result.prevention_active and result.prevention_strategy == "dry"
+
+
+@pytest.mark.asyncio
+async def test_bootstrap_ignores_interrupted_or_stale_history(mm):
+    now = 100_000.0
+    humid_then_dry = (
+        _humid_rows(now - 150 * 60, now - 61 * 60)
+        + _humid_rows(now - 60 * 60, now - 60 * 60, current_humidity="50")
+        + _humid_rows(now - 57 * 60, now - 60)
+    )
+    mm.bootstrap("dry_spell", humid_then_dry, _EARLY, now=now)
+    # A 20-minute hole (e.g. HA was down) means the condition was not observed.
+    holed = _humid_rows(now - 150 * 60, now - 81 * 60) + _humid_rows(now - 60 * 60, now - 60)
+    mm.bootstrap("hole", holed, _EARLY, now=now)
+    # History that stops 20 minutes before startup is not trusted at all.
+    mm.bootstrap("stale", _humid_rows(now - 150 * 60, now - 20 * 60), _EARLY, now=now)
+    with patch("custom_components.roommind.managers.mold_manager.time") as clock:
+        clock.time.return_value = now
+        for area in ("dry_spell", "hole", "stale"):
+            result = await mm.evaluate(area, area, 23.8, 64.5, 20.5, _EARLY, can_dry=True)
+            assert not result.prevention_active, area
+
+
+@pytest.mark.asyncio
+async def test_night_quiet_for_early_zone_but_not_for_warning(mm):
+    now = 100_000.0
+    mm.bootstrap("bed", _humid_rows(now - 150 * 60, now - 60), _EARLY, now=now)
+    with patch("custom_components.roommind.managers.mold_manager.time") as clock:
+        clock.time.return_value = now
+        night = await mm.evaluate("bed", "Bed", 23.8, 64.5, 20.5, _EARLY, can_dry=True, night_phase="night")
+        assert not night.prevention_active
+        # Timers keep running through the night: DRY starts as soon as it ends.
+        morning = await mm.evaluate("bed", "Bed", 23.8, 64.5, 20.5, _EARLY, can_dry=True)
+        assert morning.prevention_active
+    with (
+        patch("custom_components.roommind.managers.mold_manager.calculate_mold_risk", return_value=("critical", 85.0)),
+        patch("custom_components.roommind.managers.mold_manager.time") as clock,
+    ):
+        clock.time.return_value = 1000
+        await mm.evaluate("wet", "Wet", 24, 75, 5, {**_EARLY, "mold_prevention_sustained_minutes": 0}, can_dry=True)
+        clock.time.return_value = 1700
+        urgent = await mm.evaluate(
+            "wet",
+            "Wet",
+            24,
+            75,
+            5,
+            {**_EARLY, "mold_prevention_sustained_minutes": 0},
+            can_dry=True,
+            night_phase="night",
+        )
+        assert urgent.prevention_active
+
+
+@pytest.mark.asyncio
+async def test_pre_night_dries_early_zone_after_30_minutes(mm):
+    now = 100_000.0
+    mm.bootstrap("bed", _humid_rows(now - 31 * 60, now - 60), _EARLY, now=now)
+    with patch("custom_components.roommind.managers.mold_manager.time") as clock:
+        clock.time.return_value = now
+        day = await mm.evaluate("bed", "Bed", 23.8, 64.5, 20.5, _EARLY, can_dry=True)
+        assert not day.prevention_active
+        pre = await mm.evaluate("bed", "Bed", 23.8, 64.5, 20.5, _EARLY, can_dry=True, night_phase="pre_night")
+        assert pre.prevention_active and pre.prevention_strategy == "dry"

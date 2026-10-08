@@ -32,6 +32,18 @@ def night_progress(now: datetime, start: str, end: str, ramp_minutes: int) -> fl
     return min(elapsed / ramp_minutes, 1.0)
 
 
+def night_phase(room: dict, now: datetime, lead_minutes: int) -> str | None:
+    """Return "night", "pre_night" (within *lead_minutes* before) or None."""
+    if not room.get("night_mode_enabled", False):
+        return None
+    start = str(room.get("night_start", "22:00"))
+    end = str(room.get("night_end", "07:00"))
+    if night_progress(now, start, end, 0) > 0:
+        return "night"
+    until_start = (_minutes(start) - (now.hour * 60 + now.minute)) % (24 * 60)
+    return "pre_night" if 0 < until_start <= lead_minutes else None
+
+
 def apply_night_targets(room: dict, targets: TargetTemps, now: datetime) -> tuple[TargetTemps, float]:
     """Apply the configured gradual night setback to logical heat/cool targets."""
     if not room.get("night_mode_enabled", False):

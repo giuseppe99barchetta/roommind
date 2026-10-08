@@ -27,3 +27,16 @@ def test_night_targets_apply_a_partial_setback():
 
     assert progress == 0.5
     assert targets == TargetTemps(heat=20.5, cool=26.0)
+
+
+def test_night_phase_only_when_night_mode_enabled():
+    from custom_components.roommind.utils.night_mode import night_phase
+
+    room = {"night_mode_enabled": True, "night_start": "22:00", "night_end": "07:00"}
+    at = lambda h, m: datetime(2026, 10, 8, h, m)  # noqa: E731
+    assert night_phase(room, at(20, 59), 60) is None
+    assert night_phase(room, at(21, 0), 60) == "pre_night"
+    assert night_phase(room, at(23, 50), 60) == "night"
+    assert night_phase(room, at(6, 59), 60) == "night"
+    assert night_phase(room, at(7, 0), 60) is None
+    assert night_phase({**room, "night_mode_enabled": False}, at(23, 50), 60) is None
