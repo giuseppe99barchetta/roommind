@@ -449,12 +449,7 @@ class RoomMindCoordinator(DataUpdateCoordinator):
 
         # Control master devices based on aggregate room demand
         await self._async_control_master_devices(room_states, rooms, settings)
-        boiler_demand = {
-            area_id
-            for area_id, state in room_states.items()
-            if state.get("commanded_mode") == MODE_HEATING
-            and self._heat_source_states.get(area_id) in ("boiler", "hybrid")
-        }
+        boiler_demand = self._boiler_demand_rooms(room_states, rooms, settings)
         await self._boiler_manager.async_reconcile(settings, boiler_demand)
 
         # Record to history store (throttled)
@@ -1144,9 +1139,7 @@ class RoomMindCoordinator(DataUpdateCoordinator):
 
         apply_control = command_generation == self._manual_command_generations.get(area_id, 0)
         climate_active = (
-            apply_control
-            and settings.get("climate_control_active", True)
-            and room.get("climate_control_enabled", True)
+            apply_control and settings.get("climate_control_active", True) and room.get("climate_control_enabled", True)
         )
         # Startup guard: Full Control room without any temperature reading yet —
         # leave devices in their current state instead of idling them.
@@ -1288,28 +1281,25 @@ class RoomMindCoordinator(DataUpdateCoordinator):
         )
         if ac_eids and mode in (MODE_HEATING, MODE_COOLING) and plan_uses_ac and not native_budget_checked:
             nominal_w = float(room.get("heat_pump_power_watts", 0) or 0)
-            # A zero nominal power preserves the previous opt-out behavior for
-            # rooms where the user has not supplied a safe AC rating.
-            if nominal_w > 0:
-                already_running = any(
-                    (state := self.hass.states.get(entity_id)) is not None and state.state in ("heat", "cool", "dry")
-                    for entity_id in ac_eids
-                )
-                if not self._power_budget_manager.request_heat_pump(
+            already_running = any(
+                (state := self.hass.states.get(entity_id)) is not None and state.state in ("heat", "cool", "dry")
+                for entity_id in ac_eids
+            )
+            if not self._power_budget_manager.request_heat_pump(
+                area_id,
+                self._energy_manager.budget_power_w(
                     area_id,
-                    self._energy_manager.budget_power_w(
-                        area_id,
-                        "heating" if mode == MODE_HEATING else "cooling",
-                        nominal_w,
-                    ),
-                    already_running,
-                ):
-                    budget_blocked_acs = ac_eids
-                    # Cooling has no non-AC fallback.  Heating may still be
-                    # served by TRVs, so only exclude the AC commands there.
-                    if mode == MODE_COOLING or not get_trv_eids(room.get("devices", [])):
-                        mode = MODE_IDLE
-                        power_fraction = 0.0
+                    "heating" if mode == MODE_HEATING else "cooling",
+                    nominal_w,
+                ),
+                already_running,
+            ):
+                budget_blocked_acs = ac_eids
+                # Cooling has no non-AC fallback. Heating may still be
+                # served by TRVs, so only exclude the AC commands there.
+                if mode == MODE_COOLING or not get_trv_eids(room.get("devices", [])):
+                    mode = MODE_IDLE
+                    power_fraction = 0.0
 
         # Compressor group constraints
         all_device_eids = get_all_entity_ids(room.get("devices", []))
@@ -1387,12 +1377,19 @@ class RoomMindCoordinator(DataUpdateCoordinator):
                     for device in control_room.get("devices", []):
                         if device.get("type") == "ac":
                             device["_roommind_smart_ventilation"] = room.get("smart_ventilation_fan_mode", "low")
+                # The boiler state machine owns the hydraulic bypass from
+                # preopening until the post-stop safety delay has elapsed.
+                bypass_held = (
+                    set(settings.get("hydraulic_bypass_entities", []))
+                    if self._boiler_manager.state in ("preopening", "on", "poststop")
+                    else set()
+                )
                 await controller.async_apply(
                     mode,
                     targets,
                     power_fraction=power_fraction,
                     current_temp=current_temp,
-                    exclude_eids=cycling_eids | budget_blocked_acs,
+                    exclude_eids=cycling_eids | budget_blocked_acs | bypass_held,
                     heating_boost_target=device_max_temp,
                     ac_heating_boost_target=ac_device_max_temp,
                     cooling_boost_target=device_min_temp,
@@ -1494,6 +1491,14 @@ class RoomMindCoordinator(DataUpdateCoordinator):
                         if ac_state is None or "dry" not in (ac_state.attributes.get("hvac_modes") or []):
                             continue
                         if ac_state.state == "off" and not self._compressor_manager.check_can_activate(ac_eid):
+                            continue
+                        if not self._power_budget_manager.request_heat_pump(
+                            area_id,
+                            self._energy_manager.budget_power_w(
+                                area_id, "dry", float(room.get("heat_pump_power_watts", 0) or 0)
+                            ),
+                            ac_state.state not in ("off", "unknown", "unavailable", "fan_only"),
+                        ):
                             continue
                         await self.hass.services.async_call(
                             "climate",
@@ -2753,6 +2758,34 @@ class RoomMindCoordinator(DataUpdateCoordinator):
     # Master device control
     # ------------------------------------------------------------------
 
+    def _boiler_demand_rooms(
+        self, room_states: dict[str, dict], rooms_config: dict[str, dict], settings: dict
+    ) -> set[str]:
+        """Collect actual radiator demand, including rooms without source orchestration.
+
+        A central boiler must not depend on the optional heat-source planner:
+        ordinary TRV-only rooms and legacy primary/secondary plans need it too.
+        """
+        if not settings.get("climate_control_active", True) or not settings.get("boiler_entity"):
+            return set()
+        demand: set[str] = set()
+        for area_id, room in rooms_config.items():
+            if room.get("is_outdoor") or not room.get("climate_control_enabled", True):
+                continue
+            if not get_trv_eids(room.get("devices", [])):
+                continue
+            state = room_states.get(area_id, {})
+            if state.get("commanded_mode") != MODE_HEATING or state.get("window_open") or state.get("force_off"):
+                continue
+            if room.get("heat_source_orchestration", False):
+                source = state.get("active_heat_sources")
+                # Legacy plans name the radiator source 'primary'; native
+                # plans use 'boiler'. Unknown selections fail closed.
+                if source is not None and source not in ("primary", "both", "boiler", "hybrid"):
+                    continue
+            demand.add(area_id)
+        return demand
+
     def _collect_member_room_modes(
         self,
         members: list[str],
@@ -2944,6 +2977,11 @@ class RoomMindCoordinator(DataUpdateCoordinator):
         if not settings.get("climate_control_active", True):
             return
         for gid, group in self._compressor_manager.get_groups().items():
+            if settings.get("boiler_entity") and group.master_entity == settings["boiler_entity"]:
+                # The dedicated boiler manager must be the *only* writer of
+                # this entity. Its bypass-open and startup-delay interlocks
+                # must never be bypassed by compressor master switching.
+                continue
             if not group.master_entity and not group.action_script and not group.enforce_uniform_mode:
                 continue
             try:

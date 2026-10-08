@@ -240,6 +240,7 @@ export interface GlobalSettings {
   mold_notifications_enabled?: boolean;
   mold_notification_targets?: NotificationTarget[];
   mold_prevention_enabled?: boolean;
+  mold_prevention_sustained_minutes?: number;
   mold_prevention_intensity?: "light" | "medium" | "strong";
   mold_prevention_dehumidification_enabled?: boolean;
   mold_prevention_dry_min_temperature?: number;

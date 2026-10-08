@@ -74,6 +74,7 @@ class TestMoldRiskDetection:
         store = _make_store_mock({"living_room_abc12345": SAMPLE_ROOM})
         store.get_settings.return_value = {
             "mold_prevention_enabled": True,
+            "mold_prevention_sustained_minutes": 0,
             "mold_prevention_intensity": "medium",
             "outdoor_temp_sensor": "sensor.outdoor_temp",
         }
@@ -106,6 +107,7 @@ class TestMoldRiskDetection:
         store = _make_store_mock({"living_room_abc12345": SAMPLE_ROOM})
         store.get_settings.return_value = {
             "mold_prevention_enabled": True,
+            "mold_prevention_sustained_minutes": 0,
             "mold_prevention_intensity": "light",
             "outdoor_temp_sensor": "sensor.outdoor_temp",
         }
@@ -185,6 +187,7 @@ class TestMoldRiskDetection:
         store = _make_store_mock({"living_room_abc12345": SAMPLE_ROOM})
         store.get_settings.return_value = {
             "mold_prevention_enabled": True,
+            "mold_prevention_sustained_minutes": 0,
             "mold_prevention_intensity": "strong",
             "outdoor_temp_sensor": "sensor.outdoor_temp",
         }
@@ -287,6 +290,7 @@ class TestMoldRiskDetection:
         store = _make_store_mock({"living_room_abc12345": SAMPLE_ROOM})
         store.get_settings.return_value = {
             "mold_prevention_enabled": True,
+            "mold_prevention_sustained_minutes": 0,
             "mold_prevention_intensity": "medium",
             "outdoor_temp_sensor": "sensor.outdoor_temp",
         }
@@ -307,6 +311,7 @@ class TestMoldRiskDetection:
         assert room["mold_prevention_active"] is True
 
         # Cycle 2: Conditions improve (warm outside) -> risk ok, surface RH well below threshold
+        coordinator._mold_manager._prevention_started["living_room_abc12345"] -= 601
         hass.states.get = MagicMock(
             side_effect=make_mock_states_get(
                 humidity="40.0",
@@ -328,6 +333,7 @@ class TestMoldRiskDetection:
         store = _make_store_mock({"living_room_abc12345": SAMPLE_ROOM})
         store.get_settings.return_value = {
             "mold_prevention_enabled": True,
+            "mold_prevention_sustained_minutes": 0,
             "mold_prevention_intensity": "medium",
             "outdoor_temp_sensor": "sensor.outdoor_temp",
         }
@@ -383,6 +389,7 @@ class TestMoldRiskDetection:
         store = _make_store_mock({"living_room_abc12345": SAMPLE_ROOM})
         store.get_settings.return_value = {
             "mold_prevention_enabled": True,
+            "mold_prevention_sustained_minutes": 0,
             "mold_prevention_intensity": "medium",
             "outdoor_temp_sensor": "sensor.outdoor_temp",
             "presence_enabled": True,

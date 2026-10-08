@@ -11,6 +11,8 @@ export class RsHeatSourceSection extends LitElement {
   @property({ attribute: false }) public hass!: HomeAssistant;
   @property({ type: Boolean }) public enabled = false;
   @property({ type: Boolean }) public native = false;
+  @property({ type: Boolean }) public hasAc = false;
+  @property({ type: Boolean }) public hasTrv = false;
   @property({ type: Number }) public heatPumpPower = 0;
   @property({ type: Number }) public primaryDelta = 1.5;
   @property({ type: Number }) public outdoorThreshold = 5.0;
@@ -128,7 +130,10 @@ export class RsHeatSourceSection extends LitElement {
     if (!this.editing) {
       if (!this.enabled) {
         return html`<div class="summary disabled">
-          ${localize("heat_source.summary_disabled", lang)}
+          ${this.hasTrv ? localize("heat_source.summary_disabled", lang) : nothing}
+          ${this.hasAc
+            ? html`${this.hasTrv ? " · " : ""}${localize("heat_source.power_estimate", lang)}: ${this.heatPumpPower} W`
+            : nothing}
         </div>`;
       }
       return html`<div class="summary">
@@ -144,15 +149,35 @@ export class RsHeatSourceSection extends LitElement {
     }
 
     return html`
-      <div class="feature-card ${this.enabled ? "enabled" : ""}">
+      ${this.hasTrv ? html`<div class="feature-card ${this.enabled ? "enabled" : ""}">
         <div class="feature-text">
           <div class="feature-title">${localize("heat_source.toggle", lang)}</div>
           <div class="feature-description">${localize("heat_source.toggle_hint", lang)}</div>
         </div>
         <ha-switch .checked=${this.enabled} @change=${this._onSwitchChange}></ha-switch>
-      </div>
+      </div>` : nothing}
 
-      ${this.enabled
+      ${this.hasAc
+        ? html`<div class="thresholds">
+            <div class="threshold-cell">
+              <div class="threshold-label">
+                <span>${localize("heat_source.power_estimate", lang)}</span>
+              </div>
+              <ha-textfield
+                .value=${String(this.heatPumpPower)}
+                type="number"
+                min="0"
+                max="20000"
+                step="50"
+                .suffix=${"W"}
+                @change=${(e: Event) => this._onNumberInput("heat_pump_power_watts", e)}
+              ></ha-textfield>
+              <span class="feature-description">${localize("heat_source.power_estimate_hint", lang)}</span>
+            </div>
+          </div>`
+        : nothing}
+
+      ${this.enabled && this.hasTrv
         ? html`
             <div class="feature-card">
               <div class="feature-text">
@@ -168,20 +193,6 @@ export class RsHeatSourceSection extends LitElement {
                   this._emit("native_heat_source", (e.target as HTMLInputElement).checked)}
               ></ha-switch>
             </div>
-            ${this.native
-              ? html`<div class="thresholds">
-                  <div class="threshold-cell">
-                    <div class="threshold-label"><span>Heat-pump estimated demand (W)</span></div>
-                    <ha-textfield
-                      .value=${String(this.heatPumpPower)}
-                      type="number"
-                      min="0"
-                      step="50"
-                      @input=${(e: Event) => this._onNumberInput("heat_pump_power_watts", e)}
-                    ></ha-textfield>
-                  </div>
-                </div>`
-              : nothing}
             <div class="thresholds">
               ${this._renderThresholdCell({
                 label: localize("heat_source.primary_delta", lang),

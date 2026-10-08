@@ -177,6 +177,7 @@ _SETTINGS_SAVE_FIELDS = (
     "mold_notifications_enabled",
     "mold_notification_targets",
     "mold_prevention_enabled",
+    "mold_prevention_sustained_minutes",
     "mold_prevention_intensity",
     "mold_prevention_dehumidification_enabled",
     "mold_prevention_dry_min_temperature",
@@ -773,6 +774,7 @@ SETTINGS_SAVE_SCHEMA = {
         }
     ],
     vol.Optional("mold_prevention_enabled"): bool,
+    vol.Optional("mold_prevention_sustained_minutes"): vol.All(vol.Coerce(int), vol.Range(min=0, max=120)),
     vol.Optional("mold_prevention_intensity"): vol.In(["light", "medium", "strong"]),
     vol.Optional("mold_prevention_dehumidification_enabled"): bool,
     vol.Optional("mold_prevention_dry_min_temperature"): vol.All(vol.Coerce(float), vol.Range(min=15, max=30)),

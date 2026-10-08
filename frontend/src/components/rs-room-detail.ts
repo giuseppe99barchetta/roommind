@@ -664,7 +664,6 @@ export class RsRoomDetail extends LitElement {
             : nothing}
           ${!this._isOutdoor &&
           this._selectedTempSensor &&
-          this._devices.some((d) => d.type === "trv") &&
           this._devices.some((d) => d.type === "ac")
             ? html`<rs-section-card
                 class="optional-card"
@@ -676,6 +675,9 @@ export class RsRoomDetail extends LitElement {
                 <rs-heat-source-section
                   .hass=${this.hass}
                   .editing=${false}
+                  .hasAc=${true}
+                  .hasTrv=${this._devices.some((d) => d.type === "trv")}
+                  .heatPumpPower=${this._heatPumpPowerWatts}
                   .enabled=${this._heatSourceOrchestration}
                   .primaryDelta=${this._heatSourcePrimaryDelta}
                   .outdoorThreshold=${this._heatSourceOutdoorThreshold}
@@ -962,6 +964,8 @@ export class RsRoomDetail extends LitElement {
           <rs-heat-source-section
             .hass=${this.hass}
             .editing=${true}
+            .hasAc=${this._devices.some((d) => d.type === "ac")}
+            .hasTrv=${this._devices.some((d) => d.type === "trv")}
             .enabled=${this._heatSourceOrchestration}
             .primaryDelta=${this._heatSourcePrimaryDelta}
             .outdoorThreshold=${this._heatSourceOutdoorThreshold}

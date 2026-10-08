@@ -7,6 +7,7 @@ from unittest.mock import AsyncMock, MagicMock
 import pytest
 
 from custom_components.roommind.const import MODE_IDLE
+from custom_components.roommind.coordinator import RoomMindCoordinator
 
 from .conftest import (
     MANAGED_ROOM,
@@ -49,6 +50,63 @@ def _room_with_device(area_id, entity_id, **overrides):
 
 class TestMasterDeviceControl:
     """Tests for master device control wiring in the coordinator."""
+
+    @pytest.mark.asyncio
+    async def test_dedicated_boiler_cannot_be_started_by_master_without_hydraulic_bypass(self, hass, mock_config_entry):
+        room = _room_with_device("living_room_abc12345", "climate.living_trv")
+        store = _make_store_mock({"living_room_abc12345": room})
+        store.get_settings.return_value = {
+            "climate_control_active": True,
+            "boiler_entity": "climate.boiler",
+            "boiler_control_type": "climate",
+            "compressor_groups": [
+                {"id": "g1", "name": "Radiators", "members": ["climate.living_trv"], "master_entity": "climate.boiler"}
+            ],
+            # Missing bypass: the boiler manager must reject the start.
+            "hydraulic_bypass_entities": [],
+        }
+        base_get = make_mock_states_get(temp="18.0")
+        hass.states.get = MagicMock(
+            side_effect=lambda eid: _make_master_state("off") if eid == "climate.boiler" else base_get(eid)
+        )
+        hass.services.async_call = AsyncMock()
+        hass.data = {"roommind": {"store": store}}
+
+        coordinator = _create_coordinator(hass, mock_config_entry)
+        await coordinator._async_update_data()
+
+        boiler_commands = [
+            c.args[2]["hvac_mode"]
+            for c in hass.services.async_call.call_args_list
+            if len(c.args) >= 3
+            and c.args[0:2] == ("climate", "set_hvac_mode")
+            and c.args[2].get("entity_id") == "climate.boiler"
+        ]
+        assert boiler_commands and "heat" not in boiler_commands
+        assert coordinator._boiler_manager.state == "fault"
+
+    def test_boiler_demand_includes_plain_trv_and_respects_heat_source_routing(self):
+        settings = {"climate_control_active": True, "boiler_entity": "climate.boiler"}
+        rooms = {
+            "bagno": {"devices": [{"type": "trv", "entity_id": "climate.bagno"}]},
+            "sala": {
+                "devices": [
+                    {"type": "trv", "entity_id": "climate.sala"},
+                    {"type": "ac", "entity_id": "climate.ac_sala"},
+                ],
+                "heat_source_orchestration": True,
+            },
+        }
+        states = {
+            "bagno": {"commanded_mode": "heating"},
+            "sala": {"commanded_mode": "heating", "active_heat_sources": "secondary"},
+        }
+        get_demand = RoomMindCoordinator._boiler_demand_rooms
+        assert get_demand(None, states, rooms, settings) == {"bagno"}
+        states["sala"]["active_heat_sources"] = "primary"
+        assert get_demand(None, states, rooms, settings) == {"bagno", "sala"}
+        states["bagno"]["window_open"] = True
+        assert get_demand(None, states, rooms, settings) == {"sala"}
 
     @pytest.mark.asyncio
     async def test_master_turns_on_heat_when_room_heating(self, hass, mock_config_entry):

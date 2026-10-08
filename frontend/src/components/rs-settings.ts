@@ -69,6 +69,7 @@ export class RsSettings extends LitElement {
   @state() private _moldNotificationsEnabled = true;
   @state() private _moldNotificationTargets: NotificationTarget[] = [];
   @state() private _moldPreventionEnabled = false;
+  @state() private _moldPreventionSustainedMinutes = 15;
   @state() private _moldPreventionIntensity: "light" | "medium" | "strong" = "medium";
   @state() private _moldPreventionDehumidificationEnabled = true;
   @state() private _moldPreventionDryMinTemperature = 23;
@@ -144,6 +145,7 @@ export class RsSettings extends LitElement {
       this._moldNotificationsEnabled = s.mold_notifications_enabled ?? true;
       this._moldNotificationTargets = s.mold_notification_targets ?? [];
       this._moldPreventionEnabled = s.mold_prevention_enabled ?? false;
+      this._moldPreventionSustainedMinutes = s.mold_prevention_sustained_minutes ?? 15;
       this._moldPreventionIntensity = s.mold_prevention_intensity ?? "medium";
       this._moldPreventionDehumidificationEnabled =
         s.mold_prevention_dehumidification_enabled ?? true;
@@ -315,6 +317,7 @@ export class RsSettings extends LitElement {
           .moldHumidityThreshold=${this._moldHumidityThreshold}
           .moldSustainedMinutes=${this._moldSustainedMinutes}
           .moldPreventionEnabled=${this._moldPreventionEnabled}
+          .moldPreventionSustainedMinutes=${this._moldPreventionSustainedMinutes}
           .moldPreventionIntensity=${this._moldPreventionIntensity}
           .moldPreventionDehumidificationEnabled=${this._moldPreventionDehumidificationEnabled}
           .moldPreventionDryMinTemperature=${this._moldPreventionDryMinTemperature}
@@ -460,6 +463,7 @@ export class RsSettings extends LitElement {
         mold_notifications_enabled: this._moldNotificationsEnabled,
         mold_notification_targets: this._moldNotificationTargets.filter((t) => t.entity_id),
         mold_prevention_enabled: this._moldPreventionEnabled,
+        mold_prevention_sustained_minutes: this._moldPreventionSustainedMinutes,
         mold_prevention_intensity: this._moldPreventionIntensity,
         mold_prevention_dehumidification_enabled: this._moldPreventionDehumidificationEnabled,
         mold_prevention_dry_min_temperature: this._moldPreventionDryMinTemperature,

@@ -25,9 +25,73 @@ def _settings_prevention_notify(**overrides):
         "mold_prevention_notify_targets": ["notify.mobile"],
         "mold_humidity_threshold": 70.0,
         "mold_sustained_minutes": 0,
+        "mold_prevention_sustained_minutes": 0,
     }
     s.update(overrides)
     return s
+
+
+@pytest.mark.asyncio
+async def test_warning_must_persist_but_critical_risk_responds_faster():
+    from unittest.mock import MagicMock
+
+    manager = MoldManager(MagicMock())
+    settings = {
+        "mold_prevention_enabled": True,
+        "mold_prevention_sustained_minutes": 15,
+        "mold_notifications_enabled": False,
+    }
+    with (
+        patch("custom_components.roommind.managers.mold_manager.calculate_mold_risk") as risk,
+        patch("custom_components.roommind.managers.mold_manager.time") as clock,
+    ):
+        risk.return_value = ("warning", 72.0)
+        clock.time.return_value = 1000
+        first = await manager.evaluate("studio", "Studio", 25, 65, 20, settings, can_dry=True)
+        assert not first.prevention_active
+        clock.time.return_value = 1899
+        before = await manager.evaluate("studio", "Studio", 25, 65, 20, settings, can_dry=True)
+        assert not before.prevention_active
+        clock.time.return_value = 1900
+        ready = await manager.evaluate("studio", "Studio", 25, 65, 20, settings, can_dry=True)
+        assert ready.prevention_active and ready.prevention_strategy == "dry"
+
+        # A different room starts in critical state: wait 2 minutes, not 15.
+        risk.return_value = ("critical", 83.0)
+        clock.time.return_value = 2000
+        urgent = await manager.evaluate("bagno", "Bagno", 19, 75, 5, settings)
+        assert not urgent.prevention_active
+        clock.time.return_value = 2120
+        urgent = await manager.evaluate("bagno", "Bagno", 19, 75, 5, settings)
+        assert urgent.prevention_active and urgent.prevention_strategy == "heat"
+
+
+@pytest.mark.asyncio
+async def test_prevention_uses_hysteresis_and_minimum_run_time():
+    from unittest.mock import MagicMock
+
+    manager = MoldManager(MagicMock())
+    settings = {
+        "mold_prevention_enabled": True,
+        "mold_prevention_sustained_minutes": 0,
+        "mold_notifications_enabled": False,
+    }
+    with (
+        patch("custom_components.roommind.managers.mold_manager.calculate_mold_risk") as risk,
+        patch("custom_components.roommind.managers.mold_manager.time") as clock,
+        patch("custom_components.roommind.managers.mold_manager.dismiss_mold_notification"),
+    ):
+        clock.time.return_value = 1000
+        risk.return_value = ("warning", 72.0)
+        assert (await manager.evaluate("studio", "Studio", 25, 70, 15, settings)).prevention_active
+        clock.time.return_value = 1300
+        risk.return_value = ("ok", 68.0)
+        assert (await manager.evaluate("studio", "Studio", 25, 60, 15, settings)).prevention_active
+        risk.return_value = ("ok", 60.0)
+        assert (await manager.evaluate("studio", "Studio", 25, 55, 15, settings)).prevention_active
+        clock.time.return_value = 1601
+        assert not (await manager.evaluate("studio", "Studio", 25, 55, 15, settings)).prevention_active
+        assert manager._prevention_started == {}
 
 
 # --- prevention activation notification (lines 143-156) ---
@@ -318,6 +382,7 @@ async def test_hysteresis_deactivation(mm):
     assert mm._prevention_active["living"] is True
 
     # Second call: surface_rh drops well below MOLD_SURFACE_RH_WARNING - MOLD_HYSTERESIS (70 - 5 = 65)
+    mm._prevention_started["living"] -= 601  # Minimum runtime has elapsed.
     with (
         patch(
             "custom_components.roommind.managers.mold_manager.calculate_mold_risk",
@@ -339,7 +404,7 @@ async def test_hysteresis_deactivation(mm):
         )
 
     assert r2.prevention_active is False
-    assert mm._prevention_active["living"] is False
+    assert mm._prevention_active.get("living", False) is False
     # Both risk and prevention notifications dismissed
     assert mock_dismiss.call_count == 2
     dismiss_suffixes = [c[0][2] for c in mock_dismiss.call_args_list]
@@ -444,6 +509,7 @@ async def test_dismiss_notification_on_risk_clear(mm):
         )
 
     # Now clear risk
+    mm._prevention_started["living"] -= 601  # Past the minimum run time.
     with (
         patch(
             "custom_components.roommind.managers.mold_manager.calculate_mold_risk",

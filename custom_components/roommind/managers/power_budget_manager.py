@@ -29,6 +29,7 @@ class PowerBudgetManager:
     def __init__(self) -> None:
         self._available: float | None = None
         self._reserved: dict[str, float] = {}
+        self._already_running: set[str] = set()
         self._enabled = False
         self._conservative = True
 
@@ -36,6 +37,7 @@ class PowerBudgetManager:
         self._enabled = bool(settings.get("power_budget_enabled", False))
         self._conservative = settings.get("power_budget_unavailable_behavior", "boiler") == "boiler"
         self._reserved = {room: max(0.0, load) for room, load in running_loads.items()}
+        self._already_running = set(running_loads)
         if not self._enabled:
             self._available = None
             return
@@ -56,14 +58,22 @@ class PowerBudgetManager:
 
     def request_heat_pump(self, room_id: str, watts: float, already_running: bool) -> bool:
         """Grant a requested heat-pump allocation, without charging it twice."""
-        if not self._enabled or already_running:
+        if not self._enabled or already_running or room_id in self._already_running:
             return True
         watts = max(0.0, watts)
+        # An unknown AC rating is never a free zero-watt reservation.
+        # The owner must supply a nominal power or enough learned samples.
+        if watts <= 0:
+            return False
         if self._available is None:
             return not self._conservative
         if room_id in self._reserved:
             return True
-        if self._available - sum(self._reserved.values()) < watts:
+        # Both sensor modes report *remaining* household headroom: existing
+        # running loads have already been deducted by the physical meter.
+        # Only this cycle's newly admitted starts need further subtraction.
+        pending = sum(w for room, w in self._reserved.items() if room not in self._already_running)
+        if self._available - pending < watts:
             return False
         self._reserved[room_id] = watts
         return True

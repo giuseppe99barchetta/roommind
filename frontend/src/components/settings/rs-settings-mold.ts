@@ -23,6 +23,7 @@ export class RsSettingsMold extends RsSettingsBase {
   @property({ type: Number }) public moldHumidityThreshold = 70;
   @property({ type: Number }) public moldSustainedMinutes = 30;
   @property({ type: Boolean }) public moldPreventionEnabled = false;
+  @property({ type: Number }) public moldPreventionSustainedMinutes = 15;
   @property({ type: String }) public moldPreventionIntensity: "light" | "medium" | "strong" =
     "medium";
   @property({ type: Boolean }) public moldPreventionDehumidificationEnabled = true;
@@ -113,6 +114,23 @@ export class RsSettingsMold extends RsSettingsBase {
         </div>
         ${this.moldPreventionEnabled
           ? html`
+              <div class="threshold-field" style="margin-top: 12px; margin-bottom: 12px;">
+                <ha-textfield
+                  .value=${String(this.moldPreventionSustainedMinutes)}
+                  .label=${localize("mold.prevention_sustained", l)}
+                  .suffix=${"min"}
+                  type="number"
+                  step="1"
+                  min="0"
+                  max="120"
+                  @change=${(e: Event) => {
+                    const v = parseInt((e.target as HTMLInputElement).value, 10);
+                    if (!isNaN(v) && v >= 0 && v <= 120)
+                      this._fire("moldPreventionSustainedMinutes", v);
+                  }}
+                ></ha-textfield>
+                <span class="field-hint">${localize("mold.prevention_sustained_hint", l)}</span>
+              </div>
               <div style="margin-top: 12px; display: flex; flex-direction: column; gap: 4px;">
                 <ha-select
                   style="width: 100%;"
