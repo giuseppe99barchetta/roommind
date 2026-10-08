@@ -34,6 +34,21 @@ class BoilerManager:
         self._state_since = monotonic()
         self.demand_rooms: set[str] = set()
         self.path_safe = False
+        self._last_bypass_command: dict[str, float] = {}
+
+    def _bypass_confirmed(self, entity_id: str, target: float) -> bool:
+        """Check HA's *reported* heat mode and setpoint, not command success.
+
+        A climate TRV does not expose physical valve travel. This is an
+        acknowledgement interlock, not proof of the hydraulic opening.
+        """
+        state = self.hass.states.get(entity_id)
+        if not state or state.state != "heat":
+            return False
+        try:
+            return abs(float(state.attributes.get("temperature")) - target) <= 0.5
+        except (TypeError, ValueError, AttributeError):
+            return False
 
     @staticmethod
     def _available(hass: HomeAssistant, entity_id: str) -> bool:
@@ -60,11 +75,19 @@ class BoilerManager:
                     _LOGGER.warning("Unable to release boiler bypass '%s'", entity_id, exc_info=True)
             return True
         target = float(settings.get("hydraulic_bypass_open_temperature", 28.0))
-        verified = False
+        confirmed = False
         for entity_id in bypasses:
             if not self._available(self.hass, entity_id):
                 continue
+            if self._bypass_confirmed(entity_id, target):
+                confirmed = True
+                continue
+            # Zigbee TRVs can take a full reporting cycle to acknowledge a
+            # command. Retry, but do not flood the network every 30 seconds.
+            if monotonic() - self._last_bypass_command.get(entity_id, float("-inf")) < 60:
+                continue
             try:
+                self._last_bypass_command[entity_id] = monotonic()
                 await self.hass.services.async_call(
                     "climate",
                     "set_hvac_mode",
@@ -79,10 +102,10 @@ class BoilerManager:
                     blocking=True,
                     context=make_roommind_context(),
                 )
-                verified = True
+                confirmed = confirmed or self._bypass_confirmed(entity_id, target)
             except Exception:  # noqa: BLE001
                 _LOGGER.warning("Unable to open boiler bypass '%s'", entity_id, exc_info=True)
-        return verified
+        return confirmed
 
     async def _set_boiler(self, settings: dict, on: bool) -> bool:
         entity_id = settings.get("boiler_entity", "")
@@ -118,7 +141,9 @@ class BoilerManager:
         post_delay = float(settings.get("boiler_shutdown_delay_seconds", 60))
         if self.state == BoilerState.OFF and demand:
             self.path_safe = await self._set_bypass(settings, True)
-            if not self.path_safe:
+            # Allow state-report propagation during PREOPENING; never turn the
+            # boiler on before HA confirms the bypass mode and setpoint.
+            if not settings.get("hydraulic_bypass_entities"):
                 self.state = BoilerState.FAULT
                 await self._set_boiler(settings, False)
                 return
@@ -132,8 +157,10 @@ class BoilerManager:
                 self.path_safe = False
                 self.state, self._state_since = BoilerState.OFF, now
             elif not self.path_safe:
-                self.state = BoilerState.FAULT
-                await self._set_boiler(settings, False)
+                if now - self._state_since >= max(90.0, pre_delay * 2):
+                    _LOGGER.error("Boiler bypass never acknowledged; refusing to start boiler")
+                    self.state = BoilerState.FAULT
+                    await self._set_boiler(settings, False)
             elif now - self._state_since >= pre_delay:
                 if await self._set_boiler(settings, True):
                     self.state, self._state_since = BoilerState.ON, now

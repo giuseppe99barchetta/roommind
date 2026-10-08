@@ -1111,6 +1111,30 @@ async def websocket_get_diagnostics(
     connection.send_result(msg["id"], result)
 
 
+@websocket_api.websocket_command(
+    {
+        vol.Required("type"): "roommind/control/preview",
+        vol.Optional("mode", default="cooling"): vol.In(["heating", "cooling", "dry"]),
+    }
+)
+@websocket_api.async_response
+async def websocket_control_preview(
+    hass: HomeAssistant,
+    connection: websocket_api.ActiveConnection,
+    msg: dict,
+) -> None:
+    """Preview current safety admission without sending climate commands."""
+    from .services.control_preview import build_control_preview
+
+    coordinator = _get_coordinator(hass)
+    if coordinator is None:
+        connection.send_error(msg["id"], "unavailable", "RoomMind coordinator unavailable")
+        return
+    store = hass.data[DOMAIN]["store"]
+    result = build_control_preview(hass, store.get_settings(), store.get_rooms(), coordinator, msg.get("mode", "cooling"))
+    connection.send_result(msg["id"], result)
+
+
 # ---------------------------------------------------------------------------
 # Clear cover user override
 # ---------------------------------------------------------------------------
@@ -1164,4 +1188,5 @@ def async_register_websocket_commands(hass: HomeAssistant) -> None:
     websocket_api.async_register_command(hass, websocket_thermal_reset_all)
     websocket_api.async_register_command(hass, websocket_boost_learning)
     websocket_api.async_register_command(hass, websocket_get_diagnostics)
+    websocket_api.async_register_command(hass, websocket_control_preview)
     websocket_api.async_register_command(hass, websocket_covers_clear_override)

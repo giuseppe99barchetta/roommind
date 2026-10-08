@@ -33,6 +33,7 @@ import "./settings/rs-settings-notifications";
 import "./settings/rs-settings-learning";
 import "./settings/rs-settings-reset";
 import "./settings/rs-settings-heating-system";
+import "./settings/rs-settings-preview";
 
 @customElement("rs-settings")
 export class RsSettings extends LitElement {
@@ -204,6 +205,14 @@ export class RsSettings extends LitElement {
           .energyPricePerKwh=${this._energyPricePerKwh}
           @setting-changed=${this._onSettingChanged}
         ></rs-settings-heating-system>
+      </rs-settings-panel>
+
+      <rs-settings-panel
+        icon="mdi:shield-search"
+        .heading=${localize("preview.title", l)}
+        .intro=${localize("preview.intro", l)}
+      >
+        <rs-settings-preview .hass=${this.hass}></rs-settings-preview>
       </rs-settings-panel>
 
       <rs-settings-panel

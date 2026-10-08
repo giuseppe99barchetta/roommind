@@ -1,5 +1,6 @@
 """Tests for the power-sensor interpretation selected in settings."""
 
+from datetime import UTC, datetime, timedelta
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -67,3 +68,23 @@ def test_budget_disabled_preserves_unrestricted_activation():
     manager = PowerBudgetManager()
     manager.begin_cycle(MagicMock(), {"power_budget_enabled": False}, {})
     assert manager.request_heat_pump("camera", 0, already_running=False)
+
+
+def test_stale_house_power_meter_fails_closed_without_affecting_room_sensors():
+    manager = PowerBudgetManager()
+    hass = MagicMock()
+    hass.states.get.return_value = MagicMock(
+        last_reported=datetime.now(UTC) - timedelta(minutes=5)
+    )
+    settings = {
+        "power_budget_enabled": True,
+        "power_sensor": "sensor.fastweb_power_control_consumo_istantaneo",
+        "power_sensor_mode": "consumption",
+        "power_budget_max_watts": 3300,
+        "power_budget_reserve_watts": 200,
+    }
+    with patch("custom_components.roommind.managers.power_budget_manager.read_sensor_value", return_value=800):
+        manager.begin_cycle(hass, settings, {})
+    assert manager.status().available_watts is None
+    assert manager.status().sensor_healthy is False
+    assert not manager.request_heat_pump("sala", 600, already_running=False)

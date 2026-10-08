@@ -86,6 +86,17 @@ def test_budget_history_bootstrap_deduplicates_overlapping_recordings():
     assert manager.budget_power_estimate("camera", "cooling", 700) == (700.0, "fallback", 3)
 
 
+def test_budget_requires_observation_spanning_five_minutes():
+    """Six 30-second cycles are not sufficient to establish a safe peak."""
+    manager = EnergyManager(MagicMock())
+    rows = [
+        {"timestamp": 1_700_000_000 + n * 30, "energy_mode": "cooling", "ac_power_w": 400}
+        for n in range(6)
+    ]
+    manager.bootstrap("sala", rows)
+    assert manager.budget_power_estimate("sala", "cooling", 1000) == (1000.0, "fallback", 6)
+
+
 def test_budget_never_learns_standby_or_missing_sensor_samples():
     manager = EnergyManager(MagicMock())
     manager.bootstrap(

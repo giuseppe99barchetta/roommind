@@ -5,7 +5,7 @@ from __future__ import annotations
 import math
 import time
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import UTC, datetime
 
 from homeassistant.core import HomeAssistant
 
@@ -16,6 +16,8 @@ _MAX_REASONABLE_POWER_W = 20000.0
 _LEARNABLE_ENERGY_MODES = ("heating", "cooling", "dry")
 _BUDGET_PEAK_MARGIN = 1.30
 _BUDGET_MIN_LEARNED_W = 250.0
+_BUDGET_MIN_OBSERVATION_SECONDS = 300.0
+_POWER_SENSOR_MAX_AGE_SECONDS = 600.0
 
 
 @dataclass
@@ -26,10 +28,15 @@ class _LinearStats:
     xtx: list[list[float]] = field(default_factory=lambda: [[0.0] * 4 for _ in range(4)])
     xty: list[float] = field(default_factory=lambda: [0.0] * 4)
     observed_max_w: float = 0.0
+    first_ts: float | None = None
+    last_ts: float | None = None
 
-    def add(self, features: list[float], power_w: float) -> None:
+    def add(self, features: list[float], power_w: float, timestamp: float | None = None) -> None:
         self.n += 1
         self.observed_max_w = max(self.observed_max_w, power_w)
+        if timestamp is not None and math.isfinite(timestamp):
+            self.first_ts = min(self.first_ts, timestamp) if self.first_ts is not None else timestamp
+            self.last_ts = max(self.last_ts, timestamp) if self.last_ts is not None else timestamp
         for i in range(4):
             self.xty[i] += features[i] * power_w
             for j in range(4):
@@ -159,6 +166,11 @@ class EnergyManager:
             state = self.hass.states.get(power_eid)
             if state is None or state.state in ("unknown", "unavailable", ""):
                 continue
+            last_reported = getattr(state, "last_reported", None) or getattr(state, "last_updated", None)
+            if isinstance(last_reported, datetime):
+                age_s = (datetime.now(UTC) - last_reported.astimezone(UTC)).total_seconds()
+                if age_s > _POWER_SENSOR_MAX_AGE_SECONDS or age_s < -60:
+                    continue
             value = self._safe_float(state.state)
             if value is None:
                 continue
@@ -260,7 +272,17 @@ class EnergyManager:
         fallback = min(max(0.0, nominal or 0.0), _MAX_REASONABLE_POWER_W)
         state = self._rooms.get(area_id)
         model = state.models.get(mode) if state and mode in _LEARNABLE_ENERGY_MODES else None
-        if model is not None and model.n >= _MIN_SAMPLES_FOR_PREDICTION and model.observed_max_w >= _MIN_ACTIVE_POWER_W:
+        observed_seconds = (
+            (model.last_ts - model.first_ts)
+            if model is not None and model.first_ts is not None and model.last_ts is not None
+            else 0.0
+        )
+        if (
+            model is not None
+            and model.n >= _MIN_SAMPLES_FOR_PREDICTION
+            and observed_seconds >= _BUDGET_MIN_OBSERVATION_SECONDS
+            and model.observed_max_w >= _MIN_ACTIVE_POWER_W
+        ):
             # Peak, not the ridge regression mean: underestimated start loads
             # could exceed the household limit. Keep 30% surge/headroom margin.
             estimate = max(_BUDGET_MIN_LEARNED_W, model.observed_max_w * _BUDGET_PEAK_MARGIN)
@@ -296,14 +318,14 @@ class EnergyManager:
             features = self._features(room_temp, target, outdoor, humidity)
             if power >= _MIN_ACTIVE_POWER_W and mode in _LEARNABLE_ENERGY_MODES:
                 model = state.models.setdefault(mode, _LinearStats())
-                model.add(features, power)
+                model.add(features, power, ts)
             device_power = row.get("ac_device_power_w")
             if isinstance(device_power, dict) and mode in _LEARNABLE_ENERGY_MODES:
                 for entity_id, raw_power in device_power.items():
                     device_w = self._safe_float(raw_power)
                     if device_w is not None and device_w >= _MIN_ACTIVE_POWER_W:
                         state.device_models.setdefault(str(entity_id), {}).setdefault(mode, _LinearStats()).add(
-                            features, device_w
+                            features, device_w, ts
                         )
             if ts is not None and datetime.fromtimestamp(ts).astimezone().date() == today:
                 today_rows.append((ts, power))
@@ -376,12 +398,12 @@ class EnergyManager:
         state.last_temp_ts = now_ts
         state.last_temp_mode = mode
         if power_w >= _MIN_ACTIVE_POWER_W and can_learn_ac and configured == len(device_power):
-            state.models.setdefault(mode, _LinearStats()).add(features, power_w)
+            state.models.setdefault(mode, _LinearStats()).add(features, power_w, now_ts)
         if can_learn_ac:
             for entity_id, measured_w in device_power.items():
                 if measured_w >= _MIN_ACTIVE_POWER_W:
                     state.device_models.setdefault(entity_id, {}).setdefault(mode, _LinearStats()).add(
-                        features, measured_w
+                        features, measured_w, now_ts
                     )
 
         nominal = self._safe_float(room.get("heat_pump_power_watts"))

@@ -11,6 +11,7 @@ from custom_components.roommind.websocket_api import (
     _csv_to_points,
     _safe_float,
     websocket_covers_clear_override,
+    websocket_control_preview,
     websocket_delete_room,
     websocket_get_analytics,
     websocket_get_analytics_comparison,
@@ -42,6 +43,20 @@ _get_analytics = websocket_get_analytics.__wrapped__
 _get_analytics_comparison = websocket_get_analytics_comparison.__wrapped__
 _get_diagnostics = websocket_get_diagnostics.__wrapped__
 _covers_clear_override = websocket_covers_clear_override.__wrapped__
+_control_preview = websocket_control_preview.__wrapped__
+
+
+@pytest.mark.asyncio
+async def test_control_preview_websocket_is_read_only(ws_hass, store, connection):
+    await store.async_load()
+    coordinator = MagicMock()
+    coordinator.rooms = {}
+    ws_hass.data[DOMAIN]["coordinator"] = coordinator
+    expected = {"read_only": True, "rooms": {}}
+    with patch("custom_components.roommind.services.control_preview.build_control_preview", return_value=expected):
+        await _control_preview(ws_hass, connection, {"id": 330, "type": "roommind/control/preview", "mode": "dry"})
+    connection.send_result.assert_called_once_with(330, expected)
+    ws_hass.services.async_call.assert_not_called()
 
 
 @pytest.fixture
@@ -1912,7 +1927,7 @@ def test_register_websocket_commands(hass):
 
     with patch("custom_components.roommind.websocket_api.websocket_api.async_register_command") as mock_reg:
         async_register_websocket_commands(hass)
-        assert mock_reg.call_count == 14
+    assert mock_reg.call_count == 15
 
 
 # ---------------------------------------------------------------------------

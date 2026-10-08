@@ -589,6 +589,8 @@ class RoomMindCoordinator(DataUpdateCoordinator):
             "hydraulic_path_safe": self._boiler_manager.path_safe,
             "available_power": budget.available_watts,
             "reserved_power": budget.reserved_watts,
+            "power_sensor_healthy": budget.sensor_healthy,
+            "power_sensor_age_seconds": budget.sensor_age_seconds,
         }
 
     def _read_room_sensors(
@@ -1198,6 +1200,7 @@ class RoomMindCoordinator(DataUpdateCoordinator):
         ):
             previous_source = self._heat_source_states.get(area_id, "inactive")
             if room.get("native_heat_source", False):
+                heat_pump_denied = False
                 heat_source_plan = evaluate_native_heat_sources(
                     room,
                     mode,
@@ -1209,7 +1212,13 @@ class RoomMindCoordinator(DataUpdateCoordinator):
                     self.hass,
                 )
                 if heat_source_plan and heat_source_plan.active_sources in ("heat_pump", "hybrid"):
-                    running = previous_source in ("heat_pump", "hybrid")
+                    # Routing history is not proof of physical operation: an
+                    # external off command may have stopped the AC meanwhile.
+                    running = any(
+                        (state := self.hass.states.get(eid)) is not None
+                        and state.state in ("heat", "cool", "dry")
+                        for eid in get_ac_eids(room.get("devices", []))
+                    )
                     if not self._power_budget_manager.request_heat_pump(
                         area_id,
                         self._energy_manager.budget_power_w(
@@ -1217,6 +1226,7 @@ class RoomMindCoordinator(DataUpdateCoordinator):
                         ),
                         running,
                     ):
+                        heat_pump_denied = True
                         heat_source_plan = evaluate_native_heat_sources(
                             room,
                             mode,
@@ -1234,6 +1244,7 @@ class RoomMindCoordinator(DataUpdateCoordinator):
                     heat_source_plan
                     and previous_source not in ("inactive", "none")
                     and heat_source_plan.active_sources != previous_source
+                    and not heat_pump_denied
                 ):
                     dwell = float(room.get("heat_source_min_dwell_minutes", 10)) * 60
                     if time.monotonic() - self._heat_source_changed_at.get(area_id, 0) < dwell:

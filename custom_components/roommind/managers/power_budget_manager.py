@@ -2,11 +2,15 @@
 
 from __future__ import annotations
 
+import math
 from dataclasses import dataclass
+from datetime import UTC, datetime
 
 from homeassistant.core import HomeAssistant
 
 from ..utils.sensor_utils import read_sensor_value
+
+_MAX_POWER_READING_AGE_SECONDS = 180.0
 
 
 @dataclass(frozen=True)
@@ -14,6 +18,8 @@ class PowerBudgetStatus:
     available_watts: float | None
     reserved_watts: float
     enabled: bool
+    sensor_age_seconds: float | None = None
+    sensor_healthy: bool = True
 
 
 class PowerBudgetManager:
@@ -32,23 +38,38 @@ class PowerBudgetManager:
         self._already_running: set[str] = set()
         self._enabled = False
         self._conservative = True
+        self._sensor_age_seconds: float | None = None
+        self._sensor_healthy = True
 
     def begin_cycle(self, hass: HomeAssistant, settings: dict, running_loads: dict[str, float]) -> None:
         self._enabled = bool(settings.get("power_budget_enabled", False))
         self._conservative = settings.get("power_budget_unavailable_behavior", "boiler") == "boiler"
         self._reserved = {room: max(0.0, load) for room, load in running_loads.items()}
         self._already_running = set(running_loads)
+        self._sensor_age_seconds = None
+        self._sensor_healthy = True
         if not self._enabled:
             self._available = None
             return
         sensor = settings.get("power_sensor")
+        state = hass.states.get(sensor) if sensor else None
+        if state is not None:
+            reported = getattr(state, "last_reported", None) or getattr(state, "last_updated", None)
+            if isinstance(reported, datetime):
+                age = (datetime.now(UTC) - reported.astimezone(UTC)).total_seconds()
+                self._sensor_age_seconds = max(0.0, age)
+                if age > _MAX_POWER_READING_AGE_SECONDS or age < -60:
+                    self._available = None
+                    self._sensor_healthy = False
+                    return
         raw = read_sensor_value(hass, sensor, "global", "available power")
         try:
             value = float(raw) if raw is not None else None
         except (TypeError, ValueError):
             value = None
-        if value is None:
+        if value is None or not math.isfinite(value) or value < 0:
             self._available = None
+            self._sensor_healthy = False
             return
         max_power = float(settings.get("power_budget_max_watts", 0) or 0)
         reserve = float(settings.get("power_budget_reserve_watts", 0) or 0)
@@ -79,4 +100,10 @@ class PowerBudgetManager:
         return True
 
     def status(self) -> PowerBudgetStatus:
-        return PowerBudgetStatus(self._available, sum(self._reserved.values()), self._enabled)
+        return PowerBudgetStatus(
+            self._available,
+            sum(self._reserved.values()),
+            self._enabled,
+            self._sensor_age_seconds,
+            self._sensor_healthy,
+        )
