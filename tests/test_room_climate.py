@@ -5,6 +5,7 @@ from __future__ import annotations
 from unittest.mock import ANY, AsyncMock, MagicMock
 
 import pytest
+from homeassistant.components.climate import ClimateEntityFeature
 
 from custom_components.roommind.managers.room_climate import async_apply_ac_auxiliary_mode
 
@@ -29,11 +30,24 @@ def _hass(mode: str, **attributes):
             "fan_mode": "low",
             "swing_mode": "vertical",
             "swing_horizontal_mode": "middle",
+            "supported_features": ClimateEntityFeature.FAN_MODE
+            | ClimateEntityFeature.SWING_MODE
+            | ClimateEntityFeature.SWING_HORIZONTAL_MODE,
             **attributes,
         },
     )
     hass.services.async_call = AsyncMock()
     return hass
+
+
+@pytest.mark.asyncio
+async def test_auxiliary_mode_skips_controls_the_ac_does_not_offer_in_dry():
+    # Real case: many splits drop fan control in DRY; calling it fails every tick.
+    hass = _hass("dry", fan_mode="high", supported_features=ClimateEntityFeature.SWING_MODE)
+
+    await async_apply_ac_auxiliary_mode(hass, _room("dry"))
+
+    hass.services.async_call.assert_not_awaited()
 
 
 @pytest.mark.asyncio

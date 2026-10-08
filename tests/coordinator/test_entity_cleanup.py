@@ -382,3 +382,48 @@ def test_cleanup_removes_canonical_climate_for_outdoor_room(hass, mock_config_en
         coordinator.cleanup_orphaned_entities()
 
     mock_registry.async_remove.assert_called_once_with("climate.roommind_terrace")
+
+
+def test_cleanup_never_removes_entities_the_platforms_create(hass, mock_config_entry):
+    """Regression: new sensors were created and then deleted again at every startup."""
+    from custom_components.roommind.binary_sensor import (
+        RoomMindAiringRecommendedSensor,
+        RoomMindBoilerActiveSensor,
+        RoomMindHydraulicPathSafeSensor,
+    )
+    from custom_components.roommind.const import DOMAIN
+    from custom_components.roommind.sensor import (
+        RoomMindAvailablePowerSensor,
+        RoomMindBoilerDemandSensor,
+        RoomMindReservedPowerSensor,
+        _create_room_entities,
+    )
+
+    coordinator = _create_coordinator(hass, mock_config_entry)
+    room = {"devices": [], "humidity_sensor": "sensor.h"}
+    store = MagicMock()
+    store.get_rooms.return_value = {"studio": room}
+    hass.data = {DOMAIN: {"store": store}}
+
+    created = [
+        *_create_room_entities(coordinator, "studio", room),
+        RoomMindAiringRecommendedSensor(coordinator),
+        RoomMindBoilerActiveSensor(coordinator),
+        RoomMindHydraulicPathSafeSensor(coordinator),
+        RoomMindBoilerDemandSensor(coordinator),
+        RoomMindAvailablePowerSensor(coordinator),
+        RoomMindReservedPowerSensor(coordinator),
+    ]
+    entries = []
+    for entity in created:
+        entry = MagicMock()
+        entry.unique_id = entity.unique_id
+        entry.entity_id = entity.entity_id
+        entries.append(entry)
+    mock_registry = MagicMock()
+    mock_registry.entities.values.return_value = entries
+
+    with patch("homeassistant.helpers.entity_registry.async_get", return_value=mock_registry):
+        coordinator.cleanup_orphaned_entities()
+
+    mock_registry.async_remove.assert_not_called()

@@ -174,6 +174,8 @@ ROOM_ENTITY_SUFFIXES = (
     "_energy_cost_today",
     "_predicted_energy_cost_1h",
     "_ac_efficiency",
+    "_mold_surface_humidity",
+    "_mold_exposure_7d",
 )
 # Suffixes only valid when the room has covers configured.
 COVER_ENTITY_SUFFIXES = ("_cover_auto", "_cover_paused")
@@ -199,6 +201,7 @@ GLOBAL_ENTITY_UNIQUE_IDS = frozenset(
         f"{DOMAIN}_reserved_power",
         f"{DOMAIN}_boiler_active",
         f"{DOMAIN}_hydraulic_path_safe",
+        f"{DOMAIN}_airing_recommended",
     }
 )
 

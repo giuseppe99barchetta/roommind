@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
+from homeassistant.components.climate import ClimateEntityFeature
 from homeassistant.core import HomeAssistant
 
 from ..const import make_roommind_context
@@ -125,12 +126,19 @@ async def async_apply_ac_auxiliary_mode(
         state = hass.states.get(entity_id)
         if state is None or state.state != mode:
             return
-    for service, key in (
-        ("set_fan_mode", "room_fan_mode"),
-        ("set_swing_mode", "room_swing_mode"),
-        ("set_swing_horizontal_mode", "room_swing_horizontal_mode"),
+    if state is None:
+        state = hass.states.get(entity_id)
+    # Many ACs drop fan/swing control in DRY: only send what the entity
+    # currently supports, or the call fails on every coordinator tick.
+    supported = int((state.attributes.get("supported_features") or 0) if state is not None else 0)
+    for service, key, feature in (
+        ("set_fan_mode", "room_fan_mode", ClimateEntityFeature.FAN_MODE),
+        ("set_swing_mode", "room_swing_mode", ClimateEntityFeature.SWING_MODE),
+        ("set_swing_horizontal_mode", "room_swing_horizontal_mode", ClimateEntityFeature.SWING_HORIZONTAL_MODE),
     ):
         attribute = service.removeprefix("set_")
+        if state is not None and not supported & feature:
+            continue
         if room.get(key) and (state is None or state.attributes.get(attribute) != room[key]):
             await hass.services.async_call(
                 "climate",
