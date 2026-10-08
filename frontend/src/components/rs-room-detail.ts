@@ -678,6 +678,7 @@ export class RsRoomDetail extends LitElement {
                   .hasAc=${true}
                   .hasTrv=${this._devices.some((d) => d.type === "trv")}
                   .heatPumpPower=${this._heatPumpPowerWatts}
+                  .powerBudgetEstimates=${this.config?.live?.power_budget_estimates}
                   .enabled=${this._heatSourceOrchestration}
                   .primaryDelta=${this._heatSourcePrimaryDelta}
                   .outdoorThreshold=${this._heatSourceOutdoorThreshold}
@@ -972,6 +973,7 @@ export class RsRoomDetail extends LitElement {
             .acMinOutdoor=${this._heatSourceAcMinOutdoor}
             .native=${this._nativeHeatSource}
             .heatPumpPower=${this._heatPumpPowerWatts}
+            .powerBudgetEstimates=${this.config?.live?.power_budget_estimates}
             @setting-changed=${this._onHeatSourceSettingChanged}
           ></rs-heat-source-section>
         </rs-edit-dialog>`;

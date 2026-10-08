@@ -341,18 +341,6 @@ class RoomMindCoordinator(DataUpdateCoordinator):
 
         # Load compressor groups from settings (every cycle, cheap)
         self._compressor_manager.load_groups(settings.get("compressor_groups", []))
-        # Reserve every AC compressor that is already running, not only ACs
-        # driven by native heat-source routing.  This makes the shared budget
-        # effective for normal cooling/heating rooms too.
-        running_loads: dict[str, float] = {}
-        for area_id, room in rooms.items():
-            nominal_w = float(room.get("heat_pump_power_watts", 0) or 0)
-            physical_mode = self._energy_manager._physical_mode(self.hass, room, "idle")
-            if physical_mode in ("heating", "cooling", "dry"):
-                running_loads[area_id] = self._energy_manager.budget_power_w(area_id, physical_mode, nominal_w)
-            elif self._heat_source_states.get(area_id) in ("heat_pump", "hybrid"):
-                running_loads[area_id] = self._energy_manager.budget_power_w(area_id, "heating", nominal_w)
-        self._power_budget_manager.begin_cycle(self.hass, settings, running_loads)
 
         # Load thermal model and valve actuation data from store (once)
         if not self._model_loaded:
@@ -386,6 +374,19 @@ class RoomMindCoordinator(DataUpdateCoordinator):
                     self._energy_manager.bootstrap(area_id, history + detail)
                 except Exception:  # noqa: BLE001
                     _LOGGER.warning("Energy history bootstrap failed for '%s'", area_id)
+
+        # Bootstrap before building budget reservations: the first coordinator
+        # cycle after a restart can use historical AC peaks without waiting for
+        # live samples. Running loads are already included by the house meter.
+        running_loads: dict[str, float] = {}
+        for area_id, room in rooms.items():
+            nominal_w = float(room.get("heat_pump_power_watts", 0) or 0)
+            physical_mode = self._energy_manager._physical_mode(self.hass, room, "idle")
+            if physical_mode in ("heating", "cooling", "dry"):
+                running_loads[area_id] = self._energy_manager.budget_power_w(area_id, physical_mode, nominal_w)
+            elif self._heat_source_states.get(area_id) in ("heat_pump", "hybrid"):
+                running_loads[area_id] = self._energy_manager.budget_power_w(area_id, "heating", nominal_w)
+        self._power_budget_manager.begin_cycle(self.hass, settings, running_loads)
 
         room_states: dict[str, dict] = {}
 

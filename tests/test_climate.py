@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import time
 from contextlib import nullcontext
-from unittest.mock import ANY, AsyncMock, MagicMock
+from unittest.mock import ANY, AsyncMock, MagicMock, patch
 
 import pytest
 from homeassistant.components.climate import ClimateEntityFeature, HVACMode
@@ -22,6 +22,8 @@ from custom_components.roommind.const import (
     OVERRIDE_CUSTOM,
 )
 from custom_components.roommind.managers.compressor_group_manager import CompressorGroupManager
+from custom_components.roommind.managers.energy_manager import EnergyManager
+from custom_components.roommind.managers.power_budget_manager import PowerBudgetManager
 
 
 @pytest.fixture
@@ -84,6 +86,37 @@ def _canonical_room(devices, **overrides):
     }
     room.update(overrides)
     return room
+
+
+def test_manual_ac_start_uses_learned_cooling_peak_without_manual_watts(mock_coordinator):
+    """Manual AC activation follows the same per-mode learner as MPC."""
+    coordinator, store = mock_coordinator
+    room = _canonical_room([{"entity_id": "climate.ac", "type": "ac"}], heat_pump_power_watts=0)
+    store.get_room.return_value = room
+    store.get_rooms.return_value = {"living_room": room}
+    store.get_settings.return_value = {
+        "power_budget_enabled": True,
+        "power_sensor": "sensor.house",
+        "power_sensor_mode": "consumption",
+        "power_budget_max_watts": 3300,
+        "power_budget_reserve_watts": 200,
+    }
+    coordinator.hass.states.get.side_effect = {"climate.ac": MagicMock(state="off", attributes={})}.get
+    coordinator._energy_manager = EnergyManager(coordinator.hass)
+    coordinator._energy_manager.bootstrap(
+        "living_room",
+        [
+            {"timestamp": 1_700_000_000 + n * 60, "energy_mode": "cooling", "ac_power_w": 400}
+            for n in range(6)
+        ],
+    )
+    coordinator._power_budget_manager = PowerBudgetManager()
+    entity = RoomMindClimate(coordinator, "living_room")
+
+    with patch("custom_components.roommind.managers.power_budget_manager.read_sensor_value", return_value=2000):
+        entity._manual_activation_guard("cool")  # 1100 W free, learned request 520 W
+        with pytest.raises(ValueError, match="power budget"):
+            entity._manual_activation_guard("heat")  # No heating samples or manual fallback
 
 
 def test_canonical_mixed_room_capabilities_and_logical_cooling_target(mock_coordinator):

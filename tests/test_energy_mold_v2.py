@@ -42,6 +42,97 @@ def test_energy_manager_integrates_and_learns_power():
     assert 500 < manager.budget_power_w("studio", "cooling", 1000) < 1000
 
 
+def test_budget_automatically_uses_learned_peak_over_manual_fallback():
+    """The saved nominal is a fallback, not a floor or required input."""
+    manager = EnergyManager(MagicMock())
+    rows = [
+        {"timestamp": 1_700_000_000 + n * 60, "energy_mode": "cooling", "ac_power_w": watts}
+        for n, watts in enumerate((350, 420, 500, 430, 380, 450, 470, 490))
+    ]
+    manager.bootstrap("sala", rows)
+    assert manager.budget_power_estimate("sala", "cooling", 1000) == (650.0, "learned", 8)
+    assert manager.budget_power_estimate("sala", "cooling", 0) == (650.0, "learned", 8)
+
+
+def test_budget_learns_separately_per_mode_and_falls_back_safely():
+    manager = EnergyManager(MagicMock())
+    manager.bootstrap(
+        "studio",
+        [
+            {"timestamp": 1_700_000_000 + n * 60, "energy_mode": "cooling", "ac_power_w": 400}
+            for n in range(6)
+        ]
+        + [
+            {"timestamp": 1_700_010_000 + n * 60, "energy_mode": "heating", "ac_power_w": 1000}
+            for n in range(6)
+        ]
+        + [{"timestamp": 1_700_020_000, "energy_mode": "dry", "ac_power_w": 200}],
+    )
+    assert manager.budget_power_estimate("studio", "cooling", 700) == (520.0, "learned", 6)
+    assert manager.budget_power_estimate("studio", "heating", 700) == (1300.0, "learned", 6)
+    assert manager.budget_power_estimate("studio", "dry", 700) == (700.0, "fallback", 1)
+    assert manager.budget_power_estimate("studio", "dry", 0) == (0.0, "unknown", 1)
+    assert manager.budget_power_estimate("studio", "fan_only", 0) == (0.0, "unknown", 0)
+
+
+def test_budget_history_bootstrap_deduplicates_overlapping_recordings():
+    """Daily and detailed RoomMind history can contain the same timestamp."""
+    manager = EnergyManager(MagicMock())
+    rows = [
+        {"timestamp": 1_700_000_000 + n * 60, "energy_mode": "cooling", "ac_power_w": 300}
+        for n in range(3)
+    ]
+    manager.bootstrap("camera", rows + rows)
+    assert manager.budget_power_estimate("camera", "cooling", 700) == (700.0, "fallback", 3)
+
+
+def test_budget_never_learns_standby_or_missing_sensor_samples():
+    manager = EnergyManager(MagicMock())
+    manager.bootstrap(
+        "camera",
+        [
+            {"timestamp": 1_700_000_000 + n * 60, "energy_mode": "cooling", "ac_power_w": power}
+            for n, power in enumerate((0, 0, 5, 0, 5, 0, 0, 0))
+        ],
+    )
+    assert manager.budget_power_estimate("camera", "cooling", 800) == (800.0, "fallback", 0)
+    assert manager.budget_power_estimate("camera", "cooling", 0) == (0.0, "unknown", 0)
+
+
+def test_budget_does_not_learn_from_stale_power_while_ac_is_off():
+    states = {
+        "sensor.ac_power": _State("600", {"unit_of_measurement": "W"}),
+        "climate.ac": _State("off"),
+    }
+    manager = EnergyManager(_hass(states))
+    room = {"devices": [{"entity_id": "climate.ac", "type": "ac", "power_sensor_entity_id": "sensor.ac_power"}]}
+    for n in range(8):
+        manager.update_room(
+            "studio", room, {"mode": "cooling", "target_temp": 23, "current_temp": 28}, 32, now=1700000000 + n * 60
+        )
+    assert manager.budget_power_estimate("studio", "cooling", 700) == (700.0, "fallback", 0)
+
+
+def test_budget_does_not_learn_partial_multi_ac_room_power():
+    states = {
+        "sensor.ac1_power": _State("400", {"unit_of_measurement": "W"}),
+        "climate.ac1": _State("cool"),
+        "climate.ac2": _State("cool"),
+    }
+    manager = EnergyManager(_hass(states))
+    room = {
+        "devices": [
+            {"entity_id": "climate.ac1", "type": "ac", "power_sensor_entity_id": "sensor.ac1_power"},
+            {"entity_id": "climate.ac2", "type": "ac", "power_sensor_entity_id": "sensor.ac2_power"},
+        ]
+    }
+    for n in range(8):
+        manager.update_room(
+            "sala", room, {"mode": "cooling", "target_temp": 23, "current_temp": 28}, 32, now=1700000000 + n * 60
+        )
+    assert manager.budget_power_estimate("sala", "cooling", 1000) == (1000.0, "fallback", 0)
+
+
 def test_energy_manager_converts_kw_sensor():
     states = {
         "sensor.ac_power": _State("0.72", {"unit_of_measurement": "kW"}),

@@ -1009,6 +1009,9 @@ async def test_list_rooms_includes_readiness_and_ordered_decision_reasons(ws_has
             "mode": "heating",
             "window_open": True,
             "power_budget_blocked": True,
+            "power_budget_estimates": {
+                "cooling": {"watts": 650.0, "source": "learned", "samples": 12},
+            },
         }
     }
     coordinator.outdoor_temp_effective = 7.0
@@ -1021,6 +1024,11 @@ async def test_list_rooms_includes_readiness_and_ordered_decision_reasons(ws_has
     room = connection.send_result.call_args[0][1]["rooms"]["studio"]
     assert room["readiness"]["level"] == "ready"
     assert room["live"]["decision_reasons"] == ["window_open", "power_budget"]
+    assert room["live"]["power_budget_estimates"]["cooling"] == {
+        "watts": 650.0,
+        "source": "learned",
+        "samples": 12,
+    }
 
 
 @pytest.mark.asyncio

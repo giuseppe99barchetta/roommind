@@ -242,13 +242,22 @@ class RoomMindOverrideClimate(CoordinatorEntity, ClimateEntity):
                 and state.state not in ("off", "unknown", "unavailable", "fan_only")
                 for entity_id in other_acs
             ):
-                running_loads[area_id] = float(other.get("heat_pump_power_watts", 0) or 0)
+                physical_mode = self.coordinator._energy_manager._physical_mode(hass, other, "idle")
+                running_loads[area_id] = self.coordinator._energy_manager.budget_power_w(
+                    area_id,
+                    physical_mode,
+                    float(other.get("heat_pump_power_watts", 0) or 0),
+                )
 
         budget = self.coordinator._power_budget_manager
         budget.begin_cycle(hass, settings, running_loads)
         if not budget.request_heat_pump(
             self._area_id,
-            float(room.get("heat_pump_power_watts", 0) or 0),
+            self.coordinator._energy_manager.budget_power_w(
+                self._area_id,
+                {"heat": "heating", "cool": "cooling", "dry": "dry"}[mode],
+                float(room.get("heat_pump_power_watts", 0) or 0),
+            ),
             self._area_id in running_loads,
         ):
             raise ValueError("RoomMind power budget blocks this climate activation")

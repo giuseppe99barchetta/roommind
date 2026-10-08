@@ -55,6 +55,11 @@ export interface RoomLiveData {
   predicted_device_power_w?: Record<string, number>;
   predicted_energy_1h_kwh?: number | null;
   energy_learning_samples?: number;
+  power_budget_estimates?: Record<"heating" | "cooling" | "dry", {
+    watts: number;
+    source: "learned" | "fallback" | "unknown";
+    samples: number;
+  }>;
   energy_prediction_confidence?: "low" | "medium" | "high" | null;
   energy_cost_today_eur?: number | null;
   predicted_energy_cost_1h_eur?: number | null;

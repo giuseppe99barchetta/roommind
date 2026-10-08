@@ -14,6 +14,8 @@ _MIN_SAMPLES_FOR_PREDICTION = 6
 _MIN_SAMPLES_FOR_HIGH_CONFIDENCE = 24
 _MAX_REASONABLE_POWER_W = 20000.0
 _LEARNABLE_ENERGY_MODES = ("heating", "cooling", "dry")
+_BUDGET_PEAK_MARGIN = 1.30
+_BUDGET_MIN_LEARNED_W = 250.0
 
 
 @dataclass
@@ -246,19 +248,28 @@ class EnergyManager:
                 result[entity_id] = round(prediction, 1)
         return result
 
+    def budget_power_estimate(self, area_id: str, mode: str, nominal_w: float) -> tuple[float, str, int]:
+        """Conservatively size an AC start from measured history, or a fallback.
+
+        The household meter supplies *current* headroom; this estimate is used
+        only for a prospective AC start. A compressor that is off reads 0 W,
+        so instantaneous per-device readings alone cannot size that start.
+        Modes have separate peaks because heating/dry can draw differently.
+        """
+        nominal = self._safe_float(nominal_w)
+        fallback = min(max(0.0, nominal or 0.0), _MAX_REASONABLE_POWER_W)
+        state = self._rooms.get(area_id)
+        model = state.models.get(mode) if state and mode in _LEARNABLE_ENERGY_MODES else None
+        if model is not None and model.n >= _MIN_SAMPLES_FOR_PREDICTION and model.observed_max_w >= _MIN_ACTIVE_POWER_W:
+            # Peak, not the ridge regression mean: underestimated start loads
+            # could exceed the household limit. Keep 30% surge/headroom margin.
+            estimate = max(_BUDGET_MIN_LEARNED_W, model.observed_max_w * _BUDGET_PEAK_MARGIN)
+            return round(min(estimate, _MAX_REASONABLE_POWER_W), 1), "learned", model.n
+        return fallback, "fallback" if fallback > 0 else "unknown", model.n if model else 0
+
     def budget_power_w(self, area_id: str, mode: str, nominal_w: float) -> float:
-        """Return a cautiously learned AC allocation for the house power budget."""
-        nominal_w = max(0.0, float(nominal_w))
-        model = self._rooms.get(area_id, _RoomEnergyState()).models.get(mode)
-        if model is None or model.n < _MIN_SAMPLES_FOR_PREDICTION or model.observed_max_w <= 0:
-            return nominal_w
-        # Keep a margin above the largest observed draw, then blend it in over
-        # 18 usable samples. This never lowers a reservation abruptly.
-        learned_w = max(50.0, model.observed_max_w * 1.15)
-        if learned_w >= nominal_w:
-            return round(learned_w, 1)
-        blend = min((model.n - _MIN_SAMPLES_FOR_PREDICTION) / 18.0, 0.6)
-        return round(nominal_w + (learned_w - nominal_w) * blend, 1)
+        """Return the wattage to reserve (zero means unknown; block new starts)."""
+        return self.budget_power_estimate(area_id, mode, nominal_w)[0]
 
     def bootstrap(self, area_id: str, rows: list[dict]) -> None:
         state = self._rooms.setdefault(area_id, _RoomEnergyState())
@@ -266,11 +277,18 @@ class EnergyManager:
             return
         today = datetime.now().astimezone().date()
         today_rows: list[tuple[float, float]] = []
+        seen_samples: set[tuple[float, str]] = set()
         for row in rows:
             power = self._safe_float(row.get("ac_power_w"))
             if power is None:
                 continue
             mode = str(row.get("energy_mode") or row.get("mode") or "idle")
+            ts = self._safe_float(row.get("timestamp"))
+            if ts is not None:
+                key = (ts, mode)
+                if key in seen_samples:
+                    continue
+                seen_samples.add(key)
             room_temp = self._safe_float(row.get("room_temp"))
             target = self._safe_float(row.get("target_temp"))
             outdoor = self._safe_float(row.get("outdoor_temp"))
@@ -287,7 +305,6 @@ class EnergyManager:
                         state.device_models.setdefault(str(entity_id), {}).setdefault(mode, _LinearStats()).add(
                             features, device_w
                         )
-            ts = self._safe_float(row.get("timestamp"))
             if ts is not None and datetime.fromtimestamp(ts).astimezone().date() == today:
                 today_rows.append((ts, power))
         today_rows.sort()
@@ -328,6 +345,10 @@ class EnergyManager:
 
         fallback_mode = str(room_state.get("commanded_mode") or room_state.get("mode") or "idle")
         mode = self._physical_mode(self.hass, room, fallback_mode)
+        physical_ac_mode = self._physical_mode(self.hass, room, "idle")
+        # Do not teach the AC budget from a TRV heating decision or an offline
+        # compressor whose stale power sensor happens to report nonzero watts.
+        can_learn_ac = mode in _LEARNABLE_ENERGY_MODES and physical_ac_mode == mode
         room_temp = self._safe_float(room_state.get("current_temp"))
         target = self._safe_float(room_state.get("target_temp"))
         humidity = self._safe_float(room_state.get("current_humidity"))
@@ -354,9 +375,9 @@ class EnergyManager:
         state.last_temp = room_temp
         state.last_temp_ts = now_ts
         state.last_temp_mode = mode
-        if power_w >= _MIN_ACTIVE_POWER_W and mode in _LEARNABLE_ENERGY_MODES:
+        if power_w >= _MIN_ACTIVE_POWER_W and can_learn_ac and configured == len(device_power):
             state.models.setdefault(mode, _LinearStats()).add(features, power_w)
-        if mode in _LEARNABLE_ENERGY_MODES:
+        if can_learn_ac:
             for entity_id, measured_w in device_power.items():
                 if measured_w >= _MIN_ACTIVE_POWER_W:
                     state.device_models.setdefault(entity_id, {}).setdefault(mode, _LinearStats()).add(
@@ -366,6 +387,14 @@ class EnergyManager:
         nominal = self._safe_float(room.get("heat_pump_power_watts"))
         prediction, samples = self.predict_power(area_id, mode, room_temp, target, outdoor_temp, humidity, nominal)
         predicted_devices = self.predict_device_power(area_id, mode, room_temp, target, outdoor_temp, humidity)
+        budget_estimates = {}
+        for energy_mode in _LEARNABLE_ENERGY_MODES:
+            budget_w, budget_source, budget_samples = self.budget_power_estimate(area_id, energy_mode, nominal or 0)
+            budget_estimates[energy_mode] = {
+                "watts": budget_w,
+                "source": budget_source,
+                "samples": budget_samples,
+            }
         confidence = self.prediction_confidence(prediction, samples)
         rate_model = state.rate_models.get(mode)
         expected_power = prediction or 0.0
@@ -392,6 +421,7 @@ class EnergyManager:
             "predicted_device_power_w": predicted_devices,
             "predicted_energy_1h_kwh": round(prediction / 1000.0, 3) if prediction is not None else None,
             "energy_learning_samples": samples,
+            "power_budget_estimates": budget_estimates,
             "energy_prediction_confidence": confidence,
             "ac_thermal_rate_c_per_h": round(rate, 2) if rate is not None else None,
             "ac_efficiency_status": "possible_issue" if inefficient else "normal",

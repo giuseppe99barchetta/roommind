@@ -1,6 +1,6 @@
 import { LitElement, html, css, nothing } from "lit";
 import { customElement, property } from "lit/decorators.js";
-import type { HomeAssistant } from "../types";
+import type { HomeAssistant, RoomLiveData } from "../types";
 import { localize } from "../utils/localize";
 import { inputStyles } from "../styles/input-styles";
 
@@ -14,6 +14,7 @@ export class RsHeatSourceSection extends LitElement {
   @property({ type: Boolean }) public hasAc = false;
   @property({ type: Boolean }) public hasTrv = false;
   @property({ type: Number }) public heatPumpPower = 0;
+  @property({ attribute: false }) public powerBudgetEstimates?: RoomLiveData["power_budget_estimates"];
   @property({ type: Number }) public primaryDelta = 1.5;
   @property({ type: Number }) public outdoorThreshold = 5.0;
   @property({ type: Number }) public acMinOutdoor = -15.0;
@@ -121,6 +122,15 @@ export class RsHeatSourceSection extends LitElement {
       .threshold-cell ha-textfield {
         width: 100%;
       }
+      .power-learning {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px 14px;
+        margin-top: 10px;
+        color: var(--secondary-text-color);
+        font-size: 12px;
+        line-height: 1.6;
+      }
     `,
   ];
 
@@ -134,6 +144,7 @@ export class RsHeatSourceSection extends LitElement {
           ${this.hasAc
             ? html`${this.hasTrv ? " · " : ""}${localize("heat_source.power_estimate", lang)}: ${this.heatPumpPower} W`
             : nothing}
+          ${this._renderPowerLearning(lang)}
         </div>`;
       }
       return html`<div class="summary">
@@ -145,6 +156,7 @@ export class RsHeatSourceSection extends LitElement {
         >
         · ${localize("heat_source.ac_min_outdoor", lang)}:
         <strong>${this.acMinOutdoor}${localize("heat_source.ac_min_outdoor_suffix", lang)}</strong>
+        ${this._renderPowerLearning(lang)}
       </div>`;
     }
 
@@ -176,6 +188,7 @@ export class RsHeatSourceSection extends LitElement {
             </div>
           </div>`
         : nothing}
+      ${this._renderPowerLearning(lang)}
 
       ${this.enabled && this.hasTrv
         ? html`
@@ -228,6 +241,20 @@ export class RsHeatSourceSection extends LitElement {
           `
         : nothing}
     `;
+  }
+
+  private _renderPowerLearning(lang: string) {
+    if (!this.hasAc || !this.powerBudgetEstimates) return nothing;
+    const modes = ["heating", "cooling", "dry"] as const;
+    return html`<div class="power-learning">
+      ${modes.map((mode) => {
+        const estimate = this.powerBudgetEstimates?.[mode];
+        if (!estimate) return nothing;
+        const title = localize(`heat_source.budget_${mode}`, lang);
+        const source = localize(`heat_source.budget_${estimate.source}`, lang);
+        return html`<span>${title}: ${estimate.watts > 0 ? `${estimate.watts} W` : "—"} (${source})</span>`;
+      })}
+    </div>`;
   }
 
   private _renderThresholdCell(opts: {
