@@ -72,7 +72,12 @@ from .managers.compressor_group_manager import (
 from .managers.cover_orchestrator import CoverOrchestrator, CoverResult
 from .managers.ekf_training_manager import EkfTrainingManager
 from .managers.energy_manager import EnergyManager
-from .managers.heat_source_orchestrator import HeatSourcePlan, evaluate_heat_sources, evaluate_native_heat_sources
+from .managers.heat_source_orchestrator import (
+    HeatSourcePlan,
+    _native_commands,
+    evaluate_heat_sources,
+    evaluate_native_heat_sources,
+)
 from .managers.mold_manager import MoldManager
 from .managers.power_budget_manager import PowerBudgetManager
 from .managers.residual_heat_tracker import ResidualHeatTracker
@@ -92,6 +97,7 @@ from .utils.device_utils import (
 )
 from .utils.device_utils import room_has_power_sensor as _room_has_power_sensor
 from .utils.history_store import HistoryStore
+from .utils.mold_utils import absolute_humidity, airing_recommended, dry_start_temperature
 from .utils.night_mode import apply_night_targets
 from .utils.notification_utils import NotificationThrottler, async_send_mold_notification, dismiss_mold_notification
 from .utils.schedule_utils import resolve_schedule_index
@@ -255,6 +261,7 @@ class RoomMindCoordinator(DataUpdateCoordinator):
         # AC power history + adaptive consumption prediction
         self._energy_manager = EnergyManager(hass)
         self._mold_active_strategies: dict[str, str] = {}
+        self._airing_rooms: set[str] = set()
         self._mold_restore_modes: dict[str, str] = {}
         self._humidity_dry_started: dict[str, float] = {}
         self._humidity_dry_retry_after: dict[str, float] = {}
@@ -594,6 +601,12 @@ class RoomMindCoordinator(DataUpdateCoordinator):
             "boiler_demand": len(self._boiler_manager.demand_rooms),
             "boiler_active": self._boiler_manager.state.value == "on",
             "hydraulic_path_safe": self._boiler_manager.path_safe,
+            "airing_rooms": sorted(a for a, r in room_states.items() if r.get("airing_recommended")),
+            "outdoor_abs_humidity": (
+                round(absolute_humidity(self.outdoor_temp_effective, self.outdoor_humidity), 1)
+                if self.outdoor_temp_effective is not None and self.outdoor_humidity is not None
+                else None
+            ),
             "available_power": budget.available_watts,
             "reserved_power": budget.reserved_watts,
             "power_sensor_healthy": budget.sensor_healthy,
@@ -749,6 +762,7 @@ class RoomMindCoordinator(DataUpdateCoordinator):
             settings,
             can_dry="dry" in ac_modes,
             can_cool=bool(ac_modes & {"cool", "heat_cool", "auto"}),
+            can_heat_pump="heat" in ac_modes and room.get("climate_mode", "auto") != CLIMATE_MODE_COOL_ONLY,
             automation_enabled=automation_enabled,
             celsius_delta_to_ha_fn=lambda d: celsius_delta_to_ha(self.hass, d),  # type: ignore[misc]
             ha_temp_unit_str_fn=lambda: ha_temp_unit_str(self.hass),  # type: ignore[misc]
@@ -986,9 +1000,17 @@ class RoomMindCoordinator(DataUpdateCoordinator):
         mold_restore_mode = pending_restore
         effective_requested_hvac_mode = requested_hvac_mode
         if mold_prevention_effective:
-            effective_requested_hvac_mode = mold_prevention_strategy
+            # "reheat" is a heat-pump HEAT phase between DRY phases.
+            effective_requested_hvac_mode = "heat" if mold_prevention_strategy == "reheat" else mold_prevention_strategy
             force_off = False
-            if mold_prevention_strategy == "heat":
+            if mold_prevention_strategy == "reheat":
+                base_heat = targets.heat
+                if base_heat is None:
+                    base_heat = room.get("eco_heat", room.get("eco_temp", DEFAULT_ECO_HEAT))
+                heat_target = max(float(base_heat), dry_start_temperature(settings))
+                mold_prevention_temp_delta = max(0.0, heat_target - float(base_heat))
+                targets = TargetTemps(heat=heat_target, cool=None)
+            elif mold_prevention_strategy == "heat":
                 base_heat = targets.heat
                 if base_heat is None:
                     base_heat = room.get("eco_heat", room.get("eco_temp", DEFAULT_ECO_HEAT))
@@ -1294,13 +1316,26 @@ class RoomMindCoordinator(DataUpdateCoordinator):
             # Orchestration not active for this room — remove stale state
             # so re-enabling starts fresh.
             self._heat_source_states.pop(area_id, None)
+        mold_reheat = mold_prevention_effective and mold_prevention_strategy == "reheat"
+        if mold_reheat and mode == MODE_HEATING:
+            # Reheat between DRY phases is a heat-pump job only: the boiler /
+            # radiators stay off so mild-season dehumidification never burns gas.
+            heat_source_plan = _native_commands(
+                get_trv_eids(room.get("devices", [])),
+                get_ac_eids(room.get("devices", [])),
+                "heat_pump",
+                power_fraction,
+                "mold_reheat",
+            )
 
         # Shared electrical budget.  Native heat-source routing has already
         # made this request above; every other AC start is admitted here in the
         # stable, priority-sorted room order of this update cycle.
         budget_blocked_acs: set[str] = set()
         ac_eids = set(get_ac_eids(room.get("devices", [])))
-        native_budget_checked = bool(room.get("native_heat_source", False) and heat_source_plan is not None)
+        native_budget_checked = bool(
+            room.get("native_heat_source", False) and heat_source_plan is not None and not mold_reheat
+        )
         plan_uses_ac = heat_source_plan is None or any(
             command.device_type == "ac" and command.active for command in heat_source_plan.commands
         )
@@ -1707,6 +1742,24 @@ class RoomMindCoordinator(DataUpdateCoordinator):
         room_state["preconditioning_planned_at"] = planned_at
         anomalies = self._room_anomalies(area_id, room, current_temp, current_humidity, targets, mode)
         room_state["anomalies"] = anomalies
+        airing = airing_recommended(
+            current_temp,
+            current_humidity,
+            self.outdoor_temp_effective,
+            self.outdoor_humidity,
+            mold_surface_rh,
+            area_id in self._airing_rooms,
+        )
+        if airing:
+            self._airing_rooms.add(area_id)
+        else:
+            self._airing_rooms.discard(area_id)
+        room_state["airing_recommended"] = airing
+        room_state["indoor_abs_humidity"] = (
+            round(absolute_humidity(current_temp, current_humidity), 1)
+            if current_temp is not None and current_humidity is not None
+            else None
+        )
         room_state["humidity_action"] = (
             "dehumidifying"
             if self._humidity_dry_requested(area_id, room, current_temp, current_humidity, mode, window_open, force_off)
@@ -2717,6 +2770,7 @@ class RoomMindCoordinator(DataUpdateCoordinator):
         self._energy_manager.remove_room(area_id)
         self._mold_active_strategies.pop(area_id, None)
         self._mold_restore_modes.pop(area_id, None)
+        self._airing_rooms.discard(area_id)
         self._heat_source_states.pop(area_id, None)
         if self._history_store:
             await self.hass.async_add_executor_job(self._history_store.remove_room, area_id)

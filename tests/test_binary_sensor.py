@@ -7,6 +7,7 @@ from unittest.mock import MagicMock
 import pytest
 
 from custom_components.roommind.binary_sensor import (
+    RoomMindAiringRecommendedSensor,
     RoomMindCoverPausedSensor,
     _create_room_binary_sensors,
     async_setup_entry,
@@ -124,4 +125,19 @@ async def test_async_setup_entry_no_covers_no_entities():
     await async_setup_entry(hass, entry, async_add_entities)
 
     async_add_entities.assert_called_once()
-    assert len(async_add_entities.call_args[0][0]) == 2
+    assert len(async_add_entities.call_args[0][0]) == 3
+
+
+def test_airing_recommended_sensor(mock_coordinator):
+    sensor = RoomMindAiringRecommendedSensor(mock_coordinator)
+    sensor.hass = MagicMock()
+    assert sensor.is_on is False
+    mock_coordinator.data = {
+        "rooms": {"living_room": {"indoor_abs_humidity": 13.7}},
+        "airing_rooms": ["living_room"],
+        "outdoor_abs_humidity": 6.1,
+    }
+    assert sensor.is_on is True
+    attrs = sensor.extra_state_attributes
+    assert attrs["outdoor_abs_humidity"] == 6.1
+    assert len(attrs["rooms"]) == 1 and list(attrs["indoor_abs_humidity"].values()) == [13.7]

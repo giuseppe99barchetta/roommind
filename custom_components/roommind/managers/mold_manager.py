@@ -12,7 +12,6 @@ from homeassistant.core import HomeAssistant
 from ..const import (
     DEFAULT_MOLD_COOLDOWN_MINUTES,
     DEFAULT_MOLD_HUMIDITY_THRESHOLD,
-    DEFAULT_MOLD_PREVENTION_DRY_MIN_TEMPERATURE,
     DEFAULT_MOLD_PREVENTION_SUSTAINED_MINUTES,
     DEFAULT_MOLD_SUSTAINED_MINUTES,
     MOLD_HYSTERESIS,
@@ -22,6 +21,7 @@ from ..const import (
     MOLD_PREVENTION_HEAT_BELOW_TEMPERATURE,
     MOLD_PREVENTION_MAX_RUN_MINUTES,
     MOLD_PREVENTION_MIN_RUN_MINUTES,
+    MOLD_PREVENTION_REHEAT_MAX_RUN_MINUTES,
     MOLD_PREVENTION_RETRY_MINUTES,
     MOLD_RISK_CRITICAL,
     MOLD_RISK_OK,
@@ -29,7 +29,7 @@ from ..const import (
     MOLD_SURFACE_RH_EARLY,
     MOLD_SURFACE_RH_WARNING,
 )
-from ..utils.mold_utils import calculate_mold_risk, mold_prevention_delta
+from ..utils.mold_utils import calculate_mold_risk, dry_start_temperature, mold_prevention_delta
 from ..utils.notification_utils import (
     NotificationThrottler,
     async_send_mold_notification,
@@ -75,6 +75,7 @@ class MoldManager:
         settings: dict,
         can_dry: bool = False,
         can_cool: bool = False,
+        can_heat_pump: bool = False,
         automation_enabled: bool = True,
         celsius_delta_to_ha_fn: Callable[[float], float] | None = None,
         ha_temp_unit_str_fn: Callable[[], str] | None = None,
@@ -201,15 +202,24 @@ class MoldManager:
         )
         # Earlier RoomMind settings allowed DRY as low as 20°C. Respect any
         # *higher* user threshold, but enforce the new 22°C safety minimum.
-        dry_min_temperature = max(
-            DEFAULT_MOLD_PREVENTION_DRY_MIN_TEMPERATURE,
-            float(settings.get("mold_prevention_dry_min_temperature", DEFAULT_MOLD_PREVENTION_DRY_MIN_TEMPERATURE)),
-        )
+        dry_min_temperature = dry_start_temperature(settings)
         dry_stop_temperature = max(MOLD_PREVENTION_DRY_STOP_TEMPERATURE, dry_min_temperature - 1.0)
+        dehumidification_enabled = settings.get("mold_prevention_dehumidification_enabled", True)
+        # Optional DRY/heat-pump alternation: when DRY has cooled the room to
+        # its stop temperature, the same AC heats it back (boiler stays off)
+        # instead of abandoning dehumidification for an hour.
+        reheat_allowed = bool(
+            settings.get("mold_prevention_reheat_enabled", False)
+            and dehumidification_enabled
+            and can_dry
+            and can_heat_pump
+        )
+        max_run_minutes = MOLD_PREVENTION_REHEAT_MAX_RUN_MINUTES if reheat_allowed else MOLD_PREVENTION_MAX_RUN_MINUTES
         cooling_down = now < self._prevention_cooldown_until.get(area_id, 0)
-        timed_out = activated and now - self._prevention_started.get(area_id, now) >= MOLD_PREVENTION_MAX_RUN_MINUTES * 60
+        timed_out = activated and now - self._prevention_started.get(area_id, now) >= max_run_minutes * 60
         dry_too_cold = (
             activated
+            and not reheat_allowed
             and self._prevention_strategy.get(area_id) == "dry"
             and current_temp <= dry_stop_temperature
         )
@@ -227,12 +237,19 @@ class MoldManager:
             # when explicitly enabled and the room has enough thermal
             # headroom; otherwise use the heating plan (which can route to
             # a heat pump, gas boiler, or both).
-            dehumidification_enabled = settings.get("mold_prevention_dehumidification_enabled", True)
             continuing_dry = activated and self._prevention_strategy.get(area_id) == "dry"
             can_start_dry = current_temp >= dry_min_temperature
             can_continue_dry = continuing_dry and current_temp > dry_stop_temperature
             if dehumidification_enabled and can_dry and (can_start_dry or can_continue_dry):
                 result.prevention_strategy = "dry"
+                result.prevention_delta = 0.0
+            elif reheat_allowed and current_temp >= MOLD_PREVENTION_HEAT_BELOW_TEMPERATURE:
+                # Heat pump back up to the DRY start temperature (1 °C band
+                # above the stop point), then the next tick resumes DRY.
+                # ponytail: no coil-drain pause before HEAT; part of the
+                # condensate film re-evaporates. Add a short off phase if
+                # humidity rebounds after each switch.
+                result.prevention_strategy = "reheat"
                 result.prevention_delta = 0.0
             elif surface_risky and current_temp < MOLD_PREVENTION_HEAT_BELOW_TEMPERATURE:
                 # Heating only makes sense for genuinely cold rooms; cooling
@@ -266,7 +283,7 @@ class MoldManager:
                             f"Mold prevention active in {area_name}: "
                             + (
                                 f"AC dehumidification enabled ({result.prevention_strategy})"
-                                if result.prevention_strategy in ("dry", "cool")
+                                if result.prevention_strategy in ("dry", "cool", "reheat")
                                 else "cold-room heating requested (target 20–21°C)"
                             )
                         ),

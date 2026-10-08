@@ -530,6 +530,8 @@
   "mold.dehumidification_desc": "Utiliser d'abord le mode sec du climatiseur uniquement si la pièce est assez chaude ; sinon RoomMind applique le plan pompe à chaleur / chaudière configuré.",
   "mold.dehumidification_min_temperature": "Température minimale pour la déshumidification",
   "mold.dehumidification_min_temperature_hint": "DRY démarre au-dessus de ce seuil et s'arrête à 21 °C. Entre 20 et 22 °C, pas de chauffage automatique ; chauffage seulement sous 20 °C.",
+  "mold.reheat": "Alterner DRY et HEAT de la pompe à chaleur",
+  "mold.reheat_desc": "Quand DRY refroidit la pièce jusqu'à la température d'arrêt, le même climatiseur la réchauffe jusqu'à la température de démarrage DRY puis reprend la déshumidification. Radiateurs/chaudière restent éteints. Idéal en mi-saison douce et pluvieuse ; session limitée à 3 heures.",
   "mold.intensity_hint": "Chauffage uniquement sous 20 °C. Définir la température cible de protection, sans réduire la consigne normale de confort.",
   "card.mold_warning": "Risque de moisissure",
   "card.mold_critical": "Danger de moisissure !",

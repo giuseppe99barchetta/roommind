@@ -14,12 +14,17 @@ from __future__ import annotations
 import math
 
 from ..const import (
+    AIRING_ABS_HUMIDITY_OFF,
+    AIRING_ABS_HUMIDITY_ON,
+    AIRING_MIN_INDOOR_RH,
+    DEFAULT_MOLD_PREVENTION_DRY_MIN_TEMPERATURE,
     MIN_MOLD_GROWTH_TEMP,
     MOLD_PREVENTION_DELTAS,
     MOLD_RISK_CRITICAL,
     MOLD_RISK_OK,
     MOLD_RISK_WARNING,
     MOLD_SURFACE_RH_CRITICAL,
+    MOLD_SURFACE_RH_EARLY,
     MOLD_SURFACE_RH_WARNING,
 )
 
@@ -123,6 +128,45 @@ def _risk_from_surface_rh(srh: float) -> str:
     if srh >= MOLD_SURFACE_RH_WARNING:
         return MOLD_RISK_WARNING
     return MOLD_RISK_OK
+
+
+def absolute_humidity(temp: float, rh: float) -> float:
+    """Return water vapour density in g/m³ (Magnus saturation pressure)."""
+    e_sat = 6.112 * math.exp((_A * temp) / (_B + temp))  # hPa
+    return 216.7 * (max(0.0, min(rh, 100.0)) / 100.0) * e_sat / (273.15 + temp)
+
+
+def airing_recommended(
+    t_room: float | None,
+    rh_room: float | None,
+    t_outdoor: float | None,
+    rh_outdoor: float | None,
+    surface_rh: float | None,
+    was_recommended: bool = False,
+) -> bool:
+    """Return True when opening windows would remove indoor moisture.
+
+    Relative humidity cannot be compared across temperatures: cold outdoor
+    air at 90 % usually holds far less water than warm indoor air at 60 %.
+    Airing is suggested only when there is moisture worth removing, the
+    outdoor air is clearly drier in absolute terms and not warmer than the
+    room.  A hysteresis band avoids flapping on sensor noise.
+    """
+    if None in (t_room, rh_room, t_outdoor, rh_outdoor):
+        return False
+    humid = rh_room >= AIRING_MIN_INDOOR_RH or (surface_rh or 0.0) >= MOLD_SURFACE_RH_EARLY
+    if not humid or t_outdoor >= t_room:
+        return False
+    gap = absolute_humidity(t_room, rh_room) - absolute_humidity(t_outdoor, rh_outdoor)
+    return gap >= (AIRING_ABS_HUMIDITY_OFF if was_recommended else AIRING_ABS_HUMIDITY_ON)
+
+
+def dry_start_temperature(settings: dict) -> float:
+    """Room temperature from which mold-prevention DRY may start."""
+    return max(
+        DEFAULT_MOLD_PREVENTION_DRY_MIN_TEMPERATURE,
+        float(settings.get("mold_prevention_dry_min_temperature", DEFAULT_MOLD_PREVENTION_DRY_MIN_TEMPERATURE)),
+    )
 
 
 def mold_prevention_delta(intensity: str) -> float:

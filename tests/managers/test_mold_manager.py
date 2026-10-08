@@ -650,3 +650,52 @@ async def test_dry_cycle_maximum_runtime_and_retry_pause(mm):
         assert not (await mm.evaluate("bed", "Bed", 23, 67, 5, settings, can_dry=True)).prevention_active
         clock.time.return_value = 2801
         assert mm.dry_retry_blocked("bed")
+
+
+_REHEAT = {
+    "mold_prevention_enabled": True,
+    "mold_prevention_sustained_minutes": 0,
+    "mold_prevention_reheat_enabled": True,
+}
+
+
+@pytest.mark.asyncio
+async def test_reheat_alternates_dry_and_heat_pump_without_cooldown(mm):
+    with (
+        patch("custom_components.roommind.managers.mold_manager.calculate_mold_risk", return_value=("warning", 73.0)),
+        patch("custom_components.roommind.managers.mold_manager.time") as clock,
+        patch("custom_components.roommind.managers.mold_manager.dismiss_mold_notification"),
+    ):
+        caps = {"can_dry": True, "can_heat_pump": True}
+        clock.time.return_value = 1000
+        assert (await mm.evaluate("bed", "Bed", 23, 65, 15, _REHEAT, **caps)).prevention_strategy == "dry"
+        clock.time.return_value = 1600
+        cold = await mm.evaluate("bed", "Bed", 21, 65, 15, _REHEAT, **caps)
+        assert cold.prevention_active and cold.prevention_strategy == "reheat"
+        assert not mm.dry_retry_blocked("bed")
+        clock.time.return_value = 1900
+        assert (await mm.evaluate("bed", "Bed", 21.6, 65, 15, _REHEAT, **caps)).prevention_strategy == "reheat"
+        clock.time.return_value = 2200
+        assert (await mm.evaluate("bed", "Bed", 22, 65, 15, _REHEAT, **caps)).prevention_strategy == "dry"
+        # 30-minute single-DRY cap does not apply to an alternating session...
+        clock.time.return_value = 1000 + 179 * 60
+        assert (await mm.evaluate("bed", "Bed", 22.5, 65, 15, _REHEAT, **caps)).prevention_active
+        # ...but the 3-hour session cap does.
+        clock.time.return_value = 1000 + 180 * 60
+        assert not (await mm.evaluate("bed", "Bed", 22.5, 65, 15, _REHEAT, **caps)).prevention_active
+        assert mm.dry_retry_blocked("bed")
+
+
+@pytest.mark.asyncio
+async def test_reheat_closes_20_to_22_gap_only_when_enabled_and_heat_pump_present(mm):
+    with patch("custom_components.roommind.managers.mold_manager.calculate_mold_risk", return_value=("critical", 85.0)):
+        gap = await mm.evaluate("a", "A", 21.0, 78, 5, _REHEAT, can_dry=True, can_heat_pump=True)
+        assert gap.prevention_active and gap.prevention_strategy == "reheat"
+        no_hp = await mm.evaluate("b", "B", 21.0, 78, 5, _REHEAT, can_dry=True)
+        assert no_hp.prevention_strategy is None
+        off = {**_REHEAT, "mold_prevention_reheat_enabled": False}
+        disabled = await mm.evaluate("c", "C", 21.0, 78, 5, off, can_dry=True, can_heat_pump=True)
+        assert disabled.prevention_strategy is None
+        # Cold rooms keep the regular heating plan.
+        cold = await mm.evaluate("d", "D", 19.0, 78, 5, _REHEAT, can_dry=True, can_heat_pump=True)
+        assert cold.prevention_strategy == "heat"

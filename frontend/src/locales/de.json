@@ -530,6 +530,8 @@
   "mold.dehumidification_desc": "Den Dry-Modus der Klimaanlage nur bei ausreichend warmer Raumluft zuerst verwenden; andernfalls folgt der konfigurierte Wärmepumpen-/Kesselplan.",
   "mold.dehumidification_min_temperature": "Mindest-Raumtemperatur für Entfeuchtung",
   "mold.dehumidification_min_temperature_hint": "DRY startet erst über dieser Raumtemperatur und stoppt bei 21 °C. Zwischen 20 und 22 °C keine automatische Heizumschaltung; heizen nur unter 20 °C.",
+  "mold.reheat": "DRY und Wärmepumpen-HEAT abwechseln",
+  "mold.reheat_desc": "Kühlt DRY den Raum auf die Abschalttemperatur, heizt dieselbe Klimaanlage bis zur DRY-Starttemperatur nach und entfeuchtet dann weiter. Heizkörper/Kessel bleiben aus. Ideal für milde, regnerische Übergangszeiten; maximal 3 Stunden pro Sitzung.",
   "mold.intensity_hint": "Heizbetrieb nur unter 20 °C. Maximales Schimmelschutz-Heizziel wählen; normale Komfort-Heizziele bleiben erhalten.",
   "card.mold_warning": "Schimmelrisiko",
   "card.mold_critical": "Schimmelgefahr!",

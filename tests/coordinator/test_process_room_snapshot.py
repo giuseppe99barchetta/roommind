@@ -80,6 +80,8 @@ NORMAL_ROOM_KEYS = {
     "compressor_protection_reason",
     "active_profile",
     "anomalies",
+    "airing_recommended",
+    "indoor_abs_humidity",
     "comfort_score",
     "humidity_action",
     "night_mode_active",

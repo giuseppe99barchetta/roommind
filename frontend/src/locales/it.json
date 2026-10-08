@@ -305,6 +305,8 @@
   "mold.dehumidification_desc": "Usa DRY in modo controllato, senza impostare temperatura o ventola: interviene solo se la stanza è abbastanza calda.",
   "mold.dehumidification_min_temperature": "Temperatura ambiente minima per deumidificare",
   "mold.dehumidification_min_temperature_hint": "DRY parte da questa temperatura e si arresta a 21 °C. Fra 20 e 22 °C niente riscaldamento automatico: HEAT solo sotto 20 °C.",
+  "mold.reheat": "Alterna DRY e HEAT della pompa di calore",
+  "mold.reheat_desc": "Quando DRY porta la stanza alla temperatura di arresto, lo stesso condizionatore la riscalda in HEAT fino alla temperatura minima di DRY e poi riprende a deumidificare. Termosifoni/caldaia restano spenti. Ideale nelle mezze stagioni piovose; sessione massima 3 ore.",
   "mold.prevention_desc": "Deumidifica le pareti a rischio con cicli DRY protetti; riscalda solo sotto 20 °C.",
   "mold.intensity": "Riscaldamento antimuffa",
   "mold.intensity_light": "Leggero (fino a {delta}{unit})",

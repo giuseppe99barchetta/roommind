@@ -74,6 +74,7 @@ export class RsSettings extends LitElement {
   @state() private _moldPreventionIntensity: "light" | "medium" | "strong" = "medium";
   @state() private _moldPreventionDehumidificationEnabled = true;
   @state() private _moldPreventionDryMinTemperature = 23;
+  @state() private _moldPreventionReheatEnabled = false;
   @state() private _moldPreventionNotify = false;
   @state() private _windowOpenNotificationMinutes = 0;
   @state() private _compressorGroups: CompressorGroup[] = [];
@@ -152,6 +153,7 @@ export class RsSettings extends LitElement {
       this._moldPreventionDehumidificationEnabled =
         s.mold_prevention_dehumidification_enabled ?? true;
       this._moldPreventionDryMinTemperature = s.mold_prevention_dry_min_temperature ?? 22;
+      this._moldPreventionReheatEnabled = s.mold_prevention_reheat_enabled ?? false;
       this._moldPreventionNotify = s.mold_prevention_notify_enabled ?? false;
       this._windowOpenNotificationMinutes = s.window_open_notification_minutes ?? 0;
       this._compressorGroups = s.compressor_groups ?? [];
@@ -384,6 +386,7 @@ export class RsSettings extends LitElement {
           .moldPreventionIntensity=${this._moldPreventionIntensity}
           .moldPreventionDehumidificationEnabled=${this._moldPreventionDehumidificationEnabled}
           .moldPreventionDryMinTemperature=${this._moldPreventionDryMinTemperature}
+          .moldPreventionReheatEnabled=${this._moldPreventionReheatEnabled}
           @setting-changed=${this._onSettingChanged}
         ></rs-settings-mold>
       </rs-settings-panel>
@@ -535,6 +538,7 @@ export class RsSettings extends LitElement {
         mold_prevention_intensity: this._moldPreventionIntensity,
         mold_prevention_dehumidification_enabled: this._moldPreventionDehumidificationEnabled,
         mold_prevention_dry_min_temperature: this._moldPreventionDryMinTemperature,
+        mold_prevention_reheat_enabled: this._moldPreventionReheatEnabled,
         mold_prevention_notify_enabled: this._moldPreventionNotify,
         mold_prevention_notify_targets: this._moldPreventionNotify
           ? this._moldNotificationTargets.filter((t) => t.entity_id)

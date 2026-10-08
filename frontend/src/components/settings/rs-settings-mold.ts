@@ -27,6 +27,7 @@ export class RsSettingsMold extends RsSettingsBase {
     "medium";
   @property({ type: Boolean }) public moldPreventionDehumidificationEnabled = true;
   @property({ type: Number }) public moldPreventionDryMinTemperature = 22;
+  @property({ type: Boolean }) public moldPreventionReheatEnabled = false;
 
   render() {
     const l = this.hass.language;
@@ -225,6 +226,20 @@ export class RsSettingsMold extends RsSettingsBase {
                         <span class="field-hint"
                           >${localize("mold.dehumidification_min_temperature_hint", l)}</span
                         >
+                      </div>
+                      <div class="toggle-row" style="margin-top: 12px">
+                        <div class="toggle-text">
+                          <span class="toggle-label">${localize("mold.reheat", l)}</span>
+                          <span class="toggle-hint">${localize("mold.reheat_desc", l)}</span>
+                        </div>
+                        <ha-switch
+                          .checked=${this.moldPreventionReheatEnabled}
+                          @change=${(e: Event) =>
+                            this._fire(
+                              "moldPreventionReheatEnabled",
+                              (e.target as HTMLInputElement).checked,
+                            )}
+                        ></ha-switch>
                       </div>
                     `
                   : nothing}

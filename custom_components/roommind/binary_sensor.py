@@ -35,7 +35,13 @@ async def async_setup_entry(
         if room.get("covers"):
             entities.extend(_create_room_binary_sensors(coordinator, area_id))
             coordinator._binary_sensor_entity_areas.add(area_id)
-    entities.extend([RoomMindBoilerActiveSensor(coordinator), RoomMindHydraulicPathSafeSensor(coordinator)])
+    entities.extend(
+        [
+            RoomMindBoilerActiveSensor(coordinator),
+            RoomMindHydraulicPathSafeSensor(coordinator),
+            RoomMindAiringRecommendedSensor(coordinator),
+        ]
+    )
     if entities:
         async_add_entities(entities)
 
@@ -89,3 +95,34 @@ class RoomMindHydraulicPathSafeSensor(_GlobalBinarySensor):
 
     def __init__(self, coordinator: RoomMindCoordinator) -> None:
         super().__init__(coordinator, "hydraulic_path_safe", "Hydraulic Path Safe")
+
+
+class RoomMindAiringRecommendedSensor(CoordinatorEntity, BinarySensorEntity):
+    """On when outdoor air is drier (g/m³) and opening windows would dry a humid room."""
+
+    _attr_has_entity_name = True
+    _attr_icon = "mdi:window-open-variant"
+
+    def __init__(self, coordinator: RoomMindCoordinator) -> None:
+        super().__init__(coordinator)
+        self._attr_unique_id = f"{DOMAIN}_airing_recommended"
+        self._attr_name = "Airing Recommended"
+        self.entity_id = f"binary_sensor.{DOMAIN}_airing_recommended"
+
+    @property
+    def is_on(self) -> bool:
+        return bool((self.coordinator.data or {}).get("airing_rooms"))
+
+    @property
+    def extra_state_attributes(self) -> dict:
+        data = self.coordinator.data or {}
+        rooms = data.get("rooms", {})
+        return {
+            "rooms": [_get_room_display_name(self.hass, area_id) for area_id in data.get("airing_rooms", [])],
+            "outdoor_abs_humidity": data.get("outdoor_abs_humidity"),
+            "indoor_abs_humidity": {
+                _get_room_display_name(self.hass, area_id): room.get("indoor_abs_humidity")
+                for area_id, room in rooms.items()
+                if room.get("indoor_abs_humidity") is not None
+            },
+        }

@@ -538,6 +538,8 @@
   "mold.dehumidification_desc": "Use an AC's dry mode first only when the room is warm enough; otherwise RoomMind uses its configured heat-pump / boiler plan.",
   "mold.dehumidification_min_temperature": "Minimum room temperature for dehumidification",
   "mold.dehumidification_min_temperature_hint": "DRY starts only above this room temperature and stops by 21°C. Between 20–22°C, no automatic heat fallback; heat is considered only below 20°C.",
+  "mold.reheat": "Alternate DRY and heat-pump HEAT",
+  "mold.reheat_desc": "When DRY cools the room to its stop temperature, the same AC heats it back to the DRY start temperature and resumes dehumidifying. Radiators/boiler stay off. Best for mild, rainy mid-season days; 3-hour session cap.",
   "mold.intensity_hint": "Heating is used only below 20°C. Select the maximum anti-mold heating target (normal comfort heating targets are preserved).",
   "card.mold_warning": "Mold risk",
   "card.mold_critical": "Mold danger!",

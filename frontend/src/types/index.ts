@@ -47,7 +47,7 @@ export interface RoomLiveData {
   mold_surface_rh: number | null;
   mold_prevention_active: boolean;
   mold_prevention_delta: number;
-  mold_prevention_strategy?: "heat" | "dry" | "cool" | null;
+  mold_prevention_strategy?: "heat" | "dry" | "cool" | "reheat" | null;
   ac_power_w?: number | null;
   ac_device_power_w?: Record<string, number>;
   ac_energy_today_kwh?: number | null;
@@ -249,6 +249,7 @@ export interface GlobalSettings {
   mold_prevention_intensity?: "light" | "medium" | "strong";
   mold_prevention_dehumidification_enabled?: boolean;
   mold_prevention_dry_min_temperature?: number;
+  mold_prevention_reheat_enabled?: boolean;
   mold_prevention_notify_enabled?: boolean;
   mold_prevention_notify_targets?: NotificationTarget[];
   window_open_notification_minutes?: number;

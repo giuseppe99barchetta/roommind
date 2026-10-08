@@ -414,3 +414,73 @@ class TestMoldRiskDetection:
         # Mold prevention should override force_off
         assert room["mold_prevention_active"] is True
         assert room["force_off"] is False
+
+
+_HYBRID_ROOM = {
+    **SAMPLE_ROOM,
+    "acs": ["climate.living_ac"],
+    "devices": [
+        {"entity_id": "climate.living_room", "type": "trv", "role": "auto", "heating_system_type": ""},
+        {"entity_id": "climate.living_ac", "type": "ac", "role": "auto", "heating_system_type": ""},
+    ],
+}
+_AC_STATE = ("off", {"hvac_modes": ["off", "heat", "cool", "dry"], "min_temp": 16, "max_temp": 30})
+
+
+class TestMoldReheatAndAiring:
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize("reheat", [True, False])
+    async def test_gap_room_reheats_with_heat_pump_only(self, hass, mock_config_entry, reheat):
+        store = _make_store_mock(
+            {"living_room_abc12345": _HYBRID_ROOM},
+            {
+                "mold_prevention_enabled": True,
+                "mold_prevention_sustained_minutes": 0,
+                "mold_prevention_reheat_enabled": reheat,
+            },
+        )
+        hass.data = {"roommind": {"store": store}}
+        hass.states.get = MagicMock(
+            side_effect=make_mock_states_get(
+                temp="21.0", humidity="75.0", outdoor_temp="10.0", extra={"climate.living_ac": _AC_STATE}
+            )
+        )
+        hass.services.async_call = AsyncMock()
+
+        coordinator = _create_coordinator(hass, mock_config_entry)
+        data = await coordinator._async_update_data()
+
+        room = data["rooms"]["living_room_abc12345"]
+        heat_calls = [
+            c.args[2]["entity_id"]
+            for c in hass.services.async_call.call_args_list
+            if c.args[:2] == ("climate", "set_hvac_mode") and c.args[2].get("hvac_mode") == "heat"
+        ]
+        if reheat:
+            assert room["mold_prevention_strategy"] == "reheat"
+            assert room["target_temp"] == 22.0
+            assert "climate.living_ac" in heat_calls
+            assert "climate.living_room" not in heat_calls  # radiators / boiler stay off
+        else:
+            assert room["mold_prevention_strategy"] is None
+            assert heat_calls == []
+
+    @pytest.mark.asyncio
+    async def test_airing_recommended_when_outdoor_air_is_drier(self, hass, mock_config_entry):
+        store = _make_store_mock(
+            {"living_room_abc12345": SAMPLE_ROOM}, {"outdoor_humidity_sensor": "sensor.outdoor_humidity"}
+        )
+        hass.data = {"roommind": {"store": store}}
+        hass.states.get = MagicMock(
+            side_effect=make_mock_states_get(
+                humidity="70.0", outdoor_temp="5.0", extra={"sensor.outdoor_humidity": ("85.0", {})}
+            )
+        )
+        hass.services.async_call = AsyncMock()
+
+        coordinator = _create_coordinator(hass, mock_config_entry)
+        data = await coordinator._async_update_data()
+
+        assert data["rooms"]["living_room_abc12345"]["airing_recommended"] is True
+        assert data["airing_rooms"] == ["living_room_abc12345"]
+        assert data["outdoor_abs_humidity"] == pytest.approx(5.8, abs=0.2)

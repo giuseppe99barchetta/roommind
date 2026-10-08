@@ -140,6 +140,13 @@ MOLD_PREVENTION_HEAT_TARGETS = {"light": 20.0, "medium": 20.5, "strong": 21.0}
 MOLD_PREVENTION_DELTAS = {"light": 1.0, "medium": 2.0, "strong": 3.0}
 MOLD_HYSTERESIS = 5.0  # surface RH must drop this much below warning to clear
 MIN_MOLD_GROWTH_TEMP = 5.0  # °C — below this surface temp, mold risk negligible
+# Heat-pump reheat between DRY phases: lets DRY keep removing water in mild,
+# humid weather without the room drifting cold (and without the boiler).
+MOLD_PREVENTION_REHEAT_MAX_RUN_MINUTES = 180  # whole DRY/reheat session cap
+# Window airing advice: outdoor air must hold clearly less water vapour.
+AIRING_MIN_INDOOR_RH = 60.0  # % — below this there is little to remove
+AIRING_ABS_HUMIDITY_ON = 2.0  # g/m³ indoor-outdoor gap to recommend airing
+AIRING_ABS_HUMIDITY_OFF = 1.0  # g/m³ gap below which the advice clears
 
 # Heating system profiles — residual heat modeling per system type
 # tau_minutes: exponential decay time constant of residual heat after heating stops
