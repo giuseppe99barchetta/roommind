@@ -52,12 +52,12 @@
 | custom\_components/roommind/utils/night\_mode.py                   |       40 |        2 |     95% |    21, 58 |
 | custom\_components/roommind/utils/notification\_utils.py           |       50 |        0 |    100% |           |
 | custom\_components/roommind/utils/presence\_utils.py               |       22 |        0 |    100% |           |
-| custom\_components/roommind/utils/room\_insights.py                |       44 |        8 |     82% |25, 28, 53, 55, 57, 59, 61, 63 |
+| custom\_components/roommind/utils/room\_insights.py                |       44 |        6 |     86% |25, 28, 53, 59, 61, 63 |
 | custom\_components/roommind/utils/schedule\_utils.py               |      164 |        6 |     96% |143-144, 149-150, 158-159 |
 | custom\_components/roommind/utils/sensor\_utils.py                 |       29 |        1 |     97% |        25 |
 | custom\_components/roommind/utils/temp\_utils.py                   |       67 |        9 |     87% |72-73, 84, 111-112, 118-121 |
 | custom\_components/roommind/websocket\_api.py                      |      322 |        4 |     99% |857-862, 1135-1136 |
-| **TOTAL**                                                          | **8420** |  **695** | **92%** |           |
+| **TOTAL**                                                          | **8420** |  **693** | **92%** |           |
 
 
 ## Setup coverage badge
