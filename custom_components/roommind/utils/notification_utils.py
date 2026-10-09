@@ -64,6 +64,8 @@ async def async_send_mold_notification(
     - If ``notify_when == "home_only"`` and *person_entity* is set and the
       person is not home, the target is skipped.
     - Otherwise the notification is sent via ``notify.send_message``.
+      That entity action only accepts ``message`` and ``title``; the tag is
+      used by the persistent-notification fallback, not passed as ``data``.
 
     If *targets* is empty, a persistent HA notification is created as fallback.
 
@@ -110,15 +112,12 @@ async def async_send_mold_notification(
                     "entity_id": entity_id,
                     "message": message,
                     "title": title,
-                    "data": {
-                        "tag": tag,
-                        "group": "roommind",
-                    },
                 },
+                blocking=True,
             )
             sent_any = True
         except Exception:  # noqa: BLE001
-            _LOGGER.warning("Failed to send mold notification to %s", entity_id)
+            _LOGGER.warning("Failed to send mold notification to %s", entity_id, exc_info=True)
 
     if not sent_any:
         # All targets were skipped or failed → persistent fallback

@@ -130,10 +130,12 @@ class RoomMindModeSensor(_RoomMindBaseSensor):
 
     @property
     def native_value(self) -> str | None:
-        """Return the current mode, defaulting to 'idle'."""
+        """Show physical dehumidification even when thermal control is idle."""
         room = self.coordinator.data.get("rooms", {}).get(self._area_id)
         if room:
             val = room.get("mode", "idle")
+            if val == "idle" and room.get("humidity_action") == "dehumidifying":
+                return "dehumidifying"
             return str(val) if val is not None else "idle"
         return "idle"
 

@@ -15,7 +15,7 @@ from .climate import RoomMindClimate
 from .const import DOMAIN
 from .coordinator import RoomMindCoordinator, _get_room_display_name
 from .managers.room_climate import room_capabilities
-from .utils.device_utils import get_ac_eids
+from .utils.device_utils import ac_is_in_mode, get_ac_eids
 
 
 def _room_has_ac(room: dict) -> bool:
@@ -84,7 +84,11 @@ class RoomMindDryDehumidifier(CoordinatorEntity, HumidifierEntity):
     @property
     def is_on(self) -> bool:
         """Return whether the AC is currently in Dry mode."""
-        return self._climate().hvac_mode == HVACMode.DRY
+        return ac_is_in_mode(
+            self.coordinator.hass.states,
+            self._room().get("devices", []),
+            HVACMode.DRY.value,
+        )
 
     @property
     def current_humidity(self) -> float | None:

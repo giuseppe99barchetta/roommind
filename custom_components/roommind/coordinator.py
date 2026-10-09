@@ -93,6 +93,7 @@ from .managers.window_impact_manager import WindowImpactManager
 from .managers.window_manager import WindowManager
 from .utils.comfort_insights import active_profile, calculate_comfort_score
 from .utils.device_utils import (
+    ac_is_in_mode,
     build_rooms_devices_map,
     get_ac_eids,
     get_all_entity_ids,
@@ -1815,10 +1816,11 @@ class RoomMindCoordinator(DataUpdateCoordinator):
             if current_temp is not None and current_humidity is not None
             else None
         )
+        # Report observed dehumidification, not just the comfort policy's
+        # requested state. Mold prevention drives physical DRY separately from
+        # the room's persisted HVAC mode, which may intentionally remain OFF.
         room_state["humidity_action"] = (
-            "dehumidifying"
-            if self._humidity_dry_requested(area_id, room, current_temp, current_humidity, mode, window_open, force_off)
-            else "idle"
+            "dehumidifying" if ac_is_in_mode(self.hass.states, room.get("devices", []), "dry") else "idle"
         )
         room_state["active_profile"] = room.get("active_profile", "")
         room_state["comfort_score"] = calculate_comfort_score(

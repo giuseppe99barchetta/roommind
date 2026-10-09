@@ -194,6 +194,19 @@ def get_ac_eids(devices: list[dict]) -> list[str]:
     return get_entity_ids_by_type(devices, DEVICE_TYPE_AC)
 
 
+def ac_is_in_mode(states: Any, devices: list[dict], mode: str) -> bool:
+    """True when a configured AC actually reports the given HVAC mode.
+
+    The physical state is independent of RoomMind's saved manual mode: for
+    example mold prevention can run DRY while the requested room mode is OFF.
+    """
+    for entity_id in get_ac_eids(devices):
+        state = states.get(entity_id)
+        if state is not None and state.state == mode:
+            return True
+    return False
+
+
 def room_has_power_sensor(room: dict) -> bool:
     """Return whether an indoor room has an AC power sensor configured."""
     return not room.get("is_outdoor", False) and any(

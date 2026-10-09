@@ -53,7 +53,7 @@ def build_decision_reasons(live: dict) -> list[str]:
         reasons.append("presence_away")
     if live.get("mold_prevention_active"):
         reasons.append("mold_prevention")
-    if live.get("humidity_action") == "dehumidifying":
+    if live.get("humidity_action") == "dehumidifying" and not live.get("mold_prevention_active"):
         reasons.append("humidity_comfort")
     if live.get("smart_ventilation_active"):
         reasons.append("smart_ventilation")

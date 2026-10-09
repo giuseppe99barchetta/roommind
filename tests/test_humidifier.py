@@ -29,6 +29,40 @@ def test_dehumidifier_reads_configured_room_humidity(mock_coordinator):
     assert RoomMindDryDehumidifier(coordinator, "bedroom").current_humidity == 63.5
 
 
+@pytest.mark.parametrize(
+    ("requested_mode", "physical_mode", "expected"),
+    [
+        ("off", "dry", True),  # Automatic mold prevention overrides OFF without rewriting it.
+        ("off", "off", False),
+        ("dry", "dry", True),
+        ("dry", "off", False),  # Never show a stopped AC as on after HA restart.
+        ("off", "heat", False),
+        ("off", "unavailable", False),
+    ],
+)
+def test_dehumidifier_reflects_physical_dry_mode(mock_coordinator, requested_mode, physical_mode, expected):
+    coordinator, store = mock_coordinator
+    store.get_room.return_value = {
+        "room_hvac_mode": requested_mode,
+        "devices": [
+            {"type": "trv", "entity_id": "climate.valve"},
+            {"type": "ac", "entity_id": "climate.bedroom_ac"},
+        ],
+    }
+    coordinator.hass.states.get.return_value = MagicMock(state=physical_mode)
+    assert RoomMindDryDehumidifier(coordinator, "bedroom").is_on is expected
+    coordinator.hass.states.get.assert_called_once_with("climate.bedroom_ac")
+
+
+def test_dehumidifier_handles_missing_ac_state(mock_coordinator):
+    coordinator, store = mock_coordinator
+    store.get_room.return_value = {
+        "devices": [{"type": "ac", "entity_id": "climate.bedroom_ac"}]
+    }
+    coordinator.hass.states.get.return_value = None
+    assert RoomMindDryDehumidifier(coordinator, "bedroom").is_on is False
+
+
 @pytest.mark.asyncio
 async def test_dehumidifier_controls_canonical_climate(mock_coordinator):
     """Turning the entity on and off controls the room's Dry mode."""

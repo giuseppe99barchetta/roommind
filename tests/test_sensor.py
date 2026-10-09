@@ -136,6 +136,16 @@ def test_mode_sensor_value():
     assert sensor.native_value == "heating"
 
 
+def test_mode_sensor_shows_dehumidification_without_changing_thermal_mode():
+    coordinator = _make_coordinator({"room_a": {"mode": "idle", "humidity_action": "dehumidifying"}})
+    assert RoomMindModeSensor(coordinator, "room_a").native_value == "dehumidifying"
+
+
+def test_mode_sensor_preserves_heating_during_dehumidification():
+    coordinator = _make_coordinator({"room_a": {"mode": "heating", "humidity_action": "dehumidifying"}})
+    assert RoomMindModeSensor(coordinator, "room_a").native_value == "heating"
+
+
 def test_mode_sensor_defaults_to_idle():
     """Mode sensor defaults to 'idle' when key is missing."""
     coordinator = _make_coordinator({"room_a": {"target_temp": 21.0}})

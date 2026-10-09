@@ -82,8 +82,12 @@ async def test_send_notification_with_targets():
     for call in hass.services.async_call.call_args_list:
         assert call[0][0] == "notify"
         assert call[0][1] == "send_message"
-        assert call[0][2]["message"] == "Test mold alert"
-        assert call[0][2]["data"]["tag"] == "roommind_mold_living_room_risk"
+        assert call[0][2] == {
+            "entity_id": call[0][2]["entity_id"],
+            "message": "Test mold alert",
+            "title": "RoomMind: Test",
+        }
+        assert call.kwargs == {"blocking": True}
 
 
 @pytest.mark.asyncio
@@ -194,7 +198,7 @@ async def test_send_notification_person_unavailable_treated_as_home():
 
 @pytest.mark.asyncio
 async def test_send_notification_custom_tag_suffix():
-    """Custom tag_suffix should be reflected in notification tag."""
+    """Tag is for persistent fallback, not unsupported notify.send_message data."""
     hass = MagicMock()
     hass.services.async_call = AsyncMock()
 
@@ -212,8 +216,12 @@ async def test_send_notification_custom_tag_suffix():
         tag_suffix="prevention",
     )
 
-    call_data = hass.services.async_call.call_args[0][2]["data"]
-    assert call_data["tag"] == "roommind_mold_bedroom_prevention"
+    call_data = hass.services.async_call.call_args[0][2]
+    assert call_data == {
+        "entity_id": "notify.mobile_app_kevin",
+        "message": "Prevention active",
+        "title": "RoomMind",
+    }
 
 
 # --- dismiss_mold_notification ---
