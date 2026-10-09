@@ -36,3 +36,15 @@ def test_decision_reasons_prioritise_safety_before_normal_control():
 
 def test_decision_reasons_falls_back_to_room_mode():
     assert build_decision_reasons({"mode": "cooling"}) == ["mode_cooling"]
+
+
+def test_automatic_mold_drying_does_not_masquerade_as_humidity_comfort():
+    assert build_decision_reasons(
+        {"mode": "idle", "mold_prevention_active": True, "humidity_action": "dehumidifying"}
+    ) == ["mold_prevention"]
+
+
+def test_humidity_comfort_still_has_its_own_reason():
+    assert build_decision_reasons(
+        {"mode": "idle", "humidity_action": "dehumidifying"}
+    ) == ["humidity_comfort"]

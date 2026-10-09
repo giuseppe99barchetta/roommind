@@ -8,6 +8,7 @@ from custom_components.roommind.utils.device_utils import (
     SETPOINT_MODE_PROPORTIONAL,
     VALID_DEVICE_TYPES,
     VALID_HEATING_SYSTEM_TYPES,
+    ac_is_in_mode,
     build_rooms_devices_map,
     devices_to_legacy,
     ensure_room_has_devices,
@@ -26,6 +27,21 @@ from custom_components.roommind.utils.device_utils import (
     migrate_heat_pump_devices,
     room_contributes_to_group,
 )
+
+
+def test_ac_is_in_mode_uses_only_real_ac_states():
+    devices = [
+        {"entity_id": "climate.valve", "type": "trv"},
+        {"entity_id": "climate.bedroom_ac", "type": "ac"},
+    ]
+    states = MagicMock()
+    states.get.return_value = MagicMock(state="dry")
+    assert ac_is_in_mode(states, devices, "dry")
+    states.get.assert_called_once_with("climate.bedroom_ac")
+    states.get.return_value = MagicMock(state="off")
+    assert not ac_is_in_mode(states, devices, "dry")
+    states.get.return_value = None
+    assert not ac_is_in_mode(states, devices, "dry")
 
 # ---------------------------------------------------------------------------
 # Constants

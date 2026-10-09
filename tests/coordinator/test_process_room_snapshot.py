@@ -302,6 +302,33 @@ class TestProcessRoomSnapshot:
         assert result["heating_power"] == 0
 
     @pytest.mark.asyncio
+    async def test_physical_dry_is_reported_with_manual_room_off(self, hass, mock_config_entry):
+        """An automatic DRY cycle is visible without changing the saved manual OFF."""
+        room = {
+            **SAMPLE_ROOM,
+            "devices": [{"entity_id": "climate.bedroom_ac", "type": "ac", "role": "auto"}],
+            "thermostats": [],
+            "acs": ["climate.bedroom_ac"],
+            "room_hvac_mode": "off",
+        }
+        coordinator, store = _setup_coordinator(hass, mock_config_entry, {room["area_id"]: room})
+        hass.states.get = MagicMock(
+            side_effect=make_mock_states_get(
+                temp="23.8",
+                humidity="60.0",
+                extra={"climate.bedroom_ac": ("dry", {"hvac_modes": ["off", "heat", "cool", "dry"]})},
+            )
+        )
+        coordinator._evaluate_mold_risk = AsyncMock(return_value=("ok", 65.9, True, 0.0, "dry", None))
+
+        result = await coordinator._async_process_room(room, store.get_settings(), [])
+
+        assert result["mode"] == "idle"
+        assert result["humidity_action"] == "dehumidifying"
+        assert result["mold_prevention_strategy"] == "dry"
+        assert room["room_hvac_mode"] == "off"
+
+    @pytest.mark.asyncio
     async def test_device_setpoint_mixed_direct_proportional_cooling(self, hass, mock_config_entry):
         """AC (direct) + TRV (proportional) in the same room, cooling mode.
 
