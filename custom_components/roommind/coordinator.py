@@ -1551,13 +1551,18 @@ class RoomMindCoordinator(DataUpdateCoordinator):
                     )
                     if budget_ok:
                         for ac_eid in dry_acs:
-                            await self.hass.services.async_call(
-                                "climate",
-                                "set_hvac_mode",
-                                {"entity_id": ac_eid, "hvac_mode": "dry"},
-                                blocking=True,
-                                context=make_roommind_context(),
-                            )
+                            # Do not retransmit DRY on every coordinator tick.
+                            # Some IR-based ACs treat identical commands as new
+                            # actions, causing beeps or compressor interruptions.
+                            ac_state = self.hass.states.get(ac_eid)
+                            if ac_state is None or ac_state.state != "dry":
+                                await self.hass.services.async_call(
+                                    "climate",
+                                    "set_hvac_mode",
+                                    {"entity_id": ac_eid, "hvac_mode": "dry"},
+                                    blocking=True,
+                                    context=make_roommind_context(),
+                                )
                             mold_aux_activated.add(ac_eid)
                 elif mold_restore_mode is not None:
                     # Prevention ended: restore the previous auxiliary state, but
@@ -1625,13 +1630,15 @@ class RoomMindCoordinator(DataUpdateCoordinator):
                             ac_state.state not in ("off", "unknown", "unavailable", "fan_only"),
                         ):
                             continue
-                        await self.hass.services.async_call(
-                            "climate",
-                            "set_hvac_mode",
-                            {"entity_id": ac_eid, "hvac_mode": "dry"},
-                            blocking=True,
-                            context=make_roommind_context(),
-                        )
+                        # Avoid repeating an already-applied comfort DRY mode.
+                        if ac_state.state != "dry":
+                            await self.hass.services.async_call(
+                                "climate",
+                                "set_hvac_mode",
+                                {"entity_id": ac_eid, "hvac_mode": "dry"},
+                                blocking=True,
+                                context=make_roommind_context(),
+                            )
                         self._humidity_dry_started.setdefault(area_id, time.monotonic())
                 elif requested_hvac_mode in ("dry", "fan_only"):
                     # Persisted auxiliary state is preservation-only; it must not
