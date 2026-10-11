@@ -275,6 +275,9 @@ class RoomMindCoordinator(DataUpdateCoordinator):
         self._mold_exposure: dict[str, float] = {}
         self._mold_exposure_at: dict[str, float] = {}
         self._mold_restore_modes: dict[str, str] = {}
+        # ACs switched into DRY by mold prevention: (physical mode, room mode)
+        # before the takeover. Never claim an AC that was already in DRY.
+        self._mold_dry_original_modes: dict[str, dict[str, tuple[str, str | None]]] = {}
         self._humidity_dry_started: dict[str, float] = {}
         self._humidity_dry_retry_after: dict[str, float] = {}
         self._smart_ventilation_until: dict[str, float] = {}
@@ -1045,7 +1048,14 @@ class RoomMindCoordinator(DataUpdateCoordinator):
             pending_restore = None
         elif previous_mold_strategy is not None:
             self._mold_active_strategies.pop(area_id, None)
-            if requested_hvac_mode in ("fan_only", "dry"):
+            # When prevention itself woke an otherwise-off AC, its *physical*
+            # pre-cycle state must win over a saved, preservation-only DRY mode.
+            # A mode selected after the takeover still wins as a manual request.
+            auto_owned_same_request = any(
+                room_mode == requested_hvac_mode
+                for _, room_mode in self._mold_dry_original_modes.get(area_id, {}).values()
+            )
+            if requested_hvac_mode in ("fan_only", "dry") and not auto_owned_same_request:
                 self._mold_restore_modes[area_id] = requested_hvac_mode
                 pending_restore = requested_hvac_mode
 
@@ -1504,11 +1514,41 @@ class RoomMindCoordinator(DataUpdateCoordinator):
                 comfort_dry_requested = self._humidity_dry_requested(
                     area_id, room, current_temp, current_humidity, mode, window_open, force_off
                 ) if not mold_prevention_effective else False
+                # A mold DRY session has its own finite lifetime in MoldManager.
+                # At exit, restore only ACs that this coordinator actually moved
+                # into DRY. Exclude them from the ordinary idle pass so that an
+                # idle_action or saved auxiliary mode cannot mask (or duplicate)
+                # the matching OFF/restoration command.
+                mold_dry_restores: dict[str, str] = {}
+                if not mold_prevention_effective:
+                    owned = self._mold_dry_original_modes.get(area_id, {})
+                    for ac_eid, (original_mode, original_room_mode) in list(owned.items()):
+                        ac_state = self.hass.states.get(ac_eid)
+                        if (
+                            mode != MODE_IDLE
+                            or comfort_dry_requested
+                            or requested_hvac_mode != original_room_mode
+                            or ac_state is None
+                            or ac_state.state != "dry"
+                        ):
+                            # The physical/logical state was changed elsewhere
+                            # or another controller is now responsible for it.
+                            owned.pop(ac_eid, None)
+                            continue
+                        supported = ac_state.attributes.get("hvac_modes") or []
+                        restore_mode = original_mode if original_mode in supported else "off"
+                        if restore_mode in supported:
+                            mold_dry_restores[ac_eid] = restore_mode
+                        else:
+                            owned.pop(ac_eid, None)
+                    if not owned:
+                        self._mold_dry_original_modes.pop(area_id, None)
                 preserve_dry_acs = (
                     set(get_ac_eids(room.get("devices", [])))
                     if (mold_prevention_effective and mold_prevention_strategy == "dry" and not window_open)
                     or comfort_dry_requested else set()
                 )
+                preserve_dry_acs.update(mold_dry_restores)
                 await controller.async_apply(
                     mode,
                     targets,
@@ -1563,7 +1603,24 @@ class RoomMindCoordinator(DataUpdateCoordinator):
                                     blocking=True,
                                     context=make_roommind_context(),
                                 )
+                                if ac_state is not None and ac_state.state not in ("unknown", "unavailable"):
+                                    self._mold_dry_original_modes.setdefault(area_id, {}).setdefault(
+                                        ac_eid, (ac_state.state, requested_hvac_mode)
+                                    )
                             mold_aux_activated.add(ac_eid)
+                elif mold_dry_restores:
+                    for ac_eid, restore_mode in mold_dry_restores.items():
+                        await self.hass.services.async_call(
+                            "climate",
+                            "set_hvac_mode",
+                            {"entity_id": ac_eid, "hvac_mode": restore_mode},
+                            blocking=True,
+                            context=make_roommind_context(),
+                        )
+                        self._mold_dry_original_modes[area_id].pop(ac_eid, None)
+                    if not self._mold_dry_original_modes.get(area_id):
+                        self._mold_dry_original_modes.pop(area_id, None)
+                        self._mold_restore_modes.pop(area_id, None)
                 elif mold_restore_mode is not None:
                     # Prevention ended: restore the previous auxiliary state, but
                     # keep the request pending when a window or hard safety blocks
@@ -2853,6 +2910,7 @@ class RoomMindCoordinator(DataUpdateCoordinator):
         self._energy_manager.remove_room(area_id)
         self._mold_active_strategies.pop(area_id, None)
         self._mold_restore_modes.pop(area_id, None)
+        self._mold_dry_original_modes.pop(area_id, None)
         self._airing_rooms.discard(area_id)
         self._mold_bootstrapped.discard(area_id)
         self._mold_exposure.pop(area_id, None)
