@@ -1595,7 +1595,8 @@ class RoomMindCoordinator(DataUpdateCoordinator):
                             # Some IR-based ACs treat identical commands as new
                             # actions, causing beeps or compressor interruptions.
                             ac_state = self.hass.states.get(ac_eid)
-                            if ac_state is None or ac_state.state != "dry":
+                            original_ac_mode = ac_state.state if ac_state is not None else None
+                            if original_ac_mode != "dry":
                                 await self.hass.services.async_call(
                                     "climate",
                                     "set_hvac_mode",
@@ -1603,9 +1604,9 @@ class RoomMindCoordinator(DataUpdateCoordinator):
                                     blocking=True,
                                     context=make_roommind_context(),
                                 )
-                                if ac_state is not None and ac_state.state not in ("unknown", "unavailable"):
+                                if original_ac_mode not in (None, "unknown", "unavailable"):
                                     self._mold_dry_original_modes.setdefault(area_id, {}).setdefault(
-                                        ac_eid, (ac_state.state, requested_hvac_mode)
+                                        ac_eid, (original_ac_mode, requested_hvac_mode)
                                     )
                             mold_aux_activated.add(ac_eid)
                 elif mold_dry_restores:
