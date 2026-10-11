@@ -567,3 +567,112 @@ class TestHumidityComfortAndCoilDrying:
             "bed", room, "idle", TargetTemps(heat=None, cool=24.0), 24.0, humidity, False, False
         )
         assert active is expected
+
+
+class TestAutomaticMoldDryRestoration:
+    """Regression: prevention must relinquish a physical AC it switched on."""
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        ("initial_ac_mode", "room_mode", "end_mode"),
+        [
+            ("off", "dry", "off"),
+            ("off", "off", "off"),
+            ("fan_only", "fan_only", "fan_only"),
+            ("dry", "dry", "dry"),
+        ],
+    )
+    async def test_ends_dry_in_previous_physical_mode(
+        self, hass, mock_config_entry, initial_ac_mode, room_mode, end_mode
+    ):
+        """A saved auxiliary mode cannot keep an automatically started DRY running."""
+        area_id = "living_room_abc12345"
+        room = {**_HYBRID_ROOM, "room_hvac_mode": room_mode}
+        store = _make_store_mock(
+            {area_id: room},
+            {"mold_prevention_enabled": True, "mold_prevention_sustained_minutes": 0},
+        )
+        hass.data = {"roommind": {"store": store}}
+        ac_state = MagicMock()
+        ac_state.state = initial_ac_mode
+        ac_state.attributes = {"hvac_modes": ["off", "heat", "cool", "dry", "fan_only"]}
+        observations = {"humidity": "75.0"}
+        calls = []
+
+        def states_get(entity_id):
+            if entity_id == "climate.living_ac":
+                return ac_state
+            return make_mock_states_get(
+                temp="24.0", humidity=observations["humidity"], outdoor_temp="10.0"
+            )(entity_id)
+
+        async def service_call(domain, service, data, **kwargs):
+            if domain == "climate" and service == "set_hvac_mode" and data.get("entity_id") == "climate.living_ac":
+                calls.append(data["hvac_mode"])
+                ac_state.state = data["hvac_mode"]
+
+        hass.states.get = MagicMock(side_effect=states_get)
+        hass.services.async_call = AsyncMock(side_effect=service_call)
+        coordinator = _create_coordinator(hass, mock_config_entry)
+
+        started = await coordinator._async_update_data()
+        assert started["rooms"][area_id]["mold_prevention_strategy"] == "dry"
+        assert ac_state.state == "dry"
+        assert calls.count("dry") == (0 if initial_ac_mode == "dry" else 1)
+
+        # Surface humidity is now safe and the minimum runtime has elapsed.
+        observations["humidity"] = "40.0"
+        coordinator._mold_manager._prevention_started[area_id] -= 11 * 60
+        stopped = await coordinator._async_update_data()
+        assert stopped["rooms"][area_id]["mold_prevention_active"] is False
+        assert ac_state.state == end_mode
+        if initial_ac_mode != "dry":
+            assert calls[-1] == end_mode
+
+        before = len(calls)
+        await coordinator._async_update_data()
+        assert len(calls) == before  # No late reactivation or repeated OFF.
+
+    @pytest.mark.asyncio
+    async def test_new_manual_dry_selection_is_not_turned_off(self, hass, mock_config_entry):
+        """A change of the logical room mode after takeover wins over auto-restore."""
+        area_id = "living_room_abc12345"
+        room = {**_HYBRID_ROOM, "room_hvac_mode": "off"}
+        store = _make_store_mock(
+            {area_id: room},
+            {"mold_prevention_enabled": True, "mold_prevention_sustained_minutes": 0},
+        )
+        hass.data = {"roommind": {"store": store}}
+        ac_state = MagicMock()
+        ac_state.state = "off"
+        ac_state.attributes = {"hvac_modes": ["off", "heat", "cool", "dry", "fan_only"]}
+        observations = {"humidity": "75.0"}
+        calls = []
+
+        def states_get(entity_id):
+            if entity_id == "climate.living_ac":
+                return ac_state
+            return make_mock_states_get(
+                temp="24.0", humidity=observations["humidity"], outdoor_temp="10.0"
+            )(entity_id)
+
+        async def service_call(domain, service, data, **kwargs):
+            if domain == "climate" and service == "set_hvac_mode" and data.get("entity_id") == "climate.living_ac":
+                calls.append(data["hvac_mode"])
+                ac_state.state = data["hvac_mode"]
+
+        hass.states.get = MagicMock(side_effect=states_get)
+        hass.services.async_call = AsyncMock(side_effect=service_call)
+        coordinator = _create_coordinator(hass, mock_config_entry)
+        await coordinator._async_update_data()
+        assert ac_state.state == "dry"
+
+        # User chooses manual DRY while prevention is running.
+        room["room_hvac_mode"] = "dry"
+        observations["humidity"] = "40.0"
+        coordinator._mold_manager._prevention_started[area_id] -= 11 * 60
+        await coordinator._async_update_data()
+
+        assert ac_state.state == "dry"
+        assert "off" not in calls
+        assert area_id not in coordinator._mold_dry_original_modes
