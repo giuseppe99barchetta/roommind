@@ -573,6 +573,7 @@ class TestAutomaticMoldDryRestoration:
     """Regression: prevention must relinquish a physical AC it switched on."""
 
     @pytest.mark.asyncio
+    @pytest.mark.parametrize("end_reason", ["humidity_safe", "timeout"])
     @pytest.mark.parametrize(
         ("initial_ac_mode", "room_mode", "end_mode"),
         [
@@ -583,7 +584,7 @@ class TestAutomaticMoldDryRestoration:
         ],
     )
     async def test_ends_dry_in_previous_physical_mode(
-        self, hass, mock_config_entry, initial_ac_mode, room_mode, end_mode
+        self, hass, mock_config_entry, initial_ac_mode, room_mode, end_mode, end_reason
     ):
         """A saved auxiliary mode cannot keep an automatically started DRY running."""
         area_id = "living_room_abc12345"
@@ -602,9 +603,7 @@ class TestAutomaticMoldDryRestoration:
         def states_get(entity_id):
             if entity_id == "climate.living_ac":
                 return ac_state
-            return make_mock_states_get(
-                temp="24.0", humidity=observations["humidity"], outdoor_temp="10.0"
-            )(entity_id)
+            return make_mock_states_get(temp="24.0", humidity=observations["humidity"], outdoor_temp="10.0")(entity_id)
 
         async def service_call(domain, service, data, **kwargs):
             if domain == "climate" and service == "set_hvac_mode" and data.get("entity_id") == "climate.living_ac":
@@ -620,9 +619,12 @@ class TestAutomaticMoldDryRestoration:
         assert ac_state.state == "dry"
         assert calls.count("dry") == (0 if initial_ac_mode == "dry" else 1)
 
-        # Surface humidity is now safe and the minimum runtime has elapsed.
-        observations["humidity"] = "40.0"
-        coordinator._mold_manager._prevention_started[area_id] -= 11 * 60
+        # Either the wall dries sufficiently or the 30-minute safety cap expires.
+        if end_reason == "humidity_safe":
+            observations["humidity"] = "40.0"
+            coordinator._mold_manager._prevention_started[area_id] -= 11 * 60
+        else:
+            coordinator._mold_manager._prevention_started[area_id] -= 31 * 60
         stopped = await coordinator._async_update_data()
         assert stopped["rooms"][area_id]["mold_prevention_active"] is False
         assert ac_state.state == end_mode
@@ -652,9 +654,7 @@ class TestAutomaticMoldDryRestoration:
         def states_get(entity_id):
             if entity_id == "climate.living_ac":
                 return ac_state
-            return make_mock_states_get(
-                temp="24.0", humidity=observations["humidity"], outdoor_temp="10.0"
-            )(entity_id)
+            return make_mock_states_get(temp="24.0", humidity=observations["humidity"], outdoor_temp="10.0")(entity_id)
 
         async def service_call(domain, service, data, **kwargs):
             if domain == "climate" and service == "set_hvac_mode" and data.get("entity_id") == "climate.living_ac":
