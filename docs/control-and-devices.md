@@ -2,6 +2,39 @@
 
 This page explains RoomMind's control settings and related device options.
 
+## Dedicated And Shared Dehumidifiers
+
+In a room's **Equipment -> Dehumidifier** section, select a native Home Assistant
+dehumidifier (`humidifier.*`, device class `dehumidifier`) or a smart plug
+(`switch.*`). A plug-controlled appliance must restart when power returns.
+Each physical entity is registered once, in the room where it is located.
+
+Select additional rooms to share the device. Each served room needs its own
+humidity reading; only the host may use the native device's internal reading
+when no external humidity sensor is configured. Overlapping groups are allowed:
+a requesting room prefers its local device, then a running shared device.
+
+Adding a device does not enable humidity comfort. Enable comfort separately in
+each served room and select its target, tolerance and priority. Active comfort
+profiles can override the target. Mold prevention uses the existing prevention
+settings and prefers the dedicated device without changing the room's HVAC mode.
+
+The host's window delays and quiet hours apply to the entire device. During
+quiet hours comfort pauses; significant mold risk may still request operation.
+Shared devices pause when the host reaches 45% humidity and resume from 50%.
+Native device limits can raise this effective floor, which is shown in the panel.
+Actual effectiveness between rooms depends on air circulation.
+
+Minimum on/off times default to five minutes; the off delay also applies after
+a restart. Missing required readings, windows and the host humidity floor can
+stop a device immediately. Set nominal power if the electrical budget is enabled.
+The dedicated device can operate alongside heating or cooling.
+
+**Manual** mode leaves the physical state and setpoint untouched. Open the device
+name for its normal Home Assistant controls. Automatic AC Dry is a fallback only
+when all associated devices are physically unavailable; intentional pauses do not
+trigger fallback. An "On" smart plug is not proof that its compressor is drying.
+
 ## What Priority Does
 
 In `Settings -> Control -> Priority`, the slider balances comfort against runtime/energy use for MPC.

@@ -96,6 +96,7 @@ _TEXTS: dict[str, dict[str, str]] = {
         "advice_no_dry": "Tieni chiusa la porta, asciuga le superfici bagnate ed evita panni stesi in casa.",
         "exposure": "Ultimi 7 giorni: {hours} h con la parete all'80% o più.",
         "prevention_title": "RoomMind: prevenzione muffa – {room}",
+        "prevention_dehumidifier": "Richiesta deumidificazione dedicata (parete al {srh}%).",
         "prevention_dry": "Avviato il DRY del condizionatore (parete al {srh}%).",
         "prevention_reheat": "DRY alternato al riscaldamento della pompa di calore, termosifoni spenti "
         "(parete al {srh}%).",
@@ -110,6 +111,7 @@ _TEXTS: dict[str, dict[str, str]] = {
         "advice_no_dry": "Keep the door closed, wipe wet surfaces and avoid drying laundry indoors.",
         "exposure": "Last 7 days: {hours} h with the wall at 80% or more.",
         "prevention_title": "RoomMind: Mold Prevention",
+        "prevention_dehumidifier": "Dedicated dehumidification requested (wall at {srh}%).",
         "prevention_dry": "AC dry mode started (wall at {srh}%).",
         "prevention_reheat": "DRY alternating with heat-pump heating, radiators off (wall at {srh}%).",
         "prevention_heat": "Heating started to warm the cold walls (wall at {srh}%).",
@@ -164,6 +166,7 @@ class MoldManager:
         automation_enabled: bool = True,
         celsius_delta_to_ha_fn: Callable[[float], float] | None = None,
         ha_temp_unit_str_fn: Callable[[], str] | None = None,
+        can_dehumidifier: bool = False,
     ) -> MoldResult:
         """Evaluate mold risk and prevention for a room.
 
@@ -317,11 +320,13 @@ class MoldManager:
         # bounded by its target and may run for as long as the wall needs it.
         timed_out = (
             activated
+            and not can_dehumidifier
             and self._prevention_strategy.get(area_id) != "heat"
             and now - self._prevention_started.get(area_id, now) >= max_run_minutes * 60
         )
         dry_too_cold = (
             activated
+            and not can_dehumidifier
             and not reheat_allowed
             and self._prevention_strategy.get(area_id) == "dry"
             and current_temp <= dry_stop_temperature
@@ -338,7 +343,7 @@ class MoldManager:
             settings.get("mold_prevention_enabled")
             and automation_enabled
             and (ready or held)
-            and not (cooling_down or timed_out or dry_too_cold or quiet_night or window_open)
+            and not ((cooling_down and not can_dehumidifier) or timed_out or dry_too_cold or quiet_night or window_open)
         )
         if should_prevent:
             intensity = settings.get("mold_prevention_intensity", "medium")
@@ -349,7 +354,10 @@ class MoldManager:
             continuing_dry = activated and self._prevention_strategy.get(area_id) == "dry"
             can_start_dry = current_temp >= dry_min_temperature
             can_continue_dry = continuing_dry and current_temp > dry_stop_temperature
-            if dehumidification_enabled and can_dry and (can_start_dry or can_continue_dry):
+            if dehumidification_enabled and can_dehumidifier:
+                result.prevention_strategy = "dehumidifier"
+                result.prevention_delta = 0.0
+            elif dehumidification_enabled and can_dry and (can_start_dry or can_continue_dry):
                 result.prevention_strategy = "dry"
                 result.prevention_delta = 0.0
             elif reheat_allowed and current_temp >= MOLD_PREVENTION_HEAT_BELOW_TEMPERATURE:

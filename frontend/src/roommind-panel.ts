@@ -501,6 +501,7 @@ export class RoomMindPanel extends LitElement {
         const config = this._rooms[this._selectedAreaId] ?? null;
         return html`
           <rs-room-detail
+              .rooms=${this._rooms}
             .area=${area}
             .config=${config}
             .hass=${this.hass}

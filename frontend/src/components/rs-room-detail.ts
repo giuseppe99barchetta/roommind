@@ -9,6 +9,7 @@ import type {
   ScheduleEntry,
   CoverScheduleEntry,
   DeviceConfig,
+  DehumidifierConfig,
   DeviceType,
   DeviceRole,
 } from "../types";
@@ -17,6 +18,8 @@ import "./rs-room-insights";
 import "./rs-climate-mode-selector";
 import "./rs-schedule-settings";
 import "./rs-device-section";
+import "./rs-dehumidifier-section";
+import type { HumiditySettings } from "./rs-dehumidifier-section";
 import "./rs-sensor-section";
 import "./rs-section-card";
 import "./rs-override-section";
@@ -35,11 +38,19 @@ import type { RsOverrideSection } from "./rs-override-section";
 const CONTROL_DOCS_URL =
   "https://github.com/snazzybean/roommind/blob/main/docs/control-and-devices.md";
 
-type EditableSection = "schedule" | "devices" | "sensors" | "presence" | "covers" | "heatSource";
+type EditableSection =
+  | "schedule"
+  | "devices"
+  | "sensors"
+  | "presence"
+  | "covers"
+  | "heatSource"
+  | "dehumidifier";
 
 @customElement("rs-room-detail")
 export class RsRoomDetail extends LitElement {
   @property({ attribute: false }) public area!: HassArea;
+  @property({ attribute: false }) public rooms: Record<string, RoomConfig> = {};
   @property({ attribute: false }) public config: RoomConfig | null = null;
   @property({ attribute: false }) public hass!: HomeAssistant;
   @property({ type: Boolean }) public presenceEnabled = false;
@@ -48,6 +59,13 @@ export class RsRoomDetail extends LitElement {
 
   @property({ type: Boolean }) public valveProtectionEnabled = false;
 
+  @state() private _dehumidifier: DehumidifierConfig | null = null;
+  @state() private _humidity: HumiditySettings = {
+    humidity_comfort_enabled: false,
+    humidity_target: 55,
+    humidity_tolerance: 5,
+    humidity_priority: "balanced",
+  };
   @state() private _devices: DeviceConfig[] = [];
   @state() private _selectedTempSensor = "";
   @state() private _selectedHumiditySensor = "";
@@ -297,6 +315,18 @@ export class RsRoomDetail extends LitElement {
   }
 
   private _initFromConfig() {
+    this._dehumidifier = this.config?.dehumidifier
+      ? {
+          ...this.config.dehumidifier,
+          served_area_ids: [...this.config.dehumidifier.served_area_ids],
+        }
+      : null;
+    this._humidity = {
+      humidity_comfort_enabled: this.config?.humidity_comfort_enabled ?? false,
+      humidity_target: this.config?.humidity_target ?? 55,
+      humidity_tolerance: this.config?.humidity_tolerance ?? 5,
+      humidity_priority: this.config?.humidity_priority ?? "balanced",
+    };
     if (this.config) {
       if (this.config.devices?.length) {
         this._devices = [...this.config.devices];
@@ -417,7 +447,10 @@ export class RsRoomDetail extends LitElement {
     this._dirty = false;
 
     // Unconfigured rooms open the device-edit dialog automatically.
-    if (this._devices.length === 0 && this._editing === null) {
+    if (
+      this._devices.length === 0 && !this._dehumidifier && this._editing === null &&
+      !Object.values(this.rooms).some(room => room.dehumidifier?.served_area_ids.includes(this.area.area_id))
+    ) {
       this._editing = "devices";
     }
   }
@@ -473,21 +506,30 @@ export class RsRoomDetail extends LitElement {
           @display-name-changed=${this._onDisplayNameChanged}
         ></rs-hero-status>
 
-        <nav class="detail-navigation" aria-label=${localize("room.nav.description", this.hass.language)}>
-          ${([
-            ["overview", "mdi:thermostat", "room.nav.overview"],
-            ["equipment", "mdi:devices", "room.nav.equipment"],
-            ["advanced", "mdi:creation-outline", "room.nav.advanced"],
-          ] as const).map(([view, icon, label]) => html`
-            <button
-              class="detail-tab"
-              type="button"
-              aria-pressed=${this._detailView === view ? "true" : "false"}
-              @click=${() => { this._detailView = view; }}
-            >
-              <ha-icon icon=${icon}></ha-icon>${localize(label, this.hass.language)}
-            </button>
-          `)}
+        <nav
+          class="detail-navigation"
+          aria-label=${localize("room.nav.description", this.hass.language)}
+        >
+          ${(
+            [
+              ["overview", "mdi:thermostat", "room.nav.overview"],
+              ["equipment", "mdi:devices", "room.nav.equipment"],
+              ["advanced", "mdi:creation-outline", "room.nav.advanced"],
+            ] as const
+          ).map(
+            ([view, icon, label]) => html`
+              <button
+                class="detail-tab"
+                type="button"
+                aria-pressed=${this._detailView === view ? "true" : "false"}
+                @click=${() => {
+                  this._detailView = view;
+                }}
+              >
+                <ha-icon icon=${icon}></ha-icon>${localize(label, this.hass.language)}
+              </button>
+            `,
+          )}
         </nav>
 
         <div class="detail-grid" data-view=${this._detailView}>
@@ -603,6 +645,16 @@ export class RsRoomDetail extends LitElement {
                     @device-changed=${this._onDeviceChanged}
                     @valve-protection-exclude-toggle=${this._onValveProtectionExcludeToggle}
                   ></rs-device-section>
+                </rs-section-card>
+
+                <rs-section-card
+                  data-group="equipment"
+                  icon="mdi:air-humidifier"
+                  .heading=${localize("dehumidifier.title", this.hass.language)}
+                  editable
+                  @edit-click=${this._openEdit("dehumidifier")}
+                >
+                  ${this._renderDehumidifier(false)}
                 </rs-section-card>
 
                 <rs-section-card
@@ -843,6 +895,15 @@ export class RsRoomDetail extends LitElement {
             @eco-cool-changed=${this._onEcoCoolChanged}
           ></rs-schedule-settings>
         </rs-edit-dialog>`;
+      case "dehumidifier":
+        return html`<rs-edit-dialog
+          open
+          icon="mdi:air-humidifier"
+          .heading=${localize("dehumidifier.title", lang)}
+          @rs-dialog-closed=${this._closeEdit}
+        >
+          ${this._renderDehumidifier(true)}
+        </rs-edit-dialog>`;
       case "devices":
         return html`<rs-edit-dialog
           open
@@ -1068,6 +1129,26 @@ export class RsRoomDetail extends LitElement {
     this._autoSave();
   }
 
+  private _renderDehumidifier(editing: boolean) {
+    return html`<rs-dehumidifier-section
+      .hass=${this.hass}
+      .areaId=${this.area.area_id}
+      .rooms=${this.rooms}
+      .config=${this._dehumidifier}
+      .live=${this.config?.live?.dehumidifier}
+      .humidity=${this._humidity}
+      .editing=${editing}
+      @dehumidifier-changed=${(e: CustomEvent<DehumidifierConfig | null>) => {
+        this._dehumidifier = e.detail;
+        this._autoSave();
+      }}
+      @humidity-changed=${(e: CustomEvent<Partial<HumiditySettings>>) => {
+        this._humidity = { ...this._humidity, ...e.detail };
+        this._autoSave();
+      }}
+    ></rs-dehumidifier-section>`;
+  }
+
   private _onDeviceChanged(e: CustomEvent<{ devices: DeviceConfig[] }>) {
     const oldDeviceIds = new Set(this._devices.map((d) => d.entity_id));
     this._devices = e.detail.devices;
@@ -1267,6 +1348,8 @@ export class RsRoomDetail extends LitElement {
         devices: this._devices,
         temperature_sensor: this._selectedTempSensor,
         humidity_sensor: this._selectedHumiditySensor,
+        dehumidifier: this._dehumidifier,
+        ...this._humidity,
         occupancy_sensors: [...this._selectedOccupancySensors],
         window_sensors: [...this._selectedWindowSensors],
         window_open_delay: this._windowOpenDelay,

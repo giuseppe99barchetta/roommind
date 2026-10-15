@@ -75,6 +75,7 @@ from .managers.compressor_group_manager import (
     resolve_master_action,
 )
 from .managers.cover_orchestrator import CoverOrchestrator, CoverResult
+from .managers.dehumidifier_manager import DehumidifierManager
 from .managers.ekf_training_manager import EkfTrainingManager
 from .managers.energy_manager import EnergyManager
 from .managers.heat_source_orchestrator import (
@@ -267,6 +268,9 @@ class RoomMindCoordinator(DataUpdateCoordinator):
         self._valve_manager = ValveManager(hass)
         # Mold risk tracking
         self._mold_manager = MoldManager(hass)
+        self._dehumidifier_manager = DehumidifierManager(hass)
+        self._humidity_sensor_snapshot: dict = {}
+        self._humidity_mold_snapshot: dict = {}
         # AC power history + adaptive consumption prediction
         self._energy_manager = EnergyManager(hass)
         self._mold_active_strategies: dict[str, str] = {}
@@ -443,6 +447,12 @@ class RoomMindCoordinator(DataUpdateCoordinator):
                 running_loads[area_id] = self._energy_manager.budget_power_w(area_id, physical_mode, nominal_w)
             elif self._heat_source_states.get(area_id) in ("heat_pump", "hybrid"):
                 running_loads[area_id] = self._energy_manager.budget_power_w(area_id, "heating", nominal_w)
+        for room in rooms.values():
+            device = room.get("dehumidifier") or {}
+            eid = device.get("entity_id")
+            state = self.hass.states.get(eid) if eid else None
+            if state is not None and state.state == "on":
+                running_loads[f"dehumidifier:{eid}"] = float(device.get("power_watts", 0))
         self._power_budget_manager.begin_cycle(self.hass, settings, running_loads)
 
         room_states: dict[str, dict] = {}
@@ -467,6 +477,33 @@ class RoomMindCoordinator(DataUpdateCoordinator):
             cloud_coverage,
         )
 
+        async with self._dehumidifier_manager.lock:
+            rooms = store.get_rooms()
+            if any(room.get("dehumidifier") for room in rooms.values()):
+                self._humidity_sensor_snapshot = {
+                    area_id: self._read_room_sensors(room, area_id) for area_id, room in rooms.items()
+                }
+                self._dehumidifier_manager.prepare(
+                    rooms,
+                    settings,
+                    {a: values[2] for a, values in self._humidity_sensor_snapshot.items()},
+                    {a: self._is_window_open(r) for a, r in rooms.items()},
+                )
+                self._humidity_mold_snapshot = {
+                    a: await self._evaluate_mold_risk(a, values[0], values[2], settings, rooms[a])
+                    for a, values in sorted(self._humidity_sensor_snapshot.items())
+                    if not rooms[a].get("is_outdoor")
+                }
+                self._dehumidifier_manager.collect(
+                    rooms,
+                    {a: values[2] for a, values in self._humidity_sensor_snapshot.items()},
+                    self._humidity_mold_snapshot,
+                    self._mold_exposure,
+                )
+                await self._dehumidifier_manager.apply(self._power_budget_manager)
+            else:
+                self._dehumidifier_manager.prepare({}, settings, {}, {})
+
         room_order = sorted(
             rooms,
             key=lambda area_id: (-_coordination_priority(self.rooms.get(area_id, {})), area_id),
@@ -485,6 +522,9 @@ class RoomMindCoordinator(DataUpdateCoordinator):
                 room_states[area_id] = room_state
             except Exception:  # noqa: BLE001
                 _LOGGER.exception("Room '%s': processing failed, skipping", area_id)
+
+        self._humidity_sensor_snapshot = {}
+        self._humidity_mold_snapshot = {}
 
         # Attach measured AC power, daily integrated energy and learned
         # consumption forecasts to each room before entities/history consume it.
@@ -698,6 +738,7 @@ class RoomMindCoordinator(DataUpdateCoordinator):
                 del self._last_valid_temps[area_id]
 
         current_humidity = read_sensor_value(self.hass, room.get("humidity_sensor"), area_id, "humidity")
+        current_humidity = self._dehumidifier_manager.room_humidity(room, current_humidity)
 
         return current_temp, current_temp_raw, current_humidity, has_external_sensor
 
@@ -796,6 +837,7 @@ class RoomMindCoordinator(DataUpdateCoordinator):
         automation_enabled = bool(
             settings.get("climate_control_active", True) and room.get("climate_control_enabled", True)
         )
+        dedicated = self._dehumidifier_manager.suppress_ac_dry(area_id)
         mold = await self._mold_manager.evaluate(
             area_id,
             _get_area_name(self.hass, area_id),
@@ -804,12 +846,15 @@ class RoomMindCoordinator(DataUpdateCoordinator):
             self.outdoor_temp_effective,
             settings,
             can_dry="dry" in ac_modes,
+            can_dehumidifier=dedicated,
             can_cool=bool(ac_modes & {"cool", "heat_cool", "auto"}),
             can_heat_pump="heat" in ac_modes and room.get("climate_mode", "auto") != CLIMATE_MODE_COOL_ONLY,
-            night_phase=night_phase(room, datetime.now().astimezone(), MOLD_PREVENTION_PRE_NIGHT_LEAD_MINUTES),
+            night_phase=None
+            if dedicated
+            else night_phase(room, datetime.now().astimezone(), MOLD_PREVENTION_PRE_NIGHT_LEAD_MINUTES),
             # Raw contact state: an open window makes DRY pointless at once,
             # independent of the climate-pause delays.
-            window_open=self._is_window_open(room),
+            window_open=False if dedicated else self._is_window_open(room),
             f_rsi=float(room.get("mold_f_rsi", DEFAULT_MOLD_F_RSI) or DEFAULT_MOLD_F_RSI),
             exposure_hours=self._mold_exposure.get(area_id),
             outdoor_humidity=self.outdoor_humidity,
@@ -936,7 +981,10 @@ class RoomMindCoordinator(DataUpdateCoordinator):
         """Process a single room: read sensor, evaluate schedule, apply control."""
         area_id = room.get("area_id", "unknown")
 
-        current_temp, current_temp_raw, current_humidity, has_external_sensor = self._read_room_sensors(room, area_id)
+        sensor_snapshot = self._humidity_sensor_snapshot.get(area_id)
+        current_temp, current_temp_raw, current_humidity, has_external_sensor = (
+            sensor_snapshot if sensor_snapshot is not None else self._read_room_sensors(room, area_id)
+        )
 
         # --- Outdoor room: skip all control logic ---
         if room.get("is_outdoor", False):
@@ -987,7 +1035,11 @@ class RoomMindCoordinator(DataUpdateCoordinator):
             mold_prevention_temp_delta,
             mold_prevention_strategy,
             mold_heat_target,
-        ) = await self._evaluate_mold_risk(area_id, current_temp, current_humidity, settings, room)
+        ) = (
+            self._humidity_mold_snapshot[area_id]
+            if area_id in self._humidity_mold_snapshot
+            else await self._evaluate_mold_risk(area_id, current_temp, current_humidity, settings, room)
+        )
 
         # Load schedule blocks once — used for both target temp resolution and MPC lookahead.
         from .utils.schedule_utils import (
@@ -1029,7 +1081,10 @@ class RoomMindCoordinator(DataUpdateCoordinator):
             settings.get("climate_control_active", True) and room.get("climate_control_enabled", True)
         )
         mold_prevention_effective = bool(
-            mold_prevention_active_room and automation_enabled and mold_prevention_strategy
+            mold_prevention_active_room
+            and automation_enabled
+            and mold_prevention_strategy
+            and mold_prevention_strategy != "dehumidifier"
         )
         previous_mold_strategy = self._mold_active_strategies.get(area_id)
         pending_restore = self._mold_restore_modes.get(area_id)
@@ -1092,7 +1147,13 @@ class RoomMindCoordinator(DataUpdateCoordinator):
             targets, night_progress = apply_night_targets(room, targets, datetime.now().astimezone())
         if mold_prevention_effective:
             night_progress = 0.0
-        mold_prevention_active_room = mold_prevention_effective
+        assigned_dehumidifier = self._dehumidifier_manager.assignments.get(area_id)
+        dedicated_mold_active = bool(
+            mold_prevention_active_room and automation_enabled and mold_prevention_strategy == "dehumidifier"
+            and assigned_dehumidifier
+            and self._dehumidifier_manager.devices[assigned_dehumidifier]["commanded"] is True
+        )
+        mold_prevention_active_room = mold_prevention_effective or dedicated_mold_active
         presence_away = not room.get("ignore_presence", False) and self._is_presence_away(room, settings)
         target_resolver = make_target_resolver(
             schedule_blocks,
@@ -1501,9 +1562,13 @@ class RoomMindCoordinator(DataUpdateCoordinator):
                 )
                 # An auxiliary DRY cycle must not receive OFF on every
                 # coordinator tick before being re-commanded DRY.
-                comfort_dry_requested = self._humidity_dry_requested(
-                    area_id, room, current_temp, current_humidity, mode, window_open, force_off
-                ) if not mold_prevention_effective else False
+                comfort_dry_requested = (
+                    self._humidity_dry_requested(
+                        area_id, room, current_temp, current_humidity, mode, window_open, force_off
+                    )
+                    if not mold_prevention_effective
+                    else False
+                )
                 preserve_dry_acs = (
                     set(get_ac_eids(room.get("devices", [])))
                     if (mold_prevention_effective and mold_prevention_strategy == "dry" and not window_open)
@@ -1755,7 +1820,7 @@ class RoomMindCoordinator(DataUpdateCoordinator):
             mold_surface_rh=mold_surface_rh,
             mold_prevention_active_room=mold_prevention_active_room,
             mold_prevention_temp_delta=mold_prevention_temp_delta,
-            mold_prevention_strategy=mold_prevention_strategy if mold_prevention_effective else None,
+            mold_prevention_strategy=mold_prevention_strategy if mold_prevention_active_room else None,
             shading_factor=shading_factor,
             q_occupancy=q_occupancy,
             cover_eids=cover_eids,
@@ -1822,6 +1887,9 @@ class RoomMindCoordinator(DataUpdateCoordinator):
         room_state["humidity_action"] = (
             "dehumidifying" if ac_is_in_mode(self.hass.states, room.get("devices", []), "dry") else "idle"
         )
+        room_state["dehumidifier"] = self._dehumidifier_manager.room_status(area_id)
+        if any(d["action"] == "drying" and d["state"] == "on" for d in room_state["dehumidifier"]["devices"]):
+            room_state["humidity_action"] = "dehumidifying"
         room_state["active_profile"] = room.get("active_profile", "")
         room_state["comfort_score"] = calculate_comfort_score(
             current_temp=current_temp,
@@ -2085,7 +2153,8 @@ class RoomMindCoordinator(DataUpdateCoordinator):
         blocked = force_off and room.get("room_hvac_mode") != "off"
         quiet_night = night_phase(room, datetime.now().astimezone(), 0) == "night"
         if (
-            target is None
+            self._dehumidifier_manager.suppress_ac_dry(area_id)
+            or target is None
             or humidity is None
             or current_temp is None
             or mode != MODE_IDLE
@@ -2100,8 +2169,10 @@ class RoomMindCoordinator(DataUpdateCoordinator):
             return False
         now = time.monotonic()
         started = self._humidity_dry_started.get(area_id)
-        stop_temp = max(MOLD_PREVENTION_DRY_STOP_TEMPERATURE,
-                        float(room.get("humidity_dry_min_temperature", DEFAULT_MOLD_PREVENTION_DRY_MIN_TEMPERATURE)) - 1.0)
+        stop_temp = max(
+            MOLD_PREVENTION_DRY_STOP_TEMPERATURE,
+            float(room.get("humidity_dry_min_temperature", DEFAULT_MOLD_PREVENTION_DRY_MIN_TEMPERATURE)) - 1.0,
+        )
         if started is not None and (current_temp <= stop_temp or now - started >= MOLD_PREVENTION_MAX_RUN_MINUTES * 60):
             self._humidity_dry_started.pop(area_id, None)
             self._humidity_dry_retry_after[area_id] = now + MOLD_PREVENTION_RETRY_MINUTES * 60

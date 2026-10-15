@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build && node scripts/compress-frontend.mjs",
-    "test": "tsc && node --test test/heating-settings.test.mjs",
+    "test": "tsc && node --test test/heating-settings.test.mjs test/dehumidifier.test.mjs",
     "preview": "vite preview",
     "lint": "eslint src/",
     "format": "prettier --write src/",

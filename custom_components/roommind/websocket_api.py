@@ -4,11 +4,13 @@ from __future__ import annotations
 
 import logging
 import time
+from contextlib import nullcontext
 from typing import TYPE_CHECKING
 
 import voluptuous as vol
 from homeassistant.components import websocket_api
-from homeassistant.core import HomeAssistant, callback
+from homeassistant.core import HomeAssistant, callback, valid_entity_id
+from homeassistant.helpers import entity_registry as er
 
 from .const import (
     CLIMATE_MODES,
@@ -67,6 +69,7 @@ _ROOM_SAVE_FIELDS = (
     "devices",
     "temperature_sensor",
     "humidity_sensor",
+    "dehumidifier",
     "dry_entity_type",
     "occupancy_sensors",
     "climate_mode",
@@ -242,6 +245,38 @@ def _validate_no_duplicate_devices(config: dict) -> str | None:
     return None
 
 
+def _validate_dehumidifier(hass: HomeAssistant, area_id: str, room: dict, rooms: dict) -> str | None:
+    """Validate the merged registration, including unchanged device fields."""
+    if room.get("is_outdoor") and any(
+        area_id in (r.get("dehumidifier") or {}).get("served_area_ids", []) for r in rooms.values()
+    ):
+        return "Remove this room from dehumidifier groups before making it outdoor"
+    config = room.get("dehumidifier")
+    if not config:
+        return None
+    eid = config["entity_id"]
+    domain = eid.split(".", 1)[0]
+    if domain not in ("humidifier", "switch") or not valid_entity_id(eid):
+        return "Select a humidifier dehumidifier or switch entity"
+    if eid.split(".", 1)[1].startswith(f"{DOMAIN}_"):
+        return "Cannot assign RoomMind's own dehumidifier entity"
+    entry = er.async_get(hass).async_get(eid)
+    if entry is not None and entry.platform == DOMAIN:
+        return "Cannot assign RoomMind's own entity"
+    if room.get("is_outdoor"):
+        return "A dehumidifier must be hosted in an indoor room"
+    for owner, other in rooms.items():
+        if owner != area_id and (other.get("dehumidifier") or {}).get("entity_id") == eid:
+            return "This dehumidifier is already registered in another room"
+    for served in config.get("served_area_ids", []):
+        if served != area_id and (served not in rooms or rooms[served].get("is_outdoor")):
+            return "Served rooms must be configured indoor rooms"
+    state = hass.states.get(eid)
+    if domain == "humidifier" and state is not None and state.attributes.get("device_class") != "dehumidifier":
+        return "The selected humidifier must have device class dehumidifier"
+    return None
+
+
 # ---------------------------------------------------------------------------
 # List rooms
 # ---------------------------------------------------------------------------
@@ -338,6 +373,7 @@ async def websocket_list_rooms(
             "comfort_score": live.get("comfort_score"),
             "anomalies": live.get("anomalies", []),
             "humidity_action": live.get("humidity_action", "idle"),
+            "dehumidifier": live.get("dehumidifier", {"devices": [], "request": None, "assigned_entity_id": None}),
             "active_profile": live.get("active_profile", room_config.get("active_profile", "")),
             "power_budget_blocked": live.get("power_budget_blocked", False),
             "n_observations": live.get("n_observations", 0),
@@ -420,6 +456,17 @@ async def websocket_list_rooms(
         ],
         vol.Optional("temperature_sensor"): str,
         vol.Optional("humidity_sensor"): str,
+        vol.Optional("dehumidifier"): vol.Any(
+            None,
+            {
+                vol.Required("entity_id"): str,
+                vol.Optional("served_area_ids", default=list): [str],
+                vol.Optional("mode", default="auto"): vol.In(("auto", "manual")),
+                vol.Optional("min_run_minutes", default=5): vol.All(vol.Coerce(float), vol.Range(min=0, max=1440)),
+                vol.Optional("min_off_minutes", default=5): vol.All(vol.Coerce(float), vol.Range(min=0, max=1440)),
+                vol.Optional("power_watts", default=0): vol.All(vol.Coerce(float), vol.Range(min=0, max=100000)),
+            },
+        ),
         vol.Optional("dry_entity_type"): vol.In(["switch", "humidifier"]),
         vol.Optional("occupancy_sensors"): [str],
         vol.Optional("climate_mode"): vol.In(CLIMATE_MODES),
@@ -543,7 +590,28 @@ async def websocket_save_room(
             area_id,
         )
 
-    room = await store.async_save_room(area_id, config)
+    coordinator = _get_coordinator(hass)
+    async with coordinator._dehumidifier_manager.lock if coordinator else nullcontext():
+        existing = store.get_room(area_id) or {}
+        err = _validate_dehumidifier(hass, area_id, {**existing, **config}, store.get_rooms())
+        if err:
+            connection.send_error(msg["id"], "invalid_dehumidifier", err)
+            return
+        coordinator = _get_coordinator(hass)
+        old_device = existing.get("dehumidifier")
+        if old_device and "dehumidifier" in config and coordinator:
+            try:
+                await coordinator._dehumidifier_manager.release(
+                    old_device,
+                    config["dehumidifier"],
+                    store.get_settings().get("climate_control_active", True)
+                    and existing.get("climate_control_enabled", True),
+                )
+            except Exception:  # noqa: BLE001
+                _LOGGER.exception("Failed to release dehumidifier before saving room '%s'", area_id)
+                connection.send_error(msg["id"], "device_error", "Could not stop the previous dehumidifier")
+                return
+        room = await store.async_save_room(area_id, config)
 
     # Notify coordinator to create/update sensor entities for the room
     coordinator = _get_coordinator(hass)
@@ -574,11 +642,27 @@ async def websocket_delete_room(
     store = hass.data[DOMAIN]["store"]
     area_id = msg["area_id"]
 
-    try:
-        await store.async_delete_room(area_id)
-    except KeyError:
-        connection.send_error(msg["id"], "not_found", f"Room '{area_id}' not found")
-        return
+    coordinator = _get_coordinator(hass)
+    async with coordinator._dehumidifier_manager.lock if coordinator else nullcontext():
+        existing = store.get_room(area_id) or {}
+        coordinator = _get_coordinator(hass)
+        if existing.get("dehumidifier") and coordinator:
+            try:
+                await coordinator._dehumidifier_manager.release(
+                    existing["dehumidifier"],
+                    None,
+                    store.get_settings().get("climate_control_active", True)
+                    and existing.get("climate_control_enabled", True),
+                )
+            except Exception:  # noqa: BLE001
+                _LOGGER.exception("Failed to release dehumidifier before deleting room '%s'", area_id)
+                connection.send_error(msg["id"], "device_error", "Could not stop the dehumidifier")
+                return
+        try:
+            await store.async_delete_room(area_id)
+        except KeyError:
+            connection.send_error(msg["id"], "not_found", f"Room '{area_id}' not found")
+            return
 
     # Notify coordinator to remove sensor entities for the deleted room
     coordinator = _get_coordinator(hass)
@@ -1135,7 +1219,9 @@ async def websocket_control_preview(
         connection.send_error(msg["id"], "unavailable", "RoomMind coordinator unavailable")
         return
     store = hass.data[DOMAIN]["store"]
-    result = build_control_preview(hass, store.get_settings(), store.get_rooms(), coordinator, msg.get("mode", "cooling"))
+    result = build_control_preview(
+        hass, store.get_settings(), store.get_rooms(), coordinator, msg.get("mode", "cooling")
+    )
     connection.send_result(msg["id"], result)
 
 

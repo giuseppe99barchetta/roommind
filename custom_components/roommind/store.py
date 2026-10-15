@@ -96,6 +96,7 @@ def _migrate_room(room: dict) -> dict:
     room.setdefault("humidity_target", 55.0)
     room.setdefault("humidity_tolerance", 5.0)
     room.setdefault("humidity_priority", "balanced")
+    room.setdefault("dehumidifier", None)
     room.setdefault("active_profile", "")
     room.setdefault("comfort_profiles", {})
     room.setdefault("anomaly_detection_enabled", True)
@@ -261,6 +262,7 @@ class RoomMindStore:
             "devices": config.get("devices", []),
             "temperature_sensor": config.get("temperature_sensor", ""),
             "humidity_sensor": config.get("humidity_sensor", ""),
+            "dehumidifier": config.get("dehumidifier"),
             "dry_entity_type": config.get("dry_entity_type", "humidifier"),
             "occupancy_sensors": config.get("occupancy_sensors", []),
             "climate_mode": config.get("climate_mode", "auto"),
@@ -395,4 +397,8 @@ class RoomMindStore:
             raise KeyError(f"Room '{area_id}' not found")
 
         del self._data[area_id]
+        for room in self._data.values():
+            config = room.get("dehumidifier")
+            if config:
+                config["served_area_ids"] = [a for a in config.get("served_area_ids", []) if a != area_id]
         await self._async_save()

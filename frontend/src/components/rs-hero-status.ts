@@ -704,7 +704,7 @@ export class RsHeroStatus extends LitElement {
               ${live.mold_prevention_active && !this.isOutdoor
                 ? html`<div class="hero-metric info">
                     <ha-icon icon="mdi:shield-check"></ha-icon>
-                    ${localize("card.mold_prevention", this.hass?.language ?? "en", {
+                    ${localize(live.mold_prevention_strategy === "dehumidifier" ? "dehumidifier.request_mold" : "card.mold_prevention", this.hass?.language ?? "en", {
                       delta: toDisplayDelta(live.mold_prevention_delta, this.hass).toFixed(0),
                       unit: tempUnit(this.hass),
                     })}

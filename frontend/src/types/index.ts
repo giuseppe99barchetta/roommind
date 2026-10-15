@@ -24,6 +24,7 @@ export interface CoverScheduleEntry {
 }
 
 export interface RoomLiveData {
+  dehumidifier?: DehumidifierStatus;
   current_temp: number | null;
   current_humidity: number | null;
   target_temp: number | null;
@@ -47,7 +48,7 @@ export interface RoomLiveData {
   mold_surface_rh: number | null;
   mold_prevention_active: boolean;
   mold_prevention_delta: number;
-  mold_prevention_strategy?: "heat" | "dry" | "cool" | "reheat" | null;
+  mold_prevention_strategy?: "heat" | "dry" | "cool" | "reheat" | "dehumidifier" | null;
   ac_power_w?: number | null;
   ac_device_power_w?: Record<string, number>;
   ac_energy_today_kwh?: number | null;
@@ -111,6 +112,51 @@ export interface RoomReadiness {
 }
 
 export type DeviceType = "trv" | "ac";
+
+export interface DehumidifierConfig {
+  entity_id: string;
+  served_area_ids: string[];
+  mode: "auto" | "manual";
+  min_run_minutes: number;
+  min_off_minutes: number;
+  power_watts: number;
+}
+
+export type DehumidifierPauseReason =
+  | "unavailable"
+  | "manual"
+  | "disabled"
+  | "sensor"
+  | "window"
+  | "humidity_floor"
+  | "min_off"
+  | "min_run"
+  | "night"
+  | "power_budget"
+  | "error";
+
+export interface DehumidifierDeviceStatus {
+  entity_id: string;
+  owner_area_id: string;
+  served_area_ids: string[];
+  mode: "auto" | "manual";
+  available: boolean;
+  state: string;
+  action: string | null;
+  reason: DehumidifierPauseReason | null;
+  requesting_rooms: string[];
+  pending_rooms: string[];
+  requested: boolean;
+  commanded: boolean | null;
+  target_humidity: number | null;
+  humidity_floor: number | null;
+}
+
+export interface DehumidifierStatus {
+  devices: DehumidifierDeviceStatus[];
+  request: "comfort" | "mold" | null;
+  assigned_entity_id: string | null;
+}
 export type DeviceRole = "primary" | "secondary" | "auto";
 
 export interface DeviceConfig {
@@ -147,6 +193,11 @@ export interface CompressorGroup {
 }
 
 export interface RoomConfig {
+  dehumidifier?: DehumidifierConfig | null;
+  humidity_comfort_enabled?: boolean;
+  humidity_target?: number;
+  humidity_tolerance?: number;
+  humidity_priority?: "comfort" | "balanced" | "energy";
   area_id: string;
   thermostats: string[];
   acs: string[];
