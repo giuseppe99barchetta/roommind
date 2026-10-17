@@ -28,8 +28,16 @@ each served room and select its target, tolerance and priority. Active comfort
 profiles can override the target. Mold prevention uses the existing prevention
 settings and prefers the dedicated device without changing the room's HVAC mode.
 
-The host's window delays and quiet hours apply to the entire device. During
-quiet hours comfort pauses; significant mold risk may still request operation.
+In **Auto** mode, RoomMind controls only runs it starts. If you turn the device
+on yourself, for example to dry laundry, RoomMind leaves its power and humidity
+setpoint untouched until you turn it off. A device already on when RoomMind
+starts is also treated as manual. Automatic control can resume after it is off,
+subject to the minimum off time. Manual runs remain untouched when the device
+is removed or replaced in RoomMind's configuration.
+
+For runs started by RoomMind, the host's window delays and quiet hours apply to
+the entire device. During quiet hours comfort pauses; significant mold risk may
+still request operation.
 Shared devices pause when the host reaches 45% humidity and resume from 50%.
 Native device limits can raise this effective floor, which is shown in the panel.
 For shared appliances, the device target follows this floor. It can therefore

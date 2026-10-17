@@ -7,7 +7,7 @@ import pytest
 import voluptuous as vol
 
 from custom_components.roommind.const import DOMAIN
-from custom_components.roommind.managers.dehumidifier_manager import DehumidifierManager
+from custom_components.roommind.managers.dehumidifier_manager import DehumidifierManager, DeviceRuntime
 from custom_components.roommind.websocket_api import websocket_delete_room, websocket_save_room
 
 
@@ -120,27 +120,33 @@ async def test_non_finite_setting_rejected(registration):
         await save(registration, dehumidifier={"entity_id": "switch.dryer", "power_watts": float("nan")})
 
 
-def attach_coordinator(hass):
+def attach_coordinator(hass, *, owned=False):
     coordinator = SimpleNamespace(
         _dehumidifier_manager=DehumidifierManager(hass), async_room_added=AsyncMock(), async_room_removed=AsyncMock()
     )
     hass.data[DOMAIN]["coordinator"] = coordinator
+    if owned:
+        coordinator._dehumidifier_manager.runtime["switch.dryer"] = DeviceRuntime(True, 0, 0, owned_on=True)
     return coordinator
 
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize("operation", ["replace", "remove", "delete"])
-async def test_registered_running_auto_device_stopped_before_removal(registration, operation):
+@pytest.mark.parametrize("owned", [False, True])
+async def test_removal_stops_only_roommind_runs(registration, operation, owned):
     hass, store, conn, _ = registration
     await store.async_load()
     await save(registration, dehumidifier={"entity_id": "switch.dryer"})
-    attach_coordinator(hass)
+    attach_coordinator(hass, owned=owned)
     if operation == "delete":
         await websocket_delete_room.__wrapped__(hass, conn, {"id": 2, "area_id": "bed"})
         assert store.get_room("bed") is None
     else:
         await save(registration, dehumidifier={"entity_id": "switch.new"} if operation == "replace" else None)
-    assert hass.services.async_call.call_args.args == ("switch", "turn_off", {"entity_id": "switch.dryer"})
+    if owned:
+        assert hass.services.async_call.call_args.args == ("switch", "turn_off", {"entity_id": "switch.dryer"})
+    else:
+        hass.services.async_call.assert_not_awaited()
 
 
 @pytest.mark.asyncio
@@ -159,7 +165,7 @@ async def test_failed_stop_preserves_old_registration(registration):
     hass, store, conn, _ = registration
     await store.async_load()
     await save(registration, dehumidifier={"entity_id": "switch.dryer"})
-    attach_coordinator(hass)
+    attach_coordinator(hass, owned=True)
     hass.services.async_call.side_effect = RuntimeError("offline")
     await save(registration, dehumidifier=None)
     assert conn.send_error.call_args.args[1] == "device_error"

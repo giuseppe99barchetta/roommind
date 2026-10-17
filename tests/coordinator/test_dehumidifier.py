@@ -67,6 +67,19 @@ async def test_disabled_automation_sends_no_dehumidifier_commands(hass, mock_con
 
 
 @pytest.mark.asyncio
+@pytest.mark.parametrize("humidity_comfort", [False, True])
+async def test_running_manual_dehumidifier_is_not_claimed_or_stopped(hass, mock_config_entry, humidity_comfort):
+    coordinator, _, room = setup_control(hass, mock_config_entry, mode="off", device_state="on")
+    room["humidity_comfort_enabled"] = humidity_comfort
+    result = await coordinator._async_update_data()
+    status = result["rooms"][room["area_id"]]["dehumidifier"]
+    assert status["devices"][0]["reason"] == "manual"
+    assert status["assigned_entity_id"] is None
+    assert not any(c.args[0] == "switch" for c in hass.services.async_call.call_args_list)
+    assert not any(c.args[2].get("hvac_mode") == "dry" for c in hass.services.async_call.call_args_list)
+
+
+@pytest.mark.asyncio
 async def test_mold_prefers_dedicated_without_dry_temperature_or_runtime_limits(hass, mock_config_entry):
     settings = {"mold_prevention_enabled": True, "mold_prevention_sustained_minutes": 0}
     coordinator, _, room = setup_control(hass, mock_config_entry, settings=settings)

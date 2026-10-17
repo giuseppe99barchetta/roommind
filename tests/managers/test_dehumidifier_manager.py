@@ -36,6 +36,18 @@ def prepare(control, humidities=None, molds=None, settings=None, windows=None):
     return manager
 
 
+async def start_automatic_run(control):
+    """Start through RoomMind, then acknowledge the physical ON feedback."""
+    manager, _, states, clock = control
+    prepare(control)
+    await manager.apply(PowerBudgetManager())
+    assert manager.hass.services.async_call.call_args.args[1] == "turn_on"
+    states["switch.dryer"].state = "on"
+    clock[0] += 61
+    prepare(control)
+    manager.hass.services.async_call.reset_mock()
+
+
 @pytest.mark.asyncio
 async def test_shared_bath_request_starts_only_one_device(control):
     manager = prepare(control)
@@ -48,11 +60,12 @@ async def test_shared_bath_request_starts_only_one_device(control):
 
 
 @pytest.mark.parametrize("reverse", [False, True])
-def test_local_wins_then_running_shared_regardless_of_room_order(control, reverse):
+@pytest.mark.asyncio
+async def test_local_wins_then_running_shared_regardless_of_room_order(control, reverse):
     manager, rooms, states, _ = control
+    await start_automatic_run(control)
     rooms["bath"]["dehumidifier"] = {"entity_id": "switch.local", "min_off_minutes": 0}
     states["switch.local"] = SimpleNamespace(state="off", attributes={})
-    states["switch.dryer"].state = "on"
     if reverse:
         control = manager, dict(reversed(list(rooms.items()))), states, control[3]
     prepare(control)
@@ -65,7 +78,7 @@ def test_local_wins_then_running_shared_regardless_of_room_order(control, revers
 @pytest.mark.asyncio
 async def test_floor_stops_immediately_and_holds_until_fifty(control):
     manager, _, states, clock = control
-    states["switch.dryer"].state = "on"
+    await start_automatic_run(control)
     manager = prepare(control, {"bed": 45.0, "bath": 70.0})
     await manager.apply(PowerBudgetManager())
     assert manager.devices["switch.dryer"]["reason"] == "humidity_floor"
@@ -148,8 +161,8 @@ async def test_restart_waits_minimum_off_time(control):
 
 @pytest.mark.asyncio
 async def test_min_run_does_not_override_missing_host_sensor(control):
-    manager, _, states, _ = control
-    states["switch.dryer"].state = "on"
+    manager, _, _, _ = control
+    await start_automatic_run(control)
     prepare(control, {"bed": 55, "bath": 55})
     await manager.apply(PowerBudgetManager())
     assert manager.devices["switch.dryer"]["reason"] == "min_run"
@@ -215,11 +228,11 @@ async def test_service_error_isolated_to_device(control):
 
 
 @pytest.mark.asyncio
-async def test_release_stops_removed_auto_device_but_manual_transition_is_untouched(control):
-    manager, rooms, states, _ = control
-    states["switch.dryer"].state = "on"
+async def test_release_stops_owned_device_but_unchanged_registration_is_untouched(control):
+    manager, rooms, _, _ = control
+    await start_automatic_run(control)
     old = deepcopy(rooms["bed"]["dehumidifier"])
-    await manager.release(old, {**old, "mode": "manual"}, True)
+    await manager.release(old, deepcopy(old), True)
     manager.hass.services.async_call.assert_not_awaited()
     await manager.release(old, None, True)
     assert manager.hass.services.async_call.call_args.args[1] == "turn_off"
@@ -236,8 +249,8 @@ def test_manual_device_never_triggers_fallback_even_when_unavailable(control):
 @pytest.mark.asyncio
 async def test_min_off_applies_while_physical_off_feedback_is_delayed(control):
     manager, rooms, states, clock = control
+    await start_automatic_run(control)
     rooms["bed"]["dehumidifier"].update(min_off_minutes=5, min_run_minutes=0)
-    states["switch.dryer"].state = "on"
     prepare(control, {"bed": 55, "bath": 55})
     await manager.apply(PowerBudgetManager())
     assert manager.hass.services.async_call.call_args.args[1] == "turn_off"
@@ -251,8 +264,8 @@ async def test_min_off_applies_while_physical_off_feedback_is_delayed(control):
 
 @pytest.mark.asyncio
 async def test_loss_of_only_requesting_sensor_overrides_min_run(control):
-    manager, _, states, _ = control
-    states["switch.dryer"].state = "on"
+    manager, _, _, _ = control
+    await start_automatic_run(control)
     prepare(control)
     await manager.apply(PowerBudgetManager())
     prepare(control, {"bed": 55, "bath": None})
@@ -320,3 +333,130 @@ def test_sensor_outage_does_not_clear_host_floor_hysteresis(control):
     prepare(control, {"bed": None, "bath": 70})
     prepare(control, {"bed": 49, "bath": 70})
     assert manager.devices["switch.dryer"]["reason"] == "humidity_floor"
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("entity_id", ["switch.dryer", "humidifier.native"])
+@pytest.mark.parametrize("already_on", [False, True])
+@pytest.mark.parametrize("constraint", ["none", "floor", "sensor", "window", "night", "power_budget"])
+async def test_manual_run_is_untouched(control, monkeypatch, entity_id, already_on, constraint):
+    """Laundry runs retain power and native settings regardless of automatic demand."""
+    manager, rooms, states, clock = control
+    rooms["bed"]["dehumidifier"]["entity_id"] = entity_id
+    states[entity_id] = SimpleNamespace(
+        state="on" if already_on else "off", attributes={"device_class": "dehumidifier", "humidity": 35}
+    )
+    if not already_on:
+        prepare(control, {"bed": 55, "bath": 55})
+        await manager.apply(PowerBudgetManager())
+        states[entity_id].state = "on"
+    budget = MagicMock(spec=PowerBudgetManager)
+    budget.request_heat_pump.return_value = constraint != "power_budget"
+    if constraint == "night":
+        monkeypatch.setattr(
+            "custom_components.roommind.managers.dehumidifier_manager.night_phase", lambda *args: "night"
+        )
+    humidity = {"bed": 45 if constraint == "floor" else None if constraint == "sensor" else 55, "bath": 70}
+    # Demand must never transfer ownership; later satisfied demand must not stop it.
+    for readings in (humidity, {"bed": 55, "bath": 55}):
+        clock[0] += 600
+        prepare(control, readings, windows={"bed": constraint == "window"})
+        await manager.apply(budget)
+        assert manager.devices[entity_id]["reason"] == "manual"
+        assert manager.suppress_ac_dry("bath")
+        assert not manager.assignments
+    manager.hass.services.async_call.assert_not_awaited()
+    budget.request_heat_pump.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_automatic_run_stops_when_demand_is_satisfied(control):
+    manager, _, _, clock = control
+    await start_automatic_run(control)
+    clock[0] += 300
+    prepare(control, {"bed": 55, "bath": 55})
+    await manager.apply(PowerBudgetManager())
+    assert manager.hass.services.async_call.call_args.args[1] == "turn_off"
+
+
+@pytest.mark.asyncio
+async def test_manual_restart_does_not_inherit_automatic_run(control):
+    manager, _, states, clock = control
+    await start_automatic_run(control)
+    states["switch.dryer"].state = "off"
+    prepare(control, {"bed": 55, "bath": 55})
+    states["switch.dryer"].state = "on"
+    clock[0] += 600
+    prepare(control)
+    await manager.apply(PowerBudgetManager())
+    prepare(control, windows={"bed": True})
+    await manager.apply(PowerBudgetManager())
+    manager.hass.services.async_call.assert_not_awaited()
+
+
+@pytest.mark.asyncio
+async def test_automatic_control_resumes_after_manual_run_is_turned_off(control):
+    manager, _, states, _ = control
+    states["switch.dryer"].state = "on"
+    prepare(control)
+    await manager.apply(PowerBudgetManager())
+    manager.hass.services.async_call.assert_not_awaited()
+    states["switch.dryer"].state = "off"
+    prepare(control)
+    await manager.apply(PowerBudgetManager())
+    assert manager.hass.services.async_call.call_args.args[1] == "turn_on"
+    assert manager.assignments == {"bath": "switch.dryer"}
+
+
+@pytest.mark.asyncio
+async def test_manual_restart_overrides_pending_off(control):
+    manager, _, states, clock = control
+    await start_automatic_run(control)
+    prepare(control, windows={"bed": True})
+    await manager.apply(PowerBudgetManager())
+    assert manager.hass.services.async_call.call_args.args[1] == "turn_off"
+    states["switch.dryer"].state = "off"
+    prepare(control, windows={"bed": True})
+    states["switch.dryer"].state = "on"
+    manager.hass.services.async_call.reset_mock()
+    clock[0] += 1
+    prepare(control)
+    await manager.apply(PowerBudgetManager())
+    assert manager.devices["switch.dryer"]["reason"] == "manual"
+    manager.hass.services.async_call.assert_not_awaited()
+
+
+@pytest.mark.asyncio
+async def test_manual_mode_relinquishes_ownership_when_auto_is_restored(control):
+    manager, rooms, _, _ = control
+    await start_automatic_run(control)
+    rooms["bed"]["dehumidifier"]["mode"] = "manual"
+    prepare(control)
+    await manager.apply(PowerBudgetManager())
+    rooms["bed"]["dehumidifier"]["mode"] = "auto"
+    prepare(control, windows={"bed": True})
+    await manager.apply(PowerBudgetManager())
+    manager.hass.services.async_call.assert_not_awaited()
+
+
+@pytest.mark.asyncio
+async def test_release_to_manual_relinquishes_ownership_immediately(control):
+    manager, rooms, _, _ = control
+    await start_automatic_run(control)
+    old = deepcopy(rooms["bed"]["dehumidifier"])
+    await manager.release(old, {**old, "mode": "manual"}, True)
+    prepare(control, windows={"bed": True})
+    await manager.apply(PowerBudgetManager())
+    await manager.release(old, None, True)
+    manager.hass.services.async_call.assert_not_awaited()
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("prepared", [False, True])
+async def test_release_preserves_manual_run(control, prepared):
+    manager, rooms, states, _ = control
+    states["switch.dryer"].state = "on"
+    if prepared:
+        prepare(control)
+    await manager.release(rooms["bed"]["dehumidifier"], None, True)
+    manager.hass.services.async_call.assert_not_awaited()

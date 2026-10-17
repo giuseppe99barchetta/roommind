@@ -55,6 +55,7 @@ class DeviceRuntime:
     target: float | None = None
     target_at: float = -math.inf
     available: bool = True
+    owned_on: bool = False
 
 
 class DehumidifierManager:
@@ -108,6 +109,12 @@ class DehumidifierManager:
             runtime.available = available
             if available and on != runtime.observed_on:
                 runtime.observed_on = on
+                # A physical OFF ends our run. A later manual ON must not
+                # inherit ownership or a still-pending OFF command.
+                if not on or runtime.command is not True:
+                    runtime.owned_on = False
+                    runtime.command = None
+                    runtime.command_at = -math.inf
                 if on:
                     runtime.on_since = now
                 else:
@@ -132,6 +139,11 @@ class DehumidifierManager:
                 runtime.floor_paused = False
             reason = None
             if config.get("mode", "auto") == "manual":
+                runtime.owned_on = False
+                runtime.command = None
+                runtime.command_at = -math.inf
+                reason = "manual"
+            elif on and not runtime.owned_on:
                 reason = "manual"
             elif (
                 not settings.get("climate_control_active", True)
@@ -306,6 +318,7 @@ class DehumidifierManager:
             runtime.command = desired
             runtime.command_at = now
             if desired:
+                runtime.owned_on = True
                 runtime.on_since = now
             else:
                 runtime.off_since = now
@@ -327,7 +340,9 @@ class DehumidifierManager:
         }
 
     async def release(self, old: dict | None, new: dict | None, enabled: bool) -> None:
-        """Stop an automatic device before its registration is removed/replaced."""
+        """Stop only our own run before a registration is removed/replaced."""
+        if old and new and old["entity_id"] == new["entity_id"] and new.get("mode", "auto") == "manual":
+            self.runtime.pop(old["entity_id"], None)
         if (
             not old
             or not enabled
@@ -338,7 +353,11 @@ class DehumidifierManager:
         eid = old["entity_id"]
         state = self.hass.states.get(eid)
         runtime = self.runtime.get(eid)
-        if state is not None and state.state == "on" or runtime is not None and runtime.command is True:
+        if (
+            runtime is not None
+            and runtime.owned_on
+            and (state is not None and state.state == "on" or runtime.command is True)
+        ):
             await self.hass.services.async_call(
                 eid.split(".")[0], "turn_off", {"entity_id": eid}, blocking=True, context=make_roommind_context()
             )
