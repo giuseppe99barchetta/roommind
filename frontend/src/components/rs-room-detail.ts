@@ -165,6 +165,7 @@ export class RsRoomDetail extends LitElement {
       grid-column: span 4;
     }
     .devices-card,
+    .dehumidifier-card,
     .sensors-card {
       grid-column: span 6;
     }
@@ -189,6 +190,7 @@ export class RsRoomDetail extends LitElement {
         grid-column: span 6;
       }
       .devices-card,
+      .dehumidifier-card,
       .sensors-card {
         grid-column: span 6;
       }
@@ -648,6 +650,7 @@ export class RsRoomDetail extends LitElement {
                 </rs-section-card>
 
                 <rs-section-card
+                  class="dehumidifier-card"
                   data-group="equipment"
                   icon="mdi:air-humidifier"
                   .heading=${localize("dehumidifier.title", this.hass.language)}

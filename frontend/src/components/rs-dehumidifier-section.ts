@@ -76,6 +76,14 @@ export class RsDehumidifierSection extends LitElement {
         outline: 2px solid var(--primary-color);
         outline-offset: 2px;
       }
+      .configure {
+        display: block;
+        min-height: 44px;
+        margin-top: 12px;
+        padding: 10px 14px;
+        border: 1px solid var(--primary-color);
+        border-radius: 10px;
+      }
       label {
         display: flex;
         align-items: center;
@@ -337,6 +345,16 @@ export class RsDehumidifierSection extends LitElement {
         )},
         ${this.humidity.humidity_target}%
       </p>
+      <button
+        class="configure"
+        type="button"
+        @click=${() =>
+          this.dispatchEvent(new CustomEvent("edit-click", { bubbles: true, composed: true }))}
+      >
+        ${this._label(
+          this.config || devices.length ? "dehumidifier.configure" : "dehumidifier.add",
+        )}
+      </button>
     `;
   }
 }

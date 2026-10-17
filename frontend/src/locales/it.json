@@ -327,6 +327,8 @@
   "mold.intensity_strong": "Forte (fino a {delta}{unit})",
   "mold.intensity_hint": "Interviene solo sotto 20 °C. Seleziona la temperatura obiettivo massima per la prevenzione, senza ridurre il normale setpoint comfort.",
   "dehumidifier.title": "Deumidificatore",
+  "dehumidifier.add": "Aggiungi deumidificatore",
+  "dehumidifier.configure": "Configura deumidificatore",
   "dehumidifier.device": "Dispositivo fisico",
   "dehumidifier.device_hint": "Scegli un deumidificatore o una presa smart. Con una presa, l’apparecchio deve ripartire al ritorno della corrente.",
   "dehumidifier.mode": "Gestione dispositivo",

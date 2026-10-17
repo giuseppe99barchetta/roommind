@@ -66,6 +66,52 @@ function renderedText(value) {
   return String(value);
 }
 
+test("an unassigned device has a visible action that opens the humidity editor", () => {
+  const section = new Section();
+  section.hass = { language: "it", states: {}, areas: {} };
+  section.humidity = { humidity_comfort_enabled: false, humidity_target: 55 };
+  const detail = new RoomDetail();
+  detail.hass = section.hass;
+  detail.area = { area_id: "bed" };
+  const events = [];
+  section.dispatchEvent = (event) => {
+    events.push(event);
+    detail._openEdit("dehumidifier")();
+    return true;
+  };
+
+  const view = section.render();
+  assert.ok(renderedText(view).includes("Aggiungi deumidificatore"));
+  const click = view.values.find((_, i) => view.strings[i].trimEnd().endsWith("@click="));
+  assert.equal(typeof click, "function");
+  click();
+  assert.equal(events[0].type, "edit-click");
+  assert.equal(events[0].bubbles, true);
+  assert.equal(events[0].composed, true);
+  assert.equal(detail._editing, "dehumidifier");
+  assert.ok(renderedText(detail._renderEditDialog()).includes("rs-dehumidifier-section"));
+  assert.equal(section.config, null);
+  assert.equal(section.humidity.humidity_comfort_enabled, false);
+});
+
+test("local and shared devices offer configuration even with humidity comfort disabled", () => {
+  const section = new Section();
+  section.hass = { language: "en", states: {}, areas: {} };
+  section.humidity = { humidity_comfort_enabled: false, humidity_target: 55 };
+  section.config = config;
+  assert.ok(renderedText(section.render()).includes("Configure dehumidifier"));
+  section.config = null;
+  section.live = { devices: [{
+    entity_id: "switch.hall", owner_area_id: "hall", served_area_ids: ["bed"],
+    state: "off", action: null, available: true, commanded: null, pending_rooms: [],
+  }] };
+  assert.ok(renderedText(section.render()).includes("Configure dehumidifier"));
+  section.editing = true;
+  const editor = renderedText(section.render());
+  assert.ok(editor.includes("rs-entity-picker-field"));
+  assert.ok(!editor.includes('class="configure"'));
+});
+
 test("observed switch on is distinct from drying and host constraints remain visible", () => {
   const section = new Section();
   section.hass = { language: "en", states: {}, areas: {} };

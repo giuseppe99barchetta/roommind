@@ -4,8 +4,9 @@ This page explains RoomMind's control settings and related device options.
 
 ## Dedicated And Shared Dehumidifiers
 
-In a room's **Equipment -> Dehumidifier** section, select a native Home Assistant
-dehumidifier (`humidifier.*`, device class `dehumidifier`) or a smart plug
+In a room's **Devices and sensors -> Dehumidifier** section, click **Add
+dehumidifier** (or **Configure dehumidifier** for an existing device), then select
+a native Home Assistant dehumidifier (`humidifier.*`, device class `dehumidifier`) or a smart plug
 (`switch.*`). A plug-controlled appliance must restart when power returns.
 Each physical entity is registered once, in the room where it is located.
 

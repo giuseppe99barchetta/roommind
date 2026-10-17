@@ -682,6 +682,8 @@
   "insights.comfort.factor.anomalies.active": "Aktive Raumanomalien",
   "insights.comfort.factor.anomalies.none": "Keine aktiven Anomalien",
   "dehumidifier.title": "Luftentfeuchter",
+  "dehumidifier.add": "Luftentfeuchter hinzufügen",
+  "dehumidifier.configure": "Luftentfeuchter konfigurieren",
   "dehumidifier.device": "Physisches Gerät",
   "dehumidifier.device_hint": "Luftentfeuchter oder smarte Steckdose wählen. Das Gerät muss nach Stromrückkehr selbst starten.",
   "dehumidifier.mode": "Gerätesteuerung",

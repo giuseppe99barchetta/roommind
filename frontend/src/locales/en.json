@@ -744,6 +744,8 @@
   "comfort.night_cool_delta": "Cooling offset (°C)",
   "comfort.night_ramp": "Transition time (min)",
   "dehumidifier.title": "Dehumidifier",
+  "dehumidifier.add": "Add dehumidifier",
+  "dehumidifier.configure": "Configure dehumidifier",
   "dehumidifier.device": "Physical device",
   "dehumidifier.device_hint": "Choose a dehumidifier or smart plug. Plug-controlled appliances must restart when power returns.",
   "dehumidifier.mode": "Device control",

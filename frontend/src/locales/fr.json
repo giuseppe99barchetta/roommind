@@ -682,6 +682,8 @@
   "insights.comfort.factor.anomalies.active": "Anomalies actives de la piÃ¨ce",
   "insights.comfort.factor.anomalies.none": "Aucune anomalie active",
   "dehumidifier.title": "Déshumidificateur",
+  "dehumidifier.add": "Ajouter un déshumidificateur",
+  "dehumidifier.configure": "Configurer le déshumidificateur",
   "dehumidifier.device": "Appareil physique",
   "dehumidifier.device_hint": "Choisissez un déshumidificateur ou une prise connectée. L’appareil doit redémarrer au retour du courant.",
   "dehumidifier.mode": "Commande de l’appareil",
