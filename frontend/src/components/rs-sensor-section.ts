@@ -6,6 +6,7 @@ import { localize } from "../utils/localize";
 import { openEntityInfo } from "../utils/events";
 import { tempUnit } from "../utils/temperature";
 import { inputStyles } from "../styles/input-styles";
+import { equipmentStyles } from "../styles/equipment-styles";
 import { getSelectValue } from "../utils/events";
 
 // Wall temperature factor presets (DIN 4108-2) for the coldest wall spot.
@@ -41,6 +42,7 @@ export class RsSensorSection extends LitElement {
 
   static styles = [
     inputStyles,
+    equipmentStyles,
     css`
       :host {
         display: block;
@@ -429,52 +431,70 @@ export class RsSensorSection extends LitElement {
     const hasOccupancySensors = this.occupancySensors.size > 0;
     const hasWindowSensors = this.windowSensors.size > 0;
 
-    if (!hasTempSensor && !hasHumiditySensor && !hasOccupancySensors && !hasWindowSensors) {
-      return nothing;
-    }
-
     const lang = this.hass.language;
     return html`
-      ${hasTempSensor
-        ? html`
-            <div class="section-subtitle">${localize("devices.temp_sensors", lang)}</div>
-            ${this._renderSensorViewRow(this.temperatureSensor, "temp")}
-          `
-        : nothing}
-      ${hasHumiditySensor
-        ? html`
-            <div class="section-subtitle">${localize("devices.humidity_sensors", lang)}</div>
-            ${this._renderSensorViewRow(this.humiditySensor, "humidity")}
-            <div class="delay-view">
-              ${localize("devices.wall_factor", lang)}: ${this.moldFRsi.toFixed(2)}
-              (${this._wallPresetLabel(lang)})
-            </div>
-          `
-        : nothing}
-      ${hasOccupancySensors
-        ? html`
-            <div class="section-subtitle">${localize("devices.occupancy_sensors", lang)}</div>
-            ${[...this.occupancySensors].map((id) => this._renderOccupancyViewRow(id))}
-          `
-        : nothing}
-      ${hasWindowSensors
-        ? html`
-            <div class="section-subtitle">${localize("devices.window_sensors", lang)}</div>
-            ${[...this.windowSensors].map((id) => this._renderWindowViewRow(id))}
-            ${this.windowOpenDelay || this.windowCloseDelay
-              ? html`<div class="delay-view">
-                  ${this.windowOpenDelay
-                    ? html`${localize("devices.window_open_delay", lang)}: ${this.windowOpenDelay}s`
-                    : nothing}
-                  ${this.windowOpenDelay && this.windowCloseDelay ? " · " : nothing}
-                  ${this.windowCloseDelay
-                    ? html`${localize("devices.window_close_delay", lang)}:
-                      ${this.windowCloseDelay}s`
-                    : nothing}
-                </div>`
-              : nothing}
-          `
-        : nothing}
+      <div class="equipment-view">
+        ${!hasTempSensor && !hasHumiditySensor && !hasOccupancySensors && !hasWindowSensors
+          ? html`<p class="equipment-empty">${localize("equipment.no_sensors", lang)}</p>`
+          : nothing}
+        ${hasTempSensor
+          ? html`
+              <div class="sensor-group">
+                <div class="section-subtitle">${localize("devices.temp_sensors", lang)}</div>
+                ${this._renderSensorViewRow(this.temperatureSensor, "temp")}
+              </div>
+            `
+          : nothing}
+        ${hasHumiditySensor
+          ? html`
+              <div class="sensor-group">
+                <div class="section-subtitle">${localize("devices.humidity_sensors", lang)}</div>
+                ${this._renderSensorViewRow(this.humiditySensor, "humidity")}
+                <div class="delay-view">
+                  ${localize("devices.wall_factor", lang)}: ${this.moldFRsi.toFixed(2)}
+                  (${this._wallPresetLabel(lang)})
+                </div>
+              </div>
+            `
+          : nothing}
+        ${hasOccupancySensors
+          ? html`
+              <div class="sensor-group">
+                <div class="section-subtitle">${localize("devices.occupancy_sensors", lang)}</div>
+                ${[...this.occupancySensors].map((id) => this._renderOccupancyViewRow(id))}
+              </div>
+            `
+          : nothing}
+        ${hasWindowSensors
+          ? html`
+              <div class="sensor-group">
+                <div class="section-subtitle">${localize("devices.window_sensors", lang)}</div>
+                ${[...this.windowSensors].map((id) => this._renderWindowViewRow(id))}
+                ${this.windowOpenDelay || this.windowCloseDelay
+                  ? html`<div class="delay-view">
+                      ${this.windowOpenDelay
+                        ? html`${localize("devices.window_open_delay", lang)}:
+                          ${this.windowOpenDelay}s`
+                        : nothing}
+                      ${this.windowOpenDelay && this.windowCloseDelay ? " · " : nothing}
+                      ${this.windowCloseDelay
+                        ? html`${localize("devices.window_close_delay", lang)}:
+                          ${this.windowCloseDelay}s`
+                        : nothing}
+                    </div>`
+                  : nothing}
+              </div>
+            `
+          : nothing}
+        <button
+          type="button"
+          class="equipment-edit"
+          @click=${() =>
+            this.dispatchEvent(new CustomEvent("edit-click", { bubbles: true, composed: true }))}
+        >
+          <ha-icon icon="mdi:tune-variant"></ha-icon>${localize("equipment.edit_sensors", lang)}
+        </button>
+      </div>
     `;
   }
 
@@ -485,10 +505,25 @@ export class RsSensorSection extends LitElement {
 
     return html`
       <div class="view-row">
-        <span class="view-name entity-link" @click=${() => openEntityInfo(this, entityId)}
-          >${friendlyName}</span
+        <ha-icon class="view-icon" icon="mdi:window-closed-variant"></ha-icon>
+        <button
+          type="button"
+          class="view-name entity-link"
+          @click=${() => openEntityInfo(this, entityId)}
         >
-        <span class="occupancy-dot window-dot ${isOpen ? "on" : "off"}"></span>
+          ${friendlyName}
+        </button>
+        <span class="sensor-state"
+          ><span class="occupancy-dot window-dot ${isOpen ? "on" : "off"}"></span>
+          ${localize(
+            entityState?.state === "on"
+              ? "equipment.open"
+              : entityState?.state === "off"
+                ? "equipment.closed"
+                : "equipment.unavailable",
+            this.hass.language,
+          )}
+        </span>
       </div>
     `;
   }
@@ -511,9 +546,17 @@ export class RsSensorSection extends LitElement {
 
     return html`
       <div class="view-row">
-        <span class="view-name entity-link" @click=${() => openEntityInfo(this, entityId)}
-          >${friendlyName}</span
+        <ha-icon
+          class="view-icon"
+          icon=${type === "temp" ? "mdi:thermometer" : "mdi:water-percent"}
+        ></ha-icon>
+        <button
+          type="button"
+          class="view-name entity-link"
+          @click=${() => openEntityInfo(this, entityId)}
         >
+          ${friendlyName}
+        </button>
         ${displayValue ? html`<span class="view-value">${displayValue}</span>` : nothing}
       </div>
     `;
@@ -526,9 +569,14 @@ export class RsSensorSection extends LitElement {
 
     return html`
       <div class="view-row">
-        <span class="view-name entity-link" @click=${() => openEntityInfo(this, entityId)}
-          >${friendlyName}</span
+        <ha-icon class="view-icon" icon="mdi:motion-sensor"></ha-icon>
+        <button
+          type="button"
+          class="view-name entity-link"
+          @click=${() => openEntityInfo(this, entityId)}
         >
+          ${friendlyName}
+        </button>
         <span class="occupancy-dot ${isOn ? "on" : "off"}"></span>
       </div>
     `;

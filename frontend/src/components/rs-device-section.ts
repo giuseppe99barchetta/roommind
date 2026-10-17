@@ -8,6 +8,7 @@ import { tempUnit } from "../utils/temperature";
 import { resolveHeatingSystemType } from "../utils/device-utils";
 import { masterDetailStyles } from "../styles/master-detail-styles";
 import { inputStyles } from "../styles/input-styles";
+import { equipmentStyles } from "../styles/equipment-styles";
 import "./shared/rs-master-detail";
 import "./shared/rs-info-icon";
 
@@ -62,6 +63,7 @@ export class RsDeviceSection extends LitElement {
   static styles = [
     masterDetailStyles,
     inputStyles,
+    equipmentStyles,
     css`
       :host {
         display: block;
@@ -367,35 +369,50 @@ export class RsDeviceSection extends LitElement {
     const hasClimate = this._selectedThermostats.size > 0 || this._selectedCoolingDevices.size > 0;
 
     return html`
-      ${hasClimate
-        ? html`
-            <div class="device-group">
-              <div class="section-subtitle">
-                ${localize("devices.climate_entities", this.hass.language)}
+      <div class="equipment-view">
+        ${hasClimate
+          ? html`
+              <div class="device-group">
+                <div class="section-subtitle">
+                  ${localize("devices.climate_entities", this.hass.language)}
+                </div>
+                ${[...this._selectedThermostats].map((id) => this._renderViewRow(id, "climate"))}
+                ${[...this._selectedCoolingDevices].map((id) => this._renderViewRow(id, "climate"))}
               </div>
-              ${[...this._selectedThermostats].map((id) => this._renderViewRow(id, "climate"))}
-              ${[...this._selectedCoolingDevices].map((id) => this._renderViewRow(id, "climate"))}
-            </div>
-          `
-        : nothing}
-      ${this._heatingSystemType
-        ? html`
-            <div class="device-group">
-              <div class="section-subtitle">
-                ${localize("devices.heating_system_type", this.hass.language)}
+            `
+          : html`<p class="equipment-empty">
+              ${localize("equipment.no_devices", this.hass.language)}
+            </p>`}
+        ${this._heatingSystemType
+          ? html`
+              <div class="device-group">
+                <div class="section-subtitle">
+                  ${localize("devices.heating_system_type", this.hass.language)}
+                </div>
+                <div class="view-row">
+                  <span class="view-name"
+                    >${this._heatingSystemType === "radiator"
+                      ? localize("devices.system_type_radiator", this.hass.language)
+                      : this._heatingSystemType === "underfloor"
+                        ? localize("devices.system_type_underfloor", this.hass.language)
+                        : this._heatingSystemType}</span
+                  >
+                </div>
               </div>
-              <div class="view-row">
-                <span class="view-name"
-                  >${this._heatingSystemType === "radiator"
-                    ? localize("devices.system_type_radiator", this.hass.language)
-                    : this._heatingSystemType === "underfloor"
-                      ? localize("devices.system_type_underfloor", this.hass.language)
-                      : this._heatingSystemType}</span
-                >
-              </div>
-            </div>
-          `
-        : nothing}
+            `
+          : nothing}
+        <button
+          type="button"
+          class="equipment-edit"
+          @click=${() =>
+            this.dispatchEvent(new CustomEvent("edit-click", { bubbles: true, composed: true }))}
+        >
+          <ha-icon icon="mdi:tune-variant"></ha-icon>${localize(
+            "equipment.edit_devices",
+            this.hass.language,
+          )}
+        </button>
+      </div>
     `;
   }
 
@@ -433,9 +450,17 @@ export class RsDeviceSection extends LitElement {
 
     return html`
       <div class="view-row">
-        <span class="view-name entity-link" @click=${() => openEntityInfo(this, entityId)}
-          >${friendlyName}</span
+        <ha-icon
+          class="view-icon"
+          icon=${device?.type === "trv" ? "mdi:radiator" : "mdi:air-conditioner"}
+        ></ha-icon>
+        <button
+          type="button"
+          class="view-name entity-link"
+          @click=${() => openEntityInfo(this, entityId)}
         >
+          ${friendlyName}
+        </button>
         ${showIdleBadge
           ? html`<span class="valve-exclude-badge">
               ${device!.idle_action === "fan_only"

@@ -2,11 +2,13 @@ import assert from "node:assert/strict";
 import { after, before, test } from "node:test";
 import { createServer } from "vite";
 
-let server, Section, RoomDetail;
+let server, Section, RoomDetail, Sensors, Devices;
 before(async () => {
   server = await createServer({ configFile: false, server: { middlewareMode: true } });
   ({ RsDehumidifierSection: Section } = await server.ssrLoadModule("/src/components/rs-dehumidifier-section.ts"));
   ({ RsRoomDetail: RoomDetail } = await server.ssrLoadModule("/src/components/rs-room-detail.ts"));
+  ({ RsSensorSection: Sensors } = await server.ssrLoadModule("/src/components/rs-sensor-section.ts"));
+  ({ RsDeviceSection: Devices } = await server.ssrLoadModule("/src/components/rs-device-section.ts"));
 });
 after(async () => { await server?.close(); });
 
@@ -145,4 +147,105 @@ test("editing presents indoor beneficiary choices and preserves an independent c
   assert.ok(text.includes("Bathroom"));
   assert.ok(!text.includes("Garden"));
   assert.ok(text.includes("Adding a device does not enable comfort automatically"));
+});
+
+function templates(value) {
+  if (Array.isArray(value)) return value.flatMap(templates);
+  if (!value?.strings) return [];
+  return [value, ...value.values.flatMap(templates)];
+}
+
+function clickChoice(view, label) {
+  const choice = templates(view).find(t =>
+    t.strings.join("").includes('class="choice"') && t.values.includes(label));
+  assert.ok(choice, `Missing choice: ${label}`);
+  choice.values.find((_, i) => choice.strings[i].trimEnd().endsWith("@click="))();
+}
+
+test("automatic and manual choices preserve device protections and do not opt into comfort", () => {
+  const section = new Section();
+  section.hass = { language: "it", states: {}, areas: {} };
+  section.areaId = "bed";
+  section.config = config;
+  section.editing = true;
+  section.humidity = { humidity_comfort_enabled: false, humidity_target: 55, humidity_tolerance: 5, humidity_priority: "balanced" };
+  const events = [];
+  section.dispatchEvent = event => { events.push(event); return true; };
+  clickChoice(section.render(), "Automatico");
+  assert.equal(events[0].type, "dehumidifier-changed");
+  assert.deepEqual(events[0].detail, { ...config, mode: "auto" });
+  clickChoice(section.render(), "Manuale");
+  assert.deepEqual(events[1].detail, config);
+  clickChoice(section.render(), "Risparmio energetico");
+  assert.equal(events[2].type, "humidity-changed");
+  assert.deepEqual(events[2].detail, { humidity_priority: "energy" });
+  assert.equal(section.humidity.humidity_comfort_enabled, false);
+});
+
+test("disabled automation explains both climate switches and identifies the host room", () => {
+  const section = new Section();
+  section.hass = { language: "it", states: {}, areas: {} };
+  section.humidity = { humidity_comfort_enabled: true, humidity_target: 55 };
+  section.currentHumidity = 61;
+  section.rooms = { hall: { display_name: "Corridoio" } };
+  section.live = { devices: [{
+    entity_id: "humidifier.hall", owner_area_id: "hall", served_area_ids: ["hall", "bed"],
+    state: "off", action: null, available: true, reason: "disabled", commanded: null,
+    target_humidity: 45, humidity_floor: 45, pending_rooms: [],
+  }] };
+  const text = renderedText(section.render());
+  assert.ok(text.includes("Comfort attivo"));
+  assert.ok(text.includes("impostazioni generali e nella stanza ospitante, Corridoio"));
+  assert.ok(text.includes("61") && text.includes("55") && text.includes("45"));
+  assert.ok(text.includes("Può essere diverso dal target comfort"));
+
+  section.editing = true;
+  section.live = undefined;
+  section.config = config;
+  for (const [global, room] of [[false, true], [true, false], [true, true]]) {
+    section.climateControlActive = global;
+    section.roomControlEnabled = room;
+    const view = renderedText(section.render());
+    assert.equal(view.includes("Controllo automatico disabilitato"), !global || !room);
+  }
+});
+
+test("shared-only rooms explain where to manage sharing without creating a local registration", () => {
+  const section = new Section();
+  section.hass = { language: "en", states: {}, areas: {} };
+  section.areaId = "bed";
+  section.editing = true;
+  section.humidity = { humidity_comfort_enabled: false, humidity_target: 55 };
+  section.rooms = { hall: { display_name: "Hall" } };
+  section.live = { devices: [{ owner_area_id: "hall" }] };
+  const text = renderedText(section.render());
+  assert.ok(text.includes("A shared appliance already serves this room"));
+  assert.ok(text.includes("Change sharing in the host room"));
+  assert.ok(text.includes("Hall"));
+  assert.equal(section.config, null);
+});
+
+test("a registered device waiting for live data is not shown as unassigned", () => {
+  const section = new Section();
+  section.hass = { language: "en", states: {}, areas: {} };
+  section.config = config;
+  section.humidity = { humidity_comfort_enabled: false, humidity_target: 55 };
+  const text = renderedText(section.render());
+  assert.ok(text.includes("Appliance registered"));
+  assert.ok(!text.includes("No dedicated or shared device assigned"));
+  assert.ok(text.includes("Mold prevention still follows its own settings"));
+});
+
+test("equipment cards remain actionable without any configured entities", () => {
+  for (const Component of [Sensors, Devices]) {
+    const section = new Component();
+    section.hass = { language: "it", states: {}, areas: {} };
+    const text = renderedText(section.render());
+    assert.ok(text.includes("Gestisci"));
+  }
+  const sensors = new Sensors();
+  sensors.hass = { language: "it", states: { "binary_sensor.window": { state: "unavailable", attributes: {} } } };
+  const text = renderedText(sensors._renderWindowViewRow("binary_sensor.window"));
+  assert.ok(text.includes("Non disponibile"));
+  assert.ok(!text.includes("Chiusa"));
 });

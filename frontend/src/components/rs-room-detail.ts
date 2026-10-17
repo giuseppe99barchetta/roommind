@@ -158,6 +158,9 @@ export class RsRoomDetail extends LitElement {
     .detail-grid > * {
       min-width: 0;
     }
+    .detail-grid[data-view="equipment"] > .optional-card {
+      grid-column: span 6;
+    }
 
     .control-card,
     .comfort-card,
@@ -201,6 +204,9 @@ export class RsRoomDetail extends LitElement {
         grid-template-columns: 1fr;
       }
       .detail-grid > * {
+        grid-column: 1;
+      }
+      .detail-grid[data-view="equipment"] > .optional-card {
         grid-column: 1;
       }
       .detail-navigation { border-radius: 12px; }
@@ -1140,6 +1146,9 @@ export class RsRoomDetail extends LitElement {
       .config=${this._dehumidifier}
       .live=${this.config?.live?.dehumidifier}
       .humidity=${this._humidity}
+      .currentHumidity=${this.config?.live?.current_humidity ?? null}
+      .climateControlActive=${this.climateControlActive}
+      .roomControlEnabled=${this._climateControlEnabled}
       .editing=${editing}
       @dehumidifier-changed=${(e: CustomEvent<DehumidifierConfig | null>) => {
         this._dehumidifier = e.detail;

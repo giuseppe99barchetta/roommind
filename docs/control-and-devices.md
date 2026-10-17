@@ -10,6 +10,14 @@ a native Home Assistant dehumidifier (`humidifier.*`, device class `dehumidifier
 (`switch.*`). A plug-controlled appliance must restart when power returns.
 Each physical entity is registered once, in the room where it is located.
 
+The card separates **this room's measured humidity and comfort target** from the
+**physical appliance's state**. Comfort can be enabled while the appliance is off
+or paused. If automatic control is disabled, enable climate control both globally
+and in the host room; humidity comfort alone does not enable appliance control.
+The configuration groups the physical device, served rooms and this room's
+comfort settings separately. Minimum times and nominal power are under
+**Appliance protection and power**.
+
 Select additional rooms to share the device. Each served room needs its own
 humidity reading; only the host may use the native device's internal reading
 when no external humidity sensor is configured. Overlapping groups are allowed:
@@ -24,6 +32,11 @@ The host's window delays and quiet hours apply to the entire device. During
 quiet hours comfort pauses; significant mold risk may still request operation.
 Shared devices pause when the host reaches 45% humidity and resume from 50%.
 Native device limits can raise this effective floor, which is shown in the panel.
+For shared appliances, the device target follows this floor. It can therefore
+differ from a room's comfort target; each room still requests drying using its own
+target. Tolerance and priority adjust the allowed rise before a comfort request:
+Comfort requests drying sooner, Energy saving allows a larger rise, and Balanced
+uses the standard margin.
 Actual effectiveness between rooms depends on air circulation.
 
 Minimum on/off times default to five minutes; the off delay also applies after
