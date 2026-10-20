@@ -277,6 +277,57 @@ async def test_turn_off_climate_normal_device():
 
 
 @pytest.mark.asyncio
+async def test_turn_off_hisense_fan_only_sends_off_without_minimum_cooling_setpoint():
+    """Hisense AC advertising min_temp=16 must not receive 16°C before OFF."""
+    hass = build_hass()
+    state = MagicMock()
+    state.state = "fan_only"
+    state.attributes = {
+        "hvac_modes": ["off", "cool", "heat", "dry", "fan_only", "auto"],
+        "min_temp": 16,
+        "max_temp": 32,
+        "temperature": None,
+        "supported_features": 424,
+    }
+    hass.states.get = MagicMock(return_value=state)
+
+    await async_turn_off_climate(hass, "climate.condizionatore_camera", area_id="camera_da_letto")
+
+    hass.services.async_call.assert_called_once_with(
+        "climate",
+        "set_hvac_mode",
+        {"entity_id": "climate.condizionatore_camera", "hvac_mode": "off"},
+        blocking=True,
+        context=ANY,
+    )
+
+
+@pytest.mark.asyncio
+async def test_turn_off_heating_device_without_setpoint_feature_only_sends_off():
+    """No temperature call if the integration exposes only HVAC mode control."""
+    hass = build_hass()
+    state = MagicMock()
+    state.state = "heat"
+    state.attributes = {
+        "hvac_modes": ["off", "heat"],
+        "min_temp": 5,
+        "temperature": 25,
+        "supported_features": 256,
+    }
+    hass.states.get = MagicMock(return_value=state)
+
+    await async_turn_off_climate(hass, "climate.heat_without_setpoint")
+
+    hass.services.async_call.assert_called_once_with(
+        "climate",
+        "set_hvac_mode",
+        {"entity_id": "climate.heat_without_setpoint", "hvac_mode": "off"},
+        blocking=True,
+        context=ANY,
+    )
+
+
+@pytest.mark.asyncio
 async def test_turn_off_climate_heat_only_uses_min_temp():
     """Heat-only device (no 'off' mode) gets set_temperature with min_temp."""
     hass = build_hass()

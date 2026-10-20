@@ -8,6 +8,7 @@ import time
 from collections.abc import Callable
 from typing import TYPE_CHECKING, Any, cast
 
+from homeassistant.components.climate import ClimateEntityFeature
 from homeassistant.core import HomeAssistant
 
 from ..const import (
@@ -154,6 +155,10 @@ async def _send_idle_setpoint(
     area_id: str = "unknown",
 ) -> None:
     """Lower a device's temperature setpoint during idle. Best-effort."""
+    features = state.attributes.get("supported_features")
+    if isinstance(features, int) and not features & ClimateEntityFeature.TARGET_TEMPERATURE:
+        return  # e.g. Hisense in fan_only: exposes min_temp but cannot accept a setpoint
+
     current = state.attributes.get("temperature")
     if current is not None and round(float(current), 1) == round(setpoint, 1):
         _setpoint_override_warned.discard(entity_id)
@@ -264,12 +269,12 @@ async def async_turn_off_climate(
             cached = _last_commands.get(entity_id)
             if cached and cached.get("service") == "set_hvac_mode" and cached.get("hvac_mode") == "off":
                 return
-        # Defense-in-depth: lower setpoint to min_temp BEFORE sending "off".
-        # Some devices (e.g. Wavin AHC9000) claim "off" support but only
-        # process temperature changes when in "heat" mode.  Sending the setpoint
-        # first (while the device is still active) ensures the valve closes even
-        # if set_hvac_mode(off) is later ignored.
-        if state and effective_setpoint is not None:
+        # Defense-in-depth for heating-only devices (e.g. Wavin AHC9000):
+        # some valves ignore OFF but accept a low setpoint while heating.
+        # Never send the minimum setpoint to an AC/heat pump that can cool:
+        # it is not an OFF command and can activate unwanted cooling.
+        cooling_capable = any(mode in hvac_modes for mode in ("cool", "heat_cool", "dry", "fan_only"))
+        if state and effective_setpoint is not None and not cooling_capable:
             await _send_idle_setpoint(hass, entity_id, state, effective_setpoint, area_id=area_id)
 
         try:
