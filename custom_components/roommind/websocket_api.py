@@ -347,7 +347,6 @@ async def websocket_list_rooms(
             "mold_risk_level": live.get("mold_risk_level", "ok"),
             "mold_surface_rh": live.get("mold_surface_rh"),
             "mold_prevention_active": live.get("mold_prevention_active", False),
-            "mold_prevention_delta": live.get("mold_prevention_delta", 0),
             "mold_prevention_strategy": live.get("mold_prevention_strategy"),
             "ac_power_w": live.get("ac_power_w"),
             "ac_energy_today_kwh": live.get("ac_energy_today_kwh"),

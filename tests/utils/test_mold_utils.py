@@ -6,7 +6,8 @@ from custom_components.roommind.utils.mold_utils import (
     calculate_mold_risk,
     dew_point,
     estimate_surface_temp,
-    mold_prevention_delta,
+    mold_exposure_hours,
+    smooth_outdoor,
     surface_rh,
 )
 
@@ -149,24 +150,31 @@ def test_calculate_mold_risk_warm_conditions_ok():
     assert level == "ok"
 
 
-# --- mold_prevention_delta ---
+# --- smooth_outdoor ---
 
 
-def test_mold_prevention_delta_light():
-    assert mold_prevention_delta("light") == 1.0
+def test_smooth_outdoor_first_sample_and_stale_timestamp():
+    assert smooth_outdoor(None, None, 9.0, 100.0) == 9.0
+    assert smooth_outdoor(11.6, 200.0, 9.0, 100.0) == 11.6
 
 
-def test_mold_prevention_delta_medium():
-    assert mold_prevention_delta("medium") == 2.0
+def test_smooth_outdoor_quick_drop_barely_moves_the_wall():
+    """Tonight: 11.6 → 9.0 °C in 15 min must move the 6 h average only ~0.1 °C."""
+    smoothed = smooth_outdoor(11.6, 0.0, 9.0, 15 * 60)
+    assert 11.4 < smoothed < 11.6
+    # After a full day the average has caught up.
+    assert smooth_outdoor(11.6, 0.0, 9.0, 24 * 3600) == pytest.approx(9.0, abs=0.1)
 
 
-def test_mold_prevention_delta_strong():
-    assert mold_prevention_delta("strong") == 3.0
-
-
-def test_mold_prevention_delta_unknown_falls_back():
-    """Unknown intensity → defaults to medium (2.0)."""
-    assert mold_prevention_delta("unknown") == 2.0
+def test_exposure_ignores_a_quick_outdoor_drop():
+    """A 15-minute outdoor dip must not count as hours of critical wall RH."""
+    rows = [
+        {"timestamp": str(ts), "room_temp": "21", "current_humidity": "60", "outdoor_temp": "12" if ts < 7200 else "0"}
+        for ts in range(0, 7200 + 15 * 60 + 1, 180)
+    ]
+    raw_critical = calculate_mold_risk(21, 60, 0.0, 0.7)[0] == "critical"
+    assert raw_critical
+    assert mold_exposure_hours(rows, 0.7) == 0.0
 
 
 # --- boundary value tests ---

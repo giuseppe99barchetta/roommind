@@ -263,7 +263,6 @@ async def _compute_target_forecast(
     hass: HomeAssistant,
     room: dict,
     settings: dict,
-    mold_prevention_delta: float = 0.0,
     hours: float = 3.0,
     interval_minutes: int = 5,
     schedule_blocks_cache: dict[str, dict] | None = None,
@@ -327,11 +326,8 @@ async def _compute_target_forecast(
         heat_target = targets.heat
         cool_target = targets.cool
 
-        # Apply mold prevention delta to heat target only
         if heat_target is not None:
-            heat_target = round(heat_target + mold_prevention_delta, 1)
-        elif mold_prevention_delta > 0:
-            heat_target = round(eco_heat + mold_prevention_delta, 1)
+            heat_target = round(heat_target, 1)
 
         # Chart display: mode-aware single value
         if climate_mode == CLIMATE_MODE_COOL_ONLY:
@@ -441,16 +437,11 @@ async def build_analytics_data(
 
     # Build merged forecast: same format as history points, on a shared 5-min grid
     room_config = store.get_room(area_id) or {}
-    mold_delta = 0.0
-    if coordinator:
-        live = coordinator.rooms.get(area_id, {})
-        mold_delta = live.get("mold_prevention_delta", 0.0)
     try:
         target_forecast = await _compute_target_forecast(
             hass,
             room_config,
             settings,
-            mold_prevention_delta=mold_delta,
             schedule_blocks_cache=getattr(coordinator, "_schedule_blocks_cache", None),
         )
     except Exception:  # noqa: BLE001

@@ -6,7 +6,6 @@ import { customElement, property } from "lit/decorators.js";
 import { RsSettingsBase } from "./rs-settings-base";
 import type { HomeAssistant } from "../../types";
 import { localize } from "../../utils/localize";
-import { getSelectValue } from "../../utils/events";
 import {
   tempRange,
   tempStep,
@@ -23,11 +22,8 @@ export class RsSettingsMold extends RsSettingsBase {
   @property({ type: Number }) public moldSustainedMinutes = 30;
   @property({ type: Boolean }) public moldPreventionEnabled = false;
   @property({ type: Number }) public moldPreventionSustainedMinutes = 60;
-  @property({ type: String }) public moldPreventionIntensity: "light" | "medium" | "strong" =
-    "medium";
   @property({ type: Boolean }) public moldPreventionDehumidificationEnabled = true;
   @property({ type: Number }) public moldPreventionDryMinTemperature = 22;
-  @property({ type: Boolean }) public moldPreventionReheatEnabled = false;
 
   render() {
     const l = this.hass.language;
@@ -131,63 +127,6 @@ export class RsSettingsMold extends RsSettingsBase {
                 ></ha-textfield>
                 <span class="field-hint">${localize("mold.prevention_sustained_hint", l)}</span>
               </div>
-              <div style="margin-top: 12px; display: flex; flex-direction: column; gap: 4px;">
-                <ha-select
-                  style="width: 100%;"
-                  .value=${this.moldPreventionIntensity}
-                  .label=${localize("mold.intensity", l)}
-                  .options=${[
-                    {
-                      value: "light",
-                      label: localize("mold.intensity_light", l, {
-                        delta: String(toDisplay(20, this.hass)),
-                        unit: tempUnit(this.hass),
-                      }),
-                    },
-                    {
-                      value: "medium",
-                      label: localize("mold.intensity_medium", l, {
-                        delta: String(toDisplay(20.5, this.hass)),
-                        unit: tempUnit(this.hass),
-                      }),
-                    },
-                    {
-                      value: "strong",
-                      label: localize("mold.intensity_strong", l, {
-                        delta: String(toDisplay(21, this.hass)),
-                        unit: tempUnit(this.hass),
-                      }),
-                    },
-                  ]}
-                  fixedMenuPosition
-                  @selected=${(e: Event) => {
-                    const v = getSelectValue(e) as "light" | "medium" | "strong";
-                    if (v && v !== this.moldPreventionIntensity)
-                      this._fire("moldPreventionIntensity", v);
-                  }}
-                  @closed=${(e: Event) => e.stopPropagation()}
-                >
-                  <ha-list-item value="light"
-                    >${localize("mold.intensity_light", l, {
-                      delta: String(toDisplay(20, this.hass)),
-                      unit: tempUnit(this.hass),
-                    })}</ha-list-item
-                  >
-                  <ha-list-item value="medium"
-                    >${localize("mold.intensity_medium", l, {
-                      delta: String(toDisplay(20.5, this.hass)),
-                      unit: tempUnit(this.hass),
-                    })}</ha-list-item
-                  >
-                  <ha-list-item value="strong"
-                    >${localize("mold.intensity_strong", l, {
-                      delta: String(toDisplay(21, this.hass)),
-                      unit: tempUnit(this.hass),
-                    })}</ha-list-item
-                  >
-                </ha-select>
-                <span class="field-hint">${localize("mold.intensity_hint", l)}</span>
-              </div>
               <div class="settings-section" style="margin-top: 16px">
                 <div class="toggle-row">
                   <div class="toggle-text">
@@ -226,20 +165,6 @@ export class RsSettingsMold extends RsSettingsBase {
                         <span class="field-hint"
                           >${localize("mold.dehumidification_min_temperature_hint", l)}</span
                         >
-                      </div>
-                      <div class="toggle-row" style="margin-top: 12px">
-                        <div class="toggle-text">
-                          <span class="toggle-label">${localize("mold.reheat", l)}</span>
-                          <span class="toggle-hint">${localize("mold.reheat_desc", l)}</span>
-                        </div>
-                        <ha-switch
-                          .checked=${this.moldPreventionReheatEnabled}
-                          @change=${(e: Event) =>
-                            this._fire(
-                              "moldPreventionReheatEnabled",
-                              (e.target as HTMLInputElement).checked,
-                            )}
-                        ></ha-switch>
                       </div>
                     `
                   : nothing}

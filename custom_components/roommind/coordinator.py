@@ -42,9 +42,7 @@ from .const import (
     MOLD_EXPOSURE_DAYS,
     MOLD_EXPOSURE_REFRESH_SECONDS,
     MOLD_PREVENTION_DRY_STOP_TEMPERATURE,
-    MOLD_PREVENTION_HEAT_TARGETS,
     MOLD_PREVENTION_MAX_RUN_MINUTES,
-    MOLD_PREVENTION_PRE_NIGHT_LEAD_MINUTES,
     MOLD_PREVENTION_RETRY_MINUTES,
     OUTDOOR_UNAVAILABLE_NOTIFICATION_ID,
     OUTDOOR_UNAVAILABLE_NOTIFY_CYCLES,
@@ -80,7 +78,6 @@ from .managers.ekf_training_manager import EkfTrainingManager
 from .managers.energy_manager import EnergyManager
 from .managers.heat_source_orchestrator import (
     HeatSourcePlan,
-    _native_commands,
     evaluate_heat_sources,
     evaluate_native_heat_sources,
 )
@@ -104,7 +101,7 @@ from .utils.device_utils import (
 )
 from .utils.device_utils import room_has_power_sensor as _room_has_power_sensor
 from .utils.history_store import HistoryStore
-from .utils.mold_utils import absolute_humidity, airing_recommended, dry_start_temperature, mold_exposure_hours
+from .utils.mold_utils import absolute_humidity, airing_recommended, mold_exposure_hours
 from .utils.night_mode import apply_night_targets, night_phase
 from .utils.notification_utils import NotificationThrottler, async_send_mold_notification, dismiss_mold_notification
 from .utils.schedule_utils import resolve_schedule_index
@@ -830,7 +827,7 @@ class RoomMindCoordinator(DataUpdateCoordinator):
         current_humidity: float | None,
         settings: dict,
         room: dict,
-    ) -> tuple[str, float | None, bool, float, str | None, float | None]:
+    ) -> tuple[str, float | None, bool, str | None, float | None]:
         """Evaluate mold risk and select an automatic prevention strategy."""
         ac_modes: set[str] = set()
         for eid in get_ac_eids(room.get("devices", [])):
@@ -850,11 +847,8 @@ class RoomMindCoordinator(DataUpdateCoordinator):
             settings,
             can_dry="dry" in ac_modes,
             can_dehumidifier=dedicated,
-            can_cool=bool(ac_modes & {"cool", "heat_cool", "auto"}),
-            can_heat_pump="heat" in ac_modes and room.get("climate_mode", "auto") != CLIMATE_MODE_COOL_ONLY,
-            night_phase=None
-            if dedicated
-            else night_phase(room, datetime.now().astimezone(), MOLD_PREVENTION_PRE_NIGHT_LEAD_MINUTES),
+            # A dedicated dehumidifier may run at night; the AC only if serious.
+            night_phase=None if dedicated else night_phase(room, datetime.now().astimezone(), 0),
             # Raw contact state: an open window makes DRY pointless at once,
             # independent of the climate-pause delays.
             window_open=False if dedicated else self._is_window_open(room),
@@ -869,9 +863,8 @@ class RoomMindCoordinator(DataUpdateCoordinator):
             mold.risk_level,
             mold.surface_rh,
             mold.prevention_active,
-            mold.prevention_delta,
             mold.prevention_strategy,
-            mold.heat_target,
+            mold.dehumidify_target,
         )
 
     async def _notify_window_open(
@@ -1017,7 +1010,6 @@ class RoomMindCoordinator(DataUpdateCoordinator):
                 "mold_risk_level": "ok",
                 "mold_surface_rh": None,
                 "mold_prevention_active": False,
-                "mold_prevention_delta": 0,
                 "shading_factor": 1.0,
                 "n_observations": 0,
                 "blind_position": None,
@@ -1035,9 +1027,8 @@ class RoomMindCoordinator(DataUpdateCoordinator):
             mold_risk_level,
             mold_surface_rh,
             mold_prevention_active_room,
-            mold_prevention_temp_delta,
             mold_prevention_strategy,
-            mold_heat_target,
+            _,
         ) = (
             self._humidity_mold_snapshot[area_id]
             if area_id in self._humidity_mold_snapshot
@@ -1117,40 +1108,10 @@ class RoomMindCoordinator(DataUpdateCoordinator):
         mold_restore_mode = pending_restore
         effective_requested_hvac_mode = requested_hvac_mode
         if mold_prevention_effective:
-            # "reheat" is a heat-pump HEAT phase between DRY phases.
-            effective_requested_hvac_mode = "heat" if mold_prevention_strategy == "reheat" else mold_prevention_strategy
+            # Prevention is DRY only: no thermal setpoint, AC auxiliary routing owns actuation.
+            effective_requested_hvac_mode = mold_prevention_strategy
             force_off = False
-            if mold_prevention_strategy == "reheat":
-                base_heat = targets.heat
-                if base_heat is None:
-                    base_heat = room.get("eco_heat", room.get("eco_temp", DEFAULT_ECO_HEAT))
-                heat_target = max(float(base_heat), dry_start_temperature(settings))
-                mold_prevention_temp_delta = max(0.0, heat_target - float(base_heat))
-                targets = TargetTemps(heat=heat_target, cool=None)
-            elif mold_prevention_strategy == "heat":
-                base_heat = targets.heat
-                if base_heat is None:
-                    base_heat = room.get("eco_heat", room.get("eco_temp", DEFAULT_ECO_HEAT))
-                # Surface protection must not make an already comfortable room
-                # excessively warm: 20–21 °C, or 21–22 °C for rooms without DRY.
-                heat_target = max(
-                    float(base_heat),
-                    mold_heat_target
-                    if mold_heat_target is not None
-                    else MOLD_PREVENTION_HEAT_TARGETS.get(settings.get("mold_prevention_intensity", "medium"), 20.5),
-                )
-                mold_prevention_temp_delta = max(0.0, heat_target - float(base_heat))
-                targets = TargetTemps(
-                    heat=heat_target,
-                    cool=None,
-                )
-            elif mold_prevention_strategy == "cool":
-                base_cool = targets.cool
-                if base_cool is None:
-                    base_cool = room.get("eco_cool", DEFAULT_ECO_COOL)
-                targets = TargetTemps(heat=None, cool=float(base_cool))
-            else:  # dry: no thermal setpoint; AC auxiliary routing owns actuation
-                targets = TargetTemps(heat=None, cool=None)
+            targets = TargetTemps(heat=None, cool=None)
         else:
             manual_aux_or_off = requested_hvac_mode in ("off", "dry", "fan_only")
             force_off = targets.heat is None and targets.cool is None or manual_aux_or_off
@@ -1171,7 +1132,6 @@ class RoomMindCoordinator(DataUpdateCoordinator):
             settings,
             hass=self.hass,
             presence_away=presence_away,
-            mold_prevention_delta=mold_prevention_temp_delta,
         )
         profile = active_profile(room)
         if not room.get("preconditioning_enabled", True):
@@ -1442,26 +1402,13 @@ class RoomMindCoordinator(DataUpdateCoordinator):
             # Orchestration not active for this room — remove stale state
             # so re-enabling starts fresh.
             self._heat_source_states.pop(area_id, None)
-        mold_reheat = mold_prevention_effective and mold_prevention_strategy == "reheat"
-        if mold_reheat and mode == MODE_HEATING:
-            # Reheat between DRY phases is a heat-pump job only: the boiler /
-            # radiators stay off so mild-season dehumidification never burns gas.
-            heat_source_plan = _native_commands(
-                get_trv_eids(room.get("devices", [])),
-                get_ac_eids(room.get("devices", [])),
-                "heat_pump",
-                power_fraction,
-                "mold_reheat",
-            )
 
         # Shared electrical budget.  Native heat-source routing has already
         # made this request above; every other AC start is admitted here in the
         # stable, priority-sorted room order of this update cycle.
         budget_blocked_acs: set[str] = set()
         ac_eids = set(get_ac_eids(room.get("devices", [])))
-        native_budget_checked = bool(
-            room.get("native_heat_source", False) and heat_source_plan is not None and not mold_reheat
-        )
+        native_budget_checked = bool(room.get("native_heat_source", False) and heat_source_plan is not None)
         plan_uses_ac = heat_source_plan is None or any(
             command.device_type == "ac" and command.active for command in heat_source_plan.commands
         )
@@ -1884,7 +1831,6 @@ class RoomMindCoordinator(DataUpdateCoordinator):
             mold_risk_level=mold_risk_level,
             mold_surface_rh=mold_surface_rh,
             mold_prevention_active_room=mold_prevention_active_room,
-            mold_prevention_temp_delta=mold_prevention_temp_delta,
             mold_prevention_strategy=mold_prevention_strategy if mold_prevention_active_room else None,
             shading_factor=shading_factor,
             q_occupancy=q_occupancy,
@@ -2358,7 +2304,6 @@ class RoomMindCoordinator(DataUpdateCoordinator):
         mold_risk_level: str | None,
         mold_surface_rh: float | None,
         mold_prevention_active_room: bool,
-        mold_prevention_temp_delta: float,
         mold_prevention_strategy: str | None,
         shading_factor: float | None,
         q_occupancy: float,
@@ -2427,7 +2372,6 @@ class RoomMindCoordinator(DataUpdateCoordinator):
             "mold_risk_level": mold_risk_level,
             "mold_surface_rh": (round(mold_surface_rh, 1) if mold_surface_rh is not None else None),
             "mold_prevention_active": mold_prevention_active_room,
-            "mold_prevention_delta": mold_prevention_temp_delta,
             "mold_prevention_strategy": mold_prevention_strategy,
             "shading_factor": shading_factor,
             "q_occupancy": q_occupancy,

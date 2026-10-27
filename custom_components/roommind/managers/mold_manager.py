@@ -15,19 +15,15 @@ from ..const import (
     DEFAULT_MOLD_HUMIDITY_THRESHOLD,
     DEFAULT_MOLD_PREVENTION_SUSTAINED_MINUTES,
     DEFAULT_MOLD_SUSTAINED_MINUTES,
-    DEFAULT_OUTDOOR_HEATING_MAX,
+    MOLD_DEHUMIDIFY_MIN_RH,
+    MOLD_DRY_MIN_EFFECT_RH,
     MOLD_EXPOSURE_HIGH_HOURS,
     MOLD_HYSTERESIS,
     MOLD_PREVENTION_CRITICAL_SUSTAINED_MINUTES,
     MOLD_PREVENTION_DRY_STOP_TEMPERATURE,
-    MOLD_PREVENTION_EARLY_SUSTAINED_MINUTES,
-    MOLD_PREVENTION_HEAT_BELOW_TEMPERATURE,
-    MOLD_PREVENTION_HEAT_TARGETS,
+    MOLD_PREVENTION_INEFFECTIVE_RETRY_MINUTES,
     MOLD_PREVENTION_MAX_RUN_MINUTES,
     MOLD_PREVENTION_MIN_RUN_MINUTES,
-    MOLD_PREVENTION_NO_DRY_HEAT_TARGETS,
-    MOLD_PREVENTION_PRE_NIGHT_SUSTAINED_MINUTES,
-    MOLD_PREVENTION_REHEAT_MAX_RUN_MINUTES,
     MOLD_PREVENTION_RETRY_MINUTES,
     MOLD_RISK_CRITICAL,
     MOLD_RISK_OK,
@@ -36,10 +32,12 @@ from ..const import (
     MOLD_SURFACE_RH_WARNING,
 )
 from ..utils.mold_utils import (
+    air_rh_for_surface,
     airing_recommended,
     calculate_mold_risk,
     dry_start_temperature,
-    mold_prevention_delta,
+    estimate_surface_temp,
+    smooth_outdoor,
 )
 from ..utils.notification_utils import (
     NotificationThrottler,
@@ -70,9 +68,8 @@ def _risk_flags(
         surface_rh,
         {
             "risk": rh_room >= threshold or surface_risky,
-            # Early dry-only intervention is intentionally more conservative
-            # than an alarm: the surface estimate is not a moisture measurement.
-            "early_risk": surface_rh >= MOLD_SURFACE_RH_EARLY and rh_room >= 60.0,
+            # Only a dedicated dehumidifier acts this early (no thermal side effect).
+            "early_risk": surface_rh >= MOLD_SURFACE_RH_EARLY,
             "surface_risk": surface_risky,
             "critical_risk": risk_level == MOLD_RISK_CRITICAL,
         },
@@ -93,29 +90,24 @@ _TEXTS: dict[str, dict[str, str]] = {
         "risk_body": "Parete più fredda stimata al {srh}% di umidità (aria al {rh}%).",
         "advice_airing": "Apri le finestre 5–10 minuti: fuori l'aria è più secca.",
         "advice_dry": "Se il rischio continua il condizionatore deumidificherà in automatico.",
+        "advice_dehumidifier": "Se il rischio continua il deumidificatore partirà in automatico.",
         "advice_no_dry": "Tieni chiusa la porta, asciuga le superfici bagnate ed evita panni stesi in casa.",
         "exposure": "Ultimi 7 giorni: {hours} h con la parete all'80% o più.",
         "prevention_title": "RoomMind: prevenzione muffa – {room}",
         "prevention_dehumidifier": "Richiesta deumidificazione dedicata (parete al {srh}%).",
         "prevention_dry": "Avviato il DRY del condizionatore (parete al {srh}%).",
-        "prevention_reheat": "DRY alternato al riscaldamento della pompa di calore, termosifoni spenti "
-        "(parete al {srh}%).",
-        "prevention_heat": "Riscaldamento attivato per scaldare le pareti fredde (parete al {srh}%).",
-        "prevention_cool": "Raffrescamento attivato per deumidificare (parete al {srh}%).",
     },
     "en": {
         "risk_title": "RoomMind: Mold Risk Warning",
         "risk_body": "Coldest wall estimated at {srh}% humidity (air {rh}%).",
         "advice_airing": "Open the windows for 5–10 minutes: the outdoor air is drier.",
         "advice_dry": "If the risk persists the AC will dehumidify automatically.",
+        "advice_dehumidifier": "If the risk persists the dehumidifier will start automatically.",
         "advice_no_dry": "Keep the door closed, wipe wet surfaces and avoid drying laundry indoors.",
         "exposure": "Last 7 days: {hours} h with the wall at 80% or more.",
         "prevention_title": "RoomMind: Mold Prevention",
         "prevention_dehumidifier": "Dedicated dehumidification requested (wall at {srh}%).",
         "prevention_dry": "AC dry mode started (wall at {srh}%).",
-        "prevention_reheat": "DRY alternating with heat-pump heating, radiators off (wall at {srh}%).",
-        "prevention_heat": "Heating started to warm the cold walls (wall at {srh}%).",
-        "prevention_cool": "Cooling started to dehumidify (wall at {srh}%).",
     },
 }
 
@@ -127,9 +119,9 @@ class MoldResult:
     risk_level: str = MOLD_RISK_OK
     surface_rh: float | None = None
     prevention_active: bool = False
-    prevention_delta: float = 0.0
     prevention_strategy: str | None = None
-    heat_target: float | None = None
+    # Air RH a dedicated dehumidifier must reach to dry the wall (mold runs).
+    dehumidify_target: float | None = None
 
 
 class MoldManager:
@@ -144,6 +136,9 @@ class MoldManager:
         self._critical_risk_since: dict[str, float] = {}
         self._prevention_started: dict[str, float] = {}
         self._prevention_cooldown_until: dict[str, float] = {}
+        self._dry_start_rh: dict[str, float] = {}
+        # Smoothed outdoor temperature shared by all rooms: (value, timestamp).
+        self._outdoor_ema: tuple[float | None, float | None] = (None, None)
         self._prevention_strategy: dict[str, str] = {}
         self._throttler = NotificationThrottler()
 
@@ -156,8 +151,6 @@ class MoldManager:
         outdoor_temp: float | None,
         settings: dict,
         can_dry: bool = False,
-        can_cool: bool = False,
-        can_heat_pump: bool = False,
         night_phase: str | None = None,
         window_open: bool = False,
         f_rsi: float = DEFAULT_MOLD_F_RSI,
@@ -184,11 +177,15 @@ class MoldManager:
             "mold_humidity_threshold",
             DEFAULT_MOLD_HUMIDITY_THRESHOLD,
         )
-        risk_level, surface_rh, flags = _risk_flags(current_temp, current_humidity, outdoor_temp, threshold, f_rsi)
+        now = time.time()
+        if outdoor_temp is not None:
+            self._outdoor_ema = (smooth_outdoor(*self._outdoor_ema, outdoor_temp, now), now)
+        risk_level, surface_rh, flags = _risk_flags(
+            current_temp, current_humidity, self._outdoor_ema[0], threshold, f_rsi
+        )
         result.risk_level = risk_level
         result.surface_rh = surface_rh
 
-        now = time.time()
         is_risky = flags["risk"]
         sustained_minutes = settings.get(
             "mold_sustained_minutes",
@@ -220,9 +217,14 @@ class MoldManager:
                 ):
                     targets = settings.get("mold_notification_targets", [])
                     text = self._texts()
+                    prevention_on = settings.get("mold_prevention_enabled") and settings.get(
+                        "mold_prevention_dehumidification_enabled", True
+                    )
                     if airing_recommended(current_temp, current_humidity, outdoor_temp, outdoor_humidity, surface_rh):
                         advice = text["advice_airing"]
-                    elif can_dry and settings.get("mold_prevention_enabled"):
+                    elif prevention_on and can_dehumidifier:
+                        advice = text["advice_dehumidifier"]
+                    elif prevention_on and can_dry and current_temp >= dry_start_temperature(settings):
                         advice = text["advice_dry"]
                     else:
                         advice = text["advice_no_dry"]
@@ -252,12 +254,6 @@ class MoldManager:
             self._risk_since.pop(area_id, None)
             self._throttler.clear(f"detect_{area_id}")
 
-        early_risky = flags["early_risk"]
-        if early_risky:
-            self._early_risk_since.setdefault(area_id, now)
-        else:
-            self._early_risk_since.pop(area_id, None)
-
         surface_risky = flags["surface_risk"]
         if surface_risky:
             self._surface_risk_since.setdefault(area_id, now)
@@ -267,8 +263,14 @@ class MoldManager:
             self._critical_risk_since.setdefault(area_id, now)
         else:
             self._critical_risk_since.pop(area_id, None)
+        if flags["early_risk"]:
+            self._early_risk_since.setdefault(area_id, now)
+        else:
+            self._early_risk_since.pop(area_id, None)
 
         activated = self._prevention_active.get(area_id, False)
+        dehumidification_enabled = settings.get("mold_prevention_dehumidification_enabled", True)
+        use_dehumidifier = bool(dehumidification_enabled and can_dehumidifier)
         sustained = (
             max(
                 0.0,
@@ -277,65 +279,44 @@ class MoldManager:
             * 60
         )
         critical_sustained = min(sustained, MOLD_PREVENTION_CRITICAL_SUSTAINED_MINUTES * 60)
-        # A wall that already spent many hours near condensation this week
-        # gets no grace period: the early zone acts sooner and also at night.
-        high_exposure = (exposure_hours or 0.0) >= MOLD_EXPOSURE_HIGH_HOURS
-        # Before a room's night window, dry the early zone sooner so the room
-        # is dry at bedtime; during the night the early zone is left alone.
-        early_sustained = (
-            MOLD_PREVENTION_PRE_NIGHT_SUSTAINED_MINUTES
-            if night_phase == "pre_night" or high_exposure
-            else MOLD_PREVENTION_EARLY_SUSTAINED_MINUTES
-        ) * 60
         ready = (
             surface_risky
             and (
                 now - self._surface_risk_since[area_id] >= sustained
                 or (risk_level == MOLD_RISK_CRITICAL and now - self._critical_risk_since[area_id] >= critical_sustained)
             )
-        ) or (early_risky and now - self._early_risk_since[area_id] >= early_sustained)
+        ) or (use_dehumidifier and flags["early_risk"] and now - self._early_risk_since[area_id] >= sustained)
         # Once active, hold for at least ten minutes (unless the room gets
-        # too cold); later stop when the surface returns below the early zone.
+        # too cold); later stop when the surface is clearly below the start zone.
+        start_zone = MOLD_SURFACE_RH_EARLY if use_dehumidifier else MOLD_SURFACE_RH_WARNING
         held = activated and (
-            surface_rh >= MOLD_SURFACE_RH_WARNING - MOLD_HYSTERESIS
+            surface_rh >= start_zone - MOLD_HYSTERESIS
             or now - self._prevention_started.get(area_id, now) < MOLD_PREVENTION_MIN_RUN_MINUTES * 60
         )
         # Earlier RoomMind settings allowed DRY as low as 20°C. Respect any
         # *higher* user threshold, but enforce the new 22°C safety minimum.
         dry_min_temperature = dry_start_temperature(settings)
         dry_stop_temperature = max(MOLD_PREVENTION_DRY_STOP_TEMPERATURE, dry_min_temperature - 1.0)
-        dehumidification_enabled = settings.get("mold_prevention_dehumidification_enabled", True)
-        # Optional DRY/heat-pump alternation: when DRY has cooled the room to
-        # its stop temperature, the same AC heats it back (boiler stays off)
-        # instead of abandoning dehumidification for an hour.
-        reheat_allowed = bool(
-            settings.get("mold_prevention_reheat_enabled", False)
-            and dehumidification_enabled
-            and can_dry
-            and can_heat_pump
-        )
-        max_run_minutes = MOLD_PREVENTION_REHEAT_MAX_RUN_MINUTES if reheat_allowed else MOLD_PREVENTION_MAX_RUN_MINUTES
         cooling_down = now < self._prevention_cooldown_until.get(area_id, 0)
-        # The runtime cap exists because DRY cools; a heating session is
-        # bounded by its target and may run for as long as the wall needs it.
         timed_out = (
             activated
             and not can_dehumidifier
-            and self._prevention_strategy.get(area_id) != "heat"
-            and now - self._prevention_started.get(area_id, now) >= max_run_minutes * 60
+            and now - self._prevention_started.get(area_id, now) >= MOLD_PREVENTION_MAX_RUN_MINUTES * 60
         )
-        dry_too_cold = (
-            activated
-            and not can_dehumidifier
-            and not reheat_allowed
-            and self._prevention_strategy.get(area_id) == "dry"
-            and current_temp <= dry_stop_temperature
-        )
+        dry_too_cold = activated and not can_dehumidifier and current_temp <= dry_stop_temperature
         if timed_out or dry_too_cold:
-            self._prevention_cooldown_until[area_id] = now + MOLD_PREVENTION_RETRY_MINUTES * 60
-        # Quiet night: below the warning zone a sleeping room is not woken by
-        # the compressor; timers keep running so DRY starts at night end.
-        quiet_night = night_phase == "night" and not surface_risky and not high_exposure
+            retry = MOLD_PREVENTION_RETRY_MINUTES
+            start_rh = self._dry_start_rh.get(area_id)
+            # A full DRY run that barely moved the air RH means the air is
+            # already dry: repeating it every hour only cools the room.
+            if timed_out and start_rh is not None and current_humidity > start_rh - MOLD_DRY_MIN_EFFECT_RH:
+                retry = MOLD_PREVENTION_INEFFECTIVE_RETRY_MINUTES
+            self._prevention_cooldown_until[area_id] = now + retry * 60
+        # At night the AC compressor only runs for a serious risk: a critical
+        # wall or one that spent many hours near condensation this week.
+        # (A dedicated dehumidifier gets no night_phase and may run anyway.)
+        serious = risk_level == MOLD_RISK_CRITICAL or (exposure_hours or 0.0) >= MOLD_EXPOSURE_HIGH_HOURS
+        quiet_night = night_phase == "night" and not serious
         # An open window ends the session without a retry pause: nothing can
         # be dried meanwhile, so it must not burn the session's runtime cap.
         # Risk timers keep running and prevention resumes once it closes.
@@ -346,55 +327,32 @@ class MoldManager:
             and not ((cooling_down and not can_dehumidifier) or timed_out or dry_too_cold or quiet_night or window_open)
         )
         if should_prevent:
-            intensity = settings.get("mold_prevention_intensity", "medium")
-            # A dry cycle can lower the room temperature.  Prefer it only
-            # when explicitly enabled and the room has enough thermal
-            # headroom; otherwise use the heating plan (which can route to
-            # a heat pump, gas boiler, or both).
+            # Prevention only removes water: it never heats (no heat pump, no
+            # boiler).  Without a dehumidifier or a warm-enough room for DRY,
+            # the risk notification with its advice is all that happens.
             continuing_dry = activated and self._prevention_strategy.get(area_id) == "dry"
-            can_start_dry = current_temp >= dry_min_temperature
-            can_continue_dry = continuing_dry and current_temp > dry_stop_temperature
-            if dehumidification_enabled and can_dehumidifier:
+            if use_dehumidifier:
                 result.prevention_strategy = "dehumidifier"
-                result.prevention_delta = 0.0
-            elif dehumidification_enabled and can_dry and (can_start_dry or can_continue_dry):
-                result.prevention_strategy = "dry"
-                result.prevention_delta = 0.0
-            elif reheat_allowed and current_temp >= MOLD_PREVENTION_HEAT_BELOW_TEMPERATURE:
-                # Heat pump back up to the DRY start temperature (1 °C band
-                # above the stop point), then the next tick resumes DRY.
-                # ponytail: no coil-drain pause before HEAT; part of the
-                # condensate film re-evaporates. Add a short off phase if
-                # humidity rebounds after each switch.
-                result.prevention_strategy = "reheat"
-                result.prevention_delta = 0.0
+                if self._outdoor_ema[0] is not None:
+                    # Aim the device's own humidistat at what the wall needs,
+                    # not at the comfort target (it would stop too early).
+                    wall = estimate_surface_temp(current_temp, self._outdoor_ema[0], f_rsi)
+                    needed = air_rh_for_surface(current_temp, wall, MOLD_SURFACE_RH_EARLY - MOLD_HYSTERESIS)
+                    result.dehumidify_target = round(max(MOLD_DEHUMIDIFY_MIN_RH, needed))
             elif (
-                surface_risky
-                and not can_dry
-                and outdoor_temp is not None
-                and outdoor_temp < float(settings.get("outdoor_heating_max", DEFAULT_OUTDOOR_HEATING_MAX))
-                and current_temp < MOLD_PREVENTION_NO_DRY_HEAT_TARGETS.get(intensity, 21.5)
+                dehumidification_enabled
+                and can_dry
+                and (current_temp >= dry_min_temperature or (continuing_dry and current_temp > dry_stop_temperature))
             ):
-                # No DRY available (radiators only, e.g. a bathroom): in the
-                # heating season warmer walls are the only way to stop
-                # condensation, so allow a slightly higher target.
-                result.prevention_strategy = "heat"
-                result.prevention_delta = mold_prevention_delta(intensity)
-                result.heat_target = MOLD_PREVENTION_NO_DRY_HEAT_TARGETS.get(intensity, 21.5)
-            elif surface_risky and current_temp < MOLD_PREVENTION_HEAT_BELOW_TEMPERATURE:
-                # Heating only makes sense for genuinely cold rooms; cooling
-                # mode is NOT a substitute for dry on an unregulated AC.
-                result.prevention_strategy = "heat"
-                result.prevention_delta = mold_prevention_delta(intensity)
-                result.heat_target = MOLD_PREVENTION_HEAT_TARGETS.get(intensity, 20.5)
-
-            if result.prevention_strategy is None:
+                result.prevention_strategy = "dry"
+            else:
                 should_prevent = False
 
         if should_prevent:
             if not activated:
                 self._prevention_active[area_id] = True
                 self._prevention_started[area_id] = now
+                self._dry_start_rh[area_id] = current_humidity
                 # Sessions can restart often (window, night, DRY/HEAT limits):
                 # announce at most once per notification cooldown.
                 if (
@@ -430,6 +388,7 @@ class MoldManager:
             self._prevention_active.pop(area_id, None)
             self._prevention_started.pop(area_id, None)
             self._prevention_strategy.pop(area_id, None)
+            self._dry_start_rh.pop(area_id, None)
             dismiss_mold_notification(self.hass, area_id, "prevention")
 
         if not is_risky and surface_rh < MOLD_SURFACE_RH_WARNING - MOLD_HYSTERESIS:
@@ -451,6 +410,7 @@ class MoldManager:
         self._prevention_started.pop(area_id, None)
         self._prevention_cooldown_until.pop(area_id, None)
         self._prevention_strategy.pop(area_id, None)
+        self._dry_start_rh.pop(area_id, None)
         self._throttler.clear(f"detect_{area_id}")
         self._throttler.clear(f"prevent_{area_id}")
 
@@ -481,15 +441,21 @@ class MoldManager:
             return
         since: dict[str, float] = {}
         previous_ts: float | None = None
+        smoothed: float | None = None
+        smoothed_ts: float | None = None
         for ts, t, rh, t_out in samples:
             if previous_ts is not None and ts - previous_ts > MOLD_BOOTSTRAP_MAX_GAP_SECONDS:
                 since.clear()
             previous_ts = ts
-            for name, active in _risk_flags(t, rh, t_out, threshold, f_rsi)[2].items():
+            if t_out is not None:
+                smoothed, smoothed_ts = smooth_outdoor(smoothed, smoothed_ts, t_out, ts), ts
+            for name, active in _risk_flags(t, rh, smoothed, threshold, f_rsi)[2].items():
                 if active:
                     since.setdefault(name, ts)
                 else:
                     since.pop(name, None)
+        if smoothed_ts is not None and (self._outdoor_ema[1] is None or smoothed_ts > self._outdoor_ema[1]):
+            self._outdoor_ema = (smoothed, smoothed_ts)
         timers = {
             "risk": self._risk_since,
             "early_risk": self._early_risk_since,

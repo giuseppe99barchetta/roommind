@@ -256,16 +256,14 @@ async def test_mold_prevention_prefers_dry_in_warm_weather(monkeypatch):
         29.0,
         {"mold_prevention_enabled": True, "mold_humidity_threshold": 65, "mold_prevention_sustained_minutes": 0},
         can_dry=True,
-        can_cool=True,
         automation_enabled=True,
     )
     assert result.prevention_active is True
     assert result.prevention_strategy == "dry"
-    assert result.prevention_delta == 0.0
 
 
 @pytest.mark.asyncio
-async def test_mold_prevention_uses_heat_in_cold_weather(monkeypatch):
+async def test_mold_prevention_never_heats_in_cold_weather(monkeypatch):
     manager = MoldManager(MagicMock())
     monkeypatch.setattr(
         "custom_components.roommind.managers.mold_manager.calculate_mold_risk",
@@ -279,11 +277,10 @@ async def test_mold_prevention_uses_heat_in_cold_weather(monkeypatch):
         5.0,
         {"mold_prevention_enabled": True, "mold_humidity_threshold": 65, "mold_prevention_sustained_minutes": 0},
         can_dry=True,
-        can_cool=True,
         automation_enabled=True,
     )
-    assert result.prevention_strategy == "heat"
-    assert result.prevention_delta > 0
+    assert result.prevention_strategy is None
+    assert result.prevention_active is False
 
 
 @pytest.mark.asyncio

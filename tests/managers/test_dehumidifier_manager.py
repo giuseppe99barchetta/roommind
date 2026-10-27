@@ -98,14 +98,38 @@ def test_only_host_window_blocks(control, host_open, remote_open, blocked):
     assert manager.suppress_ac_dry("bath")
 
 
-def test_host_night_blocks_comfort_but_allows_significant_mold(control, monkeypatch):
+@pytest.mark.parametrize("risk", ["ok", "critical"])
+def test_host_night_blocks_comfort_but_allows_mold(control, monkeypatch, risk):
+    """Quiet hours pause comfort only; any mold request (even from the 65 % zone) runs."""
     monkeypatch.setattr("custom_components.roommind.managers.dehumidifier_manager.night_phase", lambda *args: "night")
     manager = prepare(control)
     assert not manager.assignments
     assert manager.devices["switch.dryer"]["reason"] == "night"
-    mold = {"bath": ("critical", 85, True, 0, "dehumidifier", None)}
+    mold = {"bath": (risk, 85, True, "dehumidifier", None)}
     prepare(control, molds=mold)
     assert manager.assignments == {"bath": "switch.dryer"}
+
+
+@pytest.mark.parametrize("comfort,mold_target,expected", [(55.0, 47.0, 47.0), (45.0, 50.0, 45.0), (55.0, None, 55.0)])
+def test_mold_run_aims_device_humidistat_at_the_wall(comfort, mold_target, expected):
+    """A mold run sets the drier of the comfort target and what the wall needs."""
+    states = {
+        "humidifier.dry": SimpleNamespace(
+            state="off", attributes={"device_class": "dehumidifier", "min_humidity": 35, "max_humidity": 85}
+        )
+    }
+    hass = SimpleNamespace(states=SimpleNamespace(get=states.get), services=SimpleNamespace(async_call=AsyncMock()))
+    manager = DehumidifierManager(hass)
+    rooms = {
+        "bed": {
+            "dehumidifier": {"entity_id": "humidifier.dry", "min_off_minutes": 0},
+            "humidity_comfort_enabled": True,
+            "humidity_target": comfort,
+        }
+    }
+    manager.prepare(rooms, {}, {"bed": 57.0}, {})
+    manager.collect(rooms, {"bed": 57.0}, {"bed": ("warning", 72, True, "dehumidifier", mold_target)}, {})
+    assert manager.devices["humidifier.dry"]["target_humidity"] == expected
 
 
 @pytest.mark.asyncio

@@ -98,7 +98,6 @@ async def test_mold_prefers_dedicated_without_dry_temperature_or_runtime_limits(
     }
     assert live["mode"] == "heating"
     assert live["dehumidifier"]["request"] == "mold"
-    assert live["mold_prevention_delta"] == 0
     coordinator._mold_manager._prevention_started[room["area_id"]] -= 4 * 3600
     result = await coordinator._async_update_data()
     assert result["rooms"][room["area_id"]]["mold_prevention_strategy"] == "dehumidifier"

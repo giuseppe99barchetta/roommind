@@ -529,17 +529,11 @@ class TestMakeTargetResolverOffActions:
         resolver2 = make_target_resolver(blocks, room, settings)
         assert resolver2(ts) == TargetTemps(heat=None, cool=None)
 
-    def test_resolver_skips_mold_delta_when_none(self):
-        """Mold delta is NOT added when base target is None."""
+    def test_resolver_presence_off_returns_none(self):
+        """Presence away with action off resolves to no targets."""
         room = {"comfort_temp": 21.0, "eco_temp": 17.0}
         settings = {"presence_away_action": "off"}
-        resolver = make_target_resolver(
-            None,
-            room,
-            settings,
-            presence_away=True,
-            mold_prevention_delta=2.0,
-        )
+        resolver = make_target_resolver(None, room, settings, presence_away=True)
         assert resolver(time.time()) == TargetTemps(heat=None, cool=None)
 
 
@@ -592,40 +586,6 @@ class TestGetActiveScheduleEntity:
         room = _make_room(schedules=[{}])
         result = get_active_schedule_entity(hass, room)
         assert result is None
-
-
-# ---------------------------------------------------------------------------
-# make_target_resolver with mold_prevention_delta
-# ---------------------------------------------------------------------------
-
-
-class TestMakeTargetResolverMoldDelta:
-    """Tests for mold_prevention_delta parameter in make_target_resolver."""
-
-    def test_resolver_adds_mold_delta(self):
-        """Resolver should add mold_prevention_delta to every resolved target."""
-        room = {"comfort_temp": 21.0, "eco_temp": 17.0}
-        settings: dict = {}
-        resolver = make_target_resolver(
-            None,
-            room,
-            settings,
-            mold_prevention_delta=2.0,
-        )
-        # No schedule → comfort_temp 21 + delta 2 = 23 (mold delta only on .heat)
-        assert resolver(time.time()).heat == 23.0
-
-    def test_resolver_zero_delta_no_change(self):
-        """With zero delta, resolver returns base target unchanged."""
-        room = {"comfort_temp": 21.0, "eco_temp": 17.0}
-        settings: dict = {}
-        resolver = make_target_resolver(
-            None,
-            room,
-            settings,
-            mold_prevention_delta=0.0,
-        )
-        assert resolver(time.time()).heat == 21.0
 
 
 class TestFahrenheitBlockConversion:
@@ -1043,8 +1003,8 @@ class TestMakeTargetResolverCoolValues:
         assert result.heat == 21.0
         assert result.cool == 24.0
 
-    def test_mold_delta_applies_only_to_heat(self):
-        """Mold prevention delta only raises .heat, not .cool."""
+    def test_resolver_returns_heat_and_cool(self):
+        """Resolver returns the comfort heat and cool targets unchanged."""
         room = {
             "comfort_temp": 21.0,
             "eco_temp": 17.0,
@@ -1054,10 +1014,10 @@ class TestMakeTargetResolverCoolValues:
             "eco_cool": 27.0,
         }
         settings: dict = {}
-        resolver = make_target_resolver(None, room, settings, mold_prevention_delta=2.0)
+        resolver = make_target_resolver(None, room, settings)
         result = resolver(time.time())
-        assert result.heat == 23.0  # 21 + 2
-        assert result.cool == 24.0  # unchanged
+        assert result.heat == 21.0
+        assert result.cool == 24.0
 
 
 # ---------------------------------------------------------------------------

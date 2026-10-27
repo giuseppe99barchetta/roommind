@@ -65,21 +65,20 @@ class TestMoldRiskDetection:
         assert room["mold_surface_rh"] > 80.0
 
     @pytest.mark.asyncio
-    async def test_mold_prevention_raises_target_temp(
+    async def test_mold_prevention_never_heats_radiator_room(
         self,
         hass,
         mock_config_entry,
     ):
-        """When prevention is enabled and risk is high, target temp is raised."""
+        """A critical wall in a radiator-only room is reported, never heated."""
         store = _make_store_mock({"living_room_abc12345": SAMPLE_ROOM})
         store.get_settings.return_value = {
             "mold_prevention_enabled": True,
             "mold_prevention_sustained_minutes": 0,
-            "mold_prevention_intensity": "medium",
+            "mold_prevention_intensity": "strong",  # legacy key, ignored
             "outdoor_temp_sensor": "sensor.outdoor_temp",
         }
         hass.data = {"roommind": {"store": store}}
-        # High mold risk conditions
         hass.states.get = MagicMock(
             side_effect=make_mock_states_get(
                 humidity="75.0",
@@ -92,10 +91,9 @@ class TestMoldRiskDetection:
         data = await coordinator._async_update_data()
 
         room = data["rooms"]["living_room_abc12345"]
-        assert room["mold_prevention_active"] is True
-        # Radiator-only room (no DRY): in season the walls are warmed to 21.5 °C.
-        assert room["mold_prevention_delta"] == 0.5
-        assert room["target_temp"] == 21.5
+        assert room["mold_risk_level"] == "critical"
+        assert room["mold_prevention_active"] is False
+        assert room["target_temp"] == 21.0
 
     @pytest.mark.asyncio
     async def test_mold_prevention_intensity_light(
@@ -124,7 +122,6 @@ class TestMoldRiskDetection:
         data = await coordinator._async_update_data()
 
         room = data["rooms"]["living_room_abc12345"]
-        assert room["mold_prevention_delta"] == 0.0
         assert room["target_temp"] == 21.0
 
     @pytest.mark.asyncio
@@ -175,37 +172,6 @@ class TestMoldRiskDetection:
         assert "mold_risk_level" in room
         assert "mold_surface_rh" in room
         assert "mold_prevention_active" in room
-        assert "mold_prevention_delta" in room
-
-    @pytest.mark.asyncio
-    async def test_mold_prevention_intensity_strong(
-        self,
-        hass,
-        mock_config_entry,
-    ):
-        """Strong intensity raises target by 3degC."""
-        store = _make_store_mock({"living_room_abc12345": SAMPLE_ROOM})
-        store.get_settings.return_value = {
-            "mold_prevention_enabled": True,
-            "mold_prevention_sustained_minutes": 0,
-            "mold_prevention_intensity": "strong",
-            "outdoor_temp_sensor": "sensor.outdoor_temp",
-        }
-        hass.data = {"roommind": {"store": store}}
-        hass.states.get = MagicMock(
-            side_effect=make_mock_states_get(
-                humidity="75.0",
-                outdoor_temp="0.0",
-            ),
-        )
-        hass.services.async_call = AsyncMock()
-
-        coordinator = _create_coordinator(hass, mock_config_entry)
-        data = await coordinator._async_update_data()
-
-        room = data["rooms"]["living_room_abc12345"]
-        assert room["mold_prevention_delta"] == 1.0
-        assert room["target_temp"] == 22.0
 
     @pytest.mark.asyncio
     async def test_mold_sustained_timer_no_notification_before_threshold(
@@ -287,41 +253,36 @@ class TestMoldRiskDetection:
         mock_config_entry,
     ):
         """Prevention should deactivate only when surface RH drops below hysteresis threshold."""
-        store = _make_store_mock({"living_room_abc12345": SAMPLE_ROOM})
-        store.get_settings.return_value = {
-            "mold_prevention_enabled": True,
-            "mold_prevention_sustained_minutes": 0,
-            "mold_prevention_intensity": "medium",
-            "outdoor_temp_sensor": "sensor.outdoor_temp",
-        }
+        store = _make_store_mock(
+            {"living_room_abc12345": _HYBRID_ROOM},
+            {"mold_prevention_enabled": True, "mold_prevention_sustained_minutes": 0},
+        )
         hass.data = {"roommind": {"store": store}}
         hass.services.async_call = AsyncMock()
 
         coordinator = _create_coordinator(hass, mock_config_entry)
 
-        # Cycle 1: High risk -> prevention activates
+        # Cycle 1: High risk in a warm room -> DRY activates
         hass.states.get = MagicMock(
             side_effect=make_mock_states_get(
-                humidity="75.0",
-                outdoor_temp="0.0",
+                temp="23.0", humidity="75.0", outdoor_temp="0.0", extra={"climate.living_ac": _AC_STATE}
             ),
         )
         data = await coordinator._async_update_data()
         room = data["rooms"]["living_room_abc12345"]
         assert room["mold_prevention_active"] is True
+        assert room["mold_prevention_strategy"] == "dry"
 
-        # Cycle 2: Conditions improve (warm outside) -> risk ok, surface RH well below threshold
+        # Cycle 2: Conditions improve -> risk ok, surface RH well below threshold
         coordinator._mold_manager._prevention_started["living_room_abc12345"] -= 601
         hass.states.get = MagicMock(
             side_effect=make_mock_states_get(
-                humidity="40.0",
-                outdoor_temp="15.0",
+                temp="23.0", humidity="40.0", outdoor_temp="15.0", extra={"climate.living_ac": _AC_STATE}
             ),
         )
         data = await coordinator._async_update_data()
         room = data["rooms"]["living_room_abc12345"]
         assert room["mold_prevention_active"] is False
-        assert room["mold_prevention_delta"] == 0.0
 
     @pytest.mark.asyncio
     async def test_mold_warning_triggers_prevention(
@@ -329,22 +290,16 @@ class TestMoldRiskDetection:
         hass,
         mock_config_entry,
     ):
-        """WARNING-level surface RH should trigger prevention (not just CRITICAL)."""
-        store = _make_store_mock({"living_room_abc12345": SAMPLE_ROOM})
-        store.get_settings.return_value = {
-            "mold_prevention_enabled": True,
-            "mold_prevention_sustained_minutes": 0,
-            "mold_prevention_intensity": "medium",
-            "outdoor_temp_sensor": "sensor.outdoor_temp",
-        }
+        """WARNING-level surface RH should trigger DRY (not just CRITICAL)."""
+        store = _make_store_mock(
+            {"living_room_abc12345": _HYBRID_ROOM},
+            {"mold_prevention_enabled": True, "mold_prevention_sustained_minutes": 0},
+        )
         hass.data = {"roommind": {"store": store}}
-        # Conditions that produce WARNING (surface RH 70-80%) but room humidity below threshold
-        # 20degC, 60% RH, 5degC outside -> surface ~16degC, surface RH ~76% (WARNING)
+        # 23degC, 60% RH, 5degC outside -> surface ~19.4degC, surface RH ~75% (WARNING)
         hass.states.get = MagicMock(
             side_effect=make_mock_states_get(
-                temp="20.0",
-                humidity="60.0",
-                outdoor_temp="5.0",
+                temp="23.0", humidity="60.0", outdoor_temp="5.0", extra={"climate.living_ac": _AC_STATE}
             ),
         )
         hass.services.async_call = AsyncMock()
@@ -354,10 +309,8 @@ class TestMoldRiskDetection:
 
         room = data["rooms"]["living_room_abc12345"]
         assert room["mold_risk_level"] == "warning"
-        # A radiator-only room at 20 °C is no longer left alone in season.
         assert room["mold_prevention_active"] is True
-        assert room["mold_prevention_strategy"] == "heat"
-        assert room["target_temp"] == 21.5
+        assert room["mold_prevention_strategy"] == "dry"
 
     @pytest.mark.asyncio
     async def test_mold_no_outdoor_sensor_fallback(
@@ -388,23 +341,25 @@ class TestMoldRiskDetection:
     @pytest.mark.asyncio
     async def test_mold_prevention_force_off_override(self, hass, mock_config_entry):
         """Mold prevention overrides force_off to prevent structural damage."""
-        store = _make_store_mock({"living_room_abc12345": SAMPLE_ROOM})
-        store.get_settings.return_value = {
-            "mold_prevention_enabled": True,
-            "mold_prevention_sustained_minutes": 0,
-            "mold_prevention_intensity": "medium",
-            "outdoor_temp_sensor": "sensor.outdoor_temp",
-            "presence_enabled": True,
-            "presence_persons": ["person.kevin"],
-            "presence_away_action": "off",
-        }
+        store = _make_store_mock(
+            {"living_room_abc12345": _HYBRID_ROOM},
+            {
+                "mold_prevention_enabled": True,
+                "mold_prevention_sustained_minutes": 0,
+                "presence_enabled": True,
+                "presence_persons": ["person.kevin"],
+                "presence_away_action": "off",
+            },
+        )
         hass.data = {"roommind": {"store": store}}
         # Nobody home + mold risk conditions
         hass.states.get = MagicMock(
             side_effect=make_mock_states_get(
+                temp="23.0",
                 humidity="75.0",
                 outdoor_temp="0.0",
                 person_states={"person.kevin": "not_home"},
+                extra={"climate.living_ac": _AC_STATE},
             )
         )
         hass.services.async_call = AsyncMock()
@@ -429,16 +384,17 @@ _HYBRID_ROOM = {
 _AC_STATE = ("off", {"hvac_modes": ["off", "heat", "cool", "dry"], "min_temp": 16, "max_temp": 30})
 
 
-class TestMoldReheatAndAiring:
+class TestMoldDryOnlyAndAiring:
     @pytest.mark.asyncio
-    @pytest.mark.parametrize("reheat", [True, False])
-    async def test_gap_room_reheats_with_heat_pump_only(self, hass, mock_config_entry, reheat):
+    async def test_room_below_dry_start_is_never_heated(self, hass, mock_config_entry):
+        """Last night's case: an old reheat setting must not heat the room anymore."""
         store = _make_store_mock(
             {"living_room_abc12345": _HYBRID_ROOM},
             {
                 "mold_prevention_enabled": True,
                 "mold_prevention_sustained_minutes": 0,
-                "mold_prevention_reheat_enabled": reheat,
+                "mold_prevention_reheat_enabled": True,  # legacy key, ignored
+                "mold_prevention_dry_min_temperature": 24.0,
             },
         )
         hass.data = {"roommind": {"store": store}}
@@ -458,14 +414,8 @@ class TestMoldReheatAndAiring:
             for c in hass.services.async_call.call_args_list
             if c.args[:2] == ("climate", "set_hvac_mode") and c.args[2].get("hvac_mode") == "heat"
         ]
-        if reheat:
-            assert room["mold_prevention_strategy"] == "reheat"
-            assert room["target_temp"] == 22.0
-            assert "climate.living_ac" in heat_calls
-            assert "climate.living_room" not in heat_calls  # radiators / boiler stay off
-        else:
-            assert room["mold_prevention_strategy"] is None
-            assert heat_calls == []
+        assert room["mold_prevention_strategy"] is None
+        assert heat_calls == []
 
     @pytest.mark.asyncio
     async def test_airing_recommended_when_outdoor_air_is_drier(self, hass, mock_config_entry):
@@ -488,7 +438,7 @@ class TestMoldReheatAndAiring:
         assert data["outdoor_abs_humidity"] == pytest.approx(5.8, abs=0.2)
 
     @pytest.mark.asyncio
-    async def test_restart_resumes_early_zone_timer_from_history(self, hass, mock_config_entry):
+    async def test_restart_resumes_warning_timer_from_history(self, hass, mock_config_entry):
         import time
 
         room = {**_HYBRID_ROOM, "room_hvac_mode": "off"}
@@ -499,7 +449,7 @@ class TestMoldReheatAndAiring:
         hass.data = {"roommind": {"store": store}}
         hass.states.get = MagicMock(
             side_effect=make_mock_states_get(
-                temp="23.8", humidity="64.5", outdoor_temp="20.5", extra={"climate.living_ac": _AC_STATE}
+                temp="23.8", humidity="70.0", outdoor_temp="20.5", extra={"climate.living_ac": _AC_STATE}
             )
         )
         hass.services.async_call = AsyncMock()
@@ -510,7 +460,7 @@ class TestMoldReheatAndAiring:
             {
                 "timestamp": str(now - minutes * 60),
                 "room_temp": "23.8",
-                "current_humidity": "64.5",
+                "current_humidity": "70.0",
                 "outdoor_temp": "20.5",
             }
             for minutes in range(150, 0, -3)
@@ -520,8 +470,8 @@ class TestMoldReheatAndAiring:
         coordinator._history_store = history
         data = await coordinator._async_update_data()
 
-        # The room has been in the early zone for 2.5 h: DRY starts on the
-        # first cycle after a restart instead of waiting two more hours.
+        # The wall has been in the warning zone for 2.5 h: DRY starts on the
+        # first cycle after a restart instead of waiting another hour.
         assert data["rooms"]["living_room_abc12345"]["mold_prevention_strategy"] == "dry"
         history.read_detail.assert_any_call("living_room_abc12345", 3 * 3600)
         # Warm humid air on an average wall: well below 80 % surface RH.

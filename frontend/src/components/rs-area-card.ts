@@ -5,7 +5,7 @@ import { getModeClass, formatMode } from "../utils/room-state";
 import { modeStyles } from "../styles/shared-mode-styles";
 import { localize, type TranslationKey } from "../utils/localize";
 import { mdiEyeOff } from "../utils/icons";
-import { formatTemp, tempUnit, toDisplayDelta } from "../utils/temperature";
+import { formatTemp, tempUnit } from "../utils/temperature";
 
 @customElement("rs-area-card")
 export class RsAreaCard extends LitElement {
@@ -564,10 +564,7 @@ export class RsAreaCard extends LitElement {
           ${live.mold_prevention_active
             ? html`<span class="mold-badge prevention">
                 <ha-icon icon="mdi:shield-check"></ha-icon>
-                ${localize("card.mold_prevention", this.hass.language, {
-                  delta: toDisplayDelta(live.mold_prevention_delta, this.hass).toFixed(0),
-                  unit: tempUnit(this.hass),
-                })}
+                ${localize("card.mold_prevention", this.hass.language)}
               </span>`
             : nothing}
           ${showMpcIcon

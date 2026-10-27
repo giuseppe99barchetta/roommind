@@ -63,7 +63,6 @@ NORMAL_ROOM_KEYS = {
     "mold_risk_level",
     "mold_surface_rh",
     "mold_prevention_active",
-    "mold_prevention_delta",
     "mold_prevention_strategy",
     "shading_factor",
     "q_occupancy",
@@ -127,7 +126,6 @@ OUTDOOR_ROOM_KEYS = {
     "mold_risk_level",
     "mold_surface_rh",
     "mold_prevention_active",
-    "mold_prevention_delta",
     "shading_factor",
     "n_observations",
     "blind_position",
@@ -276,7 +274,6 @@ class TestProcessRoomSnapshot:
         assert result["force_off"] is False
         assert result["mold_risk_level"] == "ok"
         assert result["mold_prevention_active"] is False
-        assert result["mold_prevention_delta"] == 0
         assert result["q_occupancy"] == 0.0
 
     @pytest.mark.asyncio
@@ -320,7 +317,7 @@ class TestProcessRoomSnapshot:
                 extra={"climate.bedroom_ac": ("dry", {"hvac_modes": ["off", "heat", "cool", "dry"]})},
             )
         )
-        coordinator._evaluate_mold_risk = AsyncMock(return_value=("ok", 65.9, True, 0.0, "dry", None))
+        coordinator._evaluate_mold_risk = AsyncMock(return_value=("ok", 65.9, True, "dry", None))
 
         result = await coordinator._async_process_room(room, store.get_settings(), [])
 

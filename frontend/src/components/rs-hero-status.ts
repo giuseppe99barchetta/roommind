@@ -4,7 +4,7 @@ import type { HomeAssistant, HassArea, RoomConfig, OverrideType } from "../types
 import { getModeClass, formatMode } from "../utils/room-state";
 import { modeStyles } from "../styles/shared-mode-styles";
 import { localize } from "../utils/localize";
-import { formatTemp, tempUnit, toDisplayDelta } from "../utils/temperature";
+import { formatTemp, tempUnit } from "../utils/temperature";
 import "./shared/rs-info-icon";
 
 const PENCIL_PATH =
@@ -704,10 +704,7 @@ export class RsHeroStatus extends LitElement {
               ${live.mold_prevention_active && !this.isOutdoor
                 ? html`<div class="hero-metric info">
                     <ha-icon icon="mdi:shield-check"></ha-icon>
-                    ${localize(live.mold_prevention_strategy === "dehumidifier" ? "dehumidifier.request_mold" : "card.mold_prevention", this.hass?.language ?? "en", {
-                      delta: toDisplayDelta(live.mold_prevention_delta, this.hass).toFixed(0),
-                      unit: tempUnit(this.hass),
-                    })}
+                    ${localize(live.mold_prevention_strategy === "dehumidifier" ? "dehumidifier.request_mold" : "card.mold_prevention", this.hass?.language ?? "en")}
                   </div>`
                 : nothing}
               ${live.learning_paused_reason === "outdoor_unavailable" && !this.isOutdoor

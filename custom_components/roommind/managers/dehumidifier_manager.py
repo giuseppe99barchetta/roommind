@@ -211,18 +211,17 @@ class DehumidifierManager:
             elif humidity >= target + threshold:
                 self._comfort.add(area_id)
             mold = molds.get(area_id)
-            mold_request = bool(mold and mold[2] and mold[4] == "dehumidifier")
+            mold_request = bool(mold and mold[2] and mold[3] == "dehumidifier")
             demand = "mold" if mold_request else "comfort" if area_id in self._comfort else None
             if demand is None:
                 continue
             self.requests[area_id] = demand
-            significant = bool(mold and (mold[0] in ("warning", "critical") or (exposures.get(area_id) or 0) >= 24))
+            # Quiet hours pause comfort only: the mold manager already decided
+            # this wall needs drying, and a dehumidifier may run at night.
             candidates = [
                 d
                 for d in self.devices.values()
-                if area_id in d["served_area_ids"]
-                and d["reason"] is None
-                and (not d["night"] or demand == "mold" and significant)
+                if area_id in d["served_area_ids"] and d["reason"] is None and (not d["night"] or demand == "mold")
             ]
             candidates.sort(key=lambda d: (d["owner_area_id"] != area_id, d["state"] != "on", d["entity_id"]))
             if candidates:
@@ -240,8 +239,13 @@ class DehumidifierManager:
             if d["night"] and not d["requested"] and d["reason"] is None:
                 d["reason"] = "night"
             if len(d["served_area_ids"]) == 1:
-                room = rooms[d["owner_area_id"]]
-                d["target_humidity"] = self._native_target(d["entity_id"], humidity_target(room) or 55.0)
+                owner = d["owner_area_id"]
+                target = humidity_target(rooms[owner]) or 55.0
+                mold = molds.get(owner)
+                if self.requests.get(owner) == "mold" and mold and mold[4] is not None:
+                    # The wall needs drier air than comfort asks for.
+                    target = min(target, mold[4])
+                d["target_humidity"] = self._native_target(d["entity_id"], target)
 
     def _native_target(self, eid: str, target: float) -> float:
         state = self.hass.states.get(eid)

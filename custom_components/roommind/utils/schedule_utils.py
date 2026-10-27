@@ -280,7 +280,6 @@ def make_target_resolver(
     settings: dict,
     hass: HomeAssistant | None = None,
     presence_away: bool = False,
-    mold_prevention_delta: float = 0.0,
 ) -> Callable[[float], TargetTemps]:
     """Create a sync target resolver function (schedule blocks pre-fetched).
 
@@ -308,7 +307,7 @@ def make_target_resolver(
         converter = lambda v: ha_temp_to_celsius(_hass, v)  # noqa: E731
 
     def resolver(ts: float) -> TargetTemps:
-        targets = resolve_targets_at_time(
+        return resolve_targets_at_time(
             ts,
             schedule_blocks,
             override_until,
@@ -325,12 +324,6 @@ def make_target_resolver(
             presence_away_action=presence_away_action,
             schedule_off_action=schedule_off_action,
             presence_clears_override=presence_clears_override,
-        )
-        if targets.heat is None and targets.cool is None:
-            return targets
-        return TargetTemps(
-            heat=targets.heat + mold_prevention_delta if targets.heat is not None else None,
-            cool=targets.cool if targets.cool is not None else None,
         )
 
     return resolver

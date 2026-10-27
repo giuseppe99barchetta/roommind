@@ -1441,29 +1441,13 @@ async def test_save_settings_mold_partial_update(ws_hass, store, connection):
 
 
 @pytest.mark.asyncio
-async def test_compute_target_forecast_includes_mold_delta(ws_hass):
-    """_compute_target_forecast should add mold_prevention_delta to all targets."""
+async def test_compute_target_forecast_uses_plain_targets(ws_hass):
+    """_compute_target_forecast follows the schedule; mold prevention never raises it."""
     from custom_components.roommind.websocket_api import _compute_target_forecast
 
     room = {"comfort_temp": 21.0, "eco_temp": 17.0, "schedules": []}
-    settings: dict = {}
-
-    # Without delta
-    forecast_base = await _compute_target_forecast(ws_hass, room, settings)
-    assert forecast_base[0]["target_temp"] == 21.0
-
-    # With delta
-    forecast_mold = await _compute_target_forecast(
-        ws_hass,
-        room,
-        settings,
-        mold_prevention_delta=2.0,
-    )
-    assert forecast_mold[0]["target_temp"] == 23.0
-
-    # All forecast points should have the delta applied
-    for point in forecast_mold:
-        assert point["target_temp"] == 23.0
+    forecast = await _compute_target_forecast(ws_hass, room, {})
+    assert all(point["target_temp"] == 21.0 for point in forecast)
 
 
 # ---------------------------------------------------------------------------
@@ -1844,32 +1828,6 @@ async def test_analytics_forecast_grid_alignment(ws_hass, store, connection):
         assert f["mode"] == "forecast"
         assert f["room_temp"] is None
         assert f["window_open"] is False
-
-
-@pytest.mark.asyncio
-async def test_analytics_mold_delta_from_live(ws_hass, store, connection):
-    """Mold prevention delta is read from coordinator live state."""
-    await store.async_load()
-    await store.async_save_room(
-        "room_a",
-        {
-            "thermostats": ["climate.trv1"],
-            "comfort_temp": 21.0,
-        },
-    )
-
-    coordinator = _make_analytics_coordinator(
-        history_rows=[],
-        rooms_live={"room_a": {"mold_prevention_delta": 2.0}},
-    )
-    ws_hass.data[DOMAIN]["coordinator"] = coordinator
-
-    msg = {"id": 58, "type": "roommind/analytics/get", "area_id": "room_a"}
-    await _get_analytics(ws_hass, connection, msg)
-
-    result = connection.send_result.call_args[0][1]
-    # Target forecast should include the mold delta
-    assert result["forecast"][0]["target_temp"] == 23.0
 
 
 @pytest.mark.asyncio

@@ -24,7 +24,7 @@
 - **Ignore Presence per Room** - Rooms can opt out of presence detection to always follow their schedule.
 - **Vacation Mode** - Global setback temperature with end date for all rooms.
 - **Window/Door Pause** - Pauses climate control when windows or doors are open, with configurable open/close delays.
-- **Mold Risk Detection & Prevention** - Surface humidity estimation using the DIN 4108-2 method. Configurable notifications and automatic temperature raise to prevent mold growth.
+- **Mold Risk Detection & Prevention** - Surface humidity estimation using the DIN 4108-2 method. Configurable notifications and automatic dehumidification (dedicated dehumidifier or AC DRY) to prevent mold growth; prevention never heats.
 - **Automatic Blind/Cover Shading** - Smart cover deployment based on predicted solar overheating. Includes night close, manual override detection, and cover schedules.
 - **Valve Protection** - Periodic cycling of idle TRV valves to prevent seizing and calcification.
 - **Heat Source Orchestration** - Rooms with both TRVs and ACs automatically route heating demand to the most efficient device based on temperature gap and outdoor conditions.
@@ -91,7 +91,7 @@ Select a room and time range (24h / 7d / 30d / 90d / custom) to view temperature
 ### Target Temperature Priority
 
 ```
-Manual Override > Vacation > Presence Away > Schedule Block > Comfort / Eco  (+Mold Delta)
+Manual Override > Vacation > Presence Away > Schedule Block > Comfort / Eco
 ```
 
 ### Full Control vs. Managed Mode

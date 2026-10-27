@@ -39,8 +39,8 @@ class TestComputeTargetForecast:
     """Tests for _compute_target_forecast edge cases."""
 
     @pytest.mark.asyncio
-    async def test_mold_delta_applied_when_heat_target_none(self):
-        """When heat_target is None and mold_prevention_delta > 0, eco_heat + delta used."""
+    async def test_heat_target_none_stays_none(self):
+        """Mold prevention never raises targets: a None heat target stays None."""
         hass = MagicMock()
         hass.config.units.temperature_unit = "°C"
         room = {
@@ -72,12 +72,11 @@ class TestComputeTargetForecast:
                 hass,
                 room,
                 settings,
-                mold_prevention_delta=2.0,
                 hours=0.0,
                 interval_minutes=5,
             )
             assert len(result) == 1
-            assert result[0]["heat_target"] == round(17.0 + 2.0, 1)
+            assert result[0]["heat_target"] is None
 
     @pytest.mark.asyncio
     async def test_cool_only_mode_returns_cool_target(self):

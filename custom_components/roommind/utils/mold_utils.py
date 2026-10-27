@@ -20,7 +20,7 @@ from ..const import (
     DEFAULT_MOLD_F_RSI,
     DEFAULT_MOLD_PREVENTION_DRY_MIN_TEMPERATURE,
     MIN_MOLD_GROWTH_TEMP,
-    MOLD_PREVENTION_DELTAS,
+    MOLD_OUTDOOR_TAU_SECONDS,
     MOLD_RISK_CRITICAL,
     MOLD_RISK_OK,
     MOLD_RISK_WARNING,
@@ -64,6 +64,13 @@ def surface_rh(t_dew: float, t_surface: float) -> float:
     return min(100.0, max(0.0, 100.0 * e_dew / e_surface))
 
 
+def air_rh_for_surface(t_room: float, t_surface: float, target_srh: float) -> float:
+    """Room air RH that keeps a surface at *target_srh* (inverse of surface_rh)."""
+    e_surface = math.exp((_A * t_surface) / (_B + t_surface))
+    e_room = math.exp((_A * t_room) / (_B + t_room))
+    return target_srh * e_surface / e_room
+
+
 def estimate_surface_temp(
     t_room: float,
     t_outdoor: float,
@@ -83,6 +90,25 @@ def estimate_surface_temp(
         Estimated surface temperature in °C.
     """
     return t_outdoor + f_rsi * (t_room - t_outdoor)
+
+
+def smooth_outdoor(
+    previous: float | None,
+    previous_ts: float | None,
+    value: float,
+    ts: float,
+    tau: float = MOLD_OUTDOOR_TAU_SECONDS,
+) -> float:
+    """Exponential moving average of the outdoor temperature.
+
+    A wall follows the outside air with hours of lag; feeding the raw value
+    into the surface estimate turns a quick evening drop into a false alarm.
+    """
+    if previous is None or previous_ts is None:
+        return value
+    if ts <= previous_ts:
+        return previous
+    return previous + (1.0 - math.exp(-(ts - previous_ts) / tau)) * (value - previous)
 
 
 def calculate_mold_risk(
@@ -159,9 +185,13 @@ def mold_exposure_hours(
         samples.append((ts, t_room, rh, t_out))
     samples.sort()
     seconds = 0.0
+    smoothed: float | None = None
+    smoothed_ts: float | None = None
     for current, following in zip(samples, samples[1:], strict=False):
         ts, t_room, rh, t_out = current
-        if calculate_mold_risk(t_room, rh, t_out, f_rsi)[1] >= MOLD_SURFACE_RH_CRITICAL:
+        if t_out is not None:
+            smoothed, smoothed_ts = smooth_outdoor(smoothed, smoothed_ts, t_out, ts), ts
+        if calculate_mold_risk(t_room, rh, smoothed, f_rsi)[1] >= MOLD_SURFACE_RH_CRITICAL:
             seconds += min(following[0] - ts, max_gap_seconds)
     return round(seconds / 3600, 1)
 
@@ -203,15 +233,3 @@ def dry_start_temperature(settings: dict) -> float:
         DEFAULT_MOLD_PREVENTION_DRY_MIN_TEMPERATURE,
         float(settings.get("mold_prevention_dry_min_temperature", DEFAULT_MOLD_PREVENTION_DRY_MIN_TEMPERATURE)),
     )
-
-
-def mold_prevention_delta(intensity: str) -> float:
-    """Return temperature-raise delta for a prevention intensity level.
-
-    Args:
-        intensity: One of "light", "medium", "strong".
-
-    Returns:
-        Temperature increase in °C.
-    """
-    return MOLD_PREVENTION_DELTAS.get(intensity, 2.0)
