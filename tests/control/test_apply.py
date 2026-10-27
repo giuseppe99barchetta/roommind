@@ -938,10 +938,10 @@ async def test_apply_heating_mixed_trv_and_ac():
     assert trv_temp_calls
     assert trv_temp_calls[0][0][2]["temperature"] == HEATING_BOOST_TARGET
 
-    # AC should get proportional boost: 18 + 1.0*(30-18) = 30.0
+    # AC: 18 + 1.0*(30-18) = 30 would blast hot air; capped at target(21) + 3 = 24
     ac_temp_calls = [c for c in calls if c[0][1] == "set_temperature" and c[0][2].get("entity_id") == "climate.hp"]
     assert ac_temp_calls
-    assert ac_temp_calls[0][0][2]["temperature"] == 30.0
+    assert ac_temp_calls[0][0][2]["temperature"] == 24.0
 
     # AC should be in heat mode, not off
     ac_hvac_calls = [c for c in calls if c[0][1] == "set_hvac_mode" and c[0][2].get("entity_id") == "climate.hp"]

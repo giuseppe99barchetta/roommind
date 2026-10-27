@@ -210,7 +210,7 @@ async def test_heat_source_plan_active_ac_inactive_trv():
         active_sources="secondary",
         reason="test",
     )
-    # current=19, target=21, ac_boost=30 -> ac = 19 + 0.8*(30-19) = 27.8
+    # current=19, target=21, ac_boost=30 -> 19 + 0.8*(30-19) = 27.8, capped at 21 + 3 = 24
     await ctrl.async_apply(
         mode=MODE_HEATING,
         targets=TargetTemps(heat=21.0, cool=None),
@@ -239,7 +239,7 @@ async def test_heat_source_plan_active_ac_inactive_trv():
 
     ac_temp = [c for c in calls if c[0][1] == "set_temperature" and c[0][2]["entity_id"] == "climate.ac1"]
     assert len(ac_temp) == 1
-    assert ac_temp[0][0][2]["temperature"] == 28.0
+    assert ac_temp[0][0][2]["temperature"] == 24.0
 
 
 @pytest.mark.asyncio
@@ -431,7 +431,7 @@ async def test_heat_source_plan_both_active_different_fractions():
         reason="test",
     )
     # current=20, trv_boost=30: trv = 20 + 1.0*(30-20) = 30.0
-    # current=20, ac_boost=30:  ac  = 20 + 0.5*(30-20) = 25.0
+    # current=20, ac_boost=30:  ac  = 20 + 0.5*(30-20) = 25.0, capped at 21 + 3 = 24
     await ctrl.async_apply(
         mode=MODE_HEATING,
         targets=TargetTemps(heat=21.0, cool=None),
@@ -448,7 +448,7 @@ async def test_heat_source_plan_both_active_different_fractions():
 
     ac_temp = [c for c in calls if c[0][1] == "set_temperature" and c[0][2]["entity_id"] == "climate.ac1"]
     assert len(ac_temp) == 1
-    assert ac_temp[0][0][2]["temperature"] == 25.0
+    assert ac_temp[0][0][2]["temperature"] == 24.0
 
 
 @pytest.mark.asyncio
@@ -552,10 +552,10 @@ async def test_heat_source_plan_ac_cool_only_gets_off():
     assert len(ac_mode) == 1
     assert ac_mode[0][0][2]["hvac_mode"] == "off"
 
-    # Defense-in-depth: AC also gets set_temperature(min_temp) when turned off
+    # A cooling-capable AC never gets the pre-off min setpoint: it is not an
+    # OFF command and could start cooling if OFF is ignored.
     ac_temp = [c for c in calls if c[0][1] == "set_temperature" and c[0][2].get("entity_id") == "climate.ac1"]
-    assert len(ac_temp) == 1
-    assert ac_temp[0][0][2]["temperature"] == 5.0
+    assert ac_temp == []
 
 
 @pytest.mark.asyncio
@@ -591,7 +591,7 @@ async def test_heat_source_plan_ac_heat_cool_mode():
         active_sources="secondary",
         reason="test",
     )
-    # current=20, ac_boost=30 -> 20 + 0.5*(30-20) = 25.0
+    # current=20, ac_boost=30 -> 20 + 0.5*(30-20) = 25.0, capped at 21 + 3 = 24
     await ctrl.async_apply(
         mode=MODE_HEATING,
         targets=TargetTemps(heat=21.0, cool=None),
@@ -607,7 +607,7 @@ async def test_heat_source_plan_ac_heat_cool_mode():
 
     ac_temp = [c for c in calls if c[0][1] == "set_temperature" and c[0][2]["entity_id"] == "climate.ac1"]
     assert len(ac_temp) == 1
-    assert ac_temp[0][0][2]["temperature"] == 25.0
+    assert ac_temp[0][0][2]["temperature"] == 24.0
 
 
 @pytest.mark.asyncio
@@ -643,7 +643,7 @@ async def test_heat_source_plan_ac_auto_mode():
         active_sources="secondary",
         reason="test",
     )
-    # current=20, ac_boost=30 -> 20 + 0.5*(30-20) = 25.0
+    # current=20, ac_boost=30 -> 20 + 0.5*(30-20) = 25.0, capped at 21 + 3 = 24
     await ctrl.async_apply(
         mode=MODE_HEATING,
         targets=TargetTemps(heat=21.0, cool=None),
@@ -659,7 +659,7 @@ async def test_heat_source_plan_ac_auto_mode():
 
     ac_temp = [c for c in calls if c[0][1] == "set_temperature" and c[0][2]["entity_id"] == "climate.ac1"]
     assert len(ac_temp) == 1
-    assert ac_temp[0][0][2]["temperature"] == 25.0
+    assert ac_temp[0][0][2]["temperature"] == 24.0
     assert ac_temp[0][0][2]["hvac_mode"] == "auto"
 
 
@@ -1003,7 +1003,7 @@ async def test_apply_orchestrated_forced_on_ac_mode_fallbacks(hvac_modes, expect
 
 @pytest.mark.asyncio
 async def test_heat_source_plan_ac_heating_boost_cap_at_efficiency():
-    """Orchestrated active AC heating setpoint is capped at target + 3°C at full efficiency."""
+    """Orchestrated active AC heating setpoint is capped at target + 1°C at full efficiency."""
     from custom_components.roommind.managers.heat_source_orchestrator import DeviceCommand, HeatSourcePlan
 
     _last_commands.clear()
@@ -1035,7 +1035,7 @@ async def test_heat_source_plan_ac_heating_boost_cap_at_efficiency():
         reason="test",
     )
     # pf=1.0, current=18, ac_boost=30 -> raw 18 + 1.0*(30-18) = 30
-    # cap: min(30, target(21) + 3, 30) = 24.0
+    # cap: min(30, target(21) + 1, 30) = 22.0
     await ctrl.async_apply(
         mode=MODE_HEATING,
         targets=TargetTemps(heat=21.0, cool=None),
@@ -1047,7 +1047,7 @@ async def test_heat_source_plan_ac_heating_boost_cap_at_efficiency():
     calls = hass.services.async_call.call_args_list
     ac_temp = [c for c in calls if c[0][1] == "set_temperature" and c[0][2]["entity_id"] == "climate.ac1"]
     assert len(ac_temp) == 1
-    assert ac_temp[0][0][2]["temperature"] == 24.0
+    assert ac_temp[0][0][2]["temperature"] == 22.0
 
 
 @pytest.mark.asyncio

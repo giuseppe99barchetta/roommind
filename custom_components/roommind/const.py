@@ -79,8 +79,11 @@ AC_COOLING_BOOST_TARGET = 16  # Fallback AC cooling boost (used when entity min_
 MIN_POWER_FRACTION = 0.15  # Minimum non-zero power fraction (prevents TRV dead zone)
 DEFAULT_COMFORT_WEIGHT = 70  # Default comfort_weight slider value
 APPROACH_RATE_MIN = 0.2  # Gentlest gap fraction closed per block, at comfort_weight=0 (full efficiency)
-AC_BOOST_DELTA_MIN = 3.0  # Tightest AC setpoint cap (°C above/below target) at comfort_weight=0
-AC_BOOST_DELTA_MAX = 50.0  # Comfort-end AC cap (°C); finite value above any real device range so the cap never binds (inf would break the linear slider interpolation)
+# AC setpoint may sit this far beyond the room target: enough for the unit's
+# own (warmer/colder) return-air sensor to keep modulating, without blasting
+# 30 °C air (or 16 °C when cooling) at full fan.
+AC_BOOST_DELTA_MIN = 1.0  # °C at comfort_weight=0 (full efficiency)
+AC_BOOST_DELTA_MAX = 3.0  # °C from the default comfort_weight upward
 PROPORTIONAL_DEADBAND_C = 0.5  # Minimum proportional setpoint change (°C) to resend, in the gentle regime
 PROPORTIONAL_DEADBAND_NEAR_TARGET_C = 0.2  # Finer proportional deadband (°C) within 1°C of target
 

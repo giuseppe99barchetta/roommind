@@ -59,6 +59,7 @@ from .const import (
 from .control.mpc_controller import (
     DEFAULT_OUTDOOR_TEMP_FALLBACK,
     MPCController,
+    ac_boost_delta,
     check_acs_can_heat,
     get_can_heat_cool,
     is_mpc_active,
@@ -2345,6 +2346,7 @@ class RoomMindCoordinator(DataUpdateCoordinator):
                 device_max_temp,
                 ac_device_max_temp,
                 direct_eids=_direct_eids,
+                ac_delta=ac_boost_delta(settings),
             )
             if heat_source_plan is not None
             else self._compute_device_setpoint(
@@ -2358,6 +2360,7 @@ class RoomMindCoordinator(DataUpdateCoordinator):
                 has_thermostats=bool(get_trv_eids(_room_devices)),
                 has_acs=bool(get_ac_eids(_room_devices)),
                 all_direct=_all_direct,
+                ac_delta=ac_boost_delta(settings),
             ),
             "window_open": window_open,
             **build_override_live(
@@ -2397,6 +2400,7 @@ class RoomMindCoordinator(DataUpdateCoordinator):
         device_max_temp: float | None,
         ac_device_max_temp: float | None,
         direct_eids: set[str] | None = None,
+        ac_delta: float | None = None,
     ) -> float | None:
         """Compute device setpoint from the orchestrated heat source plan."""
         if current_temp is None or target_temp is None:
@@ -2416,6 +2420,8 @@ class RoomMindCoordinator(DataUpdateCoordinator):
         sp = round(current_temp + cmd.power_fraction * (boost - current_temp), 1)
         sp = max(target_temp, sp)
         sp = min(boost, sp)
+        if cmd.device_type != "thermostat" and ac_delta is not None:
+            sp = min(sp, target_temp + ac_delta)  # same cap as the controller
         return sp
 
     @staticmethod
@@ -2430,6 +2436,7 @@ class RoomMindCoordinator(DataUpdateCoordinator):
         has_thermostats: bool = True,
         has_acs: bool = False,
         all_direct: bool = False,
+        ac_delta: float | None = None,
     ) -> float | None:
         """Compute the device setpoint for UI display (Full Control only)."""
         if not has_external_sensor or current_temp is None or target_temp is None:
@@ -2445,6 +2452,8 @@ class RoomMindCoordinator(DataUpdateCoordinator):
             sp = round(current_temp + power_fraction * (boost - current_temp), 1)
             sp = max(target_temp, sp)
             sp = min(boost, sp)
+            if not has_thermostats and ac_delta is not None:
+                sp = min(sp, target_temp + ac_delta)  # same cap as the controller
             return sp
 
         if mode == MODE_COOLING and has_acs:
@@ -2452,6 +2461,8 @@ class RoomMindCoordinator(DataUpdateCoordinator):
             sp = round(current_temp - power_fraction * (current_temp - boost), 1)
             sp = max(boost, sp)
             sp = min(target_temp, sp)
+            if ac_delta is not None:
+                sp = max(sp, target_temp - ac_delta)  # same cap as the controller
             return sp
 
         return None

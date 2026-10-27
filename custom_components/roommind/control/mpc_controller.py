@@ -747,6 +747,15 @@ def is_mpc_active(
     return True
 
 
+def ac_boost_delta(settings: dict) -> float:
+    """Max °C an AC setpoint may sit beyond the room target (comfort slider)."""
+    cw = settings.get("comfort_weight", DEFAULT_COMFORT_WEIGHT)
+    return min(
+        AC_BOOST_DELTA_MAX,
+        AC_BOOST_DELTA_MIN + (AC_BOOST_DELTA_MAX - AC_BOOST_DELTA_MIN) * cw / DEFAULT_COMFORT_WEIGHT,
+    )
+
+
 class MPCController:
     """MPC-based climate controller for a single room.
 
@@ -814,10 +823,7 @@ class MPCController:
         self._w_comfort = max(1.0, cw / 10.0)
         self._w_energy = max(1.0, (100 - cw) / 10.0)
         self._approach_rate = min(1.0, APPROACH_RATE_MIN + (1.0 - APPROACH_RATE_MIN) * cw / DEFAULT_COMFORT_WEIGHT)
-        self._ac_boost_delta = min(
-            AC_BOOST_DELTA_MAX,
-            AC_BOOST_DELTA_MIN + (AC_BOOST_DELTA_MAX - AC_BOOST_DELTA_MIN) * cw / DEFAULT_COMFORT_WEIGHT,
-        )
+        self._ac_boost_delta = ac_boost_delta(s)
 
     def _fan_only_conditions_met(self, entity_id: str) -> bool:
         """Return whether the configured fan-only filters permit this device."""

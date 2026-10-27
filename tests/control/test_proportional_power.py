@@ -157,8 +157,8 @@ async def test_proportional_ac_heating_half_power():
 
     calls = hass.services.async_call.call_args_list
     temp_calls = [c for c in calls if c[0][1] == "set_temperature"]
-    # 20 + 0.5*(30-20) = 25.0
-    assert any(c[0][2]["temperature"] == 25.0 for c in temp_calls)
+    # 20 + 0.5*(30-20) = 25.0, capped at target(21) + 3 = 24.0
+    assert any(c[0][2]["temperature"] == 24.0 for c in temp_calls)
 
 
 @pytest.mark.asyncio
@@ -399,7 +399,7 @@ async def test_dynamic_heating_boost_proportional():
 
 @pytest.mark.asyncio
 async def test_dynamic_cooling_boost_full_power():
-    """AC at full cooling power uses dynamic boost (18) instead of default 16."""
+    """AC cooling uses the device minimum (18) instead of default 16 for its slope."""
     hass = build_hass()
     ac_state = MagicMock()
     ac_state.state = "off"
@@ -415,10 +415,11 @@ async def test_dynamic_cooling_boost_full_power():
         settings={},
         has_external_sensor=True,
     )
-    await ctrl.async_apply("cooling", 23.0, power_fraction=1.0, current_temp=26.0, cooling_boost_target=18.0)
+    await ctrl.async_apply("cooling", 23.0, power_fraction=0.5, current_temp=26.0, cooling_boost_target=18.0)
 
     temp_calls = [c for c in hass.services.async_call.call_args_list if c[0][1] == "set_temperature"]
-    assert any(c[0][2]["temperature"] == 18.0 for c in temp_calls)
+    # 26 - 0.5*(26-18) = 22.0 (within target 23 - 3)
+    assert any(c[0][2]["temperature"] == 22.0 for c in temp_calls)
 
 
 @pytest.mark.asyncio
@@ -439,11 +440,11 @@ async def test_dynamic_cooling_boost_none_fallback():
         settings={},
         has_external_sensor=True,
     )
-    await ctrl.async_apply("cooling", 23.0, power_fraction=1.0, current_temp=26.0, cooling_boost_target=None)
+    await ctrl.async_apply("cooling", 23.0, power_fraction=0.5, current_temp=26.0, cooling_boost_target=None)
 
     temp_calls = [c for c in hass.services.async_call.call_args_list if c[0][1] == "set_temperature"]
-    # 26 - 1.0*(26-16) = 16.0
-    assert any(c[0][2]["temperature"] == 16.0 for c in temp_calls)
+    # 26 - 0.5*(26-16) = 21.0 (within target 23 - 3)
+    assert any(c[0][2]["temperature"] == 21.0 for c in temp_calls)
 
 
 @pytest.mark.asyncio
@@ -464,10 +465,11 @@ async def test_dynamic_ac_heating_boost():
         settings={},
         has_external_sensor=True,
     )
-    await ctrl.async_apply("heating", 21.0, power_fraction=1.0, current_temp=20.0, ac_heating_boost_target=28.0)
+    await ctrl.async_apply("heating", 21.0, power_fraction=0.25, current_temp=20.0, ac_heating_boost_target=28.0)
 
     temp_calls = [c for c in hass.services.async_call.call_args_list if c[0][1] == "set_temperature"]
-    assert any(c[0][2]["temperature"] == 28.0 for c in temp_calls)
+    # 20 + 0.25*(28-20) = 22.0 (the default 30 would give 22.5)
+    assert any(c[0][2]["temperature"] == 22.0 for c in temp_calls)
 
 
 def _ctrl_with_cw(cw):
@@ -495,19 +497,20 @@ def test_slider_efficiency_lowers_approach_rate():
     assert _ctrl_with_cw(35)._approach_rate == pytest.approx(0.6)
 
 
-def test_slider_default_and_comfort_keep_ac_cap_unbounded():
-    assert _ctrl_with_cw(None)._ac_boost_delta == 50.0
-    assert _ctrl_with_cw(70)._ac_boost_delta == 50.0
-    assert _ctrl_with_cw(100)._ac_boost_delta == 50.0
+def test_slider_default_and_comfort_cap_ac_at_three_degrees():
+    assert _ctrl_with_cw(None)._ac_boost_delta == 3.0
+    assert _ctrl_with_cw(70)._ac_boost_delta == 3.0
+    assert _ctrl_with_cw(100)._ac_boost_delta == 3.0
 
 
 def test_slider_efficiency_tightens_ac_cap():
-    assert _ctrl_with_cw(0)._ac_boost_delta == pytest.approx(3.0)
+    assert _ctrl_with_cw(0)._ac_boost_delta == pytest.approx(1.0)
+    assert _ctrl_with_cw(35)._ac_boost_delta == pytest.approx(2.0)
 
 
 @pytest.mark.asyncio
 async def test_ac_boost_cap_limits_setpoint_at_efficiency():
-    """At full efficiency the AC heating setpoint is capped at target + 3°C."""
+    """At full efficiency the AC heating setpoint is capped at target + 1°C."""
     hass = build_hass()
     ac_state = MagicMock()
     ac_state.state = "heat"
@@ -523,16 +526,16 @@ async def test_ac_boost_cap_limits_setpoint_at_efficiency():
         settings={"comfort_weight": 0},
         has_external_sensor=True,
     )
-    # pf=1.0 would map to boost 30°C; cap must clamp to target(21) + 3 = 24°C
+    # pf=1.0 would map to boost 30°C; cap must clamp to target(21) + 1 = 22°C
     await ctrl.async_apply("heating", 21.0, power_fraction=1.0, current_temp=18.0)
     set_temp = [c for c in hass.services.async_call.call_args_list if c[0][1] == "set_temperature"]
     assert set_temp
-    assert set_temp[-1][0][2]["temperature"] == 24.0
+    assert set_temp[-1][0][2]["temperature"] == 22.0
 
 
 @pytest.mark.asyncio
-async def test_ac_boost_cap_does_not_apply_at_comfort():
-    """At comfort/default the cap is unbounded; AC reaches boost as today."""
+async def test_ac_boost_cap_at_comfort_is_three_degrees():
+    """At comfort/default the AC never gets more than target + 3°C (no 30°C blast)."""
     hass = build_hass()
     ac_state = MagicMock()
     ac_state.state = "heat"
@@ -551,12 +554,12 @@ async def test_ac_boost_cap_does_not_apply_at_comfort():
     await ctrl.async_apply("heating", 21.0, power_fraction=1.0, current_temp=18.0)
     set_temp = [c for c in hass.services.async_call.call_args_list if c[0][1] == "set_temperature"]
     assert set_temp
-    assert set_temp[-1][0][2]["temperature"] == 30.0
+    assert set_temp[-1][0][2]["temperature"] == 24.0
 
 
 @pytest.mark.asyncio
 async def test_ac_cooling_boost_cap_floors_setpoint_at_efficiency():
-    """At full efficiency the AC cooling setpoint is floored at target - 3°C."""
+    """At full efficiency the AC cooling setpoint is floored at target - 1°C."""
     hass = build_hass()
     ac_state = MagicMock()
     ac_state.state = "cool"
@@ -572,11 +575,11 @@ async def test_ac_cooling_boost_cap_floors_setpoint_at_efficiency():
         settings={"comfort_weight": 0},
         has_external_sensor=True,
     )
-    # pf=1.0 would map to cool boost 16°C; cap must floor at target(23) - 3 = 20°C
+    # pf=1.0 would map to cool boost 16°C; cap must floor at target(23) - 1 = 22°C
     await ctrl.async_apply("cooling", 23.0, power_fraction=1.0, current_temp=26.0)
     set_temp = [c for c in hass.services.async_call.call_args_list if c[0][1] == "set_temperature"]
     assert set_temp
-    assert set_temp[-1][0][2]["temperature"] == 20.0
+    assert set_temp[-1][0][2]["temperature"] == 22.0
 
 
 def settings_for(cw):

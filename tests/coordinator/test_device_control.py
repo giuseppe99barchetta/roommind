@@ -48,6 +48,16 @@ class TestComputeDeviceSetpoint:
         result = coordinator._compute_device_setpoint("heating", 0.01, 20.0, 21.0, True)
         assert result == 21.0
 
+    def test_ac_display_matches_controller_cap(self, hass, mock_config_entry):
+        """The panel shows what the AC really gets: never more than target + cap."""
+        coordinator = _create_coordinator(hass, mock_config_entry)
+        heat = coordinator._compute_device_setpoint(
+            "heating", 1.0, 18.0, 21.0, True, has_thermostats=False, has_acs=True, ac_delta=3.0
+        )
+        assert heat == 24.0
+        cool = coordinator._compute_device_setpoint("cooling", 1.0, 26.0, 23.0, True, has_acs=True, ac_delta=3.0)
+        assert cool == 20.0
+
     def test_clamped_to_device_max_temp(self, hass, mock_config_entry):
         coordinator = _create_coordinator(hass, mock_config_entry)
         # device_max_temp=25 is now used AS the boost target
