@@ -768,5 +768,7 @@
   "settings.boiler.child_lock": "Tasten des Bypass-Ventils sperren",
   "settings.boiler.child_lock_hint": "Aktiviert die Kindersicherung, damit ein Tastendruck den Bypass nicht aus dem Zwangsheizbetrieb nimmt und den Kessel stoppt.",
   "settings.boiler.max_wait_minutes": "Maximale Wartezeit unter dem Quorum (min)",
-  "settings.boiler.max_wait_hint": "Ein Raum, der so lange Wärme anfordert, startet den Kessel allein, damit reine Heizkörperräume nicht kalt bleiben. 0 hält das Quorum strikt."
+  "settings.boiler.max_wait_hint": "Ein Raum, der so lange Wärme anfordert, startet den Kessel allein, damit reine Heizkörperräume nicht kalt bleiben. 0 hält das Quorum strikt.",
+  "comfort.profile.default": "Kein Profil (Zeitplan)",
+  "comfort.profile_clear_hint": "Tippe erneut auf das aktive Profil oder auf \"Kein Profil\", um zum Zeitplan zurückzukehren."
 }
