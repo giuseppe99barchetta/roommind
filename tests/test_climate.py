@@ -256,18 +256,21 @@ def test_canonical_mode_specific_temperature_features(mock_coordinator):
         store.get_room.return_value = _canonical_room([{"entity_id": "climate.ac", "type": "ac"}], room_hvac_mode=mode)
         entity = RoomMindClimate(coordinator, "living_room")
         assert entity.supported_features & ClimateEntityFeature.TARGET_TEMPERATURE
-        assert not entity.supported_features & ClimateEntityFeature.TARGET_TEMPERATURE_RANGE
         assert entity.target_temperature_low is None
         assert entity.target_temperature_high is None
 
     store.get_room.return_value = _canonical_room([{"entity_id": "climate.ac", "type": "ac"}], room_hvac_mode="auto")
     entity = RoomMindClimate(coordinator, "living_room")
     assert entity.supported_features & ClimateEntityFeature.TARGET_TEMPERATURE
-    assert not entity.supported_features & ClimateEntityFeature.TARGET_TEMPERATURE_RANGE
-    # AUTO shows one real target (no live data yet: the heating bound), not a midpoint.
+    assert entity.supported_features & ClimateEntityFeature.TARGET_TEMPERATURE_RANGE
+    # AUTO shows one real target (no live data yet: the heating bound), not a midpoint,
+    # plus the comfort band for HomeKit's "keep between".
     assert entity.target_temperature == 21.0
-    assert entity.target_temperature_low is None
-    assert entity.target_temperature_high is None
+    assert entity.target_temperature_low == 21.0
+    assert entity.target_temperature_high == 26.0
+    # RoomMind decides whether the AC runs in AUTO: no fan control there.
+    ac.attributes["fan_modes"] = ["low", "high"]
+    assert not entity.supported_features & ClimateEntityFeature.FAN_MODE
 
 
 @pytest.mark.asyncio
@@ -923,9 +926,9 @@ def test_canonical_auto_shows_live_target_of_active_direction(mock_coordinator):
     assert entity.target_temperature == 25.0
     coordinator.data["rooms"]["living_room"]["commanded_mode"] = "heating"
     assert entity.target_temperature == 20.0
-    assert entity.target_temperature_low is None
+    assert (entity.target_temperature_low, entity.target_temperature_high) == (20.0, 25.0)
     assert entity.supported_features & ClimateEntityFeature.TARGET_TEMPERATURE
-    assert not entity.supported_features & ClimateEntityFeature.TARGET_TEMPERATURE_RANGE
+    assert entity.supported_features & ClimateEntityFeature.TARGET_TEMPERATURE_RANGE
 
 
 def test_canonical_persisted_fan_only_reports_off_when_physical_ac_is_off(mock_coordinator):

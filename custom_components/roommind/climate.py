@@ -382,8 +382,15 @@ class RoomMindClimate(RoomMindOverrideClimate):
         # permanently incomplete accessory until it is recreated.
         if any(mode in caps.hvac_modes for mode in ("auto", "heat", "cool", "dry")):
             features |= ClimateEntityFeature.TARGET_TEMPERATURE
+        # Rooms that can heat and cool expose their comfort band in AUTO, so
+        # HomeKit shows "keep between heat and cool" instead of "X - X".
+        if "heat" in caps.hvac_modes and "cool" in caps.hvac_modes:
+            features |= ClimateEntityFeature.TARGET_TEMPERATURE_RANGE
 
-        if caps.fan_modes and self.hvac_mode != HVACMode.OFF:
+        # In AUTO RoomMind decides whether the AC runs at all. HomeKit marks a
+        # thermostat's linked fan Active whenever the thermostat is not Off, so
+        # exposing the fan there would show an idle AC as running.
+        if caps.fan_modes and self.hvac_mode not in (HVACMode.OFF, HVACMode.AUTO):
             features |= ClimateEntityFeature.FAN_MODE
         if caps.swing_modes:
             features |= ClimateEntityFeature.SWING_MODE
@@ -438,13 +445,21 @@ class RoomMindClimate(RoomMindOverrideClimate):
         heat, cool = self._logical_targets()
         return cool if mode in (HVACMode.COOL, HVACMode.DRY) else heat
 
+    def _auto_band(self) -> tuple[float | None, float | None]:
+        if self.hvac_mode != HVACMode.AUTO:
+            return None, None
+        heat, cool = self._auto_targets()
+        if heat is None or cool is None:
+            return None, None
+        return float(heat), float(cool)
+
     @property
     def target_temperature_low(self) -> float | None:
-        return None
+        return self._auto_band()[0]
 
     @property
     def target_temperature_high(self) -> float | None:
-        return None
+        return self._auto_band()[1]
 
     @property
     def hvac_action(self) -> Any:
