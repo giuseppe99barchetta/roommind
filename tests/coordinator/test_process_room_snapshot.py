@@ -46,6 +46,7 @@ NORMAL_ROOM_KEYS = {
     "cool_target",
     "mode",
     "commanded_mode",
+    "boiler_wait",
     "heating_power",
     "device_setpoint",
     "window_open",

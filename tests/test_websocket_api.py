@@ -2924,3 +2924,34 @@ async def test_covers_clear_override_success(ws_hass, store, connection):
     coordinator.clear_cover_override.assert_called_once_with("lr")
     coordinator.async_request_refresh.assert_awaited_once()
     connection.send_result.assert_called_once_with(8, {"success": True})
+
+
+@pytest.mark.asyncio
+async def test_save_settings_persists_boiler_quorum_and_guards(ws_hass, store, connection):
+    await store.async_load()
+    fields = {
+        "boiler_min_demand_rooms": 2,
+        "boiler_min_run_minutes": 5.0,
+        "boiler_min_off_minutes": 3.0,
+        "boiler_fault_retry_minutes": 10.0,
+        "boiler_max_wait_minutes": 90.0,
+        "hydraulic_bypass_child_lock": True,
+    }
+
+    await _save_settings(ws_hass, connection, {"id": 21, "type": "roommind/settings/save", **fields})
+
+    settings = connection.send_result.call_args[0][1]["settings"]
+    for key, value in fields.items():
+        assert settings[key] == value
+
+
+def test_save_settings_schema_bounds_boiler_quorum():
+    import voluptuous as vol
+
+    from custom_components.roommind.websocket_api import SETTINGS_SAVE_SCHEMA
+
+    schema = vol.Schema(SETTINGS_SAVE_SCHEMA)
+    with pytest.raises(vol.Invalid):
+        schema({"type": "roommind/settings/save", "boiler_min_demand_rooms": 0})
+    with pytest.raises(vol.Invalid):
+        schema({"type": "roommind/settings/save", "boiler_fault_retry_minutes": 0})

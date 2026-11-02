@@ -31,6 +31,8 @@ OVERRIDE_BOOST = "boost"
 OVERRIDE_ECO = "eco"
 OVERRIDE_CUSTOM = "custom"
 OVERRIDE_TYPES = [OVERRIDE_BOOST, OVERRIDE_ECO, OVERRIDE_CUSTOM]
+# A setpoint edit on the room climate while in AUTO is a temporary override.
+AUTO_OVERRIDE_HOURS = 3
 
 # Room modes
 MODE_IDLE = "idle"
@@ -73,6 +75,17 @@ BANGBANG_HEAT_HYSTERESIS = 0.2  # °C below target → start heating (bang-bang 
 BANGBANG_COOL_HYSTERESIS = 0.2  # °C above target → start cooling (bang-bang fallback)
 DEFAULT_OUTDOOR_COOLING_MIN = 16  # Hard block: NEVER cool if outdoor < this
 DEFAULT_OUTDOOR_HEATING_MAX = 22  # Don't heat if outdoor > this
+# The outdoor gates switch with this total hysteresis band (°C) so a sensor
+# hovering around the threshold cannot flap heating/cooling on and off.
+OUTDOOR_GATE_HYSTERESIS = 1.5
+# A schedule block with a single "temperature" is a comfort point, not
+# heat=cool: keep this band around it so dual rooms cannot ping-pong.
+SINGLE_POINT_DEADBAND = 1.0
+# A room this far past its target ignores the outdoor gate (comfort rescue):
+# the gate is a season heuristic, not a reason to leave a room cold or hot.
+OUTDOOR_GATE_RESCUE_DELTA = 1.0
+# Absolute floor for cooling, whatever the rescue says (AC hardware limits).
+OUTDOOR_COOLING_HARD_MIN = 16.0
 HEATING_BOOST_TARGET = 30  # Fallback TRV heating boost (used when entity max_temp unavailable)
 AC_HEATING_BOOST_TARGET = 30  # Fallback AC heating boost (used when entity max_temp unavailable)
 AC_COOLING_BOOST_TARGET = 16  # Fallback AC cooling boost (used when entity min_temp unavailable)
@@ -97,7 +110,9 @@ MAX_SENSOR_STALENESS = 300
 # Repairs should tolerate the normal reporting cadence of battery-powered
 # temperature sensors.  This is deliberately independent from the short
 # control-safety cache above.
-SENSOR_STALE_REPAIR_DELAY = 3600
+SENSOR_STALE_REPAIR_DELAY = (
+    6 * 3600
+)  # many Zigbee/BLE meters only report on change; hours without a new value are normal
 
 # Coordinator throttle intervals (in cycles of UPDATE_INTERVAL)
 HISTORY_WRITE_CYCLES = 6  # ~3 min at 30s cycle

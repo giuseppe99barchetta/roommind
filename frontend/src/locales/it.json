@@ -419,5 +419,14 @@
   "dehumidifier.waiting_hint": "Pronto: l’apparecchio si avvia quando una stanza servita richiede deumidificazione, nel rispetto delle protezioni.",
   "devices.idle_action_setback": "Mantenimento",
   "devices.idle_action_low": "Potenza ridotta",
-  "devices.idle_action_fan_only": "Solo ventilazione"
+  "devices.idle_action_fan_only": "Solo ventilazione",
+  "settings.boiler.min_demand_rooms": "Stanze necessarie per accendere la caldaia",
+  "settings.boiler.min_demand_hint": "Sotto questo numero, le stanze che chiedono calore aspettano con le valvole chiuse. Una volta accesa, la caldaia resta accesa finché almeno una stanza chiede calore.",
+  "settings.boiler.min_run_minutes": "Accensione minima (min)",
+  "settings.boiler.min_off_minutes": "Spegnimento minimo (min)",
+  "settings.boiler.fault_retry_minutes": "Riprova dopo un blocco (min)",
+  "settings.boiler.child_lock": "Blocca i tasti della valvola di bypass",
+  "settings.boiler.child_lock_hint": "Attiva il blocco bambini della valvola, così una pressione dei tasti non toglie il bypass dal riscaldamento forzato e non ferma la caldaia.",
+  "settings.boiler.max_wait_minutes": "Attesa massima sotto il quorum (min)",
+  "settings.boiler.max_wait_hint": "Una stanza che chiede calore da così tanto accende la caldaia anche da sola, così le stanze con soli radiatori non restano fredde. 0 rende il quorum rigido."
 }

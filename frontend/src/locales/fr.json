@@ -759,5 +759,14 @@
   "equipment.no_sensors": "Associez des capteurs pour mesurer les conditions de cette pièce.",
   "equipment.edit_devices": "Gérer les appareils",
   "equipment.edit_sensors": "Gérer les capteurs",
-  "dehumidifier.waiting_hint": "Prêt : l’appareil démarre lorsqu’une pièce desservie demande une déshumidification, sous réserve des protections."
+  "dehumidifier.waiting_hint": "Prêt : l’appareil démarre lorsqu’une pièce desservie demande une déshumidification, sous réserve des protections.",
+  "settings.boiler.min_demand_rooms": "Pièces nécessaires pour démarrer la chaudière",
+  "settings.boiler.min_demand_hint": "En dessous, les pièces qui demandent de la chaleur attendent vannes fermées. Une fois allumée, la chaudière reste en marche tant qu’une pièce demande de la chaleur.",
+  "settings.boiler.min_run_minutes": "Marche minimale (min)",
+  "settings.boiler.min_off_minutes": "Arrêt minimal (min)",
+  "settings.boiler.fault_retry_minutes": "Nouvel essai après défaut (min)",
+  "settings.boiler.child_lock": "Verrouiller les boutons de la vanne de bypass",
+  "settings.boiler.child_lock_hint": "Active la sécurité enfant pour qu’un appui sur la vanne ne sorte pas le bypass du chauffage forcé et n’arrête pas la chaudière.",
+  "settings.boiler.max_wait_minutes": "Attente maximale sous le quorum (min)",
+  "settings.boiler.max_wait_hint": "Une pièce qui demande de la chaleur depuis ce temps démarre la chaudière seule, pour que les pièces à radiateurs ne restent pas froides. 0 garde le quorum strict."
 }

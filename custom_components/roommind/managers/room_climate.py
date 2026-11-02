@@ -77,13 +77,16 @@ def room_capabilities(hass: HomeAssistant, room: dict) -> RoomClimateCapabilitie
     ac_modes = set(ac_state.attributes.get("hvac_modes", []) if ac_state else [])
     can_heat = bool(trvs) or bool(ac_modes & {"heat", "heat_cool", "auto"})
     can_cool = bool(acs and ac_modes & {"cool", "heat_cool", "auto"})
+    # AUTO is RoomMind's own control (schedule, presence, MPC) and is offered
+    # whenever the room can do anything thermal — including TRV-only rooms,
+    # which otherwise had no way to show or select "automatic".
     modes = ["off"]
+    if can_heat or can_cool:
+        modes.append("auto")
     if can_heat:
         modes.append("heat")
     if can_cool:
         modes.append("cool")
-    if can_heat and can_cool:
-        modes.append("auto")
     if "dry" in ac_modes:
         modes.append("dry")
     if "fan_only" in ac_modes:

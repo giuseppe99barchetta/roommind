@@ -5,7 +5,7 @@ from __future__ import annotations
 import asyncio
 import logging
 import time
-from collections.abc import AsyncIterator
+from collections.abc import AsyncIterator, Callable
 from contextlib import asynccontextmanager
 from datetime import datetime, timedelta
 from typing import Any
@@ -28,6 +28,7 @@ from .const import (
     DEFAULT_ECO_HEAT,
     DEFAULT_MOLD_F_RSI,
     DEFAULT_MOLD_PREVENTION_DRY_MIN_TEMPERATURE,
+    DEFAULT_OUTDOOR_COOLING_MIN,
     DEFAULT_OUTDOOR_HEATING_MAX,
     DOMAIN,
     HEATING_BOOST_TARGET,
@@ -44,6 +45,9 @@ from .const import (
     MOLD_PREVENTION_DRY_STOP_TEMPERATURE,
     MOLD_PREVENTION_MAX_RUN_MINUTES,
     MOLD_PREVENTION_RETRY_MINUTES,
+    OUTDOOR_COOLING_HARD_MIN,
+    OUTDOOR_GATE_HYSTERESIS,
+    OUTDOOR_GATE_RESCUE_DELTA,
     OUTDOOR_UNAVAILABLE_NOTIFICATION_ID,
     OUTDOOR_UNAVAILABLE_NOTIFY_CYCLES,
     SCHEDULE_STATE_ON,
@@ -60,13 +64,14 @@ from .control.mpc_controller import (
     DEFAULT_OUTDOOR_TEMP_FALLBACK,
     MPCController,
     ac_boost_delta,
+    async_idle_device,
     check_acs_can_heat,
     get_can_heat_cool,
     is_mpc_active,
 )
 from .control.solar import compute_q_solar_norm
 from .control.thermal_model import RoomModelManager
-from .managers.boiler_manager import BoilerManager
+from .managers.boiler_manager import BoilerManager, bypass_entities
 from .managers.compressor_group_manager import (
     CompressorGroupConfig,
     CompressorGroupManager,
@@ -243,6 +248,8 @@ class RoomMindCoordinator(DataUpdateCoordinator):
         self.rooms: dict = {}
         self.outdoor_temp: float | None = None
         self.outdoor_temp_effective: float | None = None
+        self._heat_gate_open: bool | None = None
+        self._cool_gate_open: bool | None = None
         self.outdoor_temp_source: str = "none"
         self.outdoor_humidity: float | None = None
         self._outdoor_unavailable_cycles: int = 0
@@ -369,6 +376,7 @@ class RoomMindCoordinator(DataUpdateCoordinator):
         # see _async_process_room where this gates EKF updates.
         self.outdoor_temp_effective, self.outdoor_temp_source = self._resolve_outdoor_temp(settings)
         self._update_outdoor_unavailable_notification(settings)
+        settings = self._apply_outdoor_gate_hysteresis(settings)
 
         # Load compressor groups from settings (every cycle, cheap)
         self._compressor_manager.load_groups(settings.get("compressor_groups", []))
@@ -1056,16 +1064,19 @@ class RoomMindCoordinator(DataUpdateCoordinator):
         # Returns TargetTemps(heat, cool). None values mean "force off".
         targets = self._resolve_target_temps(room, settings, schedule_blocks, schedule_entity_id)
 
-        # The canonical climate persists logical heat/cool targets separately
-        # from physical device targets.  A TRV frost setpoint can therefore
-        # never become the AC cooling target on a mode transition.
+        # Manual HEAT/COOL selected on the canonical climate pin the room to the
+        # logical target of that direction.  AUTO (stored as None) is RoomMind's
+        # own control and must keep following override > vacation > presence >
+        # schedule > comfort/eco; legacy "auto"/"heat_cool" values mean the same.
         requested_hvac_mode = room.get("room_hvac_mode")
-        if requested_hvac_mode in ("heat", "cool", "heat_cool", "auto"):
+        if requested_hvac_mode in ("auto", "heat_cool"):
+            requested_hvac_mode = None
+        if requested_hvac_mode in ("heat", "cool"):
             logical_heat = room.get("logical_heat_target", room.get("comfort_heat", DEFAULT_COMFORT_HEAT))
             logical_cool = room.get("logical_cool_target", room.get("comfort_cool", DEFAULT_COMFORT_COOL))
             targets = TargetTemps(
-                heat=float(logical_heat) if requested_hvac_mode in ("heat", "heat_cool", "auto") else None,
-                cool=float(logical_cool) if requested_hvac_mode in ("cool", "heat_cool", "auto") else None,
+                heat=float(logical_heat) if requested_hvac_mode == "heat" else None,
+                cool=float(logical_cool) if requested_hvac_mode == "cool" else None,
             )
 
         # Mold prevention is an automatic safety policy. While RoomMind automatic
@@ -1134,18 +1145,10 @@ class RoomMindCoordinator(DataUpdateCoordinator):
             hass=self.hass,
             presence_away=presence_away,
         )
-        profile = active_profile(room)
         if not room.get("preconditioning_enabled", True):
             target_resolver = None
-        elif profile:
-            base_target_resolver = target_resolver
-
-            def target_resolver(timestamp: float) -> TargetTemps:
-                base = base_target_resolver(timestamp)
-                return TargetTemps(
-                    heat=float(profile.get("heat_target", base.heat)) if base.heat is not None else None,
-                    cool=float(profile.get("cool_target", base.cool)) if base.cool is not None else None,
-                )
+        else:
+            target_resolver = self._lookahead_resolver(target_resolver, room, settings, presence_away)
 
         # --- Compute residual heat from previous cycle state ---
         system_type = room.get("heating_system_type", "")
@@ -1174,6 +1177,11 @@ class RoomMindCoordinator(DataUpdateCoordinator):
         if mold_prevention_effective and effective_requested_hvac_mode != requested_hvac_mode:
             control_room = dict(room)
             control_room["room_hvac_mode"] = effective_requested_hvac_mode
+        gate_rescue = self._outdoor_gate_rescue(area_id, current_temp, targets)
+        if gate_rescue:
+            # Transient, never persisted: a copy, not the stored room dict.
+            control_room = dict(control_room)
+            control_room["_outdoor_gate_rescue"] = gate_rescue
 
         controller = MPCController(
             self.hass,
@@ -1404,12 +1412,36 @@ class RoomMindCoordinator(DataUpdateCoordinator):
             # so re-enabling starts fresh.
             self._heat_source_states.pop(area_id, None)
 
+        # Radiators are the chosen source but the boiler is not running (start
+        # quorum not reached, min-off, fault).  Rather than leaving the room
+        # cold, heat with the room's AC meanwhile.  active_sources is left as
+        # is so the room keeps counting towards the boiler quorum; once the
+        # boiler runs, the next plan routes heat back to the radiators.
+        if (
+            heat_source_plan is not None
+            and mode == MODE_HEATING
+            and settings.get("boiler_entity")
+            and not self._boiler_manager.heat_available
+            and not any(c.device_type == "ac" and c.active for c in heat_source_plan.commands)
+        ):
+            for command in heat_source_plan.commands:
+                if command.device_type == "ac":
+                    command.active = True
+                    command.power_fraction = power_fraction
+                    command.reason = "boiler_waiting"
+            if any(c.device_type == "ac" and c.active for c in heat_source_plan.commands):
+                heat_source_plan.reason = "boiler_waiting_ac_fallback"
+
         # Shared electrical budget.  Native heat-source routing has already
         # made this request above; every other AC start is admitted here in the
         # stable, priority-sorted room order of this update cycle.
         budget_blocked_acs: set[str] = set()
         ac_eids = set(get_ac_eids(room.get("devices", [])))
-        native_budget_checked = bool(room.get("native_heat_source", False) and heat_source_plan is not None)
+        native_budget_checked = bool(
+            room.get("native_heat_source", False)
+            and heat_source_plan is not None
+            and heat_source_plan.reason != "boiler_waiting_ac_fallback"
+        )
         plan_uses_ac = heat_source_plan is None or any(
             command.device_type == "ac" and command.active for command in heat_source_plan.commands
         )
@@ -1479,6 +1511,34 @@ class RoomMindCoordinator(DataUpdateCoordinator):
                 power_fraction = 0.0
                 compressor_forced_off.clear()
 
+        # Central boiler gate.  A room may *want* radiator heat (and keeps
+        # counting towards the boiler quorum through commanded_mode), but its
+        # TRVs stay closed until the boiler is actually starting or running:
+        # opening a valve with no hot water wastes battery and teaches the
+        # thermal model that the radiator does nothing.  Bypass TRVs are owned
+        # by the boiler manager and are never written by room control.
+        boiler_bypass_eids = bypass_entities(settings)
+        room_trv_eids = set(get_trv_eids(room.get("devices", [])))
+        radiators_blocked = bool(
+            settings.get("boiler_entity")
+            and climate_active
+            and mode == MODE_HEATING
+            and room_trv_eids
+            and not self._boiler_manager.heat_available
+        )
+        boiler_wait_eids = room_trv_eids - boiler_bypass_eids if radiators_blocked else set()
+        device_forced_off = compressor_forced_off | boiler_wait_eids
+        # The room is only "waiting" when nothing else heats it meanwhile.
+        heating_acs = (
+            set(get_ac_eids(room.get("devices", []))) - budget_blocked_acs - device_forced_off
+            if mode == MODE_HEATING and check_acs_can_heat(self.hass, room)
+            else set()
+        )
+        if heating_acs and heat_source_plan is not None:
+            active_acs = {c.entity_id for c in heat_source_plan.commands if c.device_type == "ac" and c.active}
+            heating_acs &= active_acs
+        boiler_wait = radiators_blocked and not heating_acs
+
         # --- Residual heat transition tracking ---
         # After compressor constraints may have changed mode to IDLE.
         if climate_active and system_type:
@@ -1511,13 +1571,10 @@ class RoomMindCoordinator(DataUpdateCoordinator):
                     for device in control_room.get("devices", []):
                         if device.get("type") == "ac":
                             device["_roommind_smart_ventilation"] = room.get("smart_ventilation_fan_mode", "low")
-                # The boiler state machine owns the hydraulic bypass from
-                # preopening until the post-stop safety delay has elapsed.
-                bypass_held = (
-                    set(settings.get("hydraulic_bypass_entities", []))
-                    if self._boiler_manager.state in ("preopening", "on", "poststop")
-                    else set()
-                )
+                # The boiler state machine owns the hydraulic bypass at all
+                # times. Sharing it with room control let the two fight over
+                # the same valve (room setpoint vs. forced bypass setpoint).
+                bypass_held = boiler_bypass_eids
                 # An auxiliary DRY cycle must not receive OFF on every
                 # coordinator tick before being re-commanded DRY.
                 comfort_dry_requested = (
@@ -1562,12 +1619,25 @@ class RoomMindCoordinator(DataUpdateCoordinator):
                     or comfort_dry_requested else set()
                 )
                 preserve_dry_acs.update(mold_dry_restores)
+                # Radiators waiting for the boiler are closed outright: their
+                # idle_action ("setback" keeps heat at target - offset) must
+                # not leave a valve open while no hot water can arrive. "low"
+                # devices still get their min-setpoint instead of OFF.
+                for trv_eid in sorted(boiler_wait_eids - cycling_eids):
+                    await async_idle_device(
+                        self.hass,
+                        trv_eid,
+                        control_room.get("devices", []),
+                        area_id=area_id,
+                        targets=None,  # closing setpoint = device minimum, not target - offset
+                        force_off=True,
+                    )
                 await controller.async_apply(
                     mode,
                     targets,
                     power_fraction=power_fraction,
                     current_temp=current_temp,
-                    exclude_eids=cycling_eids | budget_blocked_acs | bypass_held | preserve_dry_acs,
+                    exclude_eids=cycling_eids | budget_blocked_acs | bypass_held | preserve_dry_acs | boiler_wait_eids,
                     heating_boost_target=device_max_temp,
                     ac_heating_boost_target=ac_device_max_temp,
                     cooling_boost_target=device_min_temp,
@@ -1727,7 +1797,7 @@ class RoomMindCoordinator(DataUpdateCoordinator):
                     continue
                 if eid in cycling_eids:
                     continue
-                if eid in compressor_forced_off:
+                if eid in device_forced_off:
                     self._compressor_manager.update_member(eid, False)
                 elif eid in compressor_forced_on:
                     # Verify device is actually running before tracking as active.
@@ -1806,6 +1876,7 @@ class RoomMindCoordinator(DataUpdateCoordinator):
             has_external_sensor=has_external_sensor,
             heat_source_plan=heat_source_plan,
             climate_active=climate_active,
+            boiler_wait=boiler_wait,
         )
 
         room_state = self._build_room_state_dict(
@@ -1840,6 +1911,14 @@ class RoomMindCoordinator(DataUpdateCoordinator):
             mpc_active=mpc_active,
             compressor_protection_reason=compressor_protection_reason,
         )
+        # Wants radiator heat but the boiler is not (yet) running: valves closed.
+        # commanded_mode keeps the request (boiler demand); what the room is
+        # actually doing, and what history records, is idle.
+        room_state["boiler_wait"] = boiler_wait
+        if boiler_wait:
+            room_state["mode"] = MODE_IDLE
+            room_state["heating_power"] = 0
+            room_state["device_setpoint"] = None
         preconditioning = bool(
             mpc_active
             and current_temp is not None
@@ -1872,7 +1951,11 @@ class RoomMindCoordinator(DataUpdateCoordinator):
                     planned_at = time.time() + index * controller.last_plan.dt_minutes * 60
                     break
         room_state["preconditioning_planned_at"] = planned_at
-        anomalies = self._room_anomalies(area_id, room, current_temp, current_humidity, targets, mode)
+        # A room waiting for the boiler is not running anything: no long-run or
+        # target-not-reached alarms for time spent with its valves closed.
+        anomalies = self._room_anomalies(
+            area_id, room, current_temp, current_humidity, targets, MODE_IDLE if boiler_wait else mode
+        )
         room_state["anomalies"] = anomalies
         airing = airing_recommended(
             current_temp,
@@ -1932,6 +2015,7 @@ class RoomMindCoordinator(DataUpdateCoordinator):
         has_external_sensor: bool,
         heat_source_plan: Any | None,
         climate_active: bool,
+        boiler_wait: bool = False,
     ) -> tuple[str, float]:
         """Observe device state, train EKF, compute display mode.
 
@@ -2027,6 +2111,14 @@ class RoomMindCoordinator(DataUpdateCoordinator):
         # for a consistent training batch.
         if ekf_mode in (MODE_HEATING, MODE_COOLING) and ekf_pf == 0.0:
             ekf_mode = MODE_IDLE
+            q_residual_training = 0.0
+
+        # Radiators waiting for the boiler deliver no heat.  Training them as
+        # "heating" drives Q_heat to its floor and the MPC then runs every
+        # valve at 100% forever.  Rooms with an AC may still be heating.
+        if boiler_wait and ekf_mode == MODE_HEATING:
+            ekf_mode = MODE_IDLE
+            ekf_pf = 0.0
             q_residual_training = 0.0
 
         # Update thermal model with observation (EKF online learning).
@@ -2590,6 +2682,111 @@ class RoomMindCoordinator(DataUpdateCoordinator):
             if state and state.state == "on":
                 return True
         return False
+
+    @staticmethod
+    def _lookahead_resolver(
+        base_resolver: Callable[[float], TargetTemps],
+        room: dict,
+        settings: dict,
+        presence_away: bool,
+    ) -> Callable[[float], TargetTemps]:
+        """MPC lookahead targets following the same pipeline as the live target.
+
+        The planner used to see only override/vacation/presence/schedule: a
+        comfort profile overrode even active overrides, manual HEAT/COOL
+        targets and the night setback were ignored, so the MPC kept heating to
+        the day target while the room displayed its night target.
+        """
+        profile = active_profile(room)
+        requested = room.get("room_hvac_mode")
+        logical_heat = float(room.get("logical_heat_target", room.get("comfort_heat", DEFAULT_COMFORT_HEAT)))
+        logical_cool = float(room.get("logical_cool_target", room.get("comfort_cool", DEFAULT_COMFORT_COOL)))
+        override_until = room.get("override_until")
+        has_override = room.get("override_heat") is not None or room.get("override_cool") is not None
+        override_suppressed = presence_away and bool(settings.get("presence_clears_override", False))
+        vacation_until = settings.get("vacation_until")
+
+        def resolver(timestamp: float) -> TargetTemps:
+            base = base_resolver(timestamp)
+            if requested in ("heat", "cool"):
+                base = TargetTemps(
+                    heat=logical_heat if requested == "heat" else None,
+                    cool=logical_cool if requested == "cool" else None,
+                )
+            elif profile:
+                override_now = (
+                    has_override and not override_suppressed and (override_until is None or timestamp < override_until)
+                )
+                vacation_now = vacation_until is not None and timestamp < vacation_until
+                if not (override_now or vacation_now or presence_away):
+                    base = TargetTemps(
+                        heat=float(profile.get("heat_target", base.heat)) if base.heat is not None else None,
+                        cool=float(profile.get("cool_target", base.cool)) if base.cool is not None else None,
+                    )
+            return apply_night_targets(room, base, datetime.fromtimestamp(timestamp).astimezone())[0]
+
+        return resolver
+
+    def _apply_outdoor_gate_hysteresis(self, settings: dict) -> dict:
+        """Return settings whose outdoor gate thresholds include hysteresis.
+
+        The configured heating max / cooling min are hard thresholds; an outdoor
+        sensor hovering around them switched heating or cooling every cycle.
+        The gate state is kept here and expressed as effective thresholds, so
+        every consumer (controller, optimizer, master devices) agrees.
+        """
+        outdoor = self.outdoor_temp_effective
+        if outdoor is None:
+            return settings
+        half = OUTDOOR_GATE_HYSTERESIS / 2
+        heat_max = float(settings.get("outdoor_heating_max", DEFAULT_OUTDOOR_HEATING_MAX))
+        cool_min = float(settings.get("outdoor_cooling_min", DEFAULT_OUTDOOR_COOLING_MIN))
+        if self._heat_gate_open is None:
+            self._heat_gate_open = outdoor <= heat_max
+        elif self._heat_gate_open and outdoor > heat_max + half:
+            self._heat_gate_open = False
+        elif not self._heat_gate_open and outdoor < heat_max - half:
+            self._heat_gate_open = True
+        if self._cool_gate_open is None:
+            self._cool_gate_open = outdoor >= cool_min
+        elif self._cool_gate_open and outdoor < cool_min - half:
+            self._cool_gate_open = False
+        elif not self._cool_gate_open and outdoor > cool_min + half:
+            self._cool_gate_open = True
+        effective = dict(settings)
+        effective["outdoor_heating_max"] = heat_max + half if self._heat_gate_open else heat_max - half
+        effective["outdoor_cooling_min"] = cool_min - half if self._cool_gate_open else cool_min + half
+        return effective
+
+    def _outdoor_gate_rescue(
+        self, area_id: str, current_temp: float | None, targets: TargetTemps
+    ) -> dict[str, bool]:
+        """Directions that may ignore the outdoor gate for this room.
+
+        The gate is a season heuristic. A room clearly below its heating target
+        (or above its cooling target) is served anyway; once rescued it keeps
+        going until the target is reached.
+        """
+        if current_temp is None:
+            return {}
+        previous = self._previous_modes.get(area_id, MODE_IDLE)
+        rescue: dict[str, bool] = {}
+        if targets.heat is not None and (
+            current_temp <= targets.heat - OUTDOOR_GATE_RESCUE_DELTA
+            or (previous == MODE_HEATING and current_temp < targets.heat)
+        ):
+            rescue["heat"] = True
+        outdoor = self.outdoor_temp_effective
+        if (
+            targets.cool is not None
+            and (outdoor is None or outdoor >= OUTDOOR_COOLING_HARD_MIN)
+            and (
+                current_temp >= targets.cool + OUTDOOR_GATE_RESCUE_DELTA
+                or (previous == MODE_COOLING and current_temp > targets.cool)
+            )
+        ):
+            rescue["cool"] = True
+        return rescue
 
     def _is_presence_away(self, room: dict, settings: dict) -> bool:
         """Return True if presence detection says all relevant persons are away."""

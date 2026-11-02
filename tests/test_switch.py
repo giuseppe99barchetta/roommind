@@ -99,17 +99,16 @@ def test_dry_switch_is_on_only_while_drying(mock_coordinator):
 async def test_dry_switch_controls_the_canonical_climate(mock_coordinator):
     coordinator, store = mock_coordinator
     store.get_room.return_value = {"room_hvac_mode": "dry"}
-    climate = MagicMock(async_set_hvac_mode=AsyncMock())
+    climate = MagicMock(async_set_hvac_mode=AsyncMock(), async_exit_auxiliary_mode=AsyncMock())
     switch = RoomMindDrySwitch(coordinator, "living_room")
     switch._climate = MagicMock(return_value=climate)
 
     await switch.async_turn_on()
     await switch.async_turn_off()
 
-    assert climate.async_set_hvac_mode.await_args_list == [
-        ((HVACMode.DRY,), {}),
-        ((HVACMode.OFF,), {}),
-    ]
+    # Turning DRY off resumes the room's previous mode instead of shutting it down.
+    assert climate.async_set_hvac_mode.await_args_list == [((HVACMode.DRY,), {})]
+    climate.async_exit_auxiliary_mode.assert_awaited_once()
 
 
 @pytest.mark.asyncio

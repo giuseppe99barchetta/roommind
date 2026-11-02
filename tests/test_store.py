@@ -754,3 +754,48 @@ async def test_new_rooms_get_comfort_feature_defaults(store):
     assert room["humidity_comfort_enabled"] is False
     assert room["active_profile"] == ""
     assert room["anomaly_detection_enabled"] is True
+
+
+@pytest.mark.asyncio
+async def test_legacy_auto_mode_migrates_to_automatic_control(store):
+    """Old "auto" pinned the room with a permanent custom override; it is now None."""
+    stored_data = {
+        "rooms": {
+            "sala": {
+                "area_id": "sala",
+                "thermostats": [],
+                "acs": [],
+                "schedules": [],
+                "room_hvac_mode": "auto",
+                "override_heat": 21.0,
+                "override_cool": 24.0,
+                "override_until": None,
+                "override_type": "custom",
+                "room_last_hvac_mode": "dry",
+            },
+            "studio": {
+                "area_id": "studio",
+                "thermostats": [],
+                "acs": [],
+                "schedules": [],
+                "room_hvac_mode": "off",
+                "override_heat": 22.0,
+                "override_cool": None,
+                "override_until": 9999999999.0,
+                "override_type": "boost",
+                "room_last_hvac_mode": "heat",
+            },
+        }
+    }
+    store._store.async_load = AsyncMock(return_value=stored_data)
+    await store.async_load()
+
+    sala = store.get_room("sala")
+    assert sala["room_hvac_mode"] is None
+    assert sala["override_heat"] is None and sala["override_type"] is None
+    assert sala["room_last_hvac_mode"] is None
+
+    studio = store.get_room("studio")
+    assert studio["room_hvac_mode"] == "off"  # deliberate OFF is kept
+    assert studio["override_heat"] == 22.0  # timed overrides are untouched
+    assert studio["room_last_hvac_mode"] == "heat"
