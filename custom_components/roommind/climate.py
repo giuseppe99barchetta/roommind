@@ -390,12 +390,14 @@ class RoomMindClimate(RoomMindOverrideClimate):
         # In AUTO RoomMind decides whether the AC runs at all. HomeKit marks a
         # thermostat's linked fan Active whenever the thermostat is not Off, so
         # exposing the fan there would show an idle AC as running.
-        if caps.fan_modes and self.hvac_mode not in (HVACMode.OFF, HVACMode.AUTO):
-            features |= ClimateEntityFeature.FAN_MODE
-        if caps.swing_modes:
-            features |= ClimateEntityFeature.SWING_MODE
-        if caps.swing_horizontal_modes:
-            features |= ClimateEntityFeature.SWING_HORIZONTAL_MODE
+        # Swing lives on the same HomeKit fan service, so it follows the fan.
+        if self.hvac_mode not in (HVACMode.OFF, HVACMode.AUTO):
+            if caps.fan_modes:
+                features |= ClimateEntityFeature.FAN_MODE
+            if caps.swing_modes:
+                features |= ClimateEntityFeature.SWING_MODE
+            if caps.swing_horizontal_modes:
+                features |= ClimateEntityFeature.SWING_HORIZONTAL_MODE
         return features
 
     def _live(self) -> dict[str, Any]:
