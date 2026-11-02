@@ -85,6 +85,7 @@ export class RsSettings extends LitElement {
   @state() private _bypassTemperature = 28;
   @state() private _bypassChildLock = true;
   @state() private _minDemandRooms = 1;
+  @state() private _demandUnit: "valves" | "rooms" = "valves";
   @state() private _minRunMinutes = 5;
   @state() private _minOffMinutes = 3;
   @state() private _faultRetryMinutes = 5;
@@ -168,6 +169,7 @@ export class RsSettings extends LitElement {
       this._bypassTemperature = s.hydraulic_bypass_open_temperature ?? 28;
       this._bypassChildLock = s.hydraulic_bypass_child_lock ?? true;
       this._minDemandRooms = s.boiler_min_demand_rooms ?? 1;
+      this._demandUnit = s.boiler_demand_unit ?? "valves";
       this._minRunMinutes = s.boiler_min_run_minutes ?? 5;
       this._minOffMinutes = s.boiler_min_off_minutes ?? 3;
       this._faultRetryMinutes = s.boiler_fault_retry_minutes ?? 5;
@@ -254,6 +256,7 @@ export class RsSettings extends LitElement {
           .bypassTemperature=${this._bypassTemperature}
           .bypassChildLock=${this._bypassChildLock}
           .minDemandRooms=${this._minDemandRooms}
+          .demandUnit=${this._demandUnit}
           .minRunMinutes=${this._minRunMinutes}
           .minOffMinutes=${this._minOffMinutes}
           .faultRetryMinutes=${this._faultRetryMinutes}
@@ -534,6 +537,7 @@ export class RsSettings extends LitElement {
         hydraulic_bypass_open_temperature: this._bypassTemperature,
         hydraulic_bypass_child_lock: this._bypassChildLock,
         boiler_min_demand_rooms: this._minDemandRooms,
+        boiler_demand_unit: this._demandUnit,
         boiler_min_run_minutes: this._minRunMinutes,
         boiler_min_off_minutes: this._minOffMinutes,
         boiler_fault_retry_minutes: this._faultRetryMinutes,

@@ -557,7 +557,9 @@ class RoomMindCoordinator(DataUpdateCoordinator):
         # Control master devices based on aggregate room demand
         await self._async_control_master_devices(room_states, rooms, settings)
         boiler_demand = self._boiler_demand_rooms(room_states, rooms, settings)
-        await self._boiler_manager.async_reconcile(settings, boiler_demand)
+        await self._boiler_manager.async_reconcile(
+            settings, boiler_demand, self._boiler_valves_per_room(boiler_demand, rooms)
+        )
 
         # Record to history store (throttled)
         learning_disabled = set(settings.get("learning_disabled_rooms", []))
@@ -690,7 +692,7 @@ class RoomMindCoordinator(DataUpdateCoordinator):
         budget = self._power_budget_manager.status()
         return {
             "rooms": room_states,
-            "boiler_demand": len(self._boiler_manager.demand_rooms),
+            "boiler_demand": self._boiler_manager.demand_count,
             "boiler_active": self._boiler_manager.state.value == "on",
             "hydraulic_path_safe": self._boiler_manager.path_safe,
             "airing_rooms": sorted(a for a, r in room_states.items() if r.get("airing_recommended")),
@@ -3238,6 +3240,11 @@ class RoomMindCoordinator(DataUpdateCoordinator):
     # ------------------------------------------------------------------
     # Master device control
     # ------------------------------------------------------------------
+
+    @staticmethod
+    def _boiler_valves_per_room(demand_rooms: set[str], rooms: dict) -> dict[str, int]:
+        """Radiator valves in each room asking the boiler for heat (weights the start quorum)."""
+        return {area_id: len(get_trv_eids(rooms.get(area_id, {}).get("devices", []))) for area_id in demand_rooms}
 
     def _boiler_demand_rooms(
         self, room_states: dict[str, dict], rooms_config: dict[str, dict], settings: dict

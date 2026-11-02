@@ -31,6 +31,7 @@ export class RsSettingsHeatingSystem extends LitElement {
   @property({ type: Number }) public bypassTemperature = 28;
   @property({ type: Boolean }) public bypassChildLock = true;
   @property({ type: Number }) public minDemandRooms = 1;
+  @property({ type: String }) public demandUnit: "valves" | "rooms" = "valves";
   @property({ type: Number }) public minRunMinutes = 5;
   @property({ type: Number }) public minOffMinutes = 3;
   @property({ type: Number }) public faultRetryMinutes = 5;
@@ -164,6 +165,25 @@ export class RsSettingsHeatingSystem extends LitElement {
                     fire("bypassChildLock", (e.target as HTMLInputElement).checked)}
                 ></ha-switch>
               </div>
+              <ha-select
+                .value=${this.demandUnit}
+                .label=${localize("settings.boiler.demand_unit", this.hass.language)}
+                @selected=${(e: Event) => {
+                  const value = getSelectValue(e);
+                  if (value === "valves" || value === "rooms") fire("demandUnit", value);
+                }}
+                ><ha-list-item value="valves"
+                  >${localize(
+                    "settings.boiler.demand_unit_valves",
+                    this.hass.language,
+                  )}</ha-list-item
+                ><ha-list-item value="rooms"
+                  >${localize(
+                    "settings.boiler.demand_unit_rooms",
+                    this.hass.language,
+                  )}</ha-list-item
+                ></ha-select
+              >
               <label
                 >${localize("settings.boiler.min_demand_rooms", this.hass.language)}
                 ${number("minDemandRooms", this.minDemandRooms)}</label
