@@ -270,7 +270,9 @@ def test_canonical_mode_specific_temperature_features(mock_coordinator):
     assert entity.target_temperature_high == 26.0
     # RoomMind decides whether the AC runs in AUTO: no fan control there.
     ac.attributes["fan_modes"] = ["low", "high"]
+    ac.attributes["swing_modes"] = ["off", "vertical"]
     assert not entity.supported_features & ClimateEntityFeature.FAN_MODE
+    assert not entity.supported_features & ClimateEntityFeature.SWING_MODE
 
 
 @pytest.mark.asyncio
