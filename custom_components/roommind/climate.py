@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import time
+from datetime import datetime
 from typing import Any
 
 from homeassistant.components.climate import (
@@ -24,6 +25,7 @@ from .const import (
     DEFAULT_COMFORT_HEAT,
     DOMAIN,
     OVERRIDE_CUSTOM,
+    TargetTemps,
     is_override_active,
 )
 from .control.mpc_controller import async_turn_off_climate, resolve_hvac_mode
@@ -36,6 +38,7 @@ from .managers.room_climate import (
     room_capabilities,
 )
 from .utils.device_utils import get_ac_eids, get_all_entity_ids, get_trv_eids
+from .utils.night_mode import apply_night_targets
 from .utils.temp_utils import celsius_to_ha_temp, quantize_temperature_for_entity
 
 
@@ -606,6 +609,14 @@ class RoomMindClimate(RoomMindOverrideClimate):
             return
         if new_heat is not None and new_cool is not None and new_cool < new_heat:
             raise ValueError("Cooling target must be >= heating target")
+        # Live targets already include the night setback, and the control loop
+        # applies it again on top of overrides: store pre-night values so the
+        # setpoint the user picked is the one that takes effect.
+        night = apply_night_targets(self._room() or {}, TargetTemps(heat=0.0, cool=0.0), datetime.now().astimezone())[0]
+        if new_heat is not None and night.heat is not None:
+            new_heat -= night.heat
+        if new_cool is not None and night.cool is not None:
+            new_cool -= night.cool
         store = self.coordinator.hass.data[DOMAIN]["store"]
         await store.async_update_room(
             self._area_id,

@@ -1295,3 +1295,32 @@ async def test_exit_auxiliary_to_auto_stops_the_physical_ac(mock_coordinator):
 
     turn_off.assert_awaited_once_with(coordinator.hass, "climate.ac", area_id="living_room")
     assert store.async_update_room.await_args[0][1]["room_hvac_mode"] is None
+
+
+@pytest.mark.asyncio
+async def test_auto_override_is_not_lowered_twice_by_night_setback(mock_coordinator):
+    """Codex P2: live targets already include the night delta; store pre-night values."""
+    from datetime import datetime as real_datetime
+
+    coordinator, store = mock_coordinator
+    coordinator.hass.states.get.return_value = MagicMock(state="heat", attributes={"hvac_modes": ["off", "heat"]})
+    store.get_room.return_value = _canonical_room(
+        [{"entity_id": "climate.trv", "type": "trv"}],
+        room_hvac_mode=None,
+        night_mode_enabled=True,
+        night_start="22:00",
+        night_end="07:00",
+        night_ramp_minutes=0,
+        night_heat_delta=-0.5,
+    )
+    # Live target 19.5 = comfort 20 with the -0.5 night setback applied.
+    coordinator.data = {"rooms": {"living_room": {"heat_target": 19.5}}}
+    store.async_update_room = AsyncMock()
+    night = MagicMock(wraps=real_datetime)
+    night.now.return_value = real_datetime(2026, 11, 3, 2, 0).astimezone()
+
+    with patch("custom_components.roommind.climate.datetime", night):
+        await RoomMindClimate(coordinator, "living_room").async_set_temperature(temperature=21.0)
+
+    # Stored 21.5 so that 21.5 - 0.5 (night) = 21.0 takes effect.
+    assert store.async_update_room.await_args[0][1]["override_heat"] == 21.5

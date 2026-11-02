@@ -64,6 +64,7 @@ from .control.mpc_controller import (
     DEFAULT_OUTDOOR_TEMP_FALLBACK,
     MPCController,
     ac_boost_delta,
+    async_idle_device,
     check_acs_can_heat,
     get_can_heat_cool,
     is_mpc_active,
@@ -1618,18 +1619,31 @@ class RoomMindCoordinator(DataUpdateCoordinator):
                     or comfort_dry_requested else set()
                 )
                 preserve_dry_acs.update(mold_dry_restores)
+                # Radiators waiting for the boiler are closed outright: their
+                # idle_action ("setback" keeps heat at target - offset) must
+                # not leave a valve open while no hot water can arrive. "low"
+                # devices still get their min-setpoint instead of OFF.
+                for trv_eid in sorted(boiler_wait_eids - cycling_eids):
+                    await async_idle_device(
+                        self.hass,
+                        trv_eid,
+                        control_room.get("devices", []),
+                        area_id=area_id,
+                        targets=None,  # closing setpoint = device minimum, not target - offset
+                        force_off=True,
+                    )
                 await controller.async_apply(
                     mode,
                     targets,
                     power_fraction=power_fraction,
                     current_temp=current_temp,
-                    exclude_eids=cycling_eids | budget_blocked_acs | bypass_held | preserve_dry_acs,
+                    exclude_eids=cycling_eids | budget_blocked_acs | bypass_held | preserve_dry_acs | boiler_wait_eids,
                     heating_boost_target=device_max_temp,
                     ac_heating_boost_target=ac_device_max_temp,
                     cooling_boost_target=device_min_temp,
                     heat_source_plan=heat_source_plan,
                     compressor_forced_on=compressor_forced_on or None,
-                    compressor_forced_off=device_forced_off or None,
+                    compressor_forced_off=compressor_forced_off or None,
                     force_off=force_off,
                     window_open=window_open,
                     fan_only_presence_home=bool(settings.get("presence_enabled", False) and not presence_away),

@@ -192,3 +192,36 @@ async def test_waiting_room_raises_no_long_run_anomaly(hass, mock_config_entry):
 
     assert result["boiler_wait"] is True
     assert not [a for a in result["anomalies"] if a["type"] in ("long_run", "target_not_reached")]
+
+
+@pytest.mark.asyncio
+async def test_setback_trv_is_closed_while_waiting(hass, mock_config_entry):
+    """Codex P2: idle_action=setback must not keep a waiting valve open."""
+    room = {
+        **SAMPLE_ROOM,
+        "devices": [
+            {
+                "entity_id": "climate.living_room",
+                "type": "trv",
+                "role": "auto",
+                "heating_system_type": "",
+                "idle_action": "setback",
+            }
+        ],
+    }
+    coordinator, store = _setup(hass, mock_config_entry, room, BOILER)
+    hass.states.get = MagicMock(
+        side_effect=make_mock_states_get(
+            temp="17.0",
+            humidity="50.0",
+            extra={"climate.living_room": ("heat", {"hvac_modes": ["off", "heat"], "temperature": 30})},
+        )
+    )
+
+    await coordinator._async_process_room(room, store.get_settings(), [])
+
+    writes = _writes_to(hass, "climate.living_room")
+    assert ("set_hvac_mode", {"entity_id": "climate.living_room", "hvac_mode": "off"}) in writes
+    # Only the defensive low setpoint that accompanies OFF, never a heating setpoint.
+    setpoints = [data["temperature"] for service, data in writes if service == "set_temperature"]
+    assert all(t < 17.0 for t in setpoints), setpoints
