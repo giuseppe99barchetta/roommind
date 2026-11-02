@@ -759,5 +759,12 @@
   "equipment.no_sensors": "Ordne Sensoren zu, um die Bedingungen in diesem Raum zu erfassen.",
   "equipment.edit_devices": "Geräte verwalten",
   "equipment.edit_sensors": "Sensoren verwalten",
-  "dehumidifier.waiting_hint": "Bereit: Das Gerät startet, wenn ein versorgter Raum Entfeuchtung anfordert und die Schutzbedingungen erfüllt sind."
+  "dehumidifier.waiting_hint": "Bereit: Das Gerät startet, wenn ein versorgter Raum Entfeuchtung anfordert und die Schutzbedingungen erfüllt sind.",
+  "settings.boiler.min_demand_rooms": "Räume zum Start des Kessels",
+  "settings.boiler.min_demand_hint": "Darunter warten Räume mit Wärmebedarf mit geschlossenen Ventilen. Läuft der Kessel, bleibt er an, solange ein Raum Wärme anfordert.",
+  "settings.boiler.min_run_minutes": "Mindestlaufzeit (min)",
+  "settings.boiler.min_off_minutes": "Mindeststillstand (min)",
+  "settings.boiler.fault_retry_minutes": "Neuversuch nach Störung (min)",
+  "settings.boiler.child_lock": "Tasten des Bypass-Ventils sperren",
+  "settings.boiler.child_lock_hint": "Aktiviert die Kindersicherung, damit ein Tastendruck den Bypass nicht aus dem Zwangsheizbetrieb nimmt und den Kessel stoppt."
 }

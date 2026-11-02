@@ -113,7 +113,7 @@ class RoomMindFan(CoordinatorEntity, FanEntity):
 
     async def async_turn_off(self, **kwargs: object) -> None:
         if self._climate().hvac_mode == HVACMode.FAN_ONLY:
-            await self._climate().async_set_hvac_mode(HVACMode.OFF)
+            await self._climate().async_exit_auxiliary_mode()
 
     async def async_set_percentage(self, percentage: int) -> None:
         if percentage <= 0:

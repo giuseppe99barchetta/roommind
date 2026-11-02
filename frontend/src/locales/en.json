@@ -821,5 +821,12 @@
   "equipment.no_sensors": "Assign sensors to measure the conditions in this room.",
   "equipment.edit_devices": "Manage appliances",
   "equipment.edit_sensors": "Manage sensors",
-  "dehumidifier.waiting_hint": "Ready: the appliance starts when a served room requests drying, subject to its protections."
+  "dehumidifier.waiting_hint": "Ready: the appliance starts when a served room requests drying, subject to its protections.",
+  "settings.boiler.min_demand_rooms": "Rooms needed to start the boiler",
+  "settings.boiler.min_demand_hint": "Below this number, rooms that want heat wait with their valves closed. Once running, the boiler keeps going while any room asks for heat.",
+  "settings.boiler.min_run_minutes": "Minimum run (min)",
+  "settings.boiler.min_off_minutes": "Minimum off (min)",
+  "settings.boiler.fault_retry_minutes": "Retry after a fault (min)",
+  "settings.boiler.child_lock": "Lock bypass valve buttons",
+  "settings.boiler.child_lock_hint": "Turns on the valve's child lock so a button press cannot take the bypass out of forced heat and stop the boiler."
 }

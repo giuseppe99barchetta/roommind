@@ -67,6 +67,26 @@ def _migrate_override_fields(room: dict) -> dict:
     return room
 
 
+def _migrate_room_hvac_mode(room: dict) -> dict:
+    """AUTO is RoomMind's automatic control and is stored as ``None``.
+
+    Older builds stored "auto"/"heat_cool" together with a permanent custom
+    override, which silently pinned the room to fixed targets and bypassed
+    eco, presence, vacation and schedules.  Return such rooms to automatic.
+    Also never remember an auxiliary mode (dry/fan_only) as the mode to
+    resume: that is how "turn on" brought rooms back in DRY.
+    """
+    if room.get("room_hvac_mode") in ("auto", "heat_cool"):
+        room["room_hvac_mode"] = None
+        if room.get("override_type") == "custom" and room.get("override_until") is None:
+            room["override_heat"] = None
+            room["override_cool"] = None
+            room["override_type"] = None
+    if room.get("room_last_hvac_mode") not in (None, "auto", "heat", "cool"):
+        room["room_last_hvac_mode"] = None
+    return room
+
+
 def _migrate_room(room: dict) -> dict:
     """Apply all read-time migrations (safety net)."""
     _migrate_room_temps(room)
@@ -76,6 +96,7 @@ def _migrate_room(room: dict) -> dict:
     room.setdefault("logical_heat_target", room.get("comfort_heat", DEFAULT_COMFORT_HEAT))
     room.setdefault("logical_cool_target", room.get("comfort_cool", DEFAULT_COMFORT_COOL))
     room.setdefault("room_hvac_mode", None)
+    _migrate_room_hvac_mode(room)
     room.setdefault("night_mode_enabled", False)
     room.setdefault("night_start", "22:00")
     room.setdefault("night_end", "07:00")

@@ -311,6 +311,11 @@ export interface GlobalSettings {
   boiler_shutdown_delay_seconds?: number;
   hydraulic_bypass_entities?: string[];
   hydraulic_bypass_open_temperature?: number;
+  hydraulic_bypass_child_lock?: boolean;
+  boiler_min_demand_rooms?: number;
+  boiler_min_run_minutes?: number;
+  boiler_min_off_minutes?: number;
+  boiler_fault_retry_minutes?: number;
   power_budget_enabled?: boolean;
   power_sensor?: string;
   power_sensor_mode?: "available" | "consumption";

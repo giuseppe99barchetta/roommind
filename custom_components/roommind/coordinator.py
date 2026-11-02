@@ -66,7 +66,7 @@ from .control.mpc_controller import (
 )
 from .control.solar import compute_q_solar_norm
 from .control.thermal_model import RoomModelManager
-from .managers.boiler_manager import BoilerManager
+from .managers.boiler_manager import BoilerManager, bypass_entities
 from .managers.compressor_group_manager import (
     CompressorGroupConfig,
     CompressorGroupManager,
@@ -1056,16 +1056,19 @@ class RoomMindCoordinator(DataUpdateCoordinator):
         # Returns TargetTemps(heat, cool). None values mean "force off".
         targets = self._resolve_target_temps(room, settings, schedule_blocks, schedule_entity_id)
 
-        # The canonical climate persists logical heat/cool targets separately
-        # from physical device targets.  A TRV frost setpoint can therefore
-        # never become the AC cooling target on a mode transition.
+        # Manual HEAT/COOL selected on the canonical climate pin the room to the
+        # logical target of that direction.  AUTO (stored as None) is RoomMind's
+        # own control and must keep following override > vacation > presence >
+        # schedule > comfort/eco; legacy "auto"/"heat_cool" values mean the same.
         requested_hvac_mode = room.get("room_hvac_mode")
-        if requested_hvac_mode in ("heat", "cool", "heat_cool", "auto"):
+        if requested_hvac_mode in ("auto", "heat_cool"):
+            requested_hvac_mode = None
+        if requested_hvac_mode in ("heat", "cool"):
             logical_heat = room.get("logical_heat_target", room.get("comfort_heat", DEFAULT_COMFORT_HEAT))
             logical_cool = room.get("logical_cool_target", room.get("comfort_cool", DEFAULT_COMFORT_COOL))
             targets = TargetTemps(
-                heat=float(logical_heat) if requested_hvac_mode in ("heat", "heat_cool", "auto") else None,
-                cool=float(logical_cool) if requested_hvac_mode in ("cool", "heat_cool", "auto") else None,
+                heat=float(logical_heat) if requested_hvac_mode == "heat" else None,
+                cool=float(logical_cool) if requested_hvac_mode == "cool" else None,
             )
 
         # Mold prevention is an automatic safety policy. While RoomMind automatic
@@ -1479,6 +1482,24 @@ class RoomMindCoordinator(DataUpdateCoordinator):
                 power_fraction = 0.0
                 compressor_forced_off.clear()
 
+        # Central boiler gate.  A room may *want* radiator heat (and keeps
+        # counting towards the boiler quorum through commanded_mode), but its
+        # TRVs stay closed until the boiler is actually starting or running:
+        # opening a valve with no hot water wastes battery and teaches the
+        # thermal model that the radiator does nothing.  Bypass TRVs are owned
+        # by the boiler manager and are never written by room control.
+        boiler_bypass_eids = bypass_entities(settings)
+        room_trv_eids = set(get_trv_eids(room.get("devices", [])))
+        boiler_wait = bool(
+            settings.get("boiler_entity")
+            and climate_active
+            and mode == MODE_HEATING
+            and room_trv_eids
+            and not self._boiler_manager.heat_available
+        )
+        boiler_wait_eids = room_trv_eids - boiler_bypass_eids if boiler_wait else set()
+        device_forced_off = compressor_forced_off | boiler_wait_eids
+
         # --- Residual heat transition tracking ---
         # After compressor constraints may have changed mode to IDLE.
         if climate_active and system_type:
@@ -1511,13 +1532,10 @@ class RoomMindCoordinator(DataUpdateCoordinator):
                     for device in control_room.get("devices", []):
                         if device.get("type") == "ac":
                             device["_roommind_smart_ventilation"] = room.get("smart_ventilation_fan_mode", "low")
-                # The boiler state machine owns the hydraulic bypass from
-                # preopening until the post-stop safety delay has elapsed.
-                bypass_held = (
-                    set(settings.get("hydraulic_bypass_entities", []))
-                    if self._boiler_manager.state in ("preopening", "on", "poststop")
-                    else set()
-                )
+                # The boiler state machine owns the hydraulic bypass at all
+                # times. Sharing it with room control let the two fight over
+                # the same valve (room setpoint vs. forced bypass setpoint).
+                bypass_held = boiler_bypass_eids
                 # An auxiliary DRY cycle must not receive OFF on every
                 # coordinator tick before being re-commanded DRY.
                 comfort_dry_requested = (
@@ -1573,7 +1591,7 @@ class RoomMindCoordinator(DataUpdateCoordinator):
                     cooling_boost_target=device_min_temp,
                     heat_source_plan=heat_source_plan,
                     compressor_forced_on=compressor_forced_on or None,
-                    compressor_forced_off=compressor_forced_off or None,
+                    compressor_forced_off=device_forced_off or None,
                     force_off=force_off,
                     window_open=window_open,
                     fan_only_presence_home=bool(settings.get("presence_enabled", False) and not presence_away),
@@ -1727,7 +1745,7 @@ class RoomMindCoordinator(DataUpdateCoordinator):
                     continue
                 if eid in cycling_eids:
                     continue
-                if eid in compressor_forced_off:
+                if eid in device_forced_off:
                     self._compressor_manager.update_member(eid, False)
                 elif eid in compressor_forced_on:
                     # Verify device is actually running before tracking as active.
@@ -1806,6 +1824,7 @@ class RoomMindCoordinator(DataUpdateCoordinator):
             has_external_sensor=has_external_sensor,
             heat_source_plan=heat_source_plan,
             climate_active=climate_active,
+            boiler_wait=boiler_wait,
         )
 
         room_state = self._build_room_state_dict(
@@ -1840,6 +1859,14 @@ class RoomMindCoordinator(DataUpdateCoordinator):
             mpc_active=mpc_active,
             compressor_protection_reason=compressor_protection_reason,
         )
+        # Wants radiator heat but the boiler is not (yet) running: valves closed.
+        # commanded_mode keeps the request (boiler demand); what the room is
+        # actually doing, and what history records, is idle.
+        room_state["boiler_wait"] = boiler_wait
+        if boiler_wait and not get_ac_eids(room.get("devices", [])):
+            room_state["mode"] = MODE_IDLE
+            room_state["heating_power"] = 0
+            room_state["device_setpoint"] = None
         preconditioning = bool(
             mpc_active
             and current_temp is not None
@@ -1932,6 +1959,7 @@ class RoomMindCoordinator(DataUpdateCoordinator):
         has_external_sensor: bool,
         heat_source_plan: Any | None,
         climate_active: bool,
+        boiler_wait: bool = False,
     ) -> tuple[str, float]:
         """Observe device state, train EKF, compute display mode.
 
@@ -2027,6 +2055,14 @@ class RoomMindCoordinator(DataUpdateCoordinator):
         # for a consistent training batch.
         if ekf_mode in (MODE_HEATING, MODE_COOLING) and ekf_pf == 0.0:
             ekf_mode = MODE_IDLE
+            q_residual_training = 0.0
+
+        # Radiators waiting for the boiler deliver no heat.  Training them as
+        # "heating" drives Q_heat to its floor and the MPC then runs every
+        # valve at 100% forever.  Rooms with an AC may still be heating.
+        if boiler_wait and ekf_mode == MODE_HEATING and not get_ac_eids(room.get("devices", [])):
+            ekf_mode = MODE_IDLE
+            ekf_pf = 0.0
             q_residual_training = 0.0
 
         # Update thermal model with observation (EKF online learning).

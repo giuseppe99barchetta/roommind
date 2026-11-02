@@ -83,6 +83,11 @@ export class RsSettings extends LitElement {
   @state() private _startupDelay = 30;
   @state() private _shutdownDelay = 60;
   @state() private _bypassTemperature = 28;
+  @state() private _bypassChildLock = true;
+  @state() private _minDemandRooms = 1;
+  @state() private _minRunMinutes = 5;
+  @state() private _minOffMinutes = 3;
+  @state() private _faultRetryMinutes = 5;
   @state() private _budgetEnabled = false;
   @state() private _powerSensor = "";
   @state() private _powerMode: "available" | "consumption" = "available";
@@ -160,6 +165,11 @@ export class RsSettings extends LitElement {
       this._startupDelay = s.boiler_startup_delay_seconds ?? 30;
       this._shutdownDelay = s.boiler_shutdown_delay_seconds ?? 60;
       this._bypassTemperature = s.hydraulic_bypass_open_temperature ?? 28;
+      this._bypassChildLock = s.hydraulic_bypass_child_lock ?? true;
+      this._minDemandRooms = s.boiler_min_demand_rooms ?? 1;
+      this._minRunMinutes = s.boiler_min_run_minutes ?? 5;
+      this._minOffMinutes = s.boiler_min_off_minutes ?? 3;
+      this._faultRetryMinutes = s.boiler_fault_retry_minutes ?? 5;
       this._budgetEnabled = s.power_budget_enabled ?? false;
       this._powerSensor = s.power_sensor ?? "";
       if (!this._powerModeDirty) {
@@ -240,6 +250,11 @@ export class RsSettings extends LitElement {
           .startupDelay=${this._startupDelay}
           .shutdownDelay=${this._shutdownDelay}
           .bypassTemperature=${this._bypassTemperature}
+          .bypassChildLock=${this._bypassChildLock}
+          .minDemandRooms=${this._minDemandRooms}
+          .minRunMinutes=${this._minRunMinutes}
+          .minOffMinutes=${this._minOffMinutes}
+          .faultRetryMinutes=${this._faultRetryMinutes}
           .budgetEnabled=${this._budgetEnabled}
           .powerSensor=${this._powerSensor}
           .powerMode=${this._powerMode}
@@ -514,6 +529,11 @@ export class RsSettings extends LitElement {
         boiler_shutdown_delay_seconds: this._shutdownDelay,
         hydraulic_bypass_entities: hydraulicBypassEntities,
         hydraulic_bypass_open_temperature: this._bypassTemperature,
+        hydraulic_bypass_child_lock: this._bypassChildLock,
+        boiler_min_demand_rooms: this._minDemandRooms,
+        boiler_min_run_minutes: this._minRunMinutes,
+        boiler_min_off_minutes: this._minOffMinutes,
+        boiler_fault_retry_minutes: this._faultRetryMinutes,
         power_budget_enabled: this._budgetEnabled,
         power_sensor: this._powerSensor,
         power_sensor_mode: powerSensorMode,

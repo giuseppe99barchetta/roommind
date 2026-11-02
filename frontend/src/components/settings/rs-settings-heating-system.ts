@@ -29,6 +29,11 @@ export class RsSettingsHeatingSystem extends LitElement {
   @property({ type: Number }) public startupDelay = 30;
   @property({ type: Number }) public shutdownDelay = 60;
   @property({ type: Number }) public bypassTemperature = 28;
+  @property({ type: Boolean }) public bypassChildLock = true;
+  @property({ type: Number }) public minDemandRooms = 1;
+  @property({ type: Number }) public minRunMinutes = 5;
+  @property({ type: Number }) public minOffMinutes = 3;
+  @property({ type: Number }) public faultRetryMinutes = 5;
   @property({ type: Boolean }) public budgetEnabled = false;
   @property({ type: String }) public powerSensor = "";
   @property({ type: String }) public powerMode: "available" | "consumption" = "available";
@@ -145,6 +150,36 @@ export class RsSettingsHeatingSystem extends LitElement {
               <label
                 >Forced bypass temperature
                 ${number("bypassTemperature", this.bypassTemperature)}</label
+              >
+              <div class="toggle">
+                <span
+                  ><b>${localize("settings.boiler.child_lock", this.hass.language)}</b
+                  ><small
+                    >${localize("settings.boiler.child_lock_hint", this.hass.language)}</small
+                  ></span
+                ><ha-switch
+                  .checked=${this.bypassChildLock}
+                  @change=${(e: Event) =>
+                    fire("bypassChildLock", (e.target as HTMLInputElement).checked)}
+                ></ha-switch>
+              </div>
+              <label
+                >${localize("settings.boiler.min_demand_rooms", this.hass.language)}
+                ${number("minDemandRooms", this.minDemandRooms)}</label
+              >
+              <small>${localize("settings.boiler.min_demand_hint", this.hass.language)}</small>
+              <div class="grid">
+                <label
+                  >${localize("settings.boiler.min_run_minutes", this.hass.language)}
+                  ${number("minRunMinutes", this.minRunMinutes)}</label
+                ><label
+                  >${localize("settings.boiler.min_off_minutes", this.hass.language)}
+                  ${number("minOffMinutes", this.minOffMinutes)}</label
+                >
+              </div>
+              <label
+                >${localize("settings.boiler.fault_retry_minutes", this.hass.language)}
+                ${number("faultRetryMinutes", this.faultRetryMinutes)}</label
               >`
           : nothing}
       </div>

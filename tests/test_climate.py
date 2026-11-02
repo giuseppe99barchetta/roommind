@@ -7,7 +7,7 @@ from contextlib import nullcontext
 from unittest.mock import ANY, AsyncMock, MagicMock, patch
 
 import pytest
-from homeassistant.components.climate import ClimateEntityFeature, HVACMode
+from homeassistant.components.climate import ClimateEntityFeature, HVACAction, HVACMode
 
 from custom_components.roommind.climate import (
     RoomMindClimate,
@@ -264,7 +264,8 @@ def test_canonical_mode_specific_temperature_features(mock_coordinator):
     entity = RoomMindClimate(coordinator, "living_room")
     assert entity.supported_features & ClimateEntityFeature.TARGET_TEMPERATURE
     assert not entity.supported_features & ClimateEntityFeature.TARGET_TEMPERATURE_RANGE
-    assert entity.target_temperature == 23.5
+    # AUTO shows one real target (no live data yet: the heating bound), not a midpoint.
+    assert entity.target_temperature == 21.0
     assert entity.target_temperature_low is None
     assert entity.target_temperature_high is None
 
@@ -294,7 +295,7 @@ def test_canonical_trv_only_does_not_expose_ac_modes(mock_coordinator):
     coordinator, store = mock_coordinator
     store.get_room.return_value = _canonical_room([{"entity_id": "climate.trv", "type": "trv"}], room_hvac_mode="heat")
     coordinator.hass.states.get.return_value = MagicMock(state="heat", attributes={"hvac_modes": ["off", "heat"]})
-    assert [mode.value for mode in RoomMindClimate(coordinator, "living_room").hvac_modes] == ["off", "heat"]
+    assert [mode.value for mode in RoomMindClimate(coordinator, "living_room").hvac_modes] == ["off", "auto", "heat"]
 
 
 def test_unique_id_and_entity_id(mock_coordinator):
@@ -859,50 +860,70 @@ async def test_canonical_manual_off_bypasses_global_automation_switch(mock_coord
 
 
 @pytest.mark.asyncio
-async def test_canonical_heat_cool_single_setpoint_creates_two_degree_deadband(mock_coordinator):
+async def test_canonical_auto_setpoint_is_timed_override_shifting_band(mock_coordinator):
+    """A setpoint edit in AUTO keeps automatic control and expires after 3 h."""
     coordinator, store = mock_coordinator
-    ac = MagicMock(
-        state="off",
-        attributes={"hvac_modes": ["off", "heat", "cool", "heat_cool"]},
+    coordinator.hass.states.get.return_value = MagicMock(
+        state="heat", attributes={"hvac_modes": ["off", "heat", "cool", "heat_cool"]}
     )
-    coordinator.hass.states.get.return_value = ac
     store.get_room.return_value = _canonical_room(
-        [{"entity_id": "climate.ac", "type": "ac"}],
-        room_hvac_mode="auto",
-        logical_heat_target=21.0,
-        logical_cool_target=25.0,
+        [{"entity_id": "climate.ac", "type": "ac"}], room_hvac_mode=None
     )
+    coordinator.data = {
+        "rooms": {"living_room": {"heat_target": 21.0, "cool_target": 25.0, "commanded_mode": "heating"}}
+    }
+    store.async_update_room = AsyncMock()
+    coordinator.hass.services.async_call = AsyncMock()
+    entity = RoomMindClimate(coordinator, "living_room")
+
+    with patch("custom_components.roommind.climate.time.time", return_value=1000.0):
+        await entity.async_set_temperature(temperature=23.0)
+
+    written = store.async_update_room.await_args[0][1]
+    assert written == {
+        "room_hvac_mode": None,
+        "override_heat": 23.0,
+        "override_cool": 27.0,
+        "override_until": 1000.0 + 3 * 3600,
+        "override_type": "custom",
+    }
+    coordinator.hass.services.async_call.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_canonical_auto_setpoint_in_trv_only_room_overrides_heat_only(mock_coordinator):
+    coordinator, store = mock_coordinator
+    coordinator.hass.states.get.return_value = MagicMock(state="heat", attributes={"hvac_modes": ["off", "heat"]})
+    store.get_room.return_value = _canonical_room([{"entity_id": "climate.trv", "type": "trv"}], room_hvac_mode=None)
+    coordinator.data = {"rooms": {"living_room": {"heat_target": 19.0, "cool_target": 26.0}}}
     store.async_update_room = AsyncMock()
     entity = RoomMindClimate(coordinator, "living_room")
 
-    await entity.async_set_temperature(temperature=23.0)
+    assert entity.hvac_mode == HVACMode.AUTO
+    assert entity.target_temperature == 19.0
+    await entity.async_set_temperature(temperature=20.5)
 
     written = store.async_update_room.await_args[0][1]
-    assert written["logical_heat_target"] == 22.0
-    assert written["logical_cool_target"] == 24.0
-    assert written["override_heat"] == 22.0
-    assert written["override_cool"] == 24.0
-    assert written["room_hvac_mode"] == "auto"
+    assert written["override_heat"] == 20.5
+    assert written["override_cool"] is None
+    assert written["room_hvac_mode"] is None
 
 
-def test_canonical_heat_cool_target_is_midpoint_for_homekit(mock_coordinator):
+def test_canonical_auto_shows_live_target_of_active_direction(mock_coordinator):
     coordinator, store = mock_coordinator
-    ac = MagicMock(
-        state="off",
-        attributes={"hvac_modes": ["off", "heat", "cool", "heat_cool"]},
+    coordinator.hass.states.get.return_value = MagicMock(
+        state="off", attributes={"hvac_modes": ["off", "heat", "cool", "heat_cool"]}
     )
-    coordinator.hass.states.get.return_value = ac
     store.get_room.return_value = _canonical_room(
-        [{"entity_id": "climate.ac", "type": "ac"}],
-        room_hvac_mode="auto",
-        logical_heat_target=22.0,
-        logical_cool_target=24.0,
+        [{"entity_id": "climate.ac", "type": "ac"}], room_hvac_mode=None
     )
     entity = RoomMindClimate(coordinator, "living_room")
 
-    assert entity.target_temperature == 23.0
+    coordinator.data = {"rooms": {"living_room": {"heat_target": 20.0, "cool_target": 25.0, "commanded_mode": "cooling"}}}
+    assert entity.target_temperature == 25.0
+    coordinator.data["rooms"]["living_room"]["commanded_mode"] = "heating"
+    assert entity.target_temperature == 20.0
     assert entity.target_temperature_low is None
-    assert entity.target_temperature_high is None
     assert entity.supported_features & ClimateEntityFeature.TARGET_TEMPERATURE
     assert not entity.supported_features & ClimateEntityFeature.TARGET_TEMPERATURE_RANGE
 
@@ -968,32 +989,6 @@ async def test_canonical_manual_cool_temperature_is_forwarded_to_physical_ac(moc
         "climate",
         "set_temperature",
         {"entity_id": "climate.ac", "temperature": 27.0},
-        blocking=True,
-    )
-
-
-@pytest.mark.asyncio
-async def test_canonical_auto_temperature_updates_only_active_cooling_device(mock_coordinator):
-    coordinator, store = mock_coordinator
-    store.get_room.return_value = _canonical_room(
-        [{"entity_id": "climate.ac", "type": "ac"}],
-        room_hvac_mode="auto",
-        logical_heat_target=25.0,
-        logical_cool_target=27.0,
-    )
-    store.async_update_room = AsyncMock()
-    coordinator.data = {"rooms": {"living_room": {"commanded_mode": "cooling"}}}
-    coordinator.hass.states.get.return_value = MagicMock(
-        state="cool", attributes={"hvac_modes": ["off", "heat", "cool"]}
-    )
-    coordinator.hass.services.async_call = AsyncMock()
-
-    await RoomMindClimate(coordinator, "living_room").async_set_temperature(temperature=27.0)
-
-    coordinator.hass.services.async_call.assert_awaited_once_with(
-        "climate",
-        "set_temperature",
-        {"entity_id": "climate.ac", "temperature": 28.0},
         blocking=True,
     )
 
@@ -1200,3 +1195,83 @@ async def test_stale_fan_mode_is_not_applied_when_turning_on_fan_only(mock_coord
     coordinator.hass.services.async_call.assert_awaited_once_with(
         "climate", "set_hvac_mode", {"entity_id": "climate.ac", "hvac_mode": "fan_only"}, blocking=True
     )
+
+
+@pytest.mark.asyncio
+async def test_canonical_select_auto_returns_room_to_automatic_control(mock_coordinator):
+    coordinator, store = mock_coordinator
+    coordinator.hass.states.get.return_value = MagicMock(state="heat", attributes={"hvac_modes": ["off", "heat"]})
+    store.get_room.return_value = _canonical_room(
+        [{"entity_id": "climate.trv", "type": "trv"}],
+        room_hvac_mode="off",
+        override_heat=None,
+    )
+    store.async_update_room = AsyncMock()
+    coordinator.hass.services.async_call = AsyncMock()
+
+    await RoomMindClimate(coordinator, "living_room").async_set_hvac_mode(HVACMode.AUTO)
+
+    written = store.async_update_room.await_args[0][1]
+    assert written["room_hvac_mode"] is None
+    assert written["override_heat"] is None and written["override_cool"] is None
+    assert written["override_type"] is None
+    # AUTO never commands hardware directly; RoomMind's loop does.
+    coordinator.hass.services.async_call.assert_not_called()
+
+
+def test_canonical_trv_only_room_in_automatic_control_is_auto_not_off(mock_coordinator):
+    """Regression: TRV-only rooms under RoomMind control used to report OFF."""
+    coordinator, store = mock_coordinator
+    coordinator.hass.states.get.return_value = MagicMock(state="heat", attributes={"hvac_modes": ["off", "heat"]})
+    store.get_room.return_value = _canonical_room([{"entity_id": "climate.trv", "type": "trv"}], room_hvac_mode=None)
+    coordinator.data = {"rooms": {"living_room": {"commanded_mode": "heating", "heat_target": 19.0}}}
+    entity = RoomMindClimate(coordinator, "living_room")
+
+    assert entity.hvac_mode == HVACMode.AUTO
+    assert entity.hvac_action == HVACAction.HEATING
+
+    coordinator.data["rooms"]["living_room"]["boiler_wait"] = True
+    assert entity.hvac_action == HVACAction.IDLE
+
+
+@pytest.mark.asyncio
+async def test_canonical_dry_remembers_and_restores_previous_mode(mock_coordinator):
+    coordinator, store = mock_coordinator
+    coordinator.hass.states.get.return_value = MagicMock(
+        state="cool", attributes={"hvac_modes": ["off", "heat", "cool", "dry"]}
+    )
+    room = _canonical_room([{"entity_id": "climate.ac", "type": "ac"}], room_hvac_mode=None)
+    store.get_room.return_value = room
+
+    async def _update(_area, updates):
+        room.update(updates)
+
+    store.async_update_room = AsyncMock(side_effect=_update)
+    coordinator.hass.services.async_call = AsyncMock()
+    entity = RoomMindClimate(coordinator, "living_room")
+    entity._manual_activation_guard = MagicMock()
+
+    await entity.async_set_hvac_mode(HVACMode.DRY)
+    assert room["room_hvac_mode"] == "dry"
+    assert room["room_aux_return_mode"] == "auto"
+
+    await entity.async_exit_auxiliary_mode()
+    assert room["room_hvac_mode"] is None
+    assert room.get("room_last_hvac_mode") == "auto"
+
+
+@pytest.mark.asyncio
+async def test_canonical_turn_on_never_resumes_dry(mock_coordinator):
+    coordinator, store = mock_coordinator
+    coordinator.hass.states.get.return_value = MagicMock(
+        state="off", attributes={"hvac_modes": ["off", "heat", "cool", "dry"]}
+    )
+    store.get_room.return_value = _canonical_room(
+        [{"entity_id": "climate.ac", "type": "ac"}], room_hvac_mode="off", room_last_hvac_mode="dry"
+    )
+    entity = RoomMindClimate(coordinator, "living_room")
+    entity.async_set_hvac_mode = AsyncMock()
+
+    await entity.async_turn_on()
+
+    entity.async_set_hvac_mode.assert_awaited_once_with(HVACMode.AUTO)

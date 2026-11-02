@@ -168,7 +168,7 @@ class RoomMindDrySwitch(CoordinatorEntity, SwitchEntity):
     async def async_turn_off(self, **kwargs: Any) -> None:
         room = self.coordinator.hass.data[DOMAIN]["store"].get_room(self._area_id) or {}
         if room.get("room_hvac_mode") == HVACMode.DRY.value:
-            await self._climate().async_set_hvac_mode(HVACMode.OFF)
+            await self._climate().async_exit_auxiliary_mode()
 
 
 class RoomMindVacationSwitch(CoordinatorEntity, SwitchEntity):

@@ -31,6 +31,8 @@ OVERRIDE_BOOST = "boost"
 OVERRIDE_ECO = "eco"
 OVERRIDE_CUSTOM = "custom"
 OVERRIDE_TYPES = [OVERRIDE_BOOST, OVERRIDE_ECO, OVERRIDE_CUSTOM]
+# A setpoint edit on the room climate while in AUTO is a temporary override.
+AUTO_OVERRIDE_HOURS = 3
 
 # Room modes
 MODE_IDLE = "idle"
