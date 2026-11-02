@@ -225,3 +225,15 @@ async def test_setback_trv_is_closed_while_waiting(hass, mock_config_entry):
     # Only the defensive low setpoint that accompanies OFF, never a heating setpoint.
     setpoints = [data["temperature"] for service, data in writes if service == "set_temperature"]
     assert all(t < 17.0 for t in setpoints), setpoints
+
+
+def test_boiler_quorum_weights_rooms_by_radiator_valves(hass, mock_config_entry):
+    coordinator, _ = _setup(hass, mock_config_entry, SAMPLE_ROOM, BOILER)
+    trv = {"type": "trv", "role": "auto", "heating_system_type": ""}
+    rooms = {
+        "sala": {"devices": [{**trv, "entity_id": "climate.sala_1"}, {**trv, "entity_id": "climate.sala_2"}]},
+        "bagno": {"devices": [{**trv, "entity_id": "climate.bagno"}]},
+    }
+
+    assert coordinator._boiler_valves_per_room({"sala"}, rooms) == {"sala": 2}
+    assert coordinator._boiler_valves_per_room({"sala", "bagno"}, rooms) == {"sala": 2, "bagno": 1}

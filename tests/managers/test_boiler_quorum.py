@@ -286,3 +286,39 @@ async def test_max_wait_zero_keeps_quorum_strict():
     await _tick(mgr, settings, {"bagno"}, 100.0)
     await _tick(mgr, settings, {"bagno"}, 100.0 + 24 * 3600)
     assert mgr.state == BoilerState.OFF
+
+
+@pytest.mark.asyncio
+async def test_quorum_counts_radiator_valves_by_default():
+    """A room with two radiators meets a quorum of two on its own."""
+    hass, _ = _hass()
+    mgr = BoilerManager(hass)
+    settings = _settings(boiler_min_demand_rooms=2)
+
+    await _tick(mgr, settings | {}, {"sala"}, 100.0)
+    assert mgr.state == BoilerState.OFF  # no valve counts given: falls back to rooms
+
+    with patch(MONO, return_value=200.0):
+        await mgr.async_reconcile(settings, {"sala"}, {"sala": 2})
+    assert mgr.demand_count == 2
+    assert mgr.state == BoilerState.PREOPENING
+
+
+@pytest.mark.asyncio
+async def test_single_valve_room_still_below_quorum():
+    hass, _ = _hass()
+    mgr = BoilerManager(hass)
+    with patch(MONO, return_value=100.0):
+        await mgr.async_reconcile(_settings(boiler_min_demand_rooms=2), {"bagno"}, {"bagno": 1})
+    assert mgr.state == BoilerState.OFF
+
+
+@pytest.mark.asyncio
+async def test_rooms_unit_ignores_valve_counts():
+    hass, _ = _hass()
+    mgr = BoilerManager(hass)
+    settings = _settings(boiler_min_demand_rooms=2, boiler_demand_unit="rooms")
+    with patch(MONO, return_value=100.0):
+        await mgr.async_reconcile(settings, {"sala"}, {"sala": 2})
+    assert mgr.demand_count == 1
+    assert mgr.state == BoilerState.OFF

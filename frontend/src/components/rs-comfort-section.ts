@@ -52,6 +52,11 @@ export class RsComfortSection extends LitElement {
     button.default {
       grid-column: 1 / -1;
     }
+    .profile-hint {
+      margin: -4px 0 10px;
+      color: var(--secondary-text-color);
+      font-size: 12px;
+    }
     .profile-label {
       margin: 0 0 10px;
       color: var(--secondary-text-color);
@@ -98,12 +103,18 @@ export class RsComfortSection extends LitElement {
     const l = this.hass.language;
     return html`
       <p class="profile-label">${localize("comfort.profiles", l)}</p>
+      ${this.activeProfile
+        ? html`<p class="profile-hint">${localize("comfort.profile_clear_hint", l)}</p>`
+        : ""}
       <div class="profile-grid">
         ${PROFILES.map(
           (profile) =>
             html`<button
               class=${`${profile ? "" : "default"} ${this.activeProfile === profile ? "active" : ""}`}
-              @click=${() => this._emit("active_profile", profile)}
+              aria-pressed=${this.activeProfile === profile ? "true" : "false"}
+              @click=${() =>
+                // Tapping the active profile again clears it (back to the schedule).
+                this._emit("active_profile", this.activeProfile === profile ? "" : profile)}
             >
               ${localize(`comfort.profile.${profile || "default"}`, l)}
             </button>`,

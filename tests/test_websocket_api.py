@@ -2955,3 +2955,16 @@ def test_save_settings_schema_bounds_boiler_quorum():
         schema({"type": "roommind/settings/save", "boiler_min_demand_rooms": 0})
     with pytest.raises(vol.Invalid):
         schema({"type": "roommind/settings/save", "boiler_fault_retry_minutes": 0})
+
+
+@pytest.mark.asyncio
+async def test_save_room_clears_active_profile(ws_hass, store, connection):
+    """An empty profile returns the room to its schedule / comfort targets."""
+    await store.async_load()
+    base = {"type": "roommind/rooms/save", "area_id": "studio", "thermostats": ["climate.studio_trv"]}
+    await _save_room(ws_hass, connection, {"id": 30, **base, "active_profile": "work"})
+    assert store.get_room("studio")["active_profile"] == "work"
+
+    await _save_room(ws_hass, connection, {"id": 31, **base, "active_profile": ""})
+
+    assert store.get_room("studio")["active_profile"] == ""

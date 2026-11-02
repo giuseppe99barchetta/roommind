@@ -18,6 +18,9 @@ FAULT_NOTIFICATION_ID = "roommind_boiler_fault"
 # behaviour; the run/off guards prevent the 30-second boiler cycles that a
 # single noisy room (or a lost bypass) could otherwise cause.
 DEFAULT_BOILER_MIN_DEMAND_ROOMS = 1
+# The quorum counts radiator valves by default: a room with two radiators
+# asking for heat weighs as much as two single-radiator rooms.
+DEFAULT_BOILER_DEMAND_UNIT = "valves"
 DEFAULT_BOILER_MIN_RUN_MINUTES = 5.0
 DEFAULT_BOILER_MIN_OFF_MINUTES = 3.0
 DEFAULT_BOILER_FAULT_RETRY_MINUTES = 5.0
@@ -61,6 +64,7 @@ class BoilerManager:
         self._on_since: float | None = None
         self._off_since: float | None = None
         self.demand_rooms: set[str] = set()
+        self.demand_count = 0
         self.path_safe = False
         self.fault_reason: str | None = None
         self._last_bypass_command: dict[str, float] = {}
@@ -248,11 +252,21 @@ class BoilerManager:
     def _off_long_enough(self, now: float, min_off: float) -> bool:
         return self._off_since is None or now - self._off_since >= min_off
 
-    async def async_reconcile(self, settings: dict, demand_rooms: set[str]) -> None:
-        """Advance one safe transition. Missing safety configuration disables boiler."""
+    async def async_reconcile(
+        self, settings: dict, demand_rooms: set[str], valves_per_room: dict[str, int] | None = None
+    ) -> None:
+        """Advance one safe transition. Missing safety configuration disables boiler.
+
+        ``valves_per_room`` gives the radiator valves of each demanding room;
+        with the default "valves" unit they are what the start quorum counts.
+        """
         if not settings.get("climate_control_active", True):
             demand_rooms = set()
         self.demand_rooms = set(demand_rooms)
+        if settings.get("boiler_demand_unit", DEFAULT_BOILER_DEMAND_UNIT) == "rooms" or valves_per_room is None:
+            self.demand_count = len(self.demand_rooms)
+        else:
+            self.demand_count = sum(max(1, int(valves_per_room.get(room, 1))) for room in self.demand_rooms)
         if not settings.get("boiler_entity"):
             self.state = BoilerState.OFF
             self.path_safe = False
@@ -263,8 +277,8 @@ class BoilerManager:
         min_rooms = max(1, int(settings.get("boiler_min_demand_rooms", DEFAULT_BOILER_MIN_DEMAND_ROOMS)))
         max_wait = float(settings.get("boiler_max_wait_minutes", DEFAULT_BOILER_MAX_WAIT_MINUTES)) * 60
         starved = sorted(r for r, since in self._demand_since.items() if max_wait > 0 and now - since >= max_wait)
-        quorum = len(demand_rooms) >= min_rooms or bool(starved)
-        if starved and len(demand_rooms) < min_rooms and self.state in (BoilerState.OFF, BoilerState.POSTSTOP):
+        quorum = self.demand_count >= min_rooms or bool(starved)
+        if starved and self.demand_count < min_rooms and self.state in (BoilerState.OFF, BoilerState.POSTSTOP):
             _LOGGER.info("Boiler quorum waived: %s waiting for heat too long", ", ".join(starved))
         pre_delay = float(settings.get("boiler_startup_delay_seconds", 30))
         post_delay = float(settings.get("boiler_shutdown_delay_seconds", 60))
@@ -281,7 +295,7 @@ class BoilerManager:
                 # Allow state-report propagation during PREOPENING; never turn the
                 # boiler on before HA confirms the bypass mode and setpoint.
                 self.state, self._state_since = BoilerState.PREOPENING, now
-                _LOGGER.info("Boiler demand %d/%d: opening hydraulic bypass", len(demand_rooms), min_rooms)
+                _LOGGER.info("Boiler demand %d/%d: opening hydraulic bypass", self.demand_count, min_rooms)
             elif not self._bypass_released:
                 await self._set_bypass(settings, False)
                 self.path_safe = False
