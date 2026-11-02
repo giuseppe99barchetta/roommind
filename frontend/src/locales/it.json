@@ -288,7 +288,7 @@
   "room.section.comfort": "Comfort e profili",
   "room.section.area": "Impostazioni area",
   "comfort.profiles": "Profilo comfort attivo",
-  "comfort.profile.default": "Programmazione",
+  "comfort.profile.default": "Nessun profilo (programmazione)",
   "comfort.profile.work": "Lavoro",
   "comfort.profile.sleep": "Sonno",
   "comfort.profile.guests": "Ospiti",
@@ -428,5 +428,6 @@
   "settings.boiler.child_lock": "Blocca i tasti della valvola di bypass",
   "settings.boiler.child_lock_hint": "Attiva il blocco bambini della valvola, così una pressione dei tasti non toglie il bypass dal riscaldamento forzato e non ferma la caldaia.",
   "settings.boiler.max_wait_minutes": "Attesa massima sotto il quorum (min)",
-  "settings.boiler.max_wait_hint": "Una stanza che chiede calore da così tanto accende la caldaia anche da sola, così le stanze con soli radiatori non restano fredde. 0 rende il quorum rigido."
+  "settings.boiler.max_wait_hint": "Una stanza che chiede calore da così tanto accende la caldaia anche da sola, così le stanze con soli radiatori non restano fredde. 0 rende il quorum rigido.",
+  "comfort.profile_clear_hint": "Tocca di nuovo il profilo attivo, oppure \"Nessun profilo\", per tornare alla programmazione e alle temperature comfort/eco."
 }
