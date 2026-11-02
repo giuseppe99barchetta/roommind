@@ -30,6 +30,7 @@ from ..const import (
     MODE_IDLE,
     PROPORTIONAL_DEADBAND_C,
     PROPORTIONAL_DEADBAND_NEAR_TARGET_C,
+    SINGLE_POINT_DEADBAND,
     TargetTemps,
     is_override_active,
     make_roommind_context,
@@ -615,6 +616,15 @@ async def async_idle_device(
             )
 
 
+def _with_deadband(heat: float, cool: float) -> tuple[float, float]:
+    """Widen a heat/cool pair narrower than SINGLE_POINT_DEADBAND around its middle."""
+    if cool - heat >= SINGLE_POINT_DEADBAND:
+        return heat, cool
+    middle = (heat + cool) / 2
+    half = SINGLE_POINT_DEADBAND / 2
+    return middle - half, middle + half
+
+
 def resolve_hvac_mode(desired: str, hvac_modes: list[str]) -> str | None:
     """Pick the best available hvac_mode for the desired intent.
 
@@ -710,9 +720,12 @@ def get_can_heat_cool(
     can_cool = climate_mode != CLIMATE_MODE_HEAT_ONLY and bool(get_ac_eids(room_config.get("devices", [])))
 
     if outdoor_temp is not None and not override_active:
-        if outdoor_temp > outdoor_heating_max:
+        # Per-direction rescue set by the coordinator when the room is far
+        # from its target (see OUTDOOR_GATE_RESCUE_DELTA).
+        rescue = room_config.get("_outdoor_gate_rescue") or {}
+        if outdoor_temp > outdoor_heating_max and not rescue.get("heat"):
             can_heat = False
-        if outdoor_temp < outdoor_cooling_min:
+        if outdoor_temp < outdoor_cooling_min and not rescue.get("cool"):
             can_cool = False
 
     return can_heat, can_cool
@@ -866,6 +879,13 @@ class MPCController:
             t = targets
             targets = TargetTemps(heat=t, cool=t) if t is not None else TargetTemps(heat=None, cool=None)
 
+        # A single-point target (schedule block "temperature") must not make a
+        # room that can both heat and cool switch direction around one value.
+        can_heat_now, can_cool_now = self._get_can_heat_cool()
+        if can_heat_now and can_cool_now and targets.heat is not None and targets.cool is not None:
+            heat, cool = _with_deadband(targets.heat, targets.cool)
+            targets = TargetTemps(heat=heat, cool=cool)
+
         if not self.has_external_sensor:
             mode = self._evaluate_managed_mode(targets)
             return mode, 1.0  # managed mode: device self-regulates
@@ -983,6 +1003,9 @@ class MPCController:
             fallback_c = targets.cool if targets.cool is not None else current_temp
             heat_target_series = [fallback_h] * horizon_blocks
             cool_target_series = [fallback_c] * horizon_blocks
+        if can_heat and can_cool:
+            for i, (h, c) in enumerate(zip(heat_target_series, cool_target_series, strict=True)):
+                heat_target_series[i], cool_target_series[i] = _with_deadband(h, c)
 
         from .residual_heat import get_min_run_blocks
 
@@ -998,6 +1021,7 @@ class MPCController:
             outdoor_heating_max=self.outdoor_heating_max,
             min_run_blocks=min_run,
             override_active=is_override_active(self.room_config),
+            gate_rescue=self.room_config.get("_outdoor_gate_rescue") or {},
             heating_system_type=self._heating_system_type,
             approach_rate=self._approach_rate,
         )

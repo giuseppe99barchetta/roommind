@@ -21,6 +21,10 @@ DEFAULT_BOILER_MIN_DEMAND_ROOMS = 1
 DEFAULT_BOILER_MIN_RUN_MINUTES = 5.0
 DEFAULT_BOILER_MIN_OFF_MINUTES = 3.0
 DEFAULT_BOILER_FAULT_RETRY_MINUTES = 5.0
+# A room that has been asking for radiator heat this long starts the boiler
+# on its own, so a quorum can never leave a radiator-only room cold forever.
+# 0 disables the escape (strict quorum).
+DEFAULT_BOILER_MAX_WAIT_MINUTES = 120.0
 
 
 class BoilerState(StrEnum):
@@ -64,6 +68,10 @@ class BoilerManager:
         # After start-up or a fault the bypass may have been left open by
         # whoever controlled it before. Release it once when idle.
         self._bypass_released = False
+        # A failed OFF command while faulted must be retried every tick: the
+        # boiler could still be firing without a verified hydraulic path.
+        self._shutdown_pending = False
+        self._demand_since: dict[str, float] = {}
 
     @property
     def heat_available(self) -> bool:
@@ -224,7 +232,9 @@ class BoilerManager:
 
     async def _enter_fault(self, settings: dict, reason: str, now: float) -> None:
         was_running = self.state == BoilerState.ON
-        await self._set_boiler(settings, False)
+        self._shutdown_pending = not await self._set_boiler(settings, False)
+        if self._shutdown_pending:
+            _LOGGER.error("Boiler fault (%s) and the OFF command failed; retrying every cycle", reason)
         if was_running:
             self._off_since = now
         self.path_safe = False
@@ -249,8 +259,13 @@ class BoilerManager:
             return
         now = monotonic()
         demand = bool(demand_rooms)
+        self._demand_since = {room: self._demand_since.get(room, now) for room in demand_rooms}
         min_rooms = max(1, int(settings.get("boiler_min_demand_rooms", DEFAULT_BOILER_MIN_DEMAND_ROOMS)))
-        quorum = len(demand_rooms) >= min_rooms
+        max_wait = float(settings.get("boiler_max_wait_minutes", DEFAULT_BOILER_MAX_WAIT_MINUTES)) * 60
+        starved = sorted(r for r, since in self._demand_since.items() if max_wait > 0 and now - since >= max_wait)
+        quorum = len(demand_rooms) >= min_rooms or bool(starved)
+        if starved and len(demand_rooms) < min_rooms and self.state in (BoilerState.OFF, BoilerState.POSTSTOP):
+            _LOGGER.info("Boiler quorum waived: %s waiting for heat too long", ", ".join(starved))
         pre_delay = float(settings.get("boiler_startup_delay_seconds", 30))
         post_delay = float(settings.get("boiler_shutdown_delay_seconds", 60))
         min_run = float(settings.get("boiler_min_run_minutes", DEFAULT_BOILER_MIN_RUN_MINUTES)) * 60
@@ -298,9 +313,10 @@ class BoilerManager:
                 _LOGGER.error("Hydraulic path lost while boiler active; shutting boiler down")
                 await self._enter_fault(settings, "Il bypass idraulico ha perso la posizione aperta", now)
             elif not demand and (self._on_since is None or now - self._on_since >= min_run):
-                await self._set_boiler(settings, False)
-                self._off_since = now
-                self.state, self._state_since = BoilerState.POSTSTOP, now
+                # Keep the bypass open and retry next cycle if OFF did not go through.
+                if await self._set_boiler(settings, False):
+                    self._off_since = now
+                    self.state, self._state_since = BoilerState.POSTSTOP, now
         elif self.state == BoilerState.POSTSTOP:
             if quorum and self._off_long_enough(now, min_off):
                 self.path_safe = await self._set_bypass(settings, True)
@@ -310,7 +326,13 @@ class BoilerManager:
                 self.path_safe = False
                 self.state, self._state_since = BoilerState.OFF, now
         elif self.state == BoilerState.FAULT:
-            # The boiler was switched off on entry; do not re-send OFF every tick.
+            if self._shutdown_pending:
+                # Safety first: nothing else happens until the boiler is off.
+                self._shutdown_pending = not await self._set_boiler(settings, False)
+                if self._shutdown_pending:
+                    return
+                self._off_since = now
+            # Once OFF went through, do not re-send it every tick.
             if not demand:
                 await self._set_bypass(settings, False)
                 self.path_safe = False

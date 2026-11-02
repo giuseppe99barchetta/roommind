@@ -223,14 +223,46 @@ class TestClimateModeBoundaries:
                 "outdoor_heating_max": 22.0,
             },
         )
-        # Outdoor is 25C (above max), indoor is 18C (below target)
-        coordinator.hass.states.get = MagicMock(side_effect=make_hass_states(temp="18.0", outdoor_temp="25.0"))
+        # Outdoor is 25C (above max), indoor slightly below target
+        coordinator.hass.states.get = MagicMock(side_effect=make_hass_states(temp="20.5", outdoor_temp="25.0"))
 
         data = await coordinator._async_update_data()
 
         # Outdoor gating blocks heating via get_can_heat_cool in MPC controller
         # In on/off fallback mode (no model trained), gating still applies
         assert data["rooms"]["living_room"]["mode"] == "idle"
+
+    @pytest.mark.asyncio
+    async def test_room_far_below_target_is_rescued_from_outdoor_gate(self, coordinator, real_store):
+        """The gate is a season heuristic: a room 3 °C below target still heats."""
+        await setup_room(
+            real_store,
+            settings={
+                "outdoor_temp_sensor": "sensor.outdoor_temp",
+                "outdoor_heating_max": 22.0,
+            },
+        )
+        coordinator.hass.states.get = MagicMock(side_effect=make_hass_states(temp="18.0", outdoor_temp="25.0"))
+
+        data = await coordinator._async_update_data()
+
+        assert data["rooms"]["living_room"]["mode"] == "heating"
+
+    @pytest.mark.asyncio
+    async def test_outdoor_gate_has_hysteresis(self, coordinator, real_store):
+        """Hovering around the threshold must not flap heating on and off."""
+        await setup_room(
+            real_store,
+            settings={"outdoor_temp_sensor": "sensor.outdoor_temp", "outdoor_heating_max": 10.0},
+        )
+        observed = []
+        for outdoor in ("9.0", "10.4", "9.6", "10.9", "9.6", "9.1"):
+            coordinator.hass.states.get = MagicMock(side_effect=make_hass_states(temp="20.5", outdoor_temp=outdoor))
+            await coordinator._async_update_data()
+            observed.append(coordinator._heat_gate_open)
+
+        # Open until > 10.75, closed until < 9.25.
+        assert observed == [True, True, True, False, False, True]
 
 
 class TestRoomRemovalCleanup:

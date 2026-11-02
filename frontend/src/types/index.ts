@@ -316,6 +316,7 @@ export interface GlobalSettings {
   boiler_min_run_minutes?: number;
   boiler_min_off_minutes?: number;
   boiler_fault_retry_minutes?: number;
+  boiler_max_wait_minutes?: number;
   power_budget_enabled?: boolean;
   power_sensor?: string;
   power_sensor_mode?: "available" | "consumption";

@@ -2934,6 +2934,7 @@ async def test_save_settings_persists_boiler_quorum_and_guards(ws_hass, store, c
         "boiler_min_run_minutes": 5.0,
         "boiler_min_off_minutes": 3.0,
         "boiler_fault_retry_minutes": 10.0,
+        "boiler_max_wait_minutes": 90.0,
         "hydraulic_bypass_child_lock": True,
     }
 

@@ -122,3 +122,73 @@ async def test_waiting_room_is_displayed_idle_but_still_demands_heat(hass, mock_
     assert result["mode"] == "idle"
     assert result["heating_power"] == 0
     assert coordinator._boiler_demand_rooms({AREA: result}, {AREA: SAMPLE_ROOM}, store.get_settings()) == {AREA}
+
+
+HYBRID_ROOM = {
+    **SAMPLE_ROOM,
+    "schedules": [],
+    "thermostats": ["climate.living_room"],
+    "acs": ["climate.living_ac"],
+    "devices": [
+        {"entity_id": "climate.living_room", "type": "trv", "role": "auto", "heating_system_type": ""},
+        {"entity_id": "climate.living_ac", "type": "ac", "role": "auto", "heating_system_type": ""},
+    ],
+    "heat_source_orchestration": True,
+}
+
+
+def _hybrid_setup(hass, mock_config_entry):
+    coordinator, store = _setup(hass, mock_config_entry, HYBRID_ROOM, BOILER)
+    hass.states.get = MagicMock(
+        side_effect=make_mock_states_get(
+            temp="19.5",
+            humidity="50.0",
+            extra={
+                "climate.living_ac": ("off", {"hvac_modes": ["off", "heat", "cool"], "min_temp": 16, "max_temp": 30}),
+                "climate.living_room": ("off", {"hvac_modes": ["off", "heat"], "min_temp": 5, "max_temp": 30}),
+            },
+        )
+    )
+    coordinator.outdoor_temp_effective = 2.0  # cold: radiators preferred
+    return coordinator, store
+
+
+@pytest.mark.asyncio
+async def test_ac_heats_while_boiler_waits_and_room_keeps_boiler_demand(hass, mock_config_entry):
+    coordinator, store = _hybrid_setup(hass, mock_config_entry)
+
+    result = await coordinator._async_process_room(HYBRID_ROOM, store.get_settings(), [])
+
+    assert result["boiler_wait"] is False  # the AC is heating meanwhile
+    ac_writes = _writes_to(hass, "climate.living_ac")
+    assert ("set_hvac_mode", {"entity_id": "climate.living_ac", "hvac_mode": "heat"}) in ac_writes
+    assert all(service != "set_temperature" for service, _ in _writes_to(hass, "climate.living_room"))
+    # Still counts towards the boiler quorum.
+    assert coordinator._boiler_demand_rooms({AREA: result}, {AREA: HYBRID_ROOM}, store.get_settings()) == {AREA}
+
+
+@pytest.mark.asyncio
+async def test_radiators_take_over_when_boiler_runs(hass, mock_config_entry):
+    coordinator, store = _hybrid_setup(hass, mock_config_entry)
+    coordinator._boiler_manager.state = BoilerState.ON
+
+    await coordinator._async_process_room(HYBRID_ROOM, store.get_settings(), [])
+
+    assert any(service == "set_temperature" for service, _ in _writes_to(hass, "climate.living_room"))
+    assert ("set_hvac_mode", {"entity_id": "climate.living_ac", "hvac_mode": "heat"}) not in _writes_to(
+        hass, "climate.living_ac"
+    )
+
+
+@pytest.mark.asyncio
+async def test_waiting_room_raises_no_long_run_anomaly(hass, mock_config_entry):
+    import time
+
+    coordinator, store = _setup(hass, mock_config_entry, SAMPLE_ROOM, BOILER)
+    coordinator._previous_modes[AREA] = "heating"
+    coordinator._mode_on_since[AREA] = time.time() - 5 * 3600
+
+    result = await coordinator._async_process_room(SAMPLE_ROOM, store.get_settings(), [])
+
+    assert result["boiler_wait"] is True
+    assert not [a for a in result["anomalies"] if a["type"] in ("long_run", "target_not_reached")]

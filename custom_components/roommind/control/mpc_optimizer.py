@@ -62,6 +62,8 @@ class MPCOptimizer:
     temp_min: float = 5.0  # frost protection
     temp_max: float = 30.0  # overheat protection
     override_active: bool = False
+    # {"heat": bool, "cool": bool}: per-direction outdoor-gate rescue.
+    gate_rescue: dict[str, bool] = field(default_factory=dict)
     heating_system_type: str = ""  # key into HEATING_SYSTEM_PROFILES; "" = unknown
     approach_rate: float = 1.0  # fraction of remaining gap closed per block; 1.0 = legacy deadbeat
 
@@ -326,6 +328,8 @@ class MPCOptimizer:
 
     def _is_outdoor_gated(self, mode: str, T_outdoor: float) -> bool:
         if self.override_active:
+            return False
+        if self.gate_rescue.get("heat" if mode == MODE_HEATING else "cool"):
             return False
         if mode == MODE_COOLING and T_outdoor < self.outdoor_cooling_min:
             return True

@@ -34,6 +34,7 @@ export class RsSettingsHeatingSystem extends LitElement {
   @property({ type: Number }) public minRunMinutes = 5;
   @property({ type: Number }) public minOffMinutes = 3;
   @property({ type: Number }) public faultRetryMinutes = 5;
+  @property({ type: Number }) public maxWaitMinutes = 120;
   @property({ type: Boolean }) public budgetEnabled = false;
   @property({ type: String }) public powerSensor = "";
   @property({ type: String }) public powerMode: "available" | "consumption" = "available";
@@ -168,6 +169,11 @@ export class RsSettingsHeatingSystem extends LitElement {
                 ${number("minDemandRooms", this.minDemandRooms)}</label
               >
               <small>${localize("settings.boiler.min_demand_hint", this.hass.language)}</small>
+              <label
+                >${localize("settings.boiler.max_wait_minutes", this.hass.language)}
+                ${number("maxWaitMinutes", this.maxWaitMinutes)}</label
+              >
+              <small>${localize("settings.boiler.max_wait_hint", this.hass.language)}</small>
               <div class="grid">
                 <label
                   >${localize("settings.boiler.min_run_minutes", this.hass.language)}

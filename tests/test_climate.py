@@ -1275,3 +1275,23 @@ async def test_canonical_turn_on_never_resumes_dry(mock_coordinator):
     await entity.async_turn_on()
 
     entity.async_set_hvac_mode.assert_awaited_once_with(HVACMode.AUTO)
+
+
+@pytest.mark.asyncio
+async def test_exit_auxiliary_to_auto_stops_the_physical_ac(mock_coordinator):
+    """Codex P2: with automation disabled nothing else would stop a drying AC."""
+    coordinator, store = mock_coordinator
+    coordinator.hass.states.get.return_value = MagicMock(
+        state="dry", attributes={"hvac_modes": ["off", "heat", "cool", "dry"]}
+    )
+    store.get_room.return_value = _canonical_room(
+        [{"entity_id": "climate.ac", "type": "ac"}], room_hvac_mode="dry", room_aux_return_mode="auto"
+    )
+    store.async_update_room = AsyncMock()
+    entity = RoomMindClimate(coordinator, "living_room")
+
+    with patch("custom_components.roommind.climate.async_turn_off_climate", new=AsyncMock()) as turn_off:
+        await entity.async_exit_auxiliary_mode()
+
+    turn_off.assert_awaited_once_with(coordinator.hass, "climate.ac", area_id="living_room")
+    assert store.async_update_room.await_args[0][1]["room_hvac_mode"] is None

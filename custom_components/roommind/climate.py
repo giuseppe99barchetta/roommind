@@ -584,9 +584,7 @@ class RoomMindClimate(RoomMindOverrideClimate):
         await self._async_apply_manual_temperature(selected, heat, cool)
         await self.coordinator.async_request_refresh()
 
-    async def _async_set_auto_temperature(
-        self, single: float | None, low: float | None, high: float | None
-    ) -> None:
+    async def _async_set_auto_temperature(self, single: float | None, low: float | None, high: float | None) -> None:
         """A setpoint edit in AUTO is a temporary override, not a mode change.
 
         The room keeps RoomMind's automatic control and returns to its own
@@ -724,6 +722,16 @@ class RoomMindClimate(RoomMindOverrideClimate):
             mode = HVACMode.AUTO
         if mode not in self.hvac_modes or mode in (HVACMode.DRY, HVACMode.FAN_ONLY):
             mode = HVACMode.AUTO if HVACMode.AUTO in self.hvac_modes else HVACMode.OFF
+        if mode == HVACMode.AUTO:
+            # AUTO never commands hardware, and the control loop sends nothing
+            # while automation is disabled: end the auxiliary run explicitly so
+            # the AC cannot keep drying/circulating behind an "off" entity.
+            hass = self.coordinator.hass
+            for entity_id in get_ac_eids((self._room() or {}).get("devices", [])):
+                state = hass.states.get(entity_id)
+                if state is not None and state.state in ("dry", "fan_only"):
+                    await async_turn_off_climate(hass, entity_id, area_id=self._area_id)
+                    self.coordinator._compressor_manager.update_member(entity_id, False)
         await self.async_set_hvac_mode(mode)
 
     async def _async_apply_manual_hvac_mode(self, mode: str, heat: float, cool: float) -> None:

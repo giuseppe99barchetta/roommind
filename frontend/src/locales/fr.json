@@ -766,5 +766,7 @@
   "settings.boiler.min_off_minutes": "Arrêt minimal (min)",
   "settings.boiler.fault_retry_minutes": "Nouvel essai après défaut (min)",
   "settings.boiler.child_lock": "Verrouiller les boutons de la vanne de bypass",
-  "settings.boiler.child_lock_hint": "Active la sécurité enfant pour qu’un appui sur la vanne ne sorte pas le bypass du chauffage forcé et n’arrête pas la chaudière."
+  "settings.boiler.child_lock_hint": "Active la sécurité enfant pour qu’un appui sur la vanne ne sorte pas le bypass du chauffage forcé et n’arrête pas la chaudière.",
+  "settings.boiler.max_wait_minutes": "Attente maximale sous le quorum (min)",
+  "settings.boiler.max_wait_hint": "Une pièce qui demande de la chaleur depuis ce temps démarre la chaudière seule, pour que les pièces à radiateurs ne restent pas froides. 0 garde le quorum strict."
 }

@@ -828,5 +828,7 @@
   "settings.boiler.min_off_minutes": "Minimum off (min)",
   "settings.boiler.fault_retry_minutes": "Retry after a fault (min)",
   "settings.boiler.child_lock": "Lock bypass valve buttons",
-  "settings.boiler.child_lock_hint": "Turns on the valve's child lock so a button press cannot take the bypass out of forced heat and stop the boiler."
+  "settings.boiler.child_lock_hint": "Turns on the valve's child lock so a button press cannot take the bypass out of forced heat and stop the boiler.",
+  "settings.boiler.max_wait_minutes": "Maximum wait below the quorum (min)",
+  "settings.boiler.max_wait_hint": "A room asking for heat this long starts the boiler on its own, so radiator-only rooms are never left cold. 0 keeps the quorum strict."
 }

@@ -426,5 +426,7 @@
   "settings.boiler.min_off_minutes": "Spegnimento minimo (min)",
   "settings.boiler.fault_retry_minutes": "Riprova dopo un blocco (min)",
   "settings.boiler.child_lock": "Blocca i tasti della valvola di bypass",
-  "settings.boiler.child_lock_hint": "Attiva il blocco bambini della valvola, così una pressione dei tasti non toglie il bypass dal riscaldamento forzato e non ferma la caldaia."
+  "settings.boiler.child_lock_hint": "Attiva il blocco bambini della valvola, così una pressione dei tasti non toglie il bypass dal riscaldamento forzato e non ferma la caldaia.",
+  "settings.boiler.max_wait_minutes": "Attesa massima sotto il quorum (min)",
+  "settings.boiler.max_wait_hint": "Una stanza che chiede calore da così tanto accende la caldaia anche da sola, così le stanze con soli radiatori non restano fredde. 0 rende il quorum rigido."
 }

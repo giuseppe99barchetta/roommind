@@ -215,3 +215,74 @@ async def test_child_lock_untouched_when_disabled():
     await _tick(mgr, _settings(hydraulic_bypass_child_lock=False), {"studio"}, 100.0)
 
     assert not any(c.args[0] == "switch" for c in hass.services.async_call.call_args_list)
+
+
+@pytest.mark.asyncio
+async def test_failed_shutdown_in_fault_is_retried_until_it_succeeds():
+    """Codex P1: a failed OFF while faulted must not be silently dropped."""
+    hass, states = _hass()
+    mgr = BoilerManager(hass)
+    settings = _settings()
+    await _tick(mgr, settings, {"studio"}, 100.0)
+    await _tick(mgr, settings, {"studio"}, 131.0)
+    assert mgr.state == BoilerState.ON
+
+    states["climate.bypass"] = SimpleNamespace(state="auto", attributes={"temperature": 28})
+    mgr._set_boiler = AsyncMock(return_value=False)  # boiler unreachable
+    await _tick(mgr, settings, {"studio"}, 200.0)
+    assert mgr.state == BoilerState.FAULT
+
+    # Demand disappears: still faulted, bypass not released, OFF retried.
+    await _tick(mgr, settings, set(), 230.0)
+    await _tick(mgr, settings, set(), 260.0)
+    assert mgr.state == BoilerState.FAULT
+    assert mgr._set_boiler.await_count == 3
+    assert not any(
+        c.args[2] == {"entity_id": "climate.bypass", "hvac_mode": "off"}
+        for c in hass.services.async_call.call_args_list
+    )
+
+    mgr._set_boiler = AsyncMock(return_value=True)
+    await _tick(mgr, settings, set(), 290.0)
+    assert mgr.state == BoilerState.OFF
+
+
+@pytest.mark.asyncio
+async def test_failed_normal_stop_keeps_boiler_on_and_bypass_open():
+    hass, _ = _hass()
+    mgr = BoilerManager(hass)
+    settings = _settings(boiler_min_run_minutes=0)
+    await _tick(mgr, settings, {"studio"}, 100.0)
+    await _tick(mgr, settings, {"studio"}, 131.0)
+
+    mgr._set_boiler = AsyncMock(return_value=False)
+    await _tick(mgr, settings, set(), 200.0)
+    assert mgr.state == BoilerState.ON
+    mgr._set_boiler = AsyncMock(return_value=True)
+    await _tick(mgr, settings, set(), 230.0)
+    assert mgr.state == BoilerState.POSTSTOP
+
+
+@pytest.mark.asyncio
+async def test_room_waiting_too_long_starts_boiler_alone():
+    hass, _ = _hass()
+    mgr = BoilerManager(hass)
+    settings = _settings(boiler_min_demand_rooms=2, boiler_max_wait_minutes=60)
+
+    await _tick(mgr, settings, {"bagno"}, 100.0)
+    await _tick(mgr, settings, {"bagno"}, 100.0 + 59 * 60)
+    assert mgr.state == BoilerState.OFF
+
+    await _tick(mgr, settings, {"bagno"}, 100.0 + 60 * 60)
+    assert mgr.state == BoilerState.PREOPENING
+
+
+@pytest.mark.asyncio
+async def test_max_wait_zero_keeps_quorum_strict():
+    hass, _ = _hass()
+    mgr = BoilerManager(hass)
+    settings = _settings(boiler_min_demand_rooms=2, boiler_max_wait_minutes=0)
+
+    await _tick(mgr, settings, {"bagno"}, 100.0)
+    await _tick(mgr, settings, {"bagno"}, 100.0 + 24 * 3600)
+    assert mgr.state == BoilerState.OFF

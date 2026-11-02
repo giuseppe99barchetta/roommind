@@ -88,6 +88,7 @@ export class RsSettings extends LitElement {
   @state() private _minRunMinutes = 5;
   @state() private _minOffMinutes = 3;
   @state() private _faultRetryMinutes = 5;
+  @state() private _maxWaitMinutes = 120;
   @state() private _budgetEnabled = false;
   @state() private _powerSensor = "";
   @state() private _powerMode: "available" | "consumption" = "available";
@@ -170,6 +171,7 @@ export class RsSettings extends LitElement {
       this._minRunMinutes = s.boiler_min_run_minutes ?? 5;
       this._minOffMinutes = s.boiler_min_off_minutes ?? 3;
       this._faultRetryMinutes = s.boiler_fault_retry_minutes ?? 5;
+      this._maxWaitMinutes = s.boiler_max_wait_minutes ?? 120;
       this._budgetEnabled = s.power_budget_enabled ?? false;
       this._powerSensor = s.power_sensor ?? "";
       if (!this._powerModeDirty) {
@@ -255,6 +257,7 @@ export class RsSettings extends LitElement {
           .minRunMinutes=${this._minRunMinutes}
           .minOffMinutes=${this._minOffMinutes}
           .faultRetryMinutes=${this._faultRetryMinutes}
+          .maxWaitMinutes=${this._maxWaitMinutes}
           .budgetEnabled=${this._budgetEnabled}
           .powerSensor=${this._powerSensor}
           .powerMode=${this._powerMode}
@@ -534,6 +537,7 @@ export class RsSettings extends LitElement {
         boiler_min_run_minutes: this._minRunMinutes,
         boiler_min_off_minutes: this._minOffMinutes,
         boiler_fault_retry_minutes: this._faultRetryMinutes,
+        boiler_max_wait_minutes: this._maxWaitMinutes,
         power_budget_enabled: this._budgetEnabled,
         power_sensor: this._powerSensor,
         power_sensor_mode: powerSensorMode,
