@@ -88,14 +88,17 @@
         box-sizing: border-box;
         --ha-card-border-radius: 18px;
         --ha-card-box-shadow: none;
-        border: 1px solid var(--divider-color, rgba(128,128,128,.16));
+        border: 1px solid var(--divider-color, rgba(128, 128, 128, 0.16));
       }
 
       ha-card:hover {
         box-shadow: 0 12px 30px rgba(0, 0, 0, 0.075);
         transform: translateY(-2px);
       }
-      ha-card:focus-visible { outline: 2px solid var(--primary-color); outline-offset: 3px; }
+      ha-card:focus-visible {
+        outline: 2px solid var(--primary-color);
+        outline-offset: 3px;
+      }
 
       .hide-btn {
         --mdc-icon-button-size: 28px;
@@ -115,8 +118,14 @@
       .hide-btn:hover {
         opacity: 1 !important;
       }
-      @media (hover: none) { .hide-btn { opacity: .65; } }
-      ha-card:focus-within .hide-btn { opacity: 1; }
+      @media (hover: none) {
+        .hide-btn {
+          opacity: 0.65;
+        }
+      }
+      ha-card:focus-within .hide-btn {
+        opacity: 1;
+      }
 
       /* Colored left accent based on mode */
       .accent {
@@ -168,7 +177,7 @@
         font-weight: 700;
         color: var(--primary-text-color);
         margin: 0;
-        letter-spacing: -.025em;
+        letter-spacing: -0.025em;
         overflow: hidden;
         text-overflow: ellipsis;
         white-space: nowrap;
@@ -204,7 +213,7 @@
         color: var(--primary-text-color);
         line-height: 1;
         font-variant-numeric: tabular-nums;
-        letter-spacing: -.05em;
+        letter-spacing: -0.05em;
       }
 
       .temp-unit {
@@ -255,7 +264,7 @@
         margin-top: 18px;
         min-height: 20px;
         padding-top: 14px;
-        border-top: 1px solid var(--divider-color, rgba(128,128,128,.16));
+        border-top: 1px solid var(--divider-color, rgba(128, 128, 128, 0.16));
         gap: 10px;
       }
 
@@ -719,7 +728,7 @@
         overflow: hidden;
         --ha-card-border-radius: 22px;
         --ha-card-box-shadow: none;
-        border: 1px solid var(--divider-color, rgba(128,128,128,.16));
+        border: 1px solid var(--divider-color, rgba(128, 128, 128, 0.16));
       }
 
       .hero-accent {
@@ -756,7 +765,7 @@
       .area-name {
         font-size: clamp(21px, 3vw, 27px);
         font-weight: 750;
-        letter-spacing: -.035em;
+        letter-spacing: -0.035em;
         color: var(--primary-text-color);
         margin: 0;
       }
@@ -773,7 +782,7 @@
         font-weight: 450;
         color: var(--primary-text-color);
         line-height: 1;
-        letter-spacing: -.055em;
+        letter-spacing: -0.055em;
         font-variant-numeric: tabular-nums;
       }
 
@@ -799,7 +808,7 @@
       .hero-target-value {
         font-size: 23px;
         font-weight: 650;
-        letter-spacing: -.025em;
+        letter-spacing: -0.025em;
         color: var(--primary-text-color);
       }
 
@@ -944,11 +953,22 @@
         flex-shrink: 0;
       }
       @media (max-width: 550px) {
-        ha-card { padding: 23px 19px 22px; }
-        .hero-header { gap: 10px; align-items: flex-start; }
-        .hero-status-pills { gap: 6px; }
-        .hero-current { font-size: 48px; }
-        .hero-target-value { font-size: 19px; }
+        ha-card {
+          padding: 23px 19px 22px;
+        }
+        .hero-header {
+          gap: 10px;
+          align-items: flex-start;
+        }
+        .hero-status-pills {
+          gap: 6px;
+        }
+        .hero-current {
+          font-size: 48px;
+        }
+        .hero-target-value {
+          font-size: 19px;
+        }
       }
       .control-mode-badge {
         display: inline-flex;
@@ -4169,7 +4189,7 @@
       min-width: 0;
       --ha-card-border-radius: 18px;
       --ha-card-box-shadow: none;
-      border: 1px solid var(--divider-color, rgba(128,128,128,.16));
+      border: 1px solid var(--divider-color, rgba(128, 128, 128, 0.16));
     }
 
     .section-header {
@@ -4187,7 +4207,7 @@
     .section-title {
       font-size: 15px;
       font-weight: 700;
-      letter-spacing: -.02em;
+      letter-spacing: -0.02em;
       color: var(--primary-text-color);
       margin: 0;
       flex: 1;
@@ -4215,8 +4235,14 @@
     .section-body {
       padding: 0 22px 22px;
     }
-    @media (hover: none) { .edit-btn { opacity: .75; } }
-    .edit-btn:focus-visible { opacity: 1; }
+    @media (hover: none) {
+      .edit-btn {
+        opacity: 0.75;
+      }
+    }
+    .edit-btn:focus-visible {
+      opacity: 1;
+    }
   `}render(){return m`
       <ha-card>
         <div class="section-header">
@@ -5527,13 +5553,12 @@
       }
     `]}render(){let e=this.hass.language;return this.editing?m`
       ${this.hasTrv?m`<div class="feature-card ${this.enabled?`enabled`:``}">
-        <div class="feature-text">
-          <div class="feature-title">${S(`heat_source.toggle`,e)}</div>
-          <div class="feature-description">${S(`heat_source.toggle_hint`,e)}</div>
-        </div>
-        <ha-switch .checked=${this.enabled} @change=${this._onSwitchChange}></ha-switch>
-      </div>`:h}
-
+            <div class="feature-text">
+              <div class="feature-title">${S(`heat_source.toggle`,e)}</div>
+              <div class="feature-description">${S(`heat_source.toggle_hint`,e)}</div>
+            </div>
+            <ha-switch .checked=${this.enabled} @change=${this._onSwitchChange}></ha-switch>
+          </div>`:h}
       ${this.hasAc?m`<div class="thresholds">
             <div class="threshold-cell">
               <div class="threshold-label">
@@ -5548,11 +5573,12 @@
                 .suffix=${`W`}
                 @change=${e=>this._onNumberInput(`heat_pump_power_watts`,e)}
               ></ha-textfield>
-              <span class="feature-description">${S(`heat_source.power_estimate_hint`,e)}</span>
+              <span class="feature-description"
+                >${S(`heat_source.power_estimate_hint`,e)}</span
+              >
             </div>
           </div>`:h}
       ${this._renderPowerLearning(e)}
-
       ${this.enabled&&this.hasTrv?m`
             <div class="feature-card">
               <div class="feature-text">
@@ -5585,10 +5611,13 @@
         ${this._renderPowerLearning(e)}
       </div>`:m`<div class="summary disabled">
           ${this.hasTrv?S(`heat_source.summary_disabled`,e):h}
-          ${this.hasAc?m`${this.hasTrv?` · `:``}${S(`heat_source.power_estimate`,e)}: ${this.heatPumpPower} W`:h}
+          ${this.hasAc?m`${this.hasTrv?` · `:``}${S(`heat_source.power_estimate`,e)}:
+              ${this.heatPumpPower} W`:h}
           ${this._renderPowerLearning(e)}
         </div>`}_renderPowerLearning(e){return!this.hasAc||!this.powerBudgetEstimates?h:m`<div class="power-learning">
-      ${[`heating`,`cooling`,`dry`].map(t=>{let n=this.powerBudgetEstimates?.[t];if(!n)return h;let r=S(`heat_source.budget_${t}`,e),i=S(`heat_source.budget_${n.source}`,e);return m`<span>${r}: ${n.watts>0?`${n.watts} W`:`—`} (${i})</span>`})}
+      ${[`heating`,`cooling`,`dry`].map(t=>{let n=this.powerBudgetEstimates?.[t];if(!n)return h;let r=S(`heat_source.budget_${t}`,e),i=S(`heat_source.budget_${n.source}`,e);return m`<span
+          >${r}: ${n.watts>0?`${n.watts} W`:`—`} (${i})</span
+        >`})}
     </div>`}_renderThresholdCell(e){return m`
       <div class="threshold-cell">
         <div class="threshold-label">
@@ -5798,16 +5827,61 @@
       flex-direction: column;
       gap: 22px;
     }
-    .detail-navigation { display: flex; align-items: center; gap: 8px; overflow-x: auto; padding: 4px; border-radius: 15px; background: var(--secondary-background-color, rgba(127,127,127,.09)); scrollbar-width: thin; }
-    .detail-tab { display: inline-flex; align-items: center; justify-content: center; gap: 9px; flex: 1 0 auto; white-space: nowrap; padding: 12px 14px; min-height: 44px; border: 1px solid transparent; border-radius: 12px; background: transparent; color: var(--secondary-text-color); font: inherit; font-size: 13px; font-weight: 600; cursor: pointer; transition: background .2s ease, color .2s ease, box-shadow .2s ease; }
-    .detail-tab ha-icon { --mdc-icon-size: 19px; }
-    .detail-tab:hover { color: var(--primary-text-color); }
-    .detail-tab[aria-pressed="true"] { background: var(--card-background-color); color: var(--primary-text-color); box-shadow: 0 2px 10px rgba(0,0,0,.06); }
-    .detail-tab[aria-pressed="true"] ha-icon { color: var(--primary-color); }
-    .detail-tab:focus-visible { outline: 2px solid var(--primary-color); outline-offset: -2px; }
+    .detail-navigation {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      overflow-x: auto;
+      padding: 4px;
+      border-radius: 15px;
+      background: var(--secondary-background-color, rgba(127, 127, 127, 0.09));
+      scrollbar-width: thin;
+    }
+    .detail-tab {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 9px;
+      flex: 1 0 auto;
+      white-space: nowrap;
+      padding: 12px 14px;
+      min-height: 44px;
+      border: 1px solid transparent;
+      border-radius: 12px;
+      background: transparent;
+      color: var(--secondary-text-color);
+      font: inherit;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition:
+        background 0.2s ease,
+        color 0.2s ease,
+        box-shadow 0.2s ease;
+    }
+    .detail-tab ha-icon {
+      --mdc-icon-size: 19px;
+    }
+    .detail-tab:hover {
+      color: var(--primary-text-color);
+    }
+    .detail-tab[aria-pressed="true"] {
+      background: var(--card-background-color);
+      color: var(--primary-text-color);
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.06);
+    }
+    .detail-tab[aria-pressed="true"] ha-icon {
+      color: var(--primary-color);
+    }
+    .detail-tab:focus-visible {
+      outline: 2px solid var(--primary-color);
+      outline-offset: -2px;
+    }
     .detail-grid[data-view="overview"] > :not([data-group="overview"]),
     .detail-grid[data-view="equipment"] > :not([data-group="equipment"]),
-    .detail-grid[data-view="advanced"] > :not([data-group="advanced"]) { display: none; }
+    .detail-grid[data-view="advanced"] > :not([data-group="advanced"]) {
+      display: none;
+    }
 
     .detail-grid {
       display: grid;
@@ -5870,9 +5944,16 @@
       .detail-grid[data-view="equipment"] > .optional-card {
         grid-column: 1;
       }
-      .detail-navigation { border-radius: 12px; }
-      .detail-tab { padding: 10px 12px; font-size: 12px; }
-      .detail-tab ha-icon { --mdc-icon-size: 17px; }
+      .detail-navigation {
+        border-radius: 12px;
+      }
+      .detail-tab {
+        padding: 10px 12px;
+        font-size: 12px;
+      }
+      .detail-tab ha-icon {
+        --mdc-icon-size: 17px;
+      }
     }
 
     /* Section cards handled by rs-section-card */
@@ -6567,8 +6648,13 @@
     :host {
       display: block;
     }
-    :host([hidden]) { display: none !important; }
-    ha-expansion-panel { --ha-card-border-radius: 16px; --ha-card-box-shadow: none; }
+    :host([hidden]) {
+      display: none !important;
+    }
+    ha-expansion-panel {
+      --ha-card-border-radius: 16px;
+      --ha-card-box-shadow: none;
+    }
 
     .panel-header {
       display: flex;
@@ -8085,15 +8171,48 @@
       margin-top: 4px;
     }
   `}};k([y({attribute:!1})],J.prototype,`hass`,void 0),k([y({type:String})],J.prototype,`boilerEntity`,void 0),k([y({type:String})],J.prototype,`boilerControlType`,void 0),k([y({type:Array})],J.prototype,`bypassEntities`,void 0),k([y({type:Number})],J.prototype,`startupDelay`,void 0),k([y({type:Number})],J.prototype,`shutdownDelay`,void 0),k([y({type:Number})],J.prototype,`bypassTemperature`,void 0),k([y({type:Boolean})],J.prototype,`bypassChildLock`,void 0),k([y({type:Number})],J.prototype,`minDemandRooms`,void 0),k([y({type:String})],J.prototype,`demandUnit`,void 0),k([y({type:Number})],J.prototype,`minRunMinutes`,void 0),k([y({type:Number})],J.prototype,`minOffMinutes`,void 0),k([y({type:Number})],J.prototype,`faultRetryMinutes`,void 0),k([y({type:Number})],J.prototype,`maxWaitMinutes`,void 0),k([y({type:Boolean})],J.prototype,`budgetEnabled`,void 0),k([y({type:String})],J.prototype,`powerSensor`,void 0),k([y({type:String})],J.prototype,`powerMode`,void 0),k([y({type:Number})],J.prototype,`maxPower`,void 0),k([y({type:Number})],J.prototype,`reserve`,void 0),k([y({type:Number})],J.prototype,`energyPricePerKwh`,void 0),k([b()],J.prototype,`_powerModeState`,void 0),J=k([v(`rs-settings-heating-system`)],J),_(),x(),A();var Ln=class extends g{constructor(...e){super(...e),this._mode=`cooling`,this._loading=!1,this._error=!1}static{this.styles=l`
-    :host { display: block; font-size: 13px; }
-    .controls { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
-    select, button { padding: 8px 12px; border-radius: 9px; background: var(--card-background-color); color: var(--primary-text-color); border: 1px solid var(--divider-color); }
-    button { cursor: pointer; }
-    button:disabled { opacity: .6; cursor: default; }
-    .summary { margin: 12px 0; color: var(--secondary-text-color); line-height: 1.6; }
-    .room { padding: 10px 0; border-top: 1px solid var(--divider-color); display: grid; gap: 3px; }
-    .room strong { color: var(--primary-text-color); }
-    .reason { color: var(--secondary-text-color); }
+    :host {
+      display: block;
+      font-size: 13px;
+    }
+    .controls {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+    select,
+    button {
+      padding: 8px 12px;
+      border-radius: 9px;
+      background: var(--card-background-color);
+      color: var(--primary-text-color);
+      border: 1px solid var(--divider-color);
+    }
+    button {
+      cursor: pointer;
+    }
+    button:disabled {
+      opacity: 0.6;
+      cursor: default;
+    }
+    .summary {
+      margin: 12px 0;
+      color: var(--secondary-text-color);
+      line-height: 1.6;
+    }
+    .room {
+      padding: 10px 0;
+      border-top: 1px solid var(--divider-color);
+      display: grid;
+      gap: 3px;
+    }
+    .room strong {
+      color: var(--primary-text-color);
+    }
+    .reason {
+      color: var(--secondary-text-color);
+    }
   `}async _refresh(){this._loading=!0,this._error=!1;try{this._result=await this.hass.callWS({type:`roommind/control/preview`,mode:this._mode})}catch{this._error=!0}finally{this._loading=!1}}render(){let e=this.hass.language,t=this._result;return m`
       <div class="controls">
         <select
@@ -8118,16 +8237,21 @@
               · ${S(`preview.meter`,e)}:
               ${t.power_sensor_healthy?S(`preview.healthy`,e):S(`preview.unavailable`,e)}
               ${t.power_sensor_age_seconds===null?h:`(${Math.round(t.power_sensor_age_seconds)} s)`}
-              · ${S(`preview.boiler`,e)}: ${t.boiler_state}
-              · ${S(`preview.bypass`,e)}:
+              · ${S(`preview.boiler`,e)}: ${t.boiler_state} ·
+              ${S(`preview.bypass`,e)}:
               ${t.bypass_acknowledged?S(`preview.acknowledged`,e):S(`preview.not_acknowledged`,e)}
             </div>
             ${Object.entries(t.rooms).map(([t,n])=>m`
                 <div class="room">
                   <strong>${t.replaceAll(`_`,` `)}</strong>
-                  <span>${n.watts} W · ${S(`heat_source.budget_${n.source}`,e)}</span>
+                  <span
+                    >${n.watts} W · ${S(`heat_source.budget_${n.source}`,e)}</span
+                  >
                   <span class="reason">${S(`preview.reason_${n.reason}`,e)}</span>
-                  ${n.current_decision_reasons.length?m`<span class="reason">${S(`preview.current_reasons`,e)}: ${n.current_decision_reasons.join(`, `)}</span>`:h}
+                  ${n.current_decision_reasons.length?m`<span class="reason"
+                        >${S(`preview.current_reasons`,e)}:
+                        ${n.current_decision_reasons.join(`, `)}</span
+                      >`:h}
                 </div>
               `)}
           `:h}
@@ -8165,258 +8289,396 @@
             <h2>${S(`settings.hub.${this._category}`,e)}</h2>
             <p>${S(`settings.hub.${this._category}_hint`,e)}</p>
           </div>
-      <rs-settings-panel
-        ?hidden=${this._category!==`system`}
-        icon="mdi:home-thermometer"
-        .heading=${S(`settings.hub.heating`,e)}
-        .intro=${S(`settings.hub.heating_hint`,e)}
-        ><rs-settings-heating-system
-          .hass=${this.hass}
-          .boilerEntity=${this._boilerEntity}
-          .boilerControlType=${this._boilerControlType}
-          .bypassEntities=${this._bypassEntities}
-          .startupDelay=${this._startupDelay}
-          .shutdownDelay=${this._shutdownDelay}
-          .bypassTemperature=${this._bypassTemperature}
-          .bypassChildLock=${this._bypassChildLock}
-          .minDemandRooms=${this._minDemandRooms}
-          .demandUnit=${this._demandUnit}
-          .minRunMinutes=${this._minRunMinutes}
-          .minOffMinutes=${this._minOffMinutes}
-          .faultRetryMinutes=${this._faultRetryMinutes}
-          .maxWaitMinutes=${this._maxWaitMinutes}
-          .budgetEnabled=${this._budgetEnabled}
-          .powerSensor=${this._powerSensor}
-          .powerMode=${this._powerMode}
-          .maxPower=${this._maxPower}
-          .reserve=${this._reserve}
-          .energyPricePerKwh=${this._energyPricePerKwh}
-          @setting-changed=${this._onSettingChanged}
-        ></rs-settings-heating-system>
-      </rs-settings-panel>
+          <rs-settings-panel
+            ?hidden=${this._category!==`system`}
+            icon="mdi:home-thermometer"
+            .heading=${S(`settings.hub.heating`,e)}
+            .intro=${S(`settings.hub.heating_hint`,e)}
+            ><rs-settings-heating-system
+              .hass=${this.hass}
+              .boilerEntity=${this._boilerEntity}
+              .boilerControlType=${this._boilerControlType}
+              .bypassEntities=${this._bypassEntities}
+              .startupDelay=${this._startupDelay}
+              .shutdownDelay=${this._shutdownDelay}
+              .bypassTemperature=${this._bypassTemperature}
+              .bypassChildLock=${this._bypassChildLock}
+              .minDemandRooms=${this._minDemandRooms}
+              .demandUnit=${this._demandUnit}
+              .minRunMinutes=${this._minRunMinutes}
+              .minOffMinutes=${this._minOffMinutes}
+              .faultRetryMinutes=${this._faultRetryMinutes}
+              .maxWaitMinutes=${this._maxWaitMinutes}
+              .budgetEnabled=${this._budgetEnabled}
+              .powerSensor=${this._powerSensor}
+              .powerMode=${this._powerMode}
+              .maxPower=${this._maxPower}
+              .reserve=${this._reserve}
+              .energyPricePerKwh=${this._energyPricePerKwh}
+              @setting-changed=${this._onSettingChanged}
+            ></rs-settings-heating-system>
+          </rs-settings-panel>
 
-      <rs-settings-panel
-        ?hidden=${this._category!==`protection`}
-        icon="mdi:shield-search"
-        .heading=${S(`preview.title`,e)}
-        .intro=${S(`preview.intro`,e)}
-      >
-        <rs-settings-preview .hass=${this.hass}></rs-settings-preview>
-      </rs-settings-panel>
+          <rs-settings-panel
+            ?hidden=${this._category!==`protection`}
+            icon="mdi:shield-search"
+            .heading=${S(`preview.title`,e)}
+            .intro=${S(`preview.intro`,e)}
+          >
+            <rs-settings-preview .hass=${this.hass}></rs-settings-preview>
+          </rs-settings-panel>
 
-      <rs-settings-panel
-        ?hidden=${this._category!==`overview`}
-        icon="mdi:power"
-        .heading=${S(`settings.general_title`,e)}
-        .intro=${S(`settings.intro.general`,e)}
-      >
-        <rs-settings-general
-          .hass=${this.hass}
-          .groupByFloor=${this._groupByFloor}
-          .climateControlActive=${this._climateControlActive}
-          .temperatureRoundingMode=${this._temperatureRoundingMode}
-          @setting-changed=${this._onSettingChanged}
-        ></rs-settings-general>
-      </rs-settings-panel>
+          <rs-settings-panel
+            ?hidden=${this._category!==`overview`}
+            icon="mdi:power"
+            .heading=${S(`settings.general_title`,e)}
+            .intro=${S(`settings.intro.general`,e)}
+          >
+            <rs-settings-general
+              .hass=${this.hass}
+              .groupByFloor=${this._groupByFloor}
+              .climateControlActive=${this._climateControlActive}
+              .temperatureRoundingMode=${this._temperatureRoundingMode}
+              @setting-changed=${this._onSettingChanged}
+            ></rs-settings-general>
+          </rs-settings-panel>
 
-      <rs-settings-panel
-        ?hidden=${this._category!==`system`}
-        icon="mdi:thermometer"
-        .heading=${S(`settings.sensors_title`,e)}
-        .intro=${S(`settings.intro.sensors`,e)}
-      >
-        <rs-settings-sensors
-          .hass=${this.hass}
-          .outdoorTempSensor=${this._outdoorTempSensor}
-          .outdoorHumiditySensor=${this._outdoorHumiditySensor}
-          .weatherEntity=${this._weatherEntity}
-          .outdoorUnavailableNotify=${this._outdoorUnavailableNotify}
-          @setting-changed=${this._onSettingChanged}
-        ></rs-settings-sensors>
-      </rs-settings-panel>
+          <rs-settings-panel
+            ?hidden=${this._category!==`system`}
+            icon="mdi:thermometer"
+            .heading=${S(`settings.sensors_title`,e)}
+            .intro=${S(`settings.intro.sensors`,e)}
+          >
+            <rs-settings-sensors
+              .hass=${this.hass}
+              .outdoorTempSensor=${this._outdoorTempSensor}
+              .outdoorHumiditySensor=${this._outdoorHumiditySensor}
+              .weatherEntity=${this._weatherEntity}
+              .outdoorUnavailableNotify=${this._outdoorUnavailableNotify}
+              @setting-changed=${this._onSettingChanged}
+            ></rs-settings-sensors>
+          </rs-settings-panel>
 
-      <rs-settings-panel
-        ?hidden=${this._category!==`overview`}
-        icon="mdi:tune-variant"
-        .heading=${S(`settings.control_title`,e)}
-        .intro=${S(`settings.intro.control`,e)}
-      >
-        <rs-settings-control
-          .hass=${this.hass}
-          .controlMode=${this._controlMode}
-          .comfortWeight=${this._comfortWeight}
-          .outdoorCoolingMin=${this._outdoorCoolingMin}
-          .outdoorHeatingMax=${this._outdoorHeatingMax}
-          .predictionEnabled=${this._predictionEnabled}
-          .scheduleOffAction=${this._scheduleOffAction}
-          @setting-changed=${this._onSettingChanged}
-        ></rs-settings-control>
-      </rs-settings-panel>
+          <rs-settings-panel
+            ?hidden=${this._category!==`overview`}
+            icon="mdi:tune-variant"
+            .heading=${S(`settings.control_title`,e)}
+            .intro=${S(`settings.intro.control`,e)}
+          >
+            <rs-settings-control
+              .hass=${this.hass}
+              .controlMode=${this._controlMode}
+              .comfortWeight=${this._comfortWeight}
+              .outdoorCoolingMin=${this._outdoorCoolingMin}
+              .outdoorHeatingMax=${this._outdoorHeatingMax}
+              .predictionEnabled=${this._predictionEnabled}
+              .scheduleOffAction=${this._scheduleOffAction}
+              @setting-changed=${this._onSettingChanged}
+            ></rs-settings-control>
+          </rs-settings-panel>
 
-      <rs-settings-panel
-        ?hidden=${this._category!==`overview`}
-        icon="mdi:home-account"
-        .heading=${S(`presence.title`,e)}
-        .intro=${S(`settings.intro.presence`,e)}
-      >
-        <rs-settings-presence
-          .hass=${this.hass}
-          .presenceEnabled=${this._presenceEnabled}
-          .presencePersons=${this._presencePersons}
-          .presenceAwayAction=${this._presenceAwayAction}
-          .presenceClearsOverride=${this._presenceClearsOverride}
-          @setting-changed=${this._onSettingChanged}
-        ></rs-settings-presence>
-      </rs-settings-panel>
+          <rs-settings-panel
+            ?hidden=${this._category!==`overview`}
+            icon="mdi:home-account"
+            .heading=${S(`presence.title`,e)}
+            .intro=${S(`settings.intro.presence`,e)}
+          >
+            <rs-settings-presence
+              .hass=${this.hass}
+              .presenceEnabled=${this._presenceEnabled}
+              .presencePersons=${this._presencePersons}
+              .presenceAwayAction=${this._presenceAwayAction}
+              .presenceClearsOverride=${this._presenceClearsOverride}
+              @setting-changed=${this._onSettingChanged}
+            ></rs-settings-presence>
+          </rs-settings-panel>
 
-      <rs-settings-panel
-        ?hidden=${this._category!==`overview`}
-        icon="mdi:airplane"
-        .heading=${S(`vacation.title`,e)}
-        .intro=${S(`settings.intro.vacation`,e)}
-      >
-        <rs-settings-vacation
-          .hass=${this.hass}
-          .vacationActive=${this._vacationActive}
-          .vacationTemp=${this._vacationTemp}
-          .vacationUntil=${this._vacationUntil}
-          @setting-changed=${this._onSettingChanged}
-        ></rs-settings-vacation>
-      </rs-settings-panel>
+          <rs-settings-panel
+            ?hidden=${this._category!==`overview`}
+            icon="mdi:airplane"
+            .heading=${S(`vacation.title`,e)}
+            .intro=${S(`settings.intro.vacation`,e)}
+          >
+            <rs-settings-vacation
+              .hass=${this.hass}
+              .vacationActive=${this._vacationActive}
+              .vacationTemp=${this._vacationTemp}
+              .vacationUntil=${this._vacationUntil}
+              @setting-changed=${this._onSettingChanged}
+            ></rs-settings-vacation>
+          </rs-settings-panel>
 
-      <rs-settings-panel
-        ?hidden=${this._category!==`system`}
-        icon="mdi:shield-refresh"
-        .heading=${S(`valve_protection.title`,e)}
-        .intro=${S(`settings.intro.valve`,e)}
-      >
-        <rs-settings-valve
-          .hass=${this.hass}
-          .valveProtectionEnabled=${this._valveProtectionEnabled}
-          .valveProtectionInterval=${this._valveProtectionInterval}
-          @setting-changed=${this._onSettingChanged}
-        ></rs-settings-valve>
-      </rs-settings-panel>
+          <rs-settings-panel
+            ?hidden=${this._category!==`system`}
+            icon="mdi:shield-refresh"
+            .heading=${S(`valve_protection.title`,e)}
+            .intro=${S(`settings.intro.valve`,e)}
+          >
+            <rs-settings-valve
+              .hass=${this.hass}
+              .valveProtectionEnabled=${this._valveProtectionEnabled}
+              .valveProtectionInterval=${this._valveProtectionInterval}
+              @setting-changed=${this._onSettingChanged}
+            ></rs-settings-valve>
+          </rs-settings-panel>
 
-      <rs-settings-panel
-        ?hidden=${this._category!==`system`}
-        icon="mdi:heat-pump-outline"
-        .heading=${S(`compressor.title`,e)}
-        .intro=${S(`settings.intro.compressor`,e)}
-      >
-        <rs-settings-compressor
-          .hass=${this.hass}
-          .compressorGroups=${this._compressorGroups}
-          @setting-changed=${this._onSettingChanged}
-        ></rs-settings-compressor>
-      </rs-settings-panel>
+          <rs-settings-panel
+            ?hidden=${this._category!==`system`}
+            icon="mdi:heat-pump-outline"
+            .heading=${S(`compressor.title`,e)}
+            .intro=${S(`settings.intro.compressor`,e)}
+          >
+            <rs-settings-compressor
+              .hass=${this.hass}
+              .compressorGroups=${this._compressorGroups}
+              @setting-changed=${this._onSettingChanged}
+            ></rs-settings-compressor>
+          </rs-settings-panel>
 
-      <rs-settings-panel
-        ?hidden=${this._category!==`protection`}
-        icon="mdi:water-alert"
-        .heading=${S(`mold.title`,e)}
-        .intro=${S(`settings.intro.mold`,e)}
-      >
-        <rs-settings-mold
-          .hass=${this.hass}
-          .moldDetectionEnabled=${this._moldDetectionEnabled}
-          .moldHumidityThreshold=${this._moldHumidityThreshold}
-          .moldSustainedMinutes=${this._moldSustainedMinutes}
-          .moldPreventionEnabled=${this._moldPreventionEnabled}
-          .moldPreventionSustainedMinutes=${this._moldPreventionSustainedMinutes}
-          .moldPreventionDehumidificationEnabled=${this._moldPreventionDehumidificationEnabled}
-          .moldPreventionDryMinTemperature=${this._moldPreventionDryMinTemperature}
-          @setting-changed=${this._onSettingChanged}
-        ></rs-settings-mold>
-      </rs-settings-panel>
+          <rs-settings-panel
+            ?hidden=${this._category!==`protection`}
+            icon="mdi:water-alert"
+            .heading=${S(`mold.title`,e)}
+            .intro=${S(`settings.intro.mold`,e)}
+          >
+            <rs-settings-mold
+              .hass=${this.hass}
+              .moldDetectionEnabled=${this._moldDetectionEnabled}
+              .moldHumidityThreshold=${this._moldHumidityThreshold}
+              .moldSustainedMinutes=${this._moldSustainedMinutes}
+              .moldPreventionEnabled=${this._moldPreventionEnabled}
+              .moldPreventionSustainedMinutes=${this._moldPreventionSustainedMinutes}
+              .moldPreventionDehumidificationEnabled=${this._moldPreventionDehumidificationEnabled}
+              .moldPreventionDryMinTemperature=${this._moldPreventionDryMinTemperature}
+              @setting-changed=${this._onSettingChanged}
+            ></rs-settings-mold>
+          </rs-settings-panel>
 
-      <rs-settings-panel
-        ?hidden=${this._category!==`protection`}
-        icon="mdi:bell-outline"
-        .heading=${S(`notifications.title`,e)}
-        .intro=${S(`settings.intro.notifications`,e)}
-        .badge=${S(`badge.beta`,e)}
-        .badgeHint=${S(`badge.beta_hint`,e)}
-      >
-        <rs-settings-notifications
-          .hass=${this.hass}
-          .notificationsEnabled=${this._moldNotificationsEnabled}
-          .notificationTargets=${this._moldNotificationTargets}
-          .notificationCooldown=${this._moldNotificationCooldown}
-          .moldPreventionEnabled=${this._moldPreventionEnabled}
-          .moldPreventionNotify=${this._moldPreventionNotify}
-          .windowOpenNotificationMinutes=${this._windowOpenNotificationMinutes}
-          @setting-changed=${this._onSettingChanged}
-        ></rs-settings-notifications>
-      </rs-settings-panel>
+          <rs-settings-panel
+            ?hidden=${this._category!==`protection`}
+            icon="mdi:bell-outline"
+            .heading=${S(`notifications.title`,e)}
+            .intro=${S(`settings.intro.notifications`,e)}
+            .badge=${S(`badge.beta`,e)}
+            .badgeHint=${S(`badge.beta_hint`,e)}
+          >
+            <rs-settings-notifications
+              .hass=${this.hass}
+              .notificationsEnabled=${this._moldNotificationsEnabled}
+              .notificationTargets=${this._moldNotificationTargets}
+              .notificationCooldown=${this._moldNotificationCooldown}
+              .moldPreventionEnabled=${this._moldPreventionEnabled}
+              .moldPreventionNotify=${this._moldPreventionNotify}
+              .windowOpenNotificationMinutes=${this._windowOpenNotificationMinutes}
+              @setting-changed=${this._onSettingChanged}
+            ></rs-settings-notifications>
+          </rs-settings-panel>
 
-      <rs-settings-panel
-        ?hidden=${this._category!==`advanced`}
-        icon="mdi:brain"
-        .heading=${S(`settings.learning_title`,e)}
-        .intro=${S(`settings.intro.learning`,e)}
-      >
-        <rs-settings-learning
-          .hass=${this.hass}
-          .rooms=${this.rooms}
-          .learningDisabledRooms=${this._learningDisabledRooms}
-          .boostAppliedAt=${this._boostAppliedAt}
-          .roomsLive=${Object.fromEntries(Object.entries(this.rooms).map(([e,t])=>[e,t.live??{}]))}
-          @setting-changed=${this._onSettingChanged}
-          @boost-applied=${this._onBoostApplied}
-        ></rs-settings-learning>
-      </rs-settings-panel>
+          <rs-settings-panel
+            ?hidden=${this._category!==`advanced`}
+            icon="mdi:brain"
+            .heading=${S(`settings.learning_title`,e)}
+            .intro=${S(`settings.intro.learning`,e)}
+          >
+            <rs-settings-learning
+              .hass=${this.hass}
+              .rooms=${this.rooms}
+              .learningDisabledRooms=${this._learningDisabledRooms}
+              .boostAppliedAt=${this._boostAppliedAt}
+              .roomsLive=${Object.fromEntries(Object.entries(this.rooms).map(([e,t])=>[e,t.live??{}]))}
+              @setting-changed=${this._onSettingChanged}
+              @boost-applied=${this._onBoostApplied}
+            ></rs-settings-learning>
+          </rs-settings-panel>
 
-      <rs-settings-panel
-        ?hidden=${this._category!==`advanced`}
-        icon="mdi:restart"
-        .heading=${S(`settings.reset_title`,e)}
-        .intro=${S(`settings.intro.reset`,e)}
-      >
-        <rs-settings-reset .hass=${this.hass} .rooms=${this.rooms}></rs-settings-reset>
-      </rs-settings-panel>
+          <rs-settings-panel
+            ?hidden=${this._category!==`advanced`}
+            icon="mdi:restart"
+            .heading=${S(`settings.reset_title`,e)}
+            .intro=${S(`settings.intro.reset`,e)}
+          >
+            <rs-settings-reset .hass=${this.hass} .rooms=${this.rooms}></rs-settings-reset>
+          </rs-settings-panel>
         </div>
       </div>
     `}_onBoostApplied(e){let{area_id:t,n_observations:n}=e.detail;this._boostAppliedAt={...this._boostAppliedAt,[t]:n}}_onSettingChanged(e){let{key:t,value:n}=e.detail;t===`bypassEntities`?this._bypassEntities=mn(n):t===`powerMode`?(this._powerMode=hn(n),this._powerModeDirty=!0):this[`_${t}`]=n,this._autoSave()}_tsToDatetimeLocal(e){let t=new Date(e*1e3),n=e=>String(e).padStart(2,`0`);return`${t.getFullYear()}-${n(t.getMonth()+1)}-${n(t.getDate())}T${n(t.getHours())}:${n(t.getMinutes())}`}_autoSave(){this._saveDebounce&&clearTimeout(this._saveDebounce),this._saveDebounce=setTimeout(()=>this._doSave(),500)}async _doSave(){F(this,`saving`);try{let e=this._bypassEntities,t=this._powerMode,{hydraulicBypassEntities:n,powerSensorMode:r}=vn(e,t),i={type:`roommind/settings/save`,group_by_floor:this._groupByFloor,climate_control_active:this._climateControlActive,temperature_rounding_mode:this._temperatureRoundingMode,learning_disabled_rooms:this._learningDisabledRooms,outdoor_temp_sensor:this._outdoorTempSensor,outdoor_humidity_sensor:this._outdoorHumiditySensor,outdoor_cooling_min:this._outdoorCoolingMin,outdoor_heating_max:this._outdoorHeatingMax,control_mode:this._controlMode,comfort_weight:this._comfortWeight,weather_entity:this._weatherEntity,outdoor_unavailable_notify:this._outdoorUnavailableNotify,prediction_enabled:this._predictionEnabled,vacation_temp:this._vacationTemp,vacation_until:this._vacationActive?this._vacationUntil?new Date(this._vacationUntil).getTime()/1e3:yn:null,presence_enabled:this._presenceEnabled,presence_persons:this._presencePersons.filter(e=>e),presence_away_action:this._presenceAwayAction,presence_clears_override:this._presenceClearsOverride,schedule_off_action:this._scheduleOffAction,valve_protection_enabled:this._valveProtectionEnabled,valve_protection_interval_days:this._valveProtectionInterval,compressor_groups:this._compressorGroups.filter(e=>e.members.length>0),boiler_entity:this._boilerEntity,boiler_control_type:this._boilerControlType,boiler_startup_delay_seconds:this._startupDelay,boiler_shutdown_delay_seconds:this._shutdownDelay,hydraulic_bypass_entities:n,hydraulic_bypass_open_temperature:this._bypassTemperature,hydraulic_bypass_child_lock:this._bypassChildLock,boiler_min_demand_rooms:this._minDemandRooms,boiler_demand_unit:this._demandUnit,boiler_min_run_minutes:this._minRunMinutes,boiler_min_off_minutes:this._minOffMinutes,boiler_fault_retry_minutes:this._faultRetryMinutes,boiler_max_wait_minutes:this._maxWaitMinutes,power_budget_enabled:this._budgetEnabled,power_sensor:this._powerSensor,power_sensor_mode:r,power_budget_max_watts:this._maxPower,power_budget_reserve_watts:this._reserve,power_budget_unavailable_behavior:`boiler`,energy_price_per_kwh:this._energyPricePerKwh,mold_detection_enabled:this._moldDetectionEnabled,mold_humidity_threshold:this._moldHumidityThreshold,mold_sustained_minutes:this._moldSustainedMinutes,mold_notification_cooldown:this._moldNotificationCooldown,mold_notifications_enabled:this._moldNotificationsEnabled,mold_notification_targets:this._moldNotificationTargets.filter(e=>e.entity_id),mold_prevention_enabled:this._moldPreventionEnabled,mold_prevention_sustained_minutes:this._moldPreventionSustainedMinutes,mold_prevention_dehumidification_enabled:this._moldPreventionDehumidificationEnabled,mold_prevention_dry_min_temperature:this._moldPreventionDryMinTemperature,mold_prevention_notify_enabled:this._moldPreventionNotify,mold_prevention_notify_targets:this._moldPreventionNotify?this._moldNotificationTargets.filter(e=>e.entity_id):[],window_open_notification_minutes:this._windowOpenNotificationMinutes};console.debug(`RoomMind heating settings save payload`,i),console.debug(`RoomMind heating settings save values`,typeof i.hydraulic_bypass_entities,i.hydraulic_bypass_entities,i.power_sensor_mode),console.error(`[RoomMind DEBUG FINAL PAYLOAD]`,{hydraulic_bypass_entities:i.hydraulic_bypass_entities,bypassIsArray:Array.isArray(i.hydraulic_bypass_entities),power_sensor_mode:i.power_sensor_mode,fullPayload:i}),await this.hass.callWS(i),this._powerMode===r&&(this._powerModeDirty=!1),F(this,`saved`)}catch{F(this,`error`)}}static{this.styles=l`
     :host {
       display: block;
-      --rs-ui-line: var(--divider-color, rgba(125, 125, 125, .16));
+      --rs-ui-line: var(--divider-color, rgba(125, 125, 125, 0.16));
     }
-    .settings-intro { padding: 12px 2px 30px; position: relative; }
-    .eyebrow { color: var(--secondary-text-color); text-transform: uppercase; font-size: 11px; letter-spacing: .13em; font-weight: 700; }
-    .settings-intro h1 { font-size: clamp(27px, 3vw, 38px); line-height: 1.15; letter-spacing: -.035em; margin: 10px 0 10px; font-weight: 700; }
-    .settings-intro p, .category-heading p { color: var(--secondary-text-color); font-size: 14px; line-height: 1.65; max-width: 620px; margin: 0; }
-    .control-status { display: inline-flex; gap: 8px; align-items: center; margin-top: 17px; padding: 8px 12px; border-radius: 999px; font-size: 12px; font-weight: 650; background: var(--secondary-background-color, rgba(128,128,128,.1)); }
-    .status-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--secondary-text-color); }
-    .running .status-dot { background: var(--success-color, #36a578); }
-    .settings-workspace { display: grid; grid-template-columns: 250px minmax(0, 1fr); gap: 34px; align-items: start; }
-    .settings-navigation { display: grid; gap: 6px; position: sticky; top: 132px; }
-    .category-button { display: flex; align-items: center; gap: 12px; text-align: left; border: 1px solid transparent; border-radius: 14px; padding: 12px 14px; font: inherit; color: var(--secondary-text-color); background: transparent; cursor: pointer; min-height: 64px; transition: background .18s ease, border-color .18s ease; }
-    .category-button:hover { background: var(--secondary-background-color, rgba(128,128,128,.08)); }
-    .category-button.selected { color: var(--primary-text-color); border-color: var(--rs-ui-line); background: var(--card-background-color); box-shadow: 0 3px 18px rgba(0,0,0,.04); }
-    .category-button ha-icon { --mdc-icon-size: 21px; flex-shrink: 0; }
-    .category-button.selected ha-icon { color: var(--primary-color); }
-    .category-copy { display: grid; gap: 4px; min-width: 0; flex: 1; }
-    .category-copy strong { font-size: 14px; font-weight: 650; }
-    .category-copy small { font-size: 11px; opacity: .75; line-height: 1.3; }
-    .category-count { font-size: 11px; opacity: .55; font-variant-numeric: tabular-nums; }
-    .category-button:focus-visible { outline: 2px solid var(--primary-color); outline-offset: 2px; }
-    .settings-body { display: grid; gap: 12px; min-width: 0; }
-    .category-heading { padding: 5px 0 13px; }
-    .category-heading h2 { font-size: 23px; font-weight: 650; letter-spacing: -.025em; margin: 8px 0 6px; }
-    rs-settings-panel[hidden] { display: none !important; }
+    .settings-intro {
+      padding: 12px 2px 30px;
+      position: relative;
+    }
+    .eyebrow {
+      color: var(--secondary-text-color);
+      text-transform: uppercase;
+      font-size: 11px;
+      letter-spacing: 0.13em;
+      font-weight: 700;
+    }
+    .settings-intro h1 {
+      font-size: clamp(27px, 3vw, 38px);
+      line-height: 1.15;
+      letter-spacing: -0.035em;
+      margin: 10px 0 10px;
+      font-weight: 700;
+    }
+    .settings-intro p,
+    .category-heading p {
+      color: var(--secondary-text-color);
+      font-size: 14px;
+      line-height: 1.65;
+      max-width: 620px;
+      margin: 0;
+    }
+    .control-status {
+      display: inline-flex;
+      gap: 8px;
+      align-items: center;
+      margin-top: 17px;
+      padding: 8px 12px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 650;
+      background: var(--secondary-background-color, rgba(128, 128, 128, 0.1));
+    }
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--secondary-text-color);
+    }
+    .running .status-dot {
+      background: var(--success-color, #36a578);
+    }
+    .settings-workspace {
+      display: grid;
+      grid-template-columns: 250px minmax(0, 1fr);
+      gap: 34px;
+      align-items: start;
+    }
+    .settings-navigation {
+      display: grid;
+      gap: 6px;
+      position: sticky;
+      top: 132px;
+    }
+    .category-button {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      text-align: left;
+      border: 1px solid transparent;
+      border-radius: 14px;
+      padding: 12px 14px;
+      font: inherit;
+      color: var(--secondary-text-color);
+      background: transparent;
+      cursor: pointer;
+      min-height: 64px;
+      transition:
+        background 0.18s ease,
+        border-color 0.18s ease;
+    }
+    .category-button:hover {
+      background: var(--secondary-background-color, rgba(128, 128, 128, 0.08));
+    }
+    .category-button.selected {
+      color: var(--primary-text-color);
+      border-color: var(--rs-ui-line);
+      background: var(--card-background-color);
+      box-shadow: 0 3px 18px rgba(0, 0, 0, 0.04);
+    }
+    .category-button ha-icon {
+      --mdc-icon-size: 21px;
+      flex-shrink: 0;
+    }
+    .category-button.selected ha-icon {
+      color: var(--primary-color);
+    }
+    .category-copy {
+      display: grid;
+      gap: 4px;
+      min-width: 0;
+      flex: 1;
+    }
+    .category-copy strong {
+      font-size: 14px;
+      font-weight: 650;
+    }
+    .category-copy small {
+      font-size: 11px;
+      opacity: 0.75;
+      line-height: 1.3;
+    }
+    .category-count {
+      font-size: 11px;
+      opacity: 0.55;
+      font-variant-numeric: tabular-nums;
+    }
+    .category-button:focus-visible {
+      outline: 2px solid var(--primary-color);
+      outline-offset: 2px;
+    }
+    .settings-body {
+      display: grid;
+      gap: 12px;
+      min-width: 0;
+    }
+    .category-heading {
+      padding: 5px 0 13px;
+    }
+    .category-heading h2 {
+      font-size: 23px;
+      font-weight: 650;
+      letter-spacing: -0.025em;
+      margin: 8px 0 6px;
+    }
+    rs-settings-panel[hidden] {
+      display: none !important;
+    }
     @media (max-width: 850px) {
-      .settings-workspace { display: block; }
-      .settings-navigation { display: flex; overflow-x: auto; gap: 8px; position: relative; top: auto; padding: 0 0 14px; margin-bottom: 20px; scrollbar-width: thin; }
-      .category-button { flex: 0 0 auto; min-height: 48px; padding: 10px 13px; white-space: nowrap; }
-      .category-copy small, .category-count { display: none; }
-      .category-copy { display: block; }
-      .settings-intro { padding-bottom: 22px; }
+      .settings-workspace {
+        display: block;
+      }
+      .settings-navigation {
+        display: flex;
+        overflow-x: auto;
+        gap: 8px;
+        position: relative;
+        top: auto;
+        padding: 0 0 14px;
+        margin-bottom: 20px;
+        scrollbar-width: thin;
+      }
+      .category-button {
+        flex: 0 0 auto;
+        min-height: 48px;
+        padding: 10px 13px;
+        white-space: nowrap;
+      }
+      .category-copy small,
+      .category-count {
+        display: none;
+      }
+      .category-copy {
+        display: block;
+      }
+      .settings-intro {
+        padding-bottom: 22px;
+      }
     }
     @media (max-width: 500px) {
-      .settings-intro h1 { font-size: 28px; }
-      .category-button ha-icon { --mdc-icon-size: 18px; }
-      .category-heading h2 { font-size: 21px; }
+      .settings-intro h1 {
+        font-size: 28px;
+      }
+      .category-button ha-icon {
+        --mdc-icon-size: 18px;
+      }
+      .category-heading h2 {
+        font-size: 21px;
+      }
     }
 
     .loading {
@@ -9390,10 +9652,30 @@
     :host {
       display: block;
     }
-    .analytics-intro { padding: 8px 2px 24px; }
-    .analytics-intro .eyebrow { font-size: 10px; letter-spacing: .14em; font-weight: 750; text-transform: uppercase; color: var(--secondary-text-color); }
-    .analytics-intro h1 { margin: 9px 0 7px; font-size: clamp(25px, 3vw, 34px); line-height: 1.2; letter-spacing: -.04em; font-weight: 750; }
-    .analytics-intro p { margin: 0; max-width: 650px; font-size: 13px; line-height: 1.6; color: var(--secondary-text-color); }
+    .analytics-intro {
+      padding: 8px 2px 24px;
+    }
+    .analytics-intro .eyebrow {
+      font-size: 10px;
+      letter-spacing: 0.14em;
+      font-weight: 750;
+      text-transform: uppercase;
+      color: var(--secondary-text-color);
+    }
+    .analytics-intro h1 {
+      margin: 9px 0 7px;
+      font-size: clamp(25px, 3vw, 34px);
+      line-height: 1.2;
+      letter-spacing: -0.04em;
+      font-weight: 750;
+    }
+    .analytics-intro p {
+      margin: 0;
+      max-width: 650px;
+      font-size: 13px;
+      line-height: 1.6;
+      color: var(--secondary-text-color);
+    }
 
     .no-data {
       display: flex;
@@ -9482,12 +9764,19 @@
   `}};k([y({attribute:!1})],Q.prototype,`hass`,void 0),k([y({type:Object})],Q.prototype,`rooms`,void 0),k([y()],Q.prototype,`initialRoom`,void 0),k([y()],Q.prototype,`controlMode`,void 0),k([b()],Q.prototype,`_selectedRoom`,void 0),k([b()],Q.prototype,`_rangeStart`,void 0),k([b()],Q.prototype,`_rangeEnd`,void 0),k([b()],Q.prototype,`_data`,void 0),k([b()],Q.prototype,`_chartAnchor`,void 0),k([b()],Q.prototype,`_loading`,void 0),k([b()],Q.prototype,`_activeQuick`,void 0),k([b()],Q.prototype,`_comparison`,void 0),k([b()],Q.prototype,`_comparisonInfoExpanded`,void 0),Q=Zn=k([v(`rs-analytics`)],Q),_(),x(),A();var Qn=`M20,11V13H8L13.5,18.5L12.08,19.92L4.16,12L12.08,4.08L13.5,5.5L8,11H20Z`,$n=`M19,4H15.5L14.5,3H9.5L8.5,4H5V6H19M6,19A2,2 0 0,0 8,21H16A2,2 0 0,0 18,19V7H6V19Z`,er=`M16,11.78L20.24,4.45L21.97,5.45L16.74,14.5L10.23,10.75L5.46,19H22V21H2V3H4V17.54L9.5,8L16,11.78Z`,tr=`M15 13V5A3 3 0 0 0 9 5V13A5 5 0 1 0 15 13M12 4A1 1 0 0 1 13 5V8H11V5A1 1 0 0 1 12 4Z`,$=class extends g{constructor(...e){super(...e),this.narrow=!1,this.route={path:``},this.panel={},this._activeTab=`areas`,this._rooms={},this._roomsLoaded=!1,this._selectedAreaId=null,this._analyticsRoom=``,this._vacationActive=!1,this._vacationTemp=null,this._vacationUntil=null,this._hiddenRooms=[],this._showHiddenRooms=!1,this._controlMode=`bangbang`,this._climateControlActive=!0,this._presenceEnabled=!1,this._valveProtectionEnabled=!1,this._anyoneHome=!0,this._presencePersons=[],this._presenceAwayAction=`eco`,this._saveStatus=`idle`,this._roomOrder=[],this._groupByFloor=!1,this._reorderMode=!1,this._elementsLoaded=!1,this._routeApplied=!1,this._areaInfosCache=[],this._onSaveStatus=e=>{e.stopPropagation(),this._saveStatusTimeout&&clearTimeout(this._saveStatusTimeout),this._saveStatus=e.detail.status,e.detail.status===`saved`&&(this._saveStatusTimeout=setTimeout(()=>{this._saveStatus=`idle`},2e3))}}static{this.styles=l`
     :host {
       display: block;
-      font-family: var(--primary-font-family, Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif);
+      font-family: var(
+        --primary-font-family,
+        Inter,
+        -apple-system,
+        BlinkMacSystemFont,
+        "Segoe UI",
+        sans-serif
+      );
       color: var(--primary-text-color);
       background: var(--primary-background-color);
       min-height: 100vh;
       --rs-radius: 18px;
-      --rs-stroke: var(--divider-color, rgba(127,127,127,.16));
+      --rs-stroke: var(--divider-color, rgba(127, 127, 127, 0.16));
 
       /* Round the corners of all MDC-based inputs (ha-textfield, ha-select,
          ha-entity-picker, ha-combo-box) to match the rest of the design.
@@ -9512,13 +9801,26 @@
       top: 0;
       z-index: 4;
     }
-    .brand-mark { display: flex; align-items: center; justify-content: center; width: 34px; height: 34px; border-radius: 11px; background: var(--primary-color); color: white; margin-right: 10px; flex-shrink: 0; }
-    .brand-mark ha-icon { --mdc-icon-size: 19px; }
+    .brand-mark {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 34px;
+      height: 34px;
+      border-radius: 11px;
+      background: var(--primary-color);
+      color: white;
+      margin-right: 10px;
+      flex-shrink: 0;
+    }
+    .brand-mark ha-icon {
+      --mdc-icon-size: 19px;
+    }
 
     .toolbar .title {
       margin-left: 4px;
       font-weight: 750;
-      letter-spacing: -.035em;
+      letter-spacing: -0.035em;
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
@@ -9582,14 +9884,18 @@
       color: var(--secondary-text-color);
       font-size: 13px;
       font-weight: 650;
-      transition: background .18s ease, color .18s ease;
+      transition:
+        background 0.18s ease,
+        color 0.18s ease;
       font-family: inherit;
       display: inline-flex;
       align-items: center;
       gap: 9px;
       white-space: nowrap;
     }
-    .tab ha-icon { --mdc-icon-size: 18px; }
+    .tab ha-icon {
+      --mdc-icon-size: 18px;
+    }
 
     .tab:hover {
       color: var(--primary-text-color);
@@ -9599,8 +9905,13 @@
       background: var(--primary-background-color);
       color: var(--primary-text-color);
     }
-    .tab[active] ha-icon { color: var(--primary-color); }
-    .tab:focus-visible { outline: 2px solid var(--primary-color); outline-offset: -2px; }
+    .tab[active] ha-icon {
+      color: var(--primary-color);
+    }
+    .tab:focus-visible {
+      outline: 2px solid var(--primary-color);
+      outline-offset: -2px;
+    }
 
     .content {
       padding: 30px 24px 64px;
@@ -9610,10 +9921,23 @@
     }
 
     @media (max-width: 600px) {
-      .toolbar { padding: 0 10px; min-height: 56px; }
-      .tabs { top: 56px; padding: 7px 12px; gap: 4px; }
-      .tab { padding: 10px 12px; font-size: 12px; gap: 6px; }
-      .tab ha-icon { --mdc-icon-size: 16px; }
+      .toolbar {
+        padding: 0 10px;
+        min-height: 56px;
+      }
+      .tabs {
+        top: 56px;
+        padding: 7px 12px;
+        gap: 4px;
+      }
+      .tab {
+        padding: 10px 12px;
+        font-size: 12px;
+        gap: 6px;
+      }
+      .tab ha-icon {
+        --mdc-icon-size: 16px;
+      }
       .content {
         padding: 20px 14px 58px;
       }
@@ -9644,14 +9968,60 @@
       grid-template-columns: repeat(auto-fill, minmax(min(320px, 100%), 1fr));
       gap: 18px;
     }
-    .dashboard-heading { display: flex; justify-content: space-between; align-items: flex-end; gap: 18px; margin: 0 0 20px; }
-    .dashboard-heading h1 { margin: 7px 0 6px; font-weight: 750; letter-spacing: -.04em; font-size: clamp(25px,3vw,34px); line-height: 1.2; }
-    .dashboard-heading p { margin: 0; color: var(--secondary-text-color); line-height: 1.5; font-size: 13px; }
-    .dashboard-eyebrow { text-transform: uppercase; font-size: 10px !important; letter-spacing: .14em; font-weight: 750; }
-    .system-chip { display: inline-flex; align-items: center; gap: 9px; flex: 0 0 auto; padding: 10px 13px; font-size: 12px; font-weight: 650; border-radius: 999px; background: var(--card-background-color); border: 1px solid var(--rs-stroke); }
-    .system-chip .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--secondary-text-color); }
-    .system-chip.active .dot { background: var(--success-color, #36aa78); }
-    @media (max-width: 650px) { .dashboard-heading { align-items: flex-start; flex-direction: column; gap: 13px; } }
+    .dashboard-heading {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-end;
+      gap: 18px;
+      margin: 0 0 20px;
+    }
+    .dashboard-heading h1 {
+      margin: 7px 0 6px;
+      font-weight: 750;
+      letter-spacing: -0.04em;
+      font-size: clamp(25px, 3vw, 34px);
+      line-height: 1.2;
+    }
+    .dashboard-heading p {
+      margin: 0;
+      color: var(--secondary-text-color);
+      line-height: 1.5;
+      font-size: 13px;
+    }
+    .dashboard-eyebrow {
+      text-transform: uppercase;
+      font-size: 10px !important;
+      letter-spacing: 0.14em;
+      font-weight: 750;
+    }
+    .system-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 9px;
+      flex: 0 0 auto;
+      padding: 10px 13px;
+      font-size: 12px;
+      font-weight: 650;
+      border-radius: 999px;
+      background: var(--card-background-color);
+      border: 1px solid var(--rs-stroke);
+    }
+    .system-chip .dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--secondary-text-color);
+    }
+    .system-chip.active .dot {
+      background: var(--success-color, #36aa78);
+    }
+    @media (max-width: 650px) {
+      .dashboard-heading {
+        align-items: flex-start;
+        flex-direction: column;
+        gap: 13px;
+      }
+    }
 
     .loading {
       display: flex;
@@ -9728,7 +10098,7 @@
     .stat-value {
       font-size: 24px;
       font-weight: 700;
-      letter-spacing: -.04em;
+      letter-spacing: -0.04em;
       color: var(--primary-text-color);
       --mdc-icon-size: 22px;
       line-height: 1;
@@ -9742,7 +10112,7 @@
       font-size: 10px;
       color: var(--secondary-text-color);
       text-transform: uppercase;
-      letter-spacing: .09em;
+      letter-spacing: 0.09em;
     }
 
     .floor-heading {
@@ -9775,7 +10145,9 @@
               aria-label=${S(`panel.tab.rooms`,e)}
               @click=${this._onBackFromDetail}
             ></ha-icon-button>`:m`<ha-menu-button .hass=${this.hass} .narrow=${this.narrow}></ha-menu-button>`}
-        ${t?h:m`<span class="brand-mark"><ha-icon icon="mdi:home-thermometer-outline"></ha-icon></span>`}
+        ${t?h:m`<span class="brand-mark"
+              ><ha-icon icon="mdi:home-thermometer-outline"></ha-icon
+            ></span>`}
         <div class="title">
           ${t?this._rooms[this._selectedAreaId]?.display_name||n?.name||``:S(`panel.title`,e)}
         </div>
@@ -9800,7 +10172,9 @@
                     aria-current=${this._activeTab===e?`page`:`false`}
                     @click=${()=>this._onTabClicked(e)}
                   >
-                    <ha-icon icon=${e===`areas`?`mdi:home-outline`:e===`analytics`?`mdi:chart-areaspline`:`mdi:cog-outline`}></ha-icon>
+                    <ha-icon
+                      icon=${e===`areas`?`mdi:home-outline`:e===`analytics`?`mdi:chart-areaspline`:`mdi:cog-outline`}
+                    ></ha-icon>
                     ${r[e]}
                   </button>
                 `)}
@@ -9816,7 +10190,7 @@
           @room-selected=${this._onAnalyticsRoomSelected}
         ></rs-analytics>`;case`settings`:return this._renderSettings();default:return h}}_renderAreas(){if(!this._roomsLoaded)return m`<div class="loading">${S(`panel.loading`,this.hass.language)}</div>`;if(this._selectedAreaId){let e=this.hass?.areas?.[this._selectedAreaId];if(e){let t=this._rooms[this._selectedAreaId]??null;return m`
           <rs-room-detail
-              .rooms=${this._rooms}
+            .rooms=${this._rooms}
             .area=${e}
             .config=${t}
             .hass=${this.hass}
