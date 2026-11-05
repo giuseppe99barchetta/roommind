@@ -138,7 +138,7 @@ def test_energy_manager_converts_kw_sensor():
         "climate.ac": _State("cool", {"hvac_modes": ["cool"]}),
     }
     manager = EnergyManager(_hass(states))
-    power, configured = manager.read_power_w(
+    power, configured, _ = manager.read_power_breakdown(
         {"devices": [{"entity_id": "climate.ac", "type": "ac", "power_sensor_entity_id": "sensor.ac_power"}]}
     )
     assert configured == 1

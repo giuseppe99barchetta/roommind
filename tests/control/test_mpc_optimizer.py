@@ -564,7 +564,6 @@ def test_ufh_afterglow_visible_in_cost():
     model = RCModel(C=200.0, U=50.0, Q_heat=300.0, Q_cool=1500.0)
     shared = {
         "T_room": 20.0,
-        "T_outdoor": 5.0,
         "heat_target": 20.0,
         "cool_target": 20.0,
         "future_T_outdoor": [5.0] * 30,
@@ -650,7 +649,6 @@ def test_cooling_lookahead_no_afterglow_synthesis():
     )
     shared = {
         "T_room": 25.0,
-        "T_outdoor": 28.0,
         "heat_target": 22.0,
         "cool_target": 22.0,
         "future_T_outdoor": [28.0] * 30,

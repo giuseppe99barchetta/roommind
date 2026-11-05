@@ -16,10 +16,6 @@ class WindowManager:
         self._recovery_minutes: dict[str, int] = {}
         self._seen: set[str] = set()
 
-    def is_paused(self, area_id: str) -> bool:
-        """Return True if climate control is paused due to open window."""
-        return self._paused.get(area_id, False)
-
     def update(
         self,
         area_id: str,

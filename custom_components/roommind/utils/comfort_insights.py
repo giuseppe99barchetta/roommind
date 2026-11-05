@@ -5,17 +5,21 @@ from __future__ import annotations
 from typing import Any
 
 DEFAULT_PROFILES: dict[str, dict[str, Any]] = {
-    "work": {"label": "Lavoro", "heat_target": 21.0, "cool_target": 25.0, "humidity_target": 55.0, "fan_mode": "auto"},
-    "sleep": {"label": "Sonno", "heat_target": 19.5, "cool_target": 26.0, "humidity_target": 55.0, "fan_mode": "low"},
-    "guests": {
-        "label": "Ospiti",
-        "heat_target": 21.5,
-        "cool_target": 24.5,
-        "humidity_target": 50.0,
-        "fan_mode": "auto",
-    },
-    "away": {"label": "Assente", "heat_target": 17.0, "cool_target": 28.0, "humidity_target": 60.0, "fan_mode": "low"},
+    "work": {"heat_target": 21.0, "cool_target": 25.0, "humidity_target": 55.0, "fan_mode": "auto"},
+    "sleep": {"heat_target": 19.5, "cool_target": 26.0, "humidity_target": 55.0, "fan_mode": "low"},
+    "guests": {"heat_target": 21.5, "cool_target": 24.5, "humidity_target": 50.0, "fan_mode": "auto"},
+    "away": {"heat_target": 17.0, "cool_target": 28.0, "humidity_target": 60.0, "fan_mode": "low"},
 }
+_PROFILE_TARGET_KEYS = ("heat_target", "cool_target", "humidity_target")
+
+
+def _effective_profiles(room: dict) -> dict[str, dict[str, Any]]:
+    """Return the default profiles merged with the room's customisations."""
+    profiles = {key: dict(value) for key, value in DEFAULT_PROFILES.items()}
+    for key, value in (room.get("comfort_profiles") or {}).items():
+        if isinstance(value, dict):
+            profiles[key] = {**profiles.get(key, {}), **value}
+    return profiles
 
 
 def active_profile(room: dict) -> dict[str, Any] | None:
@@ -23,12 +27,17 @@ def active_profile(room: dict) -> dict[str, Any] | None:
     profile_id = room.get("active_profile", "")
     if not profile_id:
         return None
-    profiles = {key: dict(value) for key, value in DEFAULT_PROFILES.items()}
-    for key, value in (room.get("comfort_profiles") or {}).items():
-        if isinstance(value, dict):
-            profiles[key] = {**profiles.get(key, {}), **value}
-    profile = profiles.get(profile_id)
+    profile = _effective_profiles(room).get(profile_id)
     return profile if isinstance(profile, dict) else None
+
+
+def profile_targets(room: dict) -> dict[str, dict[str, float]]:
+    """Return the numeric targets each built-in profile applies to this room."""
+    return {
+        profile_id: {key: profile[key] for key in _PROFILE_TARGET_KEYS if key in profile}
+        for profile_id, profile in _effective_profiles(room).items()
+        if profile_id in DEFAULT_PROFILES
+    }
 
 
 def calculate_comfort_score(

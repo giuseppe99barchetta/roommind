@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from unittest.mock import AsyncMock, MagicMock, patch
 
-from tests.conftest import make_mock_states_get  # noqa: F401
+from tests.conftest import make_mock_states_get
 
 SAMPLE_ROOM = {
     "area_id": "living_room_abc12345",

@@ -191,7 +191,7 @@ class DehumidifierManager:
             for d in self.devices.values()
         )
 
-    def collect(self, rooms: dict, humidities: dict, molds: dict, exposures: dict) -> None:
+    def collect(self, rooms: dict, humidities: dict, molds: dict) -> None:
         """Allocate each demand once; stable ordering makes overlaps deterministic."""
         for area_id, room in sorted(rooms.items()):
             if room.get("is_outdoor") or not room.get("climate_control_enabled", True):
@@ -265,7 +265,7 @@ class DehumidifierManager:
         for device in ordered:
             try:
                 await self._apply_device(device, budget)
-            except Exception:  # noqa: BLE001
+            except Exception:
                 device["reason"] = "error"
                 _LOGGER.exception("Dehumidifier '%s': command failed", device["entity_id"])
 

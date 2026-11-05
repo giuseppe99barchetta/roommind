@@ -1,8 +1,9 @@
 /** Per-room comfort profiles and gradual night mode controls. */
 import { LitElement, html, css } from "lit";
 import { customElement, property } from "lit/decorators.js";
-import type { HomeAssistant } from "../types";
+import type { ClimateMode, ComfortProfileTargets, HomeAssistant, RoomConfig } from "../types";
 import { localize } from "../utils/localize";
+import { formatTemp, tempUnit } from "../utils/temperature";
 import "./shared/rs-toggle-row";
 
 const PROFILES = ["", "work", "sleep", "guests", "away"] as const;
@@ -11,6 +12,8 @@ const PROFILES = ["", "work", "sleep", "guests", "away"] as const;
 export class RsComfortSection extends LitElement {
   @property({ attribute: false }) public hass!: HomeAssistant;
   @property({ type: String }) public activeProfile = "";
+  @property({ attribute: false }) public profileTargets: RoomConfig["profile_targets"] = {};
+  @property({ type: String }) public climateMode: ClimateMode = "auto";
   @property({ type: Boolean }) public nightModeEnabled = false;
   @property({ type: String }) public nightStart = "22:00";
   @property({ type: String }) public nightEnd = "07:00";
@@ -51,6 +54,12 @@ export class RsComfortSection extends LitElement {
     }
     button.default {
       grid-column: 1 / -1;
+    }
+    .profile-target {
+      display: block;
+      margin-top: 2px;
+      color: var(--secondary-text-color);
+      font-size: 11px;
     }
     .profile-hint {
       margin: -4px 0 10px;
@@ -99,6 +108,16 @@ export class RsComfortSection extends LitElement {
     }
   `;
 
+  private _targetLabel(targets: ComfortProfileTargets | undefined) {
+    if (!targets) return "";
+    const heat = this.climateMode === "cool_only" ? undefined : targets.heat_target;
+    const cool = this.climateMode === "heat_only" ? undefined : targets.cool_target;
+    const parts = [heat, cool].filter((t): t is number => t != null);
+    if (!parts.length) return "";
+    const text = parts.map((t) => formatTemp(t, this.hass)).join(" – ");
+    return html`<span class="profile-target">${text}${tempUnit(this.hass)}</span>`;
+  }
+
   render() {
     const l = this.hass.language;
     return html`
@@ -117,6 +136,7 @@ export class RsComfortSection extends LitElement {
                 this._emit("active_profile", this.activeProfile === profile ? "" : profile)}
             >
               ${localize(`comfort.profile.${profile || "default"}`, l)}
+              ${profile ? this._targetLabel(this.profileTargets?.[profile]) : ""}
             </button>`,
         )}
       </div>

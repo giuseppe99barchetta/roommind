@@ -52,7 +52,6 @@ def _is_person_home(hass: HomeAssistant, person_entity: str) -> bool:
 async def async_send_mold_notification(
     hass: HomeAssistant,
     area_id: str,
-    area_name: str,
     targets: list[dict],
     message: str,
     title: str,
@@ -71,7 +70,6 @@ async def async_send_mold_notification(
 
     Args:
         hass: Home Assistant instance.
-        area_id: Room/area identifier (used for deduplication tags).
         area_name: Human-readable area name (for display in notifications).
         targets: List of notification target dicts.
         message: Notification body text.
@@ -116,7 +114,7 @@ async def async_send_mold_notification(
                 blocking=True,
             )
             sent_any = True
-        except Exception:  # noqa: BLE001
+        except Exception:
             _LOGGER.warning("Failed to send mold notification to %s", entity_id, exc_info=True)
 
     if not sent_any:

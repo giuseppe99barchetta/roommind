@@ -343,7 +343,7 @@ class CoverOrchestrator:
                     q_solar_series=solar_series,
                 )
                 return max(trajectory)
-        except Exception:  # noqa: BLE001
+        except Exception:
             pass
 
         # Tier 2: Linear fallback using daily solar peak + cloud forecast.
@@ -371,7 +371,7 @@ class CoverOrchestrator:
                 q_solar=COVER_CONFIDENCE_REFERENCE_SOLAR,
             )
             return pred_std < COVER_MAX_PREDICTION_STD
-        except Exception:  # noqa: BLE001
+        except Exception:
             return False
 
     def get_current_position(self, area_id: str) -> int:

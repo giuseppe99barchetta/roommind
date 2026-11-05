@@ -148,11 +148,6 @@ class CompressorGroupManager:
         """Return group ID for an entity, or None."""
         return self._entity_to_group.get(entity_id)
 
-    def is_compressor_running(self, group_id: str) -> bool:
-        """True if any member in the group is active."""
-        state = self._states.get(group_id)
-        return bool(state and state.active_members)
-
     def get_groups(self) -> dict[str, CompressorGroupConfig]:
         """Return all group configs."""
         return self._groups

@@ -466,6 +466,22 @@ class TestCoverageGaps:
         store.async_save_thermal_data.assert_called_once()
 
     @pytest.mark.asyncio
+    async def test_history_rotation_runs_on_first_cycle_after_start(self, hass, mock_config_entry):
+        """Frequent restarts must not prevent the detail CSV from ever rotating (P3)."""
+        store = _make_store_mock({"living_room_abc12345": SAMPLE_ROOM})
+        hass.data = {"roommind": {"store": store}}
+        hass.states.get = MagicMock(side_effect=make_mock_states_get())
+        hass.services.async_call = AsyncMock()
+
+        coordinator = _create_coordinator(hass, mock_config_entry)
+        mock_history = MagicMock()
+        coordinator._history_store = mock_history
+
+        await coordinator._async_update_data()
+
+        hass.async_add_executor_job.assert_any_call(mock_history.rotate, "living_room_abc12345")
+
+    @pytest.mark.asyncio
     async def test_history_rotation_periodically(self, hass, mock_config_entry):
         """History is rotated when rotation cycle reaches threshold."""
         from custom_components.roommind.const import HISTORY_ROTATE_CYCLES

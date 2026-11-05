@@ -456,7 +456,7 @@ class TestHeatSourceOrchestration:
 
         # Activate one AC
         coordinator._compressor_manager.update_member("climate.ac_a", True)
-        assert coordinator._compressor_manager.is_compressor_running("shared_outdoor") is True
+        assert bool(coordinator._compressor_manager.get_state("shared_outdoor").active_members) is True
 
         # The other AC can join (compressor already running)
         assert coordinator._compressor_manager.check_can_activate("climate.ac_b") is True
@@ -464,11 +464,11 @@ class TestHeatSourceOrchestration:
         # Deactivate ac_a, ac_b still keeps compressor running
         coordinator._compressor_manager.update_member("climate.ac_b", True)
         coordinator._compressor_manager.update_member("climate.ac_a", False)
-        assert coordinator._compressor_manager.is_compressor_running("shared_outdoor") is True
+        assert bool(coordinator._compressor_manager.get_state("shared_outdoor").active_members) is True
 
         # Deactivate last member, compressor stops
         coordinator._compressor_manager.update_member("climate.ac_b", False)
-        assert coordinator._compressor_manager.is_compressor_running("shared_outdoor") is False
+        assert bool(coordinator._compressor_manager.get_state("shared_outdoor").active_members) is False
 
     @pytest.mark.asyncio
     async def test_compressor_min_off_blocks_ac_in_cool_only_room_with_trv(self, hass, mock_config_entry):

@@ -178,7 +178,6 @@ def simulate_prediction(
         acs_can_heat=acs_can_heat,
         q_residual=q_residual,
         heating_system_type=heating_system_type,
-        heating_duration_minutes=heating_duration_minutes,
         last_power_fraction=last_power_fraction,
         q_occupancy=q_occupancy,
     )
@@ -367,7 +366,6 @@ def _simulate_bangbang(
     acs_can_heat: bool = False,
     q_residual: float = 0.0,
     heating_system_type: str = "",
-    heating_duration_minutes: float = 0.0,
     last_power_fraction: float = 1.0,
     q_occupancy: float = 0.0,
 ) -> list[float]:

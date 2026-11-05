@@ -607,3 +607,70 @@ def test_downsample_takes_first_device_setpoint(history_dir):
     result = store._downsample(rows, bucket_seconds=300)
     assert len(result) == 1
     assert result[0]["device_setpoint"] == "24.0"
+
+
+def _write_old_format(path, rows):
+    import csv
+
+    old_fields = ["timestamp", "room_temp", "mode"]
+    with open(path, "w", newline="") as f:
+        writer = csv.DictWriter(f, fieldnames=old_fields)
+        writer.writeheader()
+        writer.writerows(rows)
+
+
+def test_rewrite_failure_leaves_original_file_intact(history_dir, monkeypatch):
+    """A crash while rewriting a CSV must not truncate the existing file (S1)."""
+    import csv
+
+    store = HistoryStore(history_dir)
+    for ts in (1000.0, 2000.0):
+        store.record("room_a", {"room_temp": 20.0, "mode": "idle"}, timestamp=ts)
+    path = store._detail_path("room_a")
+    with open(path, "rb") as f:
+        before = f.read()
+
+    def boom(self, rows):
+        raise OSError("disk full")
+
+    monkeypatch.setattr(csv.DictWriter, "writerows", boom)
+    with pytest.raises(OSError):
+        store._rewrite_csv(path, [{"timestamp": 3000.0}])
+
+    with open(path, "rb") as f:
+        assert f.read() == before
+    assert os.listdir(history_dir) == ["room_a_detail.csv"]
+
+
+def test_failed_header_migration_does_not_append(history_dir, monkeypatch, caplog):
+    """If the old file cannot be migrated, record() must not mix formats (S1, review R7)."""
+    import csv
+
+    store = HistoryStore(history_dir)
+    os.makedirs(history_dir, exist_ok=True)
+    path = store._detail_path("room_a")
+    _write_old_format(path, [{"timestamp": "1000", "room_temp": "20.0", "mode": "heating"}])
+    with open(path, "rb") as f:
+        before = f.read()
+
+    def boom(self, rows):
+        raise OSError("disk full")
+
+    monkeypatch.setattr(csv.DictWriter, "writerows", boom)
+    store.record("room_a", {"room_temp": 22.0, "mode": "idle"}, timestamp=2000.0)
+
+    with open(path, "rb") as f:
+        assert f.read() == before
+    assert "room_a_detail.csv" in caplog.text
+
+
+def test_read_filters_out_of_order_timestamps(history_dir):
+    """Filtering scans the whole file: rows are not guaranteed to be sorted (P1, review R6)."""
+    store = HistoryStore(history_dir)
+    for ts in (5000.0, 1000.0, 6000.0, 2000.0, 5500.0):
+        store.record("room_a", {"room_temp": ts / 1000, "ac_device_power_w": {"climate.a": ts}}, timestamp=ts)
+
+    rows = store.read_detail("room_a", start_ts=4000.0, end_ts=5800.0)
+
+    assert [float(r["timestamp"]) for r in rows] == [5000.0, 5500.0]
+    assert [r["ac_device_power_w"] for r in rows] == [{"climate.a": 5000.0}, {"climate.a": 5500.0}]

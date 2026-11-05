@@ -162,7 +162,6 @@ class MPCOptimizer:
                     cost = self._evaluate_action(
                         action,
                         current_temp,
-                        T_out,
                         heat_tgt,
                         cool_tgt,
                         T_outdoor_series[i:],
@@ -237,7 +236,6 @@ class MPCOptimizer:
         self,
         action: str,
         T_room: float,
-        T_outdoor: float,
         heat_target: float,
         cool_target: float,
         future_T_outdoor: list[float],

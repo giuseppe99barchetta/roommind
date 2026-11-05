@@ -21,6 +21,26 @@
           }
         }
       }
+    },
+    "sensor_stale": {
+      "title": "{room}: temperature sensor is not updating",
+      "description": "RoomMind cannot receive a current room temperature. Check that the configured sensor is available and reporting updates."
+    },
+    "long_run": {
+      "title": "{room}: climate device has been running for a long time",
+      "description": "Check the room temperature, open windows, and the device configuration. The configured run-time threshold has been exceeded."
+    },
+    "target_not_reached": {
+      "title": "{room}: target temperature is not being reached",
+      "description": "Check the temperature sensor, device availability, and whether the room has enough heating or cooling capacity."
+    },
+    "humidity_high": {
+      "title": "{room}: humidity is well above the comfort target",
+      "description": "Check ventilation, the humidity sensor, and whether a dehumidification device is available."
+    },
+    "ac_efficiency": {
+      "title": "{room}: air conditioner may be underperforming",
+      "description": "RoomMind observed low temperature response for the measured power. Check filters, outdoor conditions, and the device."
     }
   },
   "entity": {

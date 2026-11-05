@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+import math
 import time
 from contextlib import nullcontext
 from typing import TYPE_CHECKING
@@ -10,6 +11,7 @@ from typing import TYPE_CHECKING
 import voluptuous as vol
 from homeassistant.components import websocket_api
 from homeassistant.core import HomeAssistant, callback, valid_entity_id
+from homeassistant.helpers import config_validation as cv
 from homeassistant.helpers import entity_registry as er
 
 from .const import (
@@ -34,9 +36,39 @@ from .services.analytics_service import (
     build_analytics_data,
     build_comparison_data,
 )
+from .utils.comfort_insights import profile_targets
+from .utils.device_utils import VALID_DEVICE_TYPES, VALID_HEATING_SYSTEM_TYPES, is_ac_type
 from .utils.room_insights import build_decision_reasons, build_room_readiness
 
 _LOGGER = logging.getLogger(__name__)
+
+
+def _finite(value: float) -> float:
+    """Reject NaN and +/-inf, which pass every vol.Range check."""
+    if not math.isfinite(value):
+        raise vol.Invalid("must be a finite number")
+    return value
+
+
+_FLOAT = vol.All(vol.Coerce(float), _finite)
+# Temperatures arrive in Celsius: the frontend converts with toCelsius().
+_TEMP_C = vol.All(_FLOAT, vol.Range(min=5, max=35))
+_CLIMATE_ENTITY = cv.entity_domain("climate")
+_COMFORT_PROFILE_SCHEMA = vol.Schema(
+    {
+        vol.Optional("heat_target"): _TEMP_C,
+        vol.Optional("cool_target"): _TEMP_C,
+        vol.Optional("humidity_target"): vol.All(_FLOAT, vol.Range(min=30, max=80)),
+        vol.Optional("fan_mode"): str,
+        vol.Optional("label"): str,
+    }
+)
+# (heat, cool) pairs that must keep cool >= heat, like override/set.
+_HEAT_COOL_PAIRS = (
+    ("comfort_heat", "comfort_cool"),
+    ("eco_heat", "eco_cool"),
+    ("logical_heat_target", "logical_cool_target"),
+)
 
 
 def _validate_device_idle_action(device: dict) -> dict:
@@ -46,7 +78,7 @@ def _validate_device_idle_action(device: dict) -> dict:
     device in its active hvac_mode. For ACs this would cool continuously
     toward the minimum, which is never the intent. Restrict "low" to TRVs.
     """
-    if device.get("type") == "ac" and device.get("idle_action") == "low":
+    if is_ac_type(device) and device.get("idle_action") == "low":
         raise vol.Invalid("idle_action='low' is only supported for TRVs (type='trv')")
     return device
 
@@ -156,7 +188,6 @@ _SETTINGS_SAVE_FIELDS = (
     "outdoor_humidity_sensor",
     "outdoor_cooling_min",
     "outdoor_heating_max",
-    "control_mode",
     "comfort_weight",
     "weather_entity",
     "outdoor_unavailable_notify",
@@ -182,10 +213,8 @@ _SETTINGS_SAVE_FIELDS = (
     "mold_notification_targets",
     "mold_prevention_enabled",
     "mold_prevention_sustained_minutes",
-    "mold_prevention_intensity",
     "mold_prevention_dehumidification_enabled",
     "mold_prevention_dry_min_temperature",
-    "mold_prevention_reheat_enabled",
     "mold_prevention_notify_enabled",
     "mold_prevention_notify_targets",
     "window_open_notification_minutes",
@@ -397,6 +426,7 @@ async def websocket_list_rooms(
             "heat_source_reason": live.get("heat_source_reason", "inactive"),
         }
         room_data["readiness"] = build_room_readiness(room_config, settings, outdoor_available)
+        room_data["profile_targets"] = profile_targets(room_config)
         room_data["live"]["decision_reasons"] = build_decision_reasons(room_data["live"])
         result[area_id] = room_data
 
@@ -435,19 +465,20 @@ async def websocket_list_rooms(
 # ---------------------------------------------------------------------------
 
 
+@websocket_api.require_admin
 @websocket_api.websocket_command(
     {
         vol.Required("type"): "roommind/rooms/save",
         vol.Required("area_id"): str,
-        vol.Optional("thermostats"): [str],
-        vol.Optional("acs"): [str],
+        vol.Optional("thermostats"): [_CLIMATE_ENTITY],
+        vol.Optional("acs"): [_CLIMATE_ENTITY],
         vol.Optional("devices"): [
             vol.All(
                 {
-                    vol.Required("entity_id"): str,
-                    vol.Required("type"): vol.In(["trv", "ac"]),
+                    vol.Required("entity_id"): _CLIMATE_ENTITY,
+                    vol.Required("type"): vol.In(VALID_DEVICE_TYPES),
                     vol.Optional("role", default="auto"): vol.In(["primary", "secondary", "auto"]),
-                    vol.Optional("heating_system_type", default=""): vol.In(["", "radiator", "underfloor"]),
+                    vol.Optional("heating_system_type", default=""): vol.In(VALID_HEATING_SYSTEM_TYPES),
                     vol.Optional("idle_action", default="off"): vol.In(["off", "fan_only", "setback", "low"]),
                     vol.Optional("idle_fan_mode", default="low"): str,
                     vol.Optional("fan_only_only_after_cooling", default=False): bool,
@@ -468,9 +499,9 @@ async def websocket_list_rooms(
                 vol.Required("entity_id"): str,
                 vol.Optional("served_area_ids", default=list): [str],
                 vol.Optional("mode", default="auto"): vol.In(("auto", "manual")),
-                vol.Optional("min_run_minutes", default=5): vol.All(vol.Coerce(float), vol.Range(min=0, max=1440)),
-                vol.Optional("min_off_minutes", default=5): vol.All(vol.Coerce(float), vol.Range(min=0, max=1440)),
-                vol.Optional("power_watts", default=0): vol.All(vol.Coerce(float), vol.Range(min=0, max=100000)),
+                vol.Optional("min_run_minutes", default=5): vol.All(_FLOAT, vol.Range(min=0, max=1440)),
+                vol.Optional("min_off_minutes", default=5): vol.All(_FLOAT, vol.Range(min=0, max=1440)),
+                vol.Optional("power_watts", default=0): vol.All(_FLOAT, vol.Range(min=0, max=100000)),
             },
         ),
         vol.Optional("dry_entity_type"): vol.In(["switch", "humidifier"]),
@@ -479,23 +510,23 @@ async def websocket_list_rooms(
         vol.Optional("schedules"): [{vol.Required("entity_id"): str}],
         vol.Optional("schedule_selector_entity"): str,
         vol.Optional("window_sensors"): [str],
-        vol.Optional("window_open_delay"): vol.Coerce(int),
-        vol.Optional("window_close_delay"): vol.Coerce(int),
+        vol.Optional("window_open_delay"): vol.All(vol.Coerce(int), vol.Clamp(min=0, max=3600)),
+        vol.Optional("window_close_delay"): vol.All(vol.Coerce(int), vol.Clamp(min=0, max=3600)),
         vol.Optional("keep_fan_only_on_window_open"): bool,
-        vol.Optional("comfort_temp"): vol.Coerce(float),
-        vol.Optional("eco_temp"): vol.Coerce(float),
-        vol.Optional("comfort_heat"): vol.Coerce(float),
-        vol.Optional("comfort_cool"): vol.Coerce(float),
-        vol.Optional("eco_heat"): vol.Coerce(float),
-        vol.Optional("eco_cool"): vol.Coerce(float),
+        vol.Optional("comfort_temp"): _TEMP_C,
+        vol.Optional("eco_temp"): _TEMP_C,
+        vol.Optional("comfort_heat"): _TEMP_C,
+        vol.Optional("comfort_cool"): _TEMP_C,
+        vol.Optional("eco_heat"): _TEMP_C,
+        vol.Optional("eco_cool"): _TEMP_C,
         vol.Optional("presence_persons"): [str],
         vol.Optional("display_name"): str,
-        vol.Optional("heating_system_type"): vol.In(["", "radiator", "underfloor"]),
+        vol.Optional("heating_system_type"): vol.In(VALID_HEATING_SYSTEM_TYPES),
         vol.Optional("covers"): [str],
         vol.Optional("covers_auto_enabled"): bool,
-        vol.Optional("covers_deploy_threshold"): vol.All(vol.Coerce(float), vol.Range(min=0)),
+        vol.Optional("covers_deploy_threshold"): vol.All(_FLOAT, vol.Range(min=0)),
         vol.Optional("covers_min_position"): vol.All(vol.Coerce(int), vol.Range(min=0, max=99)),
-        vol.Optional("covers_outdoor_min_temp"): vol.Any(None, vol.All(vol.Coerce(float), vol.Range(min=0, max=35))),
+        vol.Optional("covers_outdoor_min_temp"): vol.Any(None, vol.All(_FLOAT, vol.Range(min=0, max=35))),
         vol.Optional("covers_override_minutes"): vol.All(vol.Coerce(int), vol.Range(min=0, max=480)),
         vol.Optional("cover_schedules"): [
             {
@@ -506,7 +537,7 @@ async def websocket_list_rooms(
         vol.Optional("cover_schedule_selector_entity"): str,
         vol.Optional("cover_orientations"): {str: vol.All(vol.Coerce(int), vol.Range(min=0, max=359))},
         vol.Optional("covers_night_close"): bool,
-        vol.Optional("covers_night_close_elevation"): vol.All(vol.Coerce(float), vol.Range(min=-18, max=10)),
+        vol.Optional("covers_night_close_elevation"): vol.All(_FLOAT, vol.Range(min=-18, max=10)),
         vol.Optional("covers_night_close_offset_minutes"): vol.All(vol.Coerce(int), vol.Range(min=-120, max=120)),
         vol.Optional("covers_night_position"): vol.All(vol.Coerce(int), vol.Range(min=0, max=100)),
         vol.Optional("covers_snap_deploy"): bool,
@@ -515,19 +546,19 @@ async def websocket_list_rooms(
         vol.Optional("is_outdoor"): bool,
         vol.Optional("valve_protection_exclude"): [str],
         vol.Optional("heat_source_orchestration"): bool,
-        vol.Optional("heat_source_primary_delta"): vol.All(vol.Coerce(float), vol.Range(min=0.5, max=5.0)),
-        vol.Optional("heat_source_outdoor_threshold"): vol.All(vol.Coerce(float), vol.Range(min=-20, max=25)),
-        vol.Optional("heat_source_ac_min_outdoor"): vol.All(vol.Coerce(float), vol.Range(min=-30, max=5)),
+        vol.Optional("heat_source_primary_delta"): vol.All(_FLOAT, vol.Range(min=0.5, max=5.0)),
+        vol.Optional("heat_source_outdoor_threshold"): vol.All(_FLOAT, vol.Range(min=-20, max=25)),
+        vol.Optional("heat_source_ac_min_outdoor"): vol.All(_FLOAT, vol.Range(min=-30, max=5)),
         vol.Optional("native_heat_source"): bool,
-        vol.Optional("heat_pump_power_watts"): vol.All(vol.Coerce(float), vol.Range(min=0, max=20000)),
-        vol.Optional("heat_source_boiler_outdoor_threshold"): vol.All(vol.Coerce(float), vol.Range(min=-30, max=20)),
-        vol.Optional("heat_source_heat_pump_outdoor_threshold"): vol.All(vol.Coerce(float), vol.Range(min=-20, max=35)),
-        vol.Optional("heat_source_hybrid_delta"): vol.All(vol.Coerce(float), vol.Range(min=0, max=10)),
-        vol.Optional("heat_source_hysteresis"): vol.All(vol.Coerce(float), vol.Range(min=0, max=5)),
-        vol.Optional("heat_source_min_dwell_minutes"): vol.All(vol.Coerce(float), vol.Range(min=0, max=240)),
+        vol.Optional("heat_pump_power_watts"): vol.All(_FLOAT, vol.Range(min=0, max=20000)),
+        vol.Optional("heat_source_boiler_outdoor_threshold"): vol.All(_FLOAT, vol.Range(min=-30, max=20)),
+        vol.Optional("heat_source_heat_pump_outdoor_threshold"): vol.All(_FLOAT, vol.Range(min=-20, max=35)),
+        vol.Optional("heat_source_hybrid_delta"): vol.All(_FLOAT, vol.Range(min=0, max=10)),
+        vol.Optional("heat_source_hysteresis"): vol.All(_FLOAT, vol.Range(min=0, max=5)),
+        vol.Optional("heat_source_min_dwell_minutes"): vol.All(_FLOAT, vol.Range(min=0, max=240)),
         vol.Optional("climate_control_enabled"): bool,
-        vol.Optional("logical_heat_target"): vol.Coerce(float),
-        vol.Optional("logical_cool_target"): vol.Coerce(float),
+        vol.Optional("logical_heat_target"): _TEMP_C,
+        vol.Optional("logical_cool_target"): _TEMP_C,
         vol.Optional("room_hvac_mode"): vol.Any(
             None, vol.In(["off", "heat", "cool", "heat_cool", "auto", "dry", "fan_only"])
         ),
@@ -537,28 +568,28 @@ async def websocket_list_rooms(
         vol.Optional("night_mode_enabled"): bool,
         vol.Optional("night_start"): vol.Match(r"^([01]\d|2[0-3]):[0-5]\d$"),
         vol.Optional("night_end"): vol.Match(r"^([01]\d|2[0-3]):[0-5]\d$"),
-        vol.Optional("night_heat_delta"): vol.All(vol.Coerce(float), vol.Range(min=-5, max=0)),
-        vol.Optional("night_cool_delta"): vol.All(vol.Coerce(float), vol.Range(min=0, max=5)),
+        vol.Optional("night_heat_delta"): vol.All(_FLOAT, vol.Range(min=-5, max=0)),
+        vol.Optional("night_cool_delta"): vol.All(_FLOAT, vol.Range(min=0, max=5)),
         vol.Optional("night_ramp_minutes"): vol.All(vol.Coerce(int), vol.Range(min=0, max=240)),
         vol.Optional("night_fan_mode"): str,
         vol.Optional("smart_ventilation_enabled"): bool,
         vol.Optional("smart_ventilation_minutes"): vol.All(vol.Coerce(int), vol.Range(min=1, max=120)),
-        vol.Optional("smart_ventilation_max_humidity"): vol.All(vol.Coerce(float), vol.Range(min=0, max=100)),
-        vol.Optional("mold_f_rsi"): vol.All(vol.Coerce(float), vol.Range(min=0.5, max=0.95)),
-        vol.Optional("smart_ventilation_max_temp_delta"): vol.All(vol.Coerce(float), vol.Range(min=0, max=5)),
+        vol.Optional("smart_ventilation_max_humidity"): vol.All(_FLOAT, vol.Range(min=0, max=100)),
+        vol.Optional("mold_f_rsi"): vol.All(_FLOAT, vol.Range(min=0.5, max=0.95)),
+        vol.Optional("smart_ventilation_max_temp_delta"): vol.All(_FLOAT, vol.Range(min=0, max=5)),
         vol.Optional("smart_ventilation_fan_mode"): str,
         vol.Optional("window_smart_recovery_enabled"): bool,
         vol.Optional("window_recovery_ramp_minutes"): vol.All(vol.Coerce(int), vol.Range(min=0, max=120)),
         vol.Optional("preconditioning_enabled"): bool,
         vol.Optional("humidity_comfort_enabled"): bool,
-        vol.Optional("humidity_target"): vol.All(vol.Coerce(float), vol.Range(min=30, max=80)),
-        vol.Optional("humidity_tolerance"): vol.All(vol.Coerce(float), vol.Range(min=0, max=20)),
+        vol.Optional("humidity_target"): vol.All(_FLOAT, vol.Range(min=30, max=80)),
+        vol.Optional("humidity_tolerance"): vol.All(_FLOAT, vol.Range(min=0, max=20)),
         vol.Optional("humidity_priority"): vol.In(["energy", "balanced", "comfort"]),
         vol.Optional("active_profile"): vol.In(["", "work", "sleep", "guests", "away"]),
-        vol.Optional("comfort_profiles"): {str: dict},
+        vol.Optional("comfort_profiles"): {vol.In(["work", "sleep", "guests", "away"]): _COMFORT_PROFILE_SCHEMA},
         vol.Optional("anomaly_detection_enabled"): bool,
         vol.Optional("anomaly_max_run_minutes"): vol.All(vol.Coerce(int), vol.Range(min=30, max=1440)),
-        vol.Optional("anomaly_target_error_c"): vol.All(vol.Coerce(float), vol.Range(min=0.5, max=10)),
+        vol.Optional("anomaly_target_error_c"): vol.All(_FLOAT, vol.Range(min=0.5, max=10)),
     }
 )
 @websocket_api.async_response
@@ -577,6 +608,11 @@ async def websocket_save_room(
         if key in msg:
             config[key] = msg[key]
 
+    # Legacy aliases (old frontends, scripts): canonical fields win when both are sent.
+    for alias, canonical in (("comfort_temp", "comfort_heat"), ("eco_temp", "eco_heat")):
+        if alias in config:
+            config.setdefault(canonical, config.pop(alias))
+
     # Reject RoomMind's own entities to prevent self-assignment (#86)
     own_prefix = f"{DOMAIN}_"
     err = _validate_no_own_entities(config, own_prefix)
@@ -588,6 +624,15 @@ async def websocket_save_room(
     if err:
         connection.send_error(msg["id"], "duplicate_entity", err)
         return
+    existing_room = store.get_room(area_id) or {}
+    for heat_key, cool_key in _HEAT_COOL_PAIRS:
+        if heat_key not in config and cool_key not in config:
+            continue
+        heat = config.get(heat_key, existing_room.get(heat_key))
+        cool = config.get(cool_key, existing_room.get(cool_key))
+        if heat is not None and cool is not None and cool < heat:
+            connection.send_error(msg["id"], "invalid", f"{cool_key} must be >= {heat_key}")
+            return
 
     if ("thermostats" in config or "acs" in config) and "devices" not in config:
         _LOGGER.warning(
@@ -613,7 +658,7 @@ async def websocket_save_room(
                     store.get_settings().get("climate_control_active", True)
                     and existing.get("climate_control_enabled", True),
                 )
-            except Exception:  # noqa: BLE001
+            except Exception:
                 _LOGGER.exception("Failed to release dehumidifier before saving room '%s'", area_id)
                 connection.send_error(msg["id"], "device_error", "Could not stop the previous dehumidifier")
                 return
@@ -632,6 +677,7 @@ async def websocket_save_room(
 # ---------------------------------------------------------------------------
 
 
+@websocket_api.require_admin
 @websocket_api.websocket_command(
     {
         vol.Required("type"): "roommind/rooms/delete",
@@ -660,7 +706,7 @@ async def websocket_delete_room(
                     store.get_settings().get("climate_control_active", True)
                     and existing.get("climate_control_enabled", True),
                 )
-            except Exception:  # noqa: BLE001
+            except Exception:
                 _LOGGER.exception("Failed to release dehumidifier before deleting room '%s'", area_id)
                 connection.send_error(msg["id"], "device_error", "Could not stop the dehumidifier")
                 return
@@ -688,9 +734,9 @@ async def websocket_delete_room(
         vol.Required("type"): "roommind/override/set",
         vol.Required("area_id"): str,
         vol.Required("override_type"): vol.In(OVERRIDE_TYPES),
-        vol.Optional("heat"): vol.Coerce(float),
-        vol.Optional("cool"): vol.Coerce(float),
-        vol.Optional("duration"): vol.Coerce(float),  # hours (omit or 0 for permanent)
+        vol.Optional("heat"): _TEMP_C,
+        vol.Optional("cool"): _TEMP_C,
+        vol.Optional("duration"): vol.All(_FLOAT, vol.Range(min=0)),  # hours (omit or 0 for permanent)
     }
 )
 @websocket_api.async_response
@@ -713,10 +759,10 @@ async def websocket_override_set(
     climate_mode = room.get("climate_mode", "auto")
 
     if override_type == "boost":
-        heat = room.get("comfort_heat", room.get("comfort_temp", DEFAULT_COMFORT_HEAT))
+        heat = room.get("comfort_heat", DEFAULT_COMFORT_HEAT)
         cool = room.get("comfort_cool", DEFAULT_COMFORT_COOL)
     elif override_type == "eco":
-        heat = room.get("eco_heat", room.get("eco_temp", DEFAULT_ECO_HEAT))
+        heat = room.get("eco_heat", DEFAULT_ECO_HEAT)
         cool = room.get("eco_cool", DEFAULT_ECO_COOL)
     else:  # custom
         heat = msg.get("heat")
@@ -835,10 +881,11 @@ SETTINGS_SAVE_SCHEMA = {
     vol.Required("type"): "roommind/settings/save",
     vol.Optional("outdoor_temp_sensor"): str,
     vol.Optional("outdoor_humidity_sensor"): str,
-    vol.Optional("outdoor_cooling_min"): vol.Coerce(float),
-    vol.Optional("outdoor_heating_max"): vol.Coerce(float),
+    vol.Optional("outdoor_cooling_min"): vol.All(_FLOAT, vol.Range(min=-30, max=50)),
+    vol.Optional("outdoor_heating_max"): vol.All(_FLOAT, vol.Range(min=-30, max=50)),
+    # Legacy keys accepted for old frontends and ignored (not in _SETTINGS_SAVE_FIELDS).
     vol.Optional("control_mode"): vol.In(["mpc", "bangbang"]),
-    vol.Optional("comfort_weight"): vol.Coerce(float),
+    vol.Optional("comfort_weight"): vol.All(_FLOAT, vol.Range(min=0, max=100)),  # percent
     vol.Optional("weather_entity"): str,
     vol.Optional("outdoor_unavailable_notify"): bool,
     vol.Optional("climate_control_active"): bool,
@@ -846,8 +893,8 @@ SETTINGS_SAVE_SCHEMA = {
     vol.Optional("learning_disabled_rooms"): [str],
     vol.Optional("hidden_rooms"): [str],
     vol.Optional("prediction_enabled"): bool,
-    vol.Optional("vacation_temp"): vol.Coerce(float),
-    vol.Optional("vacation_until"): vol.Any(vol.Coerce(float), None),
+    vol.Optional("vacation_temp"): _TEMP_C,
+    vol.Optional("vacation_until"): vol.Any(None, vol.All(_FLOAT, vol.Range(min=0))),
     vol.Optional("presence_enabled"): bool,
     vol.Optional("presence_persons"): [str],
     vol.Optional("presence_away_action"): vol.In(["eco", "off"]),
@@ -856,7 +903,7 @@ SETTINGS_SAVE_SCHEMA = {
     vol.Optional("valve_protection_enabled"): bool,
     vol.Optional("valve_protection_interval_days"): vol.All(vol.Coerce(int), vol.Range(min=1, max=90)),
     vol.Optional("mold_detection_enabled"): bool,
-    vol.Optional("mold_humidity_threshold"): vol.All(vol.Coerce(float), vol.Range(min=50, max=90)),
+    vol.Optional("mold_humidity_threshold"): vol.All(_FLOAT, vol.Range(min=50, max=90)),
     vol.Optional("mold_sustained_minutes"): vol.All(vol.Coerce(int), vol.Range(min=5, max=120)),
     vol.Optional("mold_notification_cooldown"): vol.All(vol.Coerce(int), vol.Range(min=10, max=1440)),
     vol.Optional("mold_notifications_enabled"): bool,
@@ -871,7 +918,7 @@ SETTINGS_SAVE_SCHEMA = {
     vol.Optional("mold_prevention_sustained_minutes"): vol.All(vol.Coerce(int), vol.Range(min=0, max=120)),
     vol.Optional("mold_prevention_intensity"): vol.In(["light", "medium", "strong"]),
     vol.Optional("mold_prevention_dehumidification_enabled"): bool,
-    vol.Optional("mold_prevention_dry_min_temperature"): vol.All(vol.Coerce(float), vol.Range(min=15, max=30)),
+    vol.Optional("mold_prevention_dry_min_temperature"): vol.All(_FLOAT, vol.Range(min=15, max=30)),
     vol.Optional("mold_prevention_reheat_enabled"): bool,
     vol.Optional("mold_prevention_notify_enabled"): bool,
     vol.Optional("mold_prevention_notify_targets"): [
@@ -903,27 +950,28 @@ SETTINGS_SAVE_SCHEMA = {
     ],
     vol.Optional("boiler_entity"): str,
     vol.Optional("boiler_control_type"): vol.In(["climate", "switch"]),
-    vol.Optional("boiler_startup_delay_seconds"): vol.All(vol.Coerce(float), vol.Range(min=0, max=3600)),
-    vol.Optional("boiler_shutdown_delay_seconds"): vol.All(vol.Coerce(float), vol.Range(min=0, max=3600)),
+    vol.Optional("boiler_startup_delay_seconds"): vol.All(_FLOAT, vol.Range(min=0, max=3600)),
+    vol.Optional("boiler_shutdown_delay_seconds"): vol.All(_FLOAT, vol.Range(min=0, max=3600)),
     vol.Optional("hydraulic_bypass_entities"): _normalize_hydraulic_bypass_entities,
-    vol.Optional("hydraulic_bypass_open_temperature"): vol.All(vol.Coerce(float), vol.Range(min=5, max=50)),
+    vol.Optional("hydraulic_bypass_open_temperature"): vol.All(_FLOAT, vol.Range(min=5, max=50)),
     vol.Optional("hydraulic_bypass_child_lock"): bool,
     vol.Optional("boiler_min_demand_rooms"): vol.All(vol.Coerce(int), vol.Range(min=1, max=20)),
     vol.Optional("boiler_demand_unit"): vol.In(["valves", "rooms"]),
-    vol.Optional("boiler_min_run_minutes"): vol.All(vol.Coerce(float), vol.Range(min=0, max=120)),
-    vol.Optional("boiler_min_off_minutes"): vol.All(vol.Coerce(float), vol.Range(min=0, max=120)),
-    vol.Optional("boiler_fault_retry_minutes"): vol.All(vol.Coerce(float), vol.Range(min=1, max=240)),
-    vol.Optional("boiler_max_wait_minutes"): vol.All(vol.Coerce(float), vol.Range(min=0, max=1440)),
+    vol.Optional("boiler_min_run_minutes"): vol.All(_FLOAT, vol.Range(min=0, max=120)),
+    vol.Optional("boiler_min_off_minutes"): vol.All(_FLOAT, vol.Range(min=0, max=120)),
+    vol.Optional("boiler_fault_retry_minutes"): vol.All(_FLOAT, vol.Range(min=1, max=240)),
+    vol.Optional("boiler_max_wait_minutes"): vol.All(_FLOAT, vol.Range(min=0, max=1440)),
     vol.Optional("power_budget_enabled"): bool,
     vol.Optional("power_sensor"): str,
     vol.Optional("power_sensor_mode"): vol.In(["available", "consumption"]),
-    vol.Optional("power_budget_max_watts"): vol.All(vol.Coerce(float), vol.Range(min=0, max=100000)),
-    vol.Optional("power_budget_reserve_watts"): vol.All(vol.Coerce(float), vol.Range(min=0, max=100000)),
+    vol.Optional("power_budget_max_watts"): vol.All(_FLOAT, vol.Range(min=0, max=100000)),
+    vol.Optional("power_budget_reserve_watts"): vol.All(_FLOAT, vol.Range(min=0, max=100000)),
     vol.Optional("power_budget_unavailable_behavior"): vol.In(["boiler", "allow"]),
-    vol.Optional("energy_price_per_kwh"): vol.All(vol.Coerce(float), vol.Range(min=0, max=100)),
+    vol.Optional("energy_price_per_kwh"): vol.All(_FLOAT, vol.Range(min=0, max=100)),
 }
 
 
+@websocket_api.require_admin
 @websocket_api.websocket_command(SETTINGS_SAVE_SCHEMA)
 @websocket_api.async_response
 async def websocket_save_settings(
@@ -1037,8 +1085,8 @@ async def websocket_save_settings(
         vol.Required("type"): "roommind/analytics/get",
         vol.Required("area_id"): str,
         vol.Optional("range"): vol.In(["12h", "24h", "2d", "7d", "14d", "30d", "90d"]),
-        vol.Optional("start_ts"): vol.Coerce(float),
-        vol.Optional("end_ts"): vol.Coerce(float),
+        vol.Optional("start_ts"): _FLOAT,
+        vol.Optional("end_ts"): _FLOAT,
     }
 )
 @websocket_api.async_response
@@ -1065,8 +1113,8 @@ async def websocket_get_analytics(
 @websocket_api.websocket_command(
     {
         vol.Required("type"): "roommind/analytics/compare",
-        vol.Optional("start_ts"): vol.Coerce(float),
-        vol.Optional("end_ts"): vol.Coerce(float),
+        vol.Optional("start_ts"): _FLOAT,
+        vol.Optional("end_ts"): _FLOAT,
     }
 )
 @websocket_api.async_response
@@ -1094,6 +1142,7 @@ async def websocket_get_analytics_comparison(
 # ---------------------------------------------------------------------------
 
 
+@websocket_api.require_admin
 @websocket_api.websocket_command(
     {
         vol.Required("type"): "roommind/thermal/reset",
@@ -1130,6 +1179,7 @@ async def websocket_thermal_reset(
 # ---------------------------------------------------------------------------
 
 
+@websocket_api.require_admin
 @websocket_api.websocket_command({vol.Required("type"): "roommind/thermal/reset_all"})
 @websocket_api.async_response
 async def websocket_thermal_reset_all(
@@ -1157,6 +1207,7 @@ async def websocket_thermal_reset_all(
     connection.send_result(msg["id"], {"success": True})
 
 
+@websocket_api.require_admin
 @websocket_api.websocket_command(
     {
         vol.Required("type"): "roommind/model/boost_learning",
@@ -1194,6 +1245,7 @@ async def websocket_boost_learning(
 # ---------------------------------------------------------------------------
 
 
+@websocket_api.require_admin
 @websocket_api.websocket_command({vol.Required("type"): "roommind/diagnostics/get"})
 @websocket_api.async_response
 async def websocket_get_diagnostics(

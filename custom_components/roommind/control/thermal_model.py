@@ -1105,12 +1105,6 @@ class RoomModelManager:
         est = self.get_estimator(area_id)
         return est.get_model().predict_window_open(T_room, T_outdoor, est.k_window, dt_minutes)
 
-    def get_k_window(self, area_id: str) -> float:
-        """Return the learned window multiplier for *area_id*."""
-        if area_id not in self._estimators:
-            return ThermalEKF._K_WINDOW_DEFAULT
-        return self._estimators[area_id].k_window
-
     def boost_learning(self, area_id: str) -> int:
         """Boost covariance for *area_id* to accelerate re-learning.
 

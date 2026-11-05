@@ -1525,12 +1525,6 @@ def test_manager_get_prediction_std_unknown_room():
     assert result == float("inf")
 
 
-def test_manager_get_k_window_unknown_room():
-    """get_k_window for unknown room returns default."""
-    mgr = RoomModelManager()
-    assert mgr.get_k_window("nonexistent") == ThermalEKF._K_WINDOW_DEFAULT
-
-
 def test_manager_repr():
     """RoomModelManager repr lists rooms with confidence."""
     mgr = RoomModelManager()

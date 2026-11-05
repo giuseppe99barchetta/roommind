@@ -27,6 +27,7 @@ from .const import (
     DEFAULT_COMFORT_HEAT,
     DEFAULT_ECO_COOL,
     DEFAULT_ECO_HEAT,
+    DEFAULT_HEAT_SOURCE_MIN_DWELL_MINUTES,
     DEFAULT_MOLD_F_RSI,
     DEFAULT_MOLD_PREVENTION_DRY_MIN_TEMPERATURE,
     DEFAULT_OUTDOOR_COOLING_MIN,
@@ -104,6 +105,7 @@ from .utils.device_utils import (
     get_all_entity_ids,
     get_direct_setpoint_eids,
     get_trv_eids,
+    is_ac_type,
     is_compressor_active,
     room_contributes_to_group,
 )
@@ -125,7 +127,7 @@ def _get_area_name(hass: HomeAssistant, area_id: str) -> str:
         area_reg = ar.async_get(hass)
         area = area_reg.async_get_area(area_id)
         return area.name if area else area_id
-    except Exception:  # noqa: BLE001
+    except Exception:
         return area_id
 
 
@@ -139,7 +141,7 @@ def _get_room_display_name(hass: HomeAssistant, area_id: str) -> str:
             configured = room.get("display_name")
             if isinstance(configured, str) and configured.strip():
                 name = configured.strip()
-    except Exception:  # noqa: BLE001
+    except Exception:
         pass
     if not name:
         name = _get_area_name(hass, area_id).strip() or area_id.replace("_", " ")
@@ -265,7 +267,9 @@ class RoomMindCoordinator(DataUpdateCoordinator):
         self._thermal_save_count: int = 0
         self._history_store: HistoryStore | None = None
         self._history_write_count: int = 0
-        self._history_rotate_count: int = 0
+        # Rotate on the first cycle too: restarts more frequent than the period would never rotate.
+        self._history_rotate_count: int = HISTORY_ROTATE_CYCLES - 1
+        self._vacation_clear_scheduled_for: float | None = None
         self._pending_predictions: dict[str, float] = {}
         self._preconditioning_started_at: dict[str, float] = {}
         self._prediction_forecasts: dict[str, list[dict]] = {}
@@ -413,8 +417,12 @@ class RoomMindCoordinator(DataUpdateCoordinator):
                         self._history_store.read_history, area_id, 30 * 24 * 3600
                     )
                     self._energy_manager.bootstrap(area_id, history + detail)
-                except Exception:  # noqa: BLE001
-                    _LOGGER.warning("Energy history bootstrap failed for '%s'", area_id)
+                except Exception:
+                    _LOGGER.warning(
+                        "Energy history bootstrap failed for '%s', retrying at next start", area_id, exc_info=True
+                    )
+                    # Mark the room as done so the history is not re-read every cycle.
+                    self._energy_manager.bootstrap(area_id, [])
 
         # Mold persistence timers survive restarts: replay the last hours of
         # RoomMind's own history once per room before the first evaluation.
@@ -430,7 +438,7 @@ class RoomMindCoordinator(DataUpdateCoordinator):
                             self._history_store.read_detail, area_id, MOLD_BOOTSTRAP_LOOKBACK_SECONDS
                         )
                         self._mold_manager.bootstrap(area_id, rows, settings, f_rsi=f_rsi)
-                    except Exception:  # noqa: BLE001
+                    except Exception:
                         _LOGGER.warning("Mold timer bootstrap failed for '%s'", area_id)
                 # Hourly: hours of near-condensation on the coldest wall this week.
                 if time.time() - self._mold_exposure_at.get(area_id, 0.0) >= MOLD_EXPOSURE_REFRESH_SECONDS:
@@ -444,7 +452,7 @@ class RoomMindCoordinator(DataUpdateCoordinator):
                             self._history_store.read_detail, area_id, window
                         )
                         self._mold_exposure[area_id] = mold_exposure_hours(history + detail, f_rsi)
-                    except Exception:  # noqa: BLE001
+                    except Exception:
                         _LOGGER.warning("Mold exposure history failed for '%s'", area_id)
 
         # Bootstrap before building budget reservations: the first coordinator
@@ -509,7 +517,6 @@ class RoomMindCoordinator(DataUpdateCoordinator):
                     rooms,
                     {a: values[2] for a, values in self._humidity_sensor_snapshot.items()},
                     self._humidity_mold_snapshot,
-                    self._mold_exposure,
                 )
                 await self._dehumidifier_manager.apply(self._power_budget_manager)
             else:
@@ -531,7 +538,7 @@ class RoomMindCoordinator(DataUpdateCoordinator):
                 room_state["coordination_priority"] = _coordination_priority(self.rooms.get(area_id, {}))
                 room_state["coordination_rank"] = rank
                 room_states[area_id] = room_state
-            except Exception:  # noqa: BLE001
+            except Exception:
                 _LOGGER.exception("Room '%s': processing failed, skipping", area_id)
 
         self._humidity_sensor_snapshot = {}
@@ -615,7 +622,7 @@ class RoomMindCoordinator(DataUpdateCoordinator):
                             "ac_efficiency_reason": rs.get("ac_efficiency_reason"),
                         },
                     )
-                except Exception:  # noqa: BLE001
+                except Exception:
                     _LOGGER.warning("History record failed for '%s'", area_id)
                 # Compute prediction for the *next* write cycle (~3 min ahead)
                 room_config = rooms.get(area_id, {})
@@ -653,7 +660,7 @@ class RoomMindCoordinator(DataUpdateCoordinator):
                             current_temp - MAX_PREDICTION_DELTA, min(current_temp + MAX_PREDICTION_DELTA, raw_pred)
                         )
                         self._pending_predictions[area_id] = round(clamped, 2)
-                    except Exception:  # noqa: BLE001
+                    except Exception:
                         pass
 
         # Save thermal data periodically
@@ -669,7 +676,7 @@ class RoomMindCoordinator(DataUpdateCoordinator):
             for area_id in rooms:
                 try:
                     await self.hass.async_add_executor_job(self._history_store.rotate, area_id)
-                except Exception:  # noqa: BLE001
+                except Exception:
                     _LOGGER.warning("History rotation failed for '%s'", area_id)
 
         # Valve protection: finish active cycles (runs every tick, cheap).
@@ -909,7 +916,6 @@ class RoomMindCoordinator(DataUpdateCoordinator):
         await async_send_mold_notification(
             self.hass,
             area_id,
-            area_name,
             settings.get("mold_notification_targets", []),
             message=f"Window is still open in {area_name} after {open_minutes} minutes. Climate control is paused.{impact}",
             title="RoomMind: Window Open",
@@ -941,7 +947,7 @@ class RoomMindCoordinator(DataUpdateCoordinator):
             for minutes in range(5, 181, 5):
                 if reaches_target(model.predict(current_temp, self.outdoor_temp_effective, q_active, minutes), target):
                     return minutes
-        except Exception:  # noqa: BLE001
+        except Exception:
             pass
         return None
 
@@ -1270,7 +1276,7 @@ class RoomMindCoordinator(DataUpdateCoordinator):
                         max(0.0, (time.time() - baseline.started_at) / 60),
                     )
                     window_impact_c = round(current_temp - expected, 2) if current_temp is not None else None
-                except Exception:  # noqa: BLE001
+                except Exception:
                     pass
             window_recovery_minutes = self._estimate_window_recovery_minutes(area_id, current_temp, targets, mode)
         await self._notify_window_open(area_id, window_open, window_open_minutes, window_impact_c, settings)
@@ -1386,7 +1392,7 @@ class RoomMindCoordinator(DataUpdateCoordinator):
                     and not heat_pump_denied
                     and previous_usable
                 ):
-                    dwell = float(room.get("heat_source_min_dwell_minutes", 10)) * 60
+                    dwell = float(room.get("heat_source_min_dwell_minutes", DEFAULT_HEAT_SOURCE_MIN_DWELL_MINUTES)) * 60
                     if time.monotonic() - self._heat_source_changed_at.get(area_id, 0) < dwell:
                         for command in heat_source_plan.commands:
                             command.active = (
@@ -1580,7 +1586,7 @@ class RoomMindCoordinator(DataUpdateCoordinator):
                 )
                 if smart_ventilation_active:
                     for device in control_room.get("devices", []):
-                        if device.get("type") == "ac":
+                        if is_ac_type(device):
                             device["_roommind_smart_ventilation"] = room.get("smart_ventilation_fan_mode", "low")
                 # The boiler state machine owns the hydraulic bypass at all
                 # times. Sharing it with room control let the two fight over
@@ -1798,7 +1804,7 @@ class RoomMindCoordinator(DataUpdateCoordinator):
                     # Persisted auxiliary state is preservation-only; it must not
                     # power an AC back on after restart or an external power-off.
                     await async_apply_ac_auxiliary_mode(self.hass, room, window_open=window_open)
-            except Exception:  # noqa: BLE001
+            except Exception:
                 _LOGGER.warning(
                     "Room '%s': climate service call failed",
                     area_id,
@@ -1874,7 +1880,7 @@ class RoomMindCoordinator(DataUpdateCoordinator):
                     current_temp or 20.0,
                     _T_out,
                 )
-            except Exception:  # noqa: BLE001
+            except Exception:
                 mpc_active = False
 
         display_mode, display_pf = await self._observe_and_train(
@@ -2873,7 +2879,9 @@ class RoomMindCoordinator(DataUpdateCoordinator):
                     t = float(vacation_temp)
                     eco_cool = room.get("eco_cool", DEFAULT_ECO_COOL)
                     return TargetTemps(heat=t, cool=max(t, eco_cool))
-            else:
+            elif self._vacation_clear_scheduled_for != vacation_until:
+                # One save for all rooms, not one per room in the same tick.
+                self._vacation_clear_scheduled_for = vacation_until
                 self.hass.async_create_task(
                     self.hass.data[DOMAIN]["store"].async_save_settings(
                         {
@@ -2887,7 +2895,7 @@ class RoomMindCoordinator(DataUpdateCoordinator):
             if settings.get("presence_away_action", "eco") == "off":
                 return TargetTemps(heat=None, cool=None)
             return TargetTemps(
-                heat=room.get("eco_heat", room.get("eco_temp", DEFAULT_ECO_HEAT)),
+                heat=room.get("eco_heat", DEFAULT_ECO_HEAT),
                 cool=room.get("eco_cool", DEFAULT_ECO_COOL),
             )
 
@@ -2898,9 +2906,9 @@ class RoomMindCoordinator(DataUpdateCoordinator):
                 heat=float(profile.get("heat_target", room.get("comfort_heat", DEFAULT_COMFORT_HEAT))),
                 cool=float(profile.get("cool_target", room.get("comfort_cool", DEFAULT_COMFORT_COOL))),
             )
-        comfort_heat = room.get("comfort_heat", room.get("comfort_temp", DEFAULT_COMFORT_HEAT))
+        comfort_heat = room.get("comfort_heat", DEFAULT_COMFORT_HEAT)
         comfort_cool = room.get("comfort_cool", DEFAULT_COMFORT_COOL)
-        eco_heat = room.get("eco_heat", room.get("eco_temp", DEFAULT_ECO_HEAT))
+        eco_heat = room.get("eco_heat", DEFAULT_ECO_HEAT)
         eco_cool = room.get("eco_cool", DEFAULT_ECO_COOL)
 
         # schedule_entity_id is pre-resolved by the caller (_async_process_room) to avoid
@@ -3460,7 +3468,7 @@ class RoomMindCoordinator(DataUpdateCoordinator):
                 wake_eid,
             )
             return wake_eid
-        except Exception:  # noqa: BLE001
+        except Exception:
             _LOGGER.warning(
                 "Master '%s' (group '%s'): failed to pre-activate zone '%s'",
                 group.master_entity,
@@ -3583,7 +3591,7 @@ class RoomMindCoordinator(DataUpdateCoordinator):
                             blocking=True,
                             context=make_roommind_context(),
                         )
-                    except Exception:  # noqa: BLE001
+                    except Exception:
                         _LOGGER.warning(
                             "Master '%s' (group '%s'): failed to set hvac_mode '%s'",
                             group.master_entity,
@@ -3611,7 +3619,7 @@ class RoomMindCoordinator(DataUpdateCoordinator):
                     )
                 self._compressor_manager.set_master_action(gid, new_action)
 
-            except Exception:  # noqa: BLE001
+            except Exception:
                 _LOGGER.warning(
                     "Master device control failed for group '%s'",
                     group.name,
@@ -3649,7 +3657,7 @@ class RoomMindCoordinator(DataUpdateCoordinator):
                 blocking=False,
                 context=make_roommind_context(),
             )
-        except Exception:  # noqa: BLE001
+        except Exception:
             _LOGGER.warning(
                 "Master group '%s': action script '%s' failed",
                 group.name,

@@ -263,8 +263,18 @@ export interface RoomConfig {
   heat_source_hysteresis?: number;
   heat_source_min_dwell_minutes?: number;
   climate_control_enabled?: boolean;
+  /** Effective targets of each comfort profile (defaults merged with room overrides), in °C. */
+  profile_targets?: Partial<Record<ComfortProfileId, ComfortProfileTargets>>;
   readiness?: RoomReadiness;
   live?: RoomLiveData;
+}
+
+export type ComfortProfileId = "work" | "sleep" | "guests" | "away";
+
+export interface ComfortProfileTargets {
+  heat_target?: number;
+  cool_target?: number;
+  humidity_target?: number;
 }
 
 export interface GlobalSettings {

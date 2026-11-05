@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import time
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import ANY, AsyncMock, MagicMock, patch
 
 import pytest
 
@@ -46,9 +46,15 @@ class TestCoordinatorMPCIntegration:
         assert room_state["current_temp"] == 17.0
         assert room_state["target_temp"] == 21.0
         assert room_state["mode"] == "heating"
-        assert room_state["confidence"] is not None
-        # Verify climate service was called (MPC decided to heat)
-        assert hass.services.async_call.called
+        assert 0.0 <= room_state["confidence"] <= 1.0
+        # MPC decided to heat the room's TRV
+        hass.services.async_call.assert_any_call(
+            "climate",
+            "set_hvac_mode",
+            {"entity_id": "climate.living_room", "hvac_mode": "heat"},
+            blocking=True,
+            context=ANY,
+        )
         # Verify prediction_std was checked (MPC path selection)
         mgr.get_prediction_std.assert_called()
 

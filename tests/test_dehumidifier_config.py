@@ -1,5 +1,6 @@
 """Persisted registration validation and safe device removal through the API."""
 
+import inspect
 from types import SimpleNamespace
 from unittest.mock import AsyncMock, MagicMock
 
@@ -26,7 +27,7 @@ def registration(hass, store, monkeypatch):
 async def save(registration, area="bed", **changes):
     hass, _, connection, _ = registration
     msg = websocket_save_room._ws_schema({"id": 1, "type": "roommind/rooms/save", "area_id": area, **changes})
-    await websocket_save_room.__wrapped__(hass, connection, msg)
+    await inspect.unwrap(websocket_save_room)(hass, connection, msg)
 
 
 @pytest.mark.asyncio
@@ -139,7 +140,7 @@ async def test_removal_stops_only_roommind_runs(registration, operation, owned):
     await save(registration, dehumidifier={"entity_id": "switch.dryer"})
     attach_coordinator(hass, owned=owned)
     if operation == "delete":
-        await websocket_delete_room.__wrapped__(hass, conn, {"id": 2, "area_id": "bed"})
+        await inspect.unwrap(websocket_delete_room)(hass, conn, {"id": 2, "area_id": "bed"})
         assert store.get_room("bed") is None
     else:
         await save(registration, dehumidifier={"entity_id": "switch.new"} if operation == "replace" else None)
@@ -179,6 +180,6 @@ async def test_delete_beneficiary_prunes_membership_without_stopping_device(regi
     await store.async_save_room("bath", {})
     await save(registration, dehumidifier={"entity_id": "switch.dryer", "served_area_ids": ["bath"]})
     attach_coordinator(hass)
-    await websocket_delete_room.__wrapped__(hass, conn, {"id": 2, "area_id": "bath"})
+    await inspect.unwrap(websocket_delete_room)(hass, conn, {"id": 2, "area_id": "bath"})
     assert store.get_room("bed")["dehumidifier"]["served_area_ids"] == []
     hass.services.async_call.assert_not_awaited()

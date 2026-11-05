@@ -246,6 +246,14 @@ class TestComputeHorizonBlocks:
         blocks = ctrl._compute_horizon_blocks(model, 15.0, 21.0)
         assert blocks == int(MIN_HORIZON_HOURS * 60 / PLAN_DT_MINUTES)
 
+    def test_horizon_is_capped_at_24_hours_with_minimal_power(self):
+        """EKF parameters at their minimum must not explode the horizon (P2)."""
+        from custom_components.roommind.control.thermal_model import RCModel
+
+        ctrl = self._make_ctrl()
+        model = RCModel(C=2.0, U=50.0, Q_heat=0.1, Q_cool=0.1)
+        assert ctrl._compute_horizon_blocks(model, 10.0, 21.0) == 288
+
     def test_high_power_model_shorter_horizon(self):
         """High HVAC power should yield fewer blocks (faster to reach target)."""
         from custom_components.roommind.control.thermal_model import RCModel

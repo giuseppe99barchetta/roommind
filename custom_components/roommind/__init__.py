@@ -84,7 +84,7 @@ def _migrate_storage_sync(storage_dir: Path) -> None:
                 data["key"] = "roommind"
                 new_path.write_text(json.dumps(data, indent=2))
                 _LOGGER.info("Migrated storage key from 'roomsense' to 'roommind'")
-        except Exception:  # noqa: BLE001
+        except Exception:
             _LOGGER.warning("Failed to migrate storage key")
     # Migrate history CSV directory
     import shutil
@@ -132,7 +132,7 @@ async def _async_check_version_mismatch(hass: HomeAssistant) -> None:
     manifest_path = Path(__file__).parent / "manifest.json"
     try:
         disk_version: str = await hass.async_add_executor_job(lambda: json.loads(manifest_path.read_text())["version"])
-    except Exception:  # noqa: BLE001
+    except Exception:
         return
 
     if disk_version != VERSION:

@@ -104,7 +104,7 @@ class ValveManager:
                 )
             else:
                 await async_turn_off_climate(self.hass, eid, area_id="valve_protection")
-        except Exception:  # noqa: BLE001
+        except Exception:
             _LOGGER.warning("Valve protection: failed to close '%s' %s", eid, log_context)
 
     async def async_finish_cycles(
@@ -225,7 +225,7 @@ class ValveManager:
                         eid,
                         idle_days,
                     )
-                except Exception:  # noqa: BLE001
+                except Exception:
                     _LOGGER.warning("Valve protection: failed to start cycle for '%s'", eid)
 
         # Cleanup stale entries (entities no longer configured)

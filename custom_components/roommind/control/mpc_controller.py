@@ -213,7 +213,7 @@ async def _send_idle_setpoint(
             context=make_roommind_context(),
         )
         _last_commands[entity_id] = _cache_entry("set_temperature", {"temperature": setpoint})
-    except Exception:  # noqa: BLE001
+    except Exception:
         _LOGGER.warning(
             "Area '%s': climate.set_temperature(%.1f) failed on '%s'",
             area_id,
@@ -287,7 +287,7 @@ async def async_turn_off_climate(
                 context=make_roommind_context(),
             )
             _last_commands[entity_id] = _cache_entry("set_hvac_mode", {"hvac_mode": "off"})
-        except Exception:  # noqa: BLE001
+        except Exception:
             _LOGGER.warning(
                 "Area '%s': climate.set_hvac_mode(off) failed on '%s'",
                 area_id,
@@ -373,7 +373,7 @@ async def async_turn_off_climate(
             context=make_roommind_context(),
         )
         _last_commands[entity_id] = _cache_entry("set_temperature", svc_data)
-    except Exception:  # noqa: BLE001
+    except Exception:
         _LOGGER.warning(
             "Area '%s': climate.set_temperature(%s) fallback failed on '%s'",
             area_id,
@@ -533,7 +533,7 @@ async def async_idle_device(
                 context=make_roommind_context(),
             )
             _last_commands[entity_id] = _cache_entry("set_temperature", {"temperature": ha_t})
-        except Exception:  # noqa: BLE001
+        except Exception:
             _LOGGER.warning(
                 "Area '%s': climate.set_temperature(%.1f) failed on '%s'",
                 area_id,
@@ -583,7 +583,7 @@ async def async_idle_device(
             context=make_roommind_context(),
         )
         _last_commands[entity_id] = _cache_entry("set_hvac_mode", {"hvac_mode": "fan_only"})
-    except Exception:  # noqa: BLE001
+    except Exception:
         _LOGGER.warning(
             "Area '%s': climate.set_hvac_mode(fan_only) failed on '%s'",
             area_id,
@@ -603,7 +603,7 @@ async def async_idle_device(
                     blocking=True,
                     context=make_roommind_context(),
                 )
-            except Exception:  # noqa: BLE001
+            except Exception:
                 _LOGGER.warning(
                     "Area '%s': climate.set_fan_mode('%s') failed on '%s'",
                     area_id,
@@ -672,6 +672,8 @@ MPC_MAX_PREDICTION_STD = 0.5
 # Planning parameters
 PLAN_DT_MINUTES = 5
 MIN_HORIZON_HOURS = 2
+# 24 h: the optimizer runs synchronously in the event loop.
+MAX_HORIZON_BLOCKS = 24 * 60 // PLAN_DT_MINUTES
 HORIZON_MULTIPLIER = 2.5
 DEFAULT_OUTDOOR_TEMP_FALLBACK = 10.0
 SAFETY_GUARD_MIN_BLOCKS = 6  # Minimum guard horizon (30 min floor)
@@ -1222,7 +1224,7 @@ class MPCController:
             if rate > 0:
                 est_minutes = delta / rate
                 horizon_minutes = max(MIN_HORIZON_HOURS * 60, est_minutes * HORIZON_MULTIPLIER)
-                return max(24, int(horizon_minutes / PLAN_DT_MINUTES))
+                return min(MAX_HORIZON_BLOCKS, max(24, int(horizon_minutes / PLAN_DT_MINUTES)))
         return int(MIN_HORIZON_HOURS * 60 / PLAN_DT_MINUTES)  # default 24 blocks = 2h
 
     def _build_outdoor_series(self, n_blocks: int) -> list[float]:
@@ -2011,7 +2013,7 @@ class MPCController:
             )
             if eid:
                 _last_commands[eid] = _cache_entry(service, data)
-        except Exception:  # noqa: BLE001
+        except Exception:
             _LOGGER.warning(
                 "Area '%s': climate.%s failed on '%s'",
                 self._area_id,

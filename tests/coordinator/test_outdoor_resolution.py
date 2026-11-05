@@ -170,7 +170,7 @@ async def test_ekf_training_skipped_when_no_outdoor(hass, mock_config_entry):
     await coordinator._async_update_data()
 
     assert not process_mock.called
-    assert clear_mock.called
+    clear_mock.assert_called_once_with("living_room_abc12345")
 
 
 @pytest.mark.asyncio
@@ -312,6 +312,6 @@ async def test_notification_dismissed_when_outdoor_returns(hass, mock_config_ent
     # Outdoor returns → dismiss
     outdoor_value["v"] = 6.0
     await coordinator._async_update_data()
-    assert dismiss_mock.called
+    dismiss_mock.assert_called_once_with(hass, OUTDOOR_UNAVAILABLE_NOTIFICATION_ID)
     assert coordinator._outdoor_unavailable_cycles == 0
     assert coordinator._outdoor_warning_sent is False

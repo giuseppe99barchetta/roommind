@@ -72,7 +72,6 @@ async def test_send_notification_with_targets():
     await async_send_mold_notification(
         hass,
         "living_room",
-        "Wohnzimmer",
         targets,
         message="Test mold alert",
         title="RoomMind: Test",
@@ -108,7 +107,6 @@ async def test_send_notification_home_only_skips_away():
         await async_send_mold_notification(
             hass,
             "living_room",
-            "Wohnzimmer",
             targets,
             message="Test",
             title="Test",
@@ -137,7 +135,6 @@ async def test_send_notification_home_only_sends_when_home():
     await async_send_mold_notification(
         hass,
         "living_room",
-        "Wohnzimmer",
         targets,
         message="Test",
         title="Test",
@@ -155,7 +152,6 @@ async def test_send_notification_no_targets_persistent():
         await async_send_mold_notification(
             hass,
             "living_room",
-            "Wohnzimmer",
             [],
             message="Test mold alert",
             title="RoomMind: Test",
@@ -186,7 +182,6 @@ async def test_send_notification_person_unavailable_treated_as_home():
     await async_send_mold_notification(
         hass,
         "living_room",
-        "Wohnzimmer",
         targets,
         message="Test",
         title="Test",
@@ -209,7 +204,6 @@ async def test_send_notification_custom_tag_suffix():
     await async_send_mold_notification(
         hass,
         "bedroom",
-        "Schlafzimmer",
         targets,
         message="Prevention active",
         title="RoomMind",
@@ -259,7 +253,6 @@ async def test_send_notification_skips_target_with_empty_entity_id():
         await async_send_mold_notification(
             hass,
             "living_room",
-            "Wohnzimmer",
             targets,
             message="Test",
             title="Test",
@@ -281,7 +274,6 @@ async def test_send_notification_service_exception_triggers_fallback():
         await async_send_mold_notification(
             hass,
             "living_room",
-            "Wohnzimmer",
             targets,
             message="Test",
             title="Test",

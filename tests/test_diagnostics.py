@@ -171,7 +171,7 @@ async def test_diagnostics_with_coordinator_and_model(hass, mock_config_entry):
     assert result["outdoor"]["temp"] == 5.0
     assert result["outdoor"]["forecast_available"] is False
     assert result["presence"]["enabled"] is True
-    assert result["presence"]["person_states"]["person.alice"] == "home"
+    assert result["presence"]["person_states"] == "**REDACTED**"
 
 
 @pytest.mark.asyncio
@@ -249,7 +249,7 @@ async def test_diagnostics_presence_person_unavailable(hass, mock_config_entry):
     hass.data[DOMAIN] = {"store": store}
 
     result = await async_get_config_entry_diagnostics(hass, mock_config_entry)
-    assert result["presence"]["person_states"]["person.ghost"] == "unavailable"
+    assert result["presence"]["person_states"] == "**REDACTED**"
 
 
 @pytest.mark.asyncio
@@ -715,3 +715,46 @@ async def test_diagnostics_cover_with_last_command_ts(hass, mock_config_entry):
     cover = result["rooms"]["room_a"]["cover"]
     assert 198 <= cover["last_command_ago_s"] <= 202
     assert "last_change_ago_s" not in cover
+
+
+@pytest.mark.asyncio
+async def test_diagnostics_redacts_persons_and_notification_targets(hass, mock_config_entry):
+    """Person entities, their states and notify targets never leave the diagnostics (B4)."""
+    target = {"entity_id": "notify.mobile_app_phone", "person_entity": "person.anna", "notify_when": "always"}
+    store = MagicMock()
+    store.get_settings.return_value = {
+        "presence_enabled": True,
+        "presence_persons": ["person.anna"],
+        "mold_notification_targets": [target],
+        "mold_prevention_notify_targets": [target],
+        "comfort_weight": 50,
+    }
+    store.get_rooms.return_value = {"room_a": {"thermostats": ["climate.trv1"], "presence_persons": ["person.anna"]}}
+    hass.states.get = MagicMock(return_value=None)
+    hass.data[DOMAIN] = {"store": store, "coordinator": _make_coordinator()}
+
+    result = await async_get_config_entry_diagnostics(hass, mock_config_entry)
+
+    dumped = repr(result)
+    assert "person.anna" not in dumped
+    assert "mobile_app_phone" not in dumped
+    assert result["settings"]["presence_persons"] == "**REDACTED**"
+    assert result["settings"]["mold_notification_targets"] == "**REDACTED**"
+    assert result["presence"]["persons"] == "**REDACTED**"
+    assert result["presence"]["person_states"] == "**REDACTED**"
+    assert result["settings"]["comfort_weight"] == 50
+    assert result["presence"]["enabled"] is True
+
+
+@pytest.mark.asyncio
+async def test_diagnostics_exposes_outdoor_temp_source(hass, mock_config_entry):
+    store = MagicMock()
+    store.get_settings.return_value = {}
+    store.get_rooms.return_value = {}
+    coordinator = _make_coordinator()
+    coordinator.outdoor_temp_source = "weather"
+    hass.data[DOMAIN] = {"store": store, "coordinator": coordinator}
+
+    result = await async_get_config_entry_diagnostics(hass, mock_config_entry)
+
+    assert result["outdoor"]["temp_source"] == "weather"

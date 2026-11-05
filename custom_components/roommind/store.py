@@ -14,6 +14,7 @@ from .const import (
     DEFAULT_ECO_COOL,
     DEFAULT_ECO_HEAT,
     DEFAULT_HEAT_SOURCE_AC_MIN_OUTDOOR,
+    DEFAULT_HEAT_SOURCE_MIN_DWELL_MINUTES,
     DEFAULT_HEAT_SOURCE_OUTDOOR_THRESHOLD,
     DEFAULT_HEAT_SOURCE_PRIMARY_DELTA,
     DEFAULT_MOLD_F_RSI,
@@ -259,25 +260,14 @@ class RoomMindStore:
         for key, value in config.items():
             if key != "area_id":
                 existing[key] = value
-        # Sync legacy fields from split fields for backward compat
-        if "comfort_heat" in config:
-            existing["comfort_temp"] = config["comfort_heat"]
-        if "eco_heat" in config:
-            existing["eco_temp"] = config["eco_heat"]
-        # Reverse-sync: legacy callers sending only comfort_temp/eco_temp
-        if "comfort_temp" in config and "comfort_heat" not in config:
-            existing["comfort_heat"] = config["comfort_temp"]
-        if "eco_temp" in config and "eco_heat" not in config:
-            existing["eco_heat"] = config["eco_temp"]
         # Directional device sync
         self._sync_devices(existing, config)
         return existing
 
     def _create_room(self, area_id: str, config: dict) -> dict:
         """Create a new room with defaults and device sync."""
-        # Derive split fields from legacy if needed
-        comfort_heat = config.get("comfort_heat", config.get("comfort_temp", DEFAULT_COMFORT_HEAT))
-        eco_heat = config.get("eco_heat", config.get("eco_temp", DEFAULT_ECO_HEAT))
+        comfort_heat = config.get("comfort_heat", DEFAULT_COMFORT_HEAT)
+        eco_heat = config.get("eco_heat", DEFAULT_ECO_HEAT)
         room = {
             "area_id": area_id,
             "devices": config.get("devices", []),
@@ -292,8 +282,6 @@ class RoomMindStore:
             "window_sensors": config.get("window_sensors", []),
             "window_open_delay": config.get("window_open_delay", 0),
             "window_close_delay": config.get("window_close_delay", 0),
-            "comfort_temp": comfort_heat,
-            "eco_temp": eco_heat,
             "comfort_heat": comfort_heat,
             "comfort_cool": config.get("comfort_cool", DEFAULT_COMFORT_COOL),
             "eco_heat": eco_heat,
@@ -331,7 +319,9 @@ class RoomMindStore:
             "heat_source_heat_pump_outdoor_threshold": config.get("heat_source_heat_pump_outdoor_threshold", 8.0),
             "heat_source_hybrid_delta": config.get("heat_source_hybrid_delta", 1.5),
             "heat_source_hysteresis": config.get("heat_source_hysteresis", 0.3),
-            "heat_source_min_dwell_minutes": config.get("heat_source_min_dwell_minutes", 10),
+            "heat_source_min_dwell_minutes": config.get(
+                "heat_source_min_dwell_minutes", DEFAULT_HEAT_SOURCE_MIN_DWELL_MINUTES
+            ),
             "climate_control_enabled": config.get("climate_control_enabled", True),
             # Logical room targets are never derived from physical TRV/AC
             # setpoints. They survive OFF and incompatible mode transitions.

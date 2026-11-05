@@ -57,7 +57,7 @@ class WeatherManager:
                 result = self._convert_forecast_temps(forecasts)  # type: ignore[arg-type]
                 self._outdoor_forecast = result
                 return result
-        except Exception:  # noqa: BLE001
+        except Exception:
             _LOGGER.debug(
                 "weather.get_forecasts service call failed for %s, falling back to state attributes",
                 weather_entity,

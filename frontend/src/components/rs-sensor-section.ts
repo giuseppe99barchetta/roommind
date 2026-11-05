@@ -702,6 +702,7 @@ export class RsSensorSection extends LitElement {
         <ha-textfield
           type="number"
           min="0"
+          max="3600"
           suffix="s"
           .label=${localize("devices.window_open_delay", lang)}
           .value=${String(this.windowOpenDelay)}
@@ -710,6 +711,7 @@ export class RsSensorSection extends LitElement {
         <ha-textfield
           type="number"
           min="0"
+          max="3600"
           suffix="s"
           .label=${localize("devices.window_close_delay", lang)}
           .value=${String(this.windowCloseDelay)}

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import inspect
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
@@ -30,20 +31,20 @@ from custom_components.roommind.websocket_api import (
 # schedulers.  Access the original coroutine via ``__wrapped__`` so we can
 # ``await`` them directly in tests without needing a running event-loop task
 # factory on the mock hass object.
-_list_rooms = websocket_list_rooms.__wrapped__
-_save_room = websocket_save_room.__wrapped__
-_delete_room = websocket_delete_room.__wrapped__
-_override_set = websocket_override_set.__wrapped__
-_override_clear = websocket_override_clear.__wrapped__
-_get_settings = websocket_get_settings.__wrapped__
-_save_settings = websocket_save_settings.__wrapped__
-_thermal_reset = websocket_thermal_reset.__wrapped__
-_thermal_reset_all = websocket_thermal_reset_all.__wrapped__
-_get_analytics = websocket_get_analytics.__wrapped__
-_get_analytics_comparison = websocket_get_analytics_comparison.__wrapped__
-_get_diagnostics = websocket_get_diagnostics.__wrapped__
-_covers_clear_override = websocket_covers_clear_override.__wrapped__
-_control_preview = websocket_control_preview.__wrapped__
+_list_rooms = inspect.unwrap(websocket_list_rooms)
+_save_room = inspect.unwrap(websocket_save_room)
+_delete_room = inspect.unwrap(websocket_delete_room)
+_override_set = inspect.unwrap(websocket_override_set)
+_override_clear = inspect.unwrap(websocket_override_clear)
+_get_settings = inspect.unwrap(websocket_get_settings)
+_save_settings = inspect.unwrap(websocket_save_settings)
+_thermal_reset = inspect.unwrap(websocket_thermal_reset)
+_thermal_reset_all = inspect.unwrap(websocket_thermal_reset_all)
+_get_analytics = inspect.unwrap(websocket_get_analytics)
+_get_analytics_comparison = inspect.unwrap(websocket_get_analytics_comparison)
+_get_diagnostics = inspect.unwrap(websocket_get_diagnostics)
+_covers_clear_override = inspect.unwrap(websocket_covers_clear_override)
+_control_preview = inspect.unwrap(websocket_control_preview)
 
 
 @pytest.mark.asyncio
@@ -135,8 +136,8 @@ async def test_save_room_creates_new(ws_hass, store, connection):
     assert room["climate_mode"] == "auto"
     assert room["schedules"] == []
     assert room["schedule_selector_entity"] == ""
-    assert room["comfort_temp"] == 21.0
-    assert room["eco_temp"] == 17.0
+    assert room["comfort_heat"] == 21.0
+    assert room["eco_heat"] == 17.0
 
 
 @pytest.mark.asyncio
@@ -449,8 +450,8 @@ async def test_save_room_with_schedules(ws_hass, store, connection):
     room = connection.send_result.call_args[0][1]["room"]
     assert room["schedules"] == [{"entity_id": "schedule.bedroom_heating"}]
     assert room["schedule_selector_entity"] == ""
-    assert room["comfort_temp"] == 22.0
-    assert room["eco_temp"] == 18.0
+    assert room["comfort_heat"] == 22.0
+    assert room["eco_heat"] == 18.0
 
 
 @pytest.mark.asyncio
@@ -524,8 +525,8 @@ async def test_save_room_minimal_only_area_id(ws_hass, store, connection):
     assert room["climate_mode"] == "auto"
     assert room["schedules"] == []
     assert room["schedule_selector_entity"] == ""
-    assert room["comfort_temp"] == 21.0
-    assert room["eco_temp"] == 17.0
+    assert room["comfort_heat"] == 21.0
+    assert room["eco_heat"] == 17.0
 
 
 @pytest.mark.asyncio
@@ -1403,7 +1404,7 @@ async def test_save_settings_mold_fields(ws_hass, store, connection):
     assert settings["mold_notifications_enabled"] is True
     assert len(settings["mold_notification_targets"]) == 1
     assert settings["mold_prevention_enabled"] is True
-    assert settings["mold_prevention_intensity"] == "strong"
+    assert "mold_prevention_intensity" not in settings  # legacy key: accepted, ignored
     assert settings["mold_prevention_dehumidification_enabled"] is False
     assert settings["mold_prevention_dry_min_temperature"] == 22.5
 
@@ -1445,7 +1446,7 @@ async def test_compute_target_forecast_uses_plain_targets(ws_hass):
     """_compute_target_forecast follows the schedule; mold prevention never raises it."""
     from custom_components.roommind.websocket_api import _compute_target_forecast
 
-    room = {"comfort_temp": 21.0, "eco_temp": 17.0, "schedules": []}
+    room = {"comfort_heat": 21.0, "eco_heat": 17.0, "schedules": []}
     forecast = await _compute_target_forecast(ws_hass, room, {})
     assert all(point["target_temp"] == 21.0 for point in forecast)
 
@@ -2081,7 +2082,7 @@ async def test_boost_learning_no_coordinator_errors(ws_hass, store, connection):
     """boost_learning without coordinator sends an error."""
     from custom_components.roommind.websocket_api import websocket_boost_learning
 
-    _boost_learning = websocket_boost_learning.__wrapped__
+    _boost_learning = inspect.unwrap(websocket_boost_learning)
 
     await store.async_load()
     # No coordinator in hass.data
@@ -2097,7 +2098,7 @@ async def test_boost_learning_success(ws_hass, store, connection):
     """boost_learning with coordinator boosts EKF and persists cooldown."""
     from custom_components.roommind.websocket_api import websocket_boost_learning
 
-    _boost_learning = websocket_boost_learning.__wrapped__
+    _boost_learning = inspect.unwrap(websocket_boost_learning)
 
     await store.async_load()
 
@@ -2968,3 +2969,117 @@ async def test_save_room_clears_active_profile(ws_hass, store, connection):
     await _save_room(ws_hass, connection, {"id": 31, **base, "active_profile": ""})
 
     assert store.get_room("studio")["active_profile"] == ""
+
+
+# ---------------------------------------------------------------------------
+# Admin requirement on configuration-changing commands (B1)
+# ---------------------------------------------------------------------------
+
+_ADMIN_ONLY_COMMANDS = (
+    "websocket_save_room",
+    "websocket_delete_room",
+    "websocket_save_settings",
+    "websocket_thermal_reset",
+    "websocket_thermal_reset_all",
+    "websocket_boost_learning",
+    "websocket_get_diagnostics",
+)
+_OPEN_COMMANDS = (
+    "websocket_list_rooms",
+    "websocket_get_settings",
+    "websocket_override_set",
+    "websocket_override_clear",
+    "websocket_covers_clear_override",
+    "websocket_get_analytics",
+    "websocket_get_analytics_comparison",
+    "websocket_control_preview",
+)
+
+
+@pytest.mark.parametrize("name", _ADMIN_ONLY_COMMANDS)
+def test_write_commands_reject_non_admin(name):
+    """Configuration-changing commands raise Unauthorized for non-admin users."""
+    from homeassistant.exceptions import Unauthorized
+
+    from custom_components.roommind import websocket_api as ws
+
+    hass = MagicMock()
+    conn = MagicMock()
+    conn.user.is_admin = False
+    with pytest.raises(Unauthorized):
+        getattr(ws, name)(hass, conn, {"id": 1, "area_id": "x"})
+    conn.send_result.assert_not_called()
+    hass.async_create_background_task.assert_not_called()
+
+
+@pytest.mark.parametrize("name", _OPEN_COMMANDS)
+def test_read_and_override_commands_allow_non_admin(name):
+    """Read-only and override commands stay available to non-admin users."""
+    from custom_components.roommind import websocket_api as ws
+
+    hass = MagicMock()
+    conn = MagicMock()
+    conn.user.is_admin = False
+    getattr(ws, name)(hass, conn, {"id": 1, "area_id": "x"})
+    hass.async_create_background_task.assert_called_once()
+    hass.async_create_background_task.call_args.args[0].close()
+
+
+@pytest.mark.asyncio
+async def test_analytics_forecast_failure_is_logged_as_warning(ws_hass, store, connection, caplog):
+    """A failing target forecast is reported with its traceback, not hidden at debug level (S2)."""
+    import logging
+
+    await store.async_load()
+    await store.async_save_room("room_a", {"thermostats": ["climate.trv1"]})
+    ws_hass.data[DOMAIN]["coordinator"] = _make_analytics_coordinator(history_rows=[])
+
+    with (
+        caplog.at_level(logging.WARNING),
+        patch(
+            "custom_components.roommind.services.analytics_service._compute_target_forecast",
+            AsyncMock(side_effect=RuntimeError("bad schedule")),
+        ),
+    ):
+        await _get_analytics(ws_hass, connection, {"id": 99, "type": "roommind/analytics/get", "area_id": "room_a"})
+
+    connection.send_result.assert_called_once()
+    record = next(r for r in caplog.records if "room_a" in r.getMessage())
+    assert record.levelno == logging.WARNING
+    assert record.exc_info is not None
+
+
+@pytest.mark.asyncio
+async def test_save_settings_accepts_and_ignores_dead_keys(ws_hass, store, connection):
+    """control_mode and the old mold prevention knobs are accepted for compatibility but never stored."""
+    import voluptuous as vol
+
+    from custom_components.roommind.websocket_api import SETTINGS_SAVE_SCHEMA
+
+    await store.async_load()
+    msg = {
+        "id": 31,
+        "type": "roommind/settings/save",
+        "control_mode": "mpc",
+        "mold_prevention_intensity": "light",
+        "mold_prevention_reheat_enabled": True,
+        "comfort_weight": 40,
+    }
+    vol.Schema(SETTINGS_SAVE_SCHEMA, extra=vol.ALLOW_EXTRA)(msg)
+    await _save_settings(ws_hass, connection, msg)
+
+    settings = connection.send_result.call_args[0][1]["settings"]
+    assert settings == {"comfort_weight": 40}
+
+
+@pytest.mark.asyncio
+async def test_list_rooms_exposes_effective_profile_targets(ws_hass, store, connection):
+    """The panel receives the targets each comfort profile applies (U7)."""
+    await store.async_load()
+    await store.async_save_room("studio", {"comfort_profiles": {"sleep": {"heat_target": 18.5}}})
+
+    await _list_rooms(ws_hass, connection, {"id": 40, "type": "roommind/rooms/list"})
+
+    room = connection.send_result.call_args[0][1]["rooms"]["studio"]
+    assert room["profile_targets"]["sleep"] == {"heat_target": 18.5, "cool_target": 26.0, "humidity_target": 55.0}
+    assert room["profile_targets"]["away"]["heat_target"] == 17.0

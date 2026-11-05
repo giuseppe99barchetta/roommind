@@ -240,7 +240,6 @@ class MoldManager:
                     await async_send_mold_notification(
                         self.hass,
                         area_id,
-                        area_name,
                         targets,
                         message=message,
                         title=text["risk_title"].format(room=area_name),
@@ -373,7 +372,6 @@ class MoldManager:
                     await async_send_mold_notification(
                         self.hass,
                         area_id,
-                        area_name,
                         prev_targets,
                         message=text[f"prevention_{result.prevention_strategy}"].format(srh=f"{surface_rh:.0f}"),
                         title=text["prevention_title"].format(room=area_name),

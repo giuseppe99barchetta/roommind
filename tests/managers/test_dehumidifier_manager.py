@@ -32,7 +32,7 @@ def prepare(control, humidities=None, molds=None, settings=None, windows=None):
     manager, rooms, _, _ = control
     humidity = humidities or {"bed": 55.0, "bath": 65.0}
     manager.prepare(rooms, settings or {}, humidity, windows or {})
-    manager.collect(rooms, humidity, molds or {}, {})
+    manager.collect(rooms, humidity, molds or {})
     return manager
 
 
@@ -128,7 +128,7 @@ def test_mold_run_aims_device_humidistat_at_the_wall(comfort, mold_target, expec
         }
     }
     manager.prepare(rooms, {}, {"bed": 57.0}, {})
-    manager.collect(rooms, {"bed": 57.0}, {"bed": ("warning", 72, True, "dehumidifier", mold_target)}, {})
+    manager.collect(rooms, {"bed": 57.0}, {"bed": ("warning", 72, True, "dehumidifier", mold_target)})
     assert manager.devices["humidifier.dry"]["target_humidity"] == expected
 
 

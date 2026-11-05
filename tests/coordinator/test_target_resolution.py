@@ -176,6 +176,26 @@ class TestVacationMode:
         assert room_state["target_temp"] == 21.0  # comfort_temp from schedule
 
     @pytest.mark.asyncio
+    async def test_expired_vacation_is_cleared_once_for_all_rooms(self, hass, mock_config_entry):
+        """Vacation expiry saves the settings once per tick, not once per room (P4)."""
+        rooms = {
+            "living_room_abc12345": SAMPLE_ROOM,
+            "bedroom": {**SAMPLE_ROOM, "area_id": "bedroom"},
+        }
+        store = _make_store_mock(rooms)
+        store.get_settings.return_value = {"vacation_temp": 15.0, "vacation_until": time.time() - 10}
+        store.async_save_settings = AsyncMock()
+        hass.data = {"roommind": {"store": store}}
+        hass.async_create_task = MagicMock(side_effect=lambda coro: coro.close())
+        hass.states.get = MagicMock(side_effect=make_mock_states_get())
+        hass.services.async_call = AsyncMock()
+
+        coordinator = _create_coordinator(hass, mock_config_entry)
+        await coordinator._async_update_data()
+
+        store.async_save_settings.assert_called_once_with({"vacation_until": None})
+
+    @pytest.mark.asyncio
     async def test_vacation_cool_target_stays_at_eco_cool(self, hass, mock_config_entry):
         """Vacation should not collapse cool_target to vacation_temp."""
         room = {**SAMPLE_ROOM, "eco_cool": 27.0}

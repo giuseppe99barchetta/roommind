@@ -647,7 +647,6 @@ class TestSimulateBangbang:
             all_points=[],
             q_residual=0.5,
             heating_system_type="underfloor",
-            heating_duration_minutes=60.0,
             last_power_fraction=1.0,
         )
         result_no_residual = _simulate_bangbang(

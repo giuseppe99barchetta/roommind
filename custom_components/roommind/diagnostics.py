@@ -5,11 +5,22 @@ from __future__ import annotations
 import time
 from typing import Any
 
+from homeassistant.components.diagnostics import async_redact_data
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 
 from .const import DOMAIN, VERSION
 from .control.mpc_controller import _last_commands
+
+# People, their whereabouts and their phones must not end up in shared reports.
+TO_REDACT = {
+    "persons",
+    "presence_persons",
+    "person_states",
+    "person_entity",
+    "mold_notification_targets",
+    "mold_prevention_notify_targets",
+}
 
 
 def _build_model_info(estimator: Any) -> dict[str, Any]:
@@ -269,6 +280,7 @@ async def async_get_config_entry_diagnostics(hass: HomeAssistant, config_entry: 
         forecast = coordinator._weather_manager._outdoor_forecast
         outdoor["forecast_available"] = bool(forecast)
         outdoor["forecast_points"] = len(forecast) if forecast else 0
+        outdoor["temp_source"] = coordinator.outdoor_temp_source
 
     # Recent history (last 2 hours of detail data per room)
     recent_history: dict[str, list] = {}
@@ -287,7 +299,7 @@ async def async_get_config_entry_diagnostics(hass: HomeAssistant, config_entry: 
                     }
                     for row in rows[-240:]  # Cap at ~240 points
                 ]
-            except Exception:  # noqa: BLE001
+            except Exception:
                 recent_history[area_id] = []
 
     # Compressor group state
@@ -300,7 +312,7 @@ async def async_get_config_entry_diagnostics(hass: HomeAssistant, config_entry: 
     if coordinator:
         valve = _build_valve_state(coordinator)
 
-    return {
+    diagnostics = {
         "integration": {
             "version": VERSION,
             "domain": DOMAIN,
@@ -321,3 +333,4 @@ async def async_get_config_entry_diagnostics(hass: HomeAssistant, config_entry: 
             },
         },
     }
+    return async_redact_data(diagnostics, TO_REDACT)

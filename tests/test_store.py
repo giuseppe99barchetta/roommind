@@ -6,7 +6,7 @@ from unittest.mock import AsyncMock
 
 import pytest
 
-from custom_components.roommind.const import DEFAULT_COMFORT_TEMP, DEFAULT_ECO_TEMP
+from custom_components.roommind.const import DEFAULT_COMFORT_HEAT, DEFAULT_ECO_HEAT
 
 
 @pytest.mark.asyncio
@@ -24,8 +24,10 @@ async def test_save_room_creates_new(store):
     assert room["climate_mode"] == "auto"
     assert room["schedules"] == []
     assert room["schedule_selector_entity"] == ""
-    assert room["comfort_temp"] == DEFAULT_COMFORT_TEMP
-    assert room["eco_temp"] == DEFAULT_ECO_TEMP
+    assert room["comfort_heat"] == DEFAULT_COMFORT_HEAT
+    assert room["eco_heat"] == DEFAULT_ECO_HEAT
+    assert "comfort_temp" not in room
+    assert "eco_temp" not in room
     assert room["climate_control_enabled"] is True
 
 
@@ -60,8 +62,8 @@ async def test_save_room_with_all_fields(store):
             "climate_mode": "heat_only",
             "schedules": [{"entity_id": "schedule.bedroom_heating"}],
             "schedule_selector_entity": "",
-            "comfort_temp": 22.0,
-            "eco_temp": 18.0,
+            "comfort_heat": 22.0,
+            "eco_heat": 18.0,
         },
     )
 
@@ -73,8 +75,8 @@ async def test_save_room_with_all_fields(store):
     assert room["climate_mode"] == "heat_only"
     assert room["schedules"] == [{"entity_id": "schedule.bedroom_heating"}]
     assert room["schedule_selector_entity"] == ""
-    assert room["comfort_temp"] == 22.0
-    assert room["eco_temp"] == 18.0
+    assert room["comfort_heat"] == 22.0
+    assert room["eco_heat"] == 18.0
 
 
 @pytest.mark.asyncio
@@ -152,8 +154,8 @@ async def test_load_restores_data(store):
     assert rooms["wohnzimmer"]["thermostats"] == ["climate.wz_trv"]
     assert rooms["wohnzimmer"]["schedules"] == [{"entity_id": "schedule.wz_heating"}]
     assert rooms["wohnzimmer"]["schedule_selector_entity"] == ""
-    assert rooms["wohnzimmer"]["comfort_temp"] == 21.0
-    assert rooms["wohnzimmer"]["eco_temp"] == 17.0
+    assert rooms["wohnzimmer"]["comfort_heat"] == 21.0
+    assert rooms["wohnzimmer"]["eco_heat"] == 17.0
 
 
 @pytest.mark.asyncio
@@ -334,57 +336,6 @@ async def test_migrate_room_temps_preserves_existing(store):
     assert room["eco_cool"] == 28.0
 
 
-# ---------------------------------------------------------------------------
-# Reverse-sync: comfort_temp/eco_temp → comfort_heat/eco_heat
-# ---------------------------------------------------------------------------
-
-
-@pytest.mark.asyncio
-async def test_save_comfort_temp_reverse_syncs_comfort_heat(store):
-    """Saving comfort_temp without comfort_heat should update comfort_heat too."""
-    await store.async_load()
-
-    # Create a room first (so it has comfort_heat from defaults)
-    await store.async_save_room("wohnzimmer", {"thermostats": ["climate.wz_trv"]})
-
-    # Now update with only comfort_temp (no comfort_heat in the dict)
-    updated = await store.async_save_room("wohnzimmer", {"comfort_temp": 22.0})
-
-    assert updated["comfort_heat"] == 22.0
-
-
-@pytest.mark.asyncio
-async def test_save_eco_temp_reverse_syncs_eco_heat(store):
-    """Saving eco_temp without eco_heat should update eco_heat too."""
-    await store.async_load()
-
-    # Create a room first
-    await store.async_save_room("wohnzimmer", {"thermostats": ["climate.wz_trv"]})
-
-    # Now update with only eco_temp (no eco_heat in the dict)
-    updated = await store.async_save_room("wohnzimmer", {"eco_temp": 16.0})
-
-    assert updated["eco_heat"] == 16.0
-
-
-@pytest.mark.asyncio
-async def test_save_room_syncs_comfort_heat_to_comfort_temp_on_update(store):
-    """Updating an existing room with comfort_heat should sync comfort_temp."""
-    await store.async_load()
-    await store.async_save_room("wohnzimmer", {})
-    updated = await store.async_save_room("wohnzimmer", {"comfort_heat": 23.0})
-    assert updated["comfort_temp"] == 23.0
-
-
-@pytest.mark.asyncio
-async def test_save_room_syncs_eco_heat_to_eco_temp_on_update(store):
-    """Updating an existing room with eco_heat should sync eco_temp."""
-    await store.async_load()
-    await store.async_save_room("wohnzimmer", {})
-    updated = await store.async_save_room("wohnzimmer", {"eco_heat": 15.0})
-    assert updated["eco_temp"] == 15.0
-
-
 @pytest.mark.asyncio
 async def test_update_room_missing_raises_key_error(store):
     """async_update_room on a non-existent room should raise KeyError."""
@@ -483,7 +434,9 @@ async def test_migration_legacy_room_gets_devices(store):
     await store.async_load()
 
     # Migration should have persisted
-    assert store._store.async_save.called
+    store._store.async_save.assert_called_once()
+    saved = store._store.async_save.call_args.args[0]["rooms"]["wohnzimmer"]
+    assert [d["entity_id"] for d in saved["devices"]] == ["climate.trv1", "climate.trv2", "climate.ac1"]
 
     room = store.get_room("wohnzimmer")
     assert "devices" in room
@@ -640,7 +593,10 @@ async def test_migration_heat_pump_to_ac(store):
     await store.async_load()
 
     # Migration should have persisted
-    assert store._store.async_save.called
+    store._store.async_save.assert_called_once()
+    saved = store._store.async_save.call_args.args[0]["rooms"]["wohnzimmer"]
+    assert saved["devices"][1]["type"] == "ac"
+    assert saved["acs"] == ["climate.hp1"]
 
     room = store.get_room("wohnzimmer")
     # heat_pump should be migrated to ac
@@ -724,7 +680,11 @@ async def test_migration_override_temp_on_load(store):
     store._store.async_load = AsyncMock(return_value=stored_data)
     await store.async_load()
 
-    assert store._store.async_save.called
+    store._store.async_save.assert_called_once()
+    saved = store._store.async_save.call_args.args[0]["rooms"]["wohnzimmer"]
+    assert "override_temp" not in saved
+    assert saved["override_heat"] == 21.0
+    assert saved["override_cool"] == 24.0
 
     room = store.get_room("wohnzimmer")
     assert "override_temp" not in room
@@ -799,3 +759,28 @@ async def test_legacy_auto_mode_migrates_to_automatic_control(store):
     assert studio["room_hvac_mode"] == "off"  # deliberate OFF is kept
     assert studio["override_heat"] == 22.0  # timed overrides are untouched
     assert studio["room_last_hvac_mode"] == "heat"
+
+
+@pytest.mark.asyncio
+async def test_migration_persists_legacy_temps_as_split_fields(store):
+    """Legacy comfort_temp/eco_temp end up as comfort_heat/eco_heat in the saved payload (D1, T6)."""
+    stored_data = {
+        "rooms": {
+            "wohnzimmer": {
+                "area_id": "wohnzimmer",
+                "comfort_temp": 22.0,
+                "eco_temp": 16.0,
+                "override_temp": None,
+                "schedules": [],
+            }
+        }
+    }
+    store._store.async_load = AsyncMock(return_value=stored_data)
+    await store.async_load()
+
+    store._store.async_save.assert_called_once()
+    saved = store._store.async_save.call_args.args[0]["rooms"]["wohnzimmer"]
+    assert saved["comfort_heat"] == 22.0
+    assert saved["eco_heat"] == 16.0
+    assert saved["comfort_cool"] == 24.0
+    assert saved["eco_cool"] == 27.0

@@ -15,17 +15,17 @@ class TestStoreRoundTrip:
 
         rooms = real_store.get_rooms()
         assert "living_room" in rooms
-        assert rooms["living_room"]["comfort_temp"] == 21.0
+        assert rooms["living_room"]["comfort_heat"] == 21.0
 
     @pytest.mark.asyncio
     async def test_update_room_merges(self, real_store):
         await real_store.async_load()
         await real_store.async_save_room("living_room", ROOM_LIVING)
-        await real_store.async_update_room("living_room", {"comfort_temp": 22.0})
+        await real_store.async_update_room("living_room", {"comfort_heat": 22.0})
 
         rooms = real_store.get_rooms()
-        assert rooms["living_room"]["comfort_temp"] == 22.0
-        assert rooms["living_room"]["eco_temp"] == 17.0
+        assert rooms["living_room"]["comfort_heat"] == 22.0
+        assert rooms["living_room"]["eco_heat"] == 17.0
 
     @pytest.mark.asyncio
     async def test_settings_merge(self, real_store):

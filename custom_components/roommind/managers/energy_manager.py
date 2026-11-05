@@ -10,6 +10,7 @@ from datetime import UTC, datetime
 from homeassistant.core import HomeAssistant
 from homeassistant.util import dt as dt_util
 
+from ..utils.device_utils import is_ac_type
 from ..utils.sensor_utils import power_to_watts
 
 _MIN_ACTIVE_POWER_W = 10.0
@@ -136,7 +137,7 @@ class EnergyManager:
     def _physical_mode(hass: HomeAssistant, room: dict, fallback: str) -> str:
         states: list[str] = []
         for dev in room.get("devices", []):
-            if dev.get("type") != "ac":
+            if not is_ac_type(dev):
                 continue
             state = hass.states.get(dev.get("entity_id", ""))
             if state is not None and state.state not in ("unknown", "unavailable", "off"):
@@ -160,7 +161,7 @@ class EnergyManager:
         configured = 0
         breakdown: dict[str, float] = {}
         for dev in room.get("devices", []):
-            if dev.get("type") != "ac":
+            if not is_ac_type(dev):
                 continue
             power_eid = dev.get("power_sensor_entity_id")
             if not power_eid:
@@ -182,10 +183,6 @@ class EnergyManager:
             breakdown[entity_id] = round(value, 1)
             total += value
         return min(total, _MAX_REASONABLE_POWER_W), configured, breakdown
-
-    def read_power_w(self, room: dict) -> tuple[float, int]:
-        total, configured, _ = self.read_power_breakdown(room)
-        return total, configured
 
     @staticmethod
     def _predict_stats(model: _LinearStats | None, features: list[float]) -> tuple[float | None, int]:

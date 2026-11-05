@@ -14,10 +14,6 @@ from homeassistant.util import dt as dt_util
 from ..const import (
     CLIMATE_MODE_COOL_ONLY,
     CLIMATE_MODE_HEAT_ONLY,
-    DEFAULT_COMFORT_COOL,
-    DEFAULT_COMFORT_HEAT,
-    DEFAULT_ECO_COOL,
-    DEFAULT_ECO_HEAT,
 )
 from ..control.mpc_controller import (
     DEFAULT_OUTDOOR_TEMP_FALLBACK,
@@ -26,7 +22,7 @@ from ..control.mpc_controller import (
     is_mpc_active,
 )
 from ..utils.comfort_insights import energy_suggestions
-from ..utils.device_utils import room_has_power_sensor
+from ..utils.device_utils import is_ac_type, room_has_power_sensor
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -275,20 +271,10 @@ async def _compute_target_forecast(
     from ..utils.presence_utils import is_presence_away
     from ..utils.schedule_utils import (
         get_active_schedule_entity,
+        make_target_resolver,
         read_schedule_blocks,
-        resolve_targets_at_time,
     )
-    from ..utils.temp_utils import ha_temp_to_celsius
 
-    comfort_heat = room.get("comfort_heat", room.get("comfort_temp", DEFAULT_COMFORT_HEAT))
-    comfort_cool = room.get("comfort_cool", DEFAULT_COMFORT_COOL)
-    eco_heat = room.get("eco_heat", room.get("eco_temp", DEFAULT_ECO_HEAT))
-    eco_cool = room.get("eco_cool", DEFAULT_ECO_COOL)
-    override_until = room.get("override_until")
-    override_heat = room.get("override_heat")
-    override_cool = room.get("override_cool")
-    vacation_until = settings.get("vacation_until")
-    vacation_temp = settings.get("vacation_temp")
     climate_mode = room.get("climate_mode", "auto")
 
     presence_away = not room.get("ignore_presence", False) and is_presence_away(hass, room, settings)
@@ -296,8 +282,7 @@ async def _compute_target_forecast(
     entity_id = get_active_schedule_entity(hass, room)
     schedule_blocks = await read_schedule_blocks(hass, entity_id, cache=schedule_blocks_cache) if entity_id else None
 
-    _hass = hass
-    converter = lambda v: ha_temp_to_celsius(_hass, v)  # noqa: E731
+    resolve_targets = make_target_resolver(schedule_blocks, room, settings, hass, presence_away)
 
     # Generate forecast points
     now = time.time()
@@ -305,24 +290,7 @@ async def _compute_target_forecast(
     result: list[dict] = []
     ts = now
     while ts <= end_ts:
-        targets = resolve_targets_at_time(
-            ts,
-            schedule_blocks,
-            override_until,
-            override_heat,
-            override_cool,
-            vacation_until,
-            vacation_temp,
-            comfort_heat,
-            comfort_cool,
-            eco_heat,
-            eco_cool,
-            presence_away=presence_away,
-            block_temp_converter=converter,
-            presence_away_action=settings.get("presence_away_action", "eco"),
-            schedule_off_action=settings.get("schedule_off_action", "eco"),
-            presence_clears_override=bool(settings.get("presence_clears_override", False)),
-        )
+        targets = resolve_targets(ts)
         heat_target = targets.heat
         cool_target = targets.cool
 
@@ -444,8 +412,8 @@ async def build_analytics_data(
             settings,
             schedule_blocks_cache=getattr(coordinator, "_schedule_blocks_cache", None),
         )
-    except Exception:  # noqa: BLE001
-        _LOGGER.debug("Target forecast computation failed for '%s'", area_id)
+    except Exception:
+        _LOGGER.warning("Target forecast computation failed for '%s'", area_id, exc_info=True)
         target_forecast = []
 
     # Forward-simulate temperature prediction for the forecast period.
@@ -549,7 +517,7 @@ async def build_analytics_data(
         vars(coordinator).get("_energy_manager") if coordinator and hasattr(coordinator, "__dict__") else None
     )
     has_power_sensors = any(
-        dev.get("type") == "ac" and dev.get("power_sensor_entity_id") for dev in room_config.get("devices", [])
+        is_ac_type(dev) and dev.get("power_sensor_entity_id") for dev in room_config.get("devices", [])
     )
     if energy_manager is not None and target_forecast and has_power_sensors:
         live = coordinator.rooms.get(area_id, {})

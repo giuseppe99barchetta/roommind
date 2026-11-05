@@ -67,8 +67,6 @@ async def test_create_defaults(store):
     room = await store.async_save_room("default_room", {})
 
     assert room["area_id"] == "default_room"
-    assert room["comfort_temp"] == 21.0
-    assert room["eco_temp"] == 17.0
     assert room["comfort_heat"] == 21.0
     assert room["comfort_cool"] == 24.0
     assert room["eco_heat"] == 17.0
@@ -144,7 +142,7 @@ async def test_create_with_legacy_syncs_devices(store):
 async def test_create_with_no_devices_or_legacy(store):
     """Creating a room with neither devices nor legacy fields gives empty lists."""
     await store.async_load()
-    room = await store.async_save_room("empty_room", {"comfort_temp": 22.0})
+    room = await store.async_save_room("empty_room", {"comfort_heat": 22.0})
 
     assert room["devices"] == []
     assert room["thermostats"] == []
@@ -243,131 +241,19 @@ async def test_update_with_legacy_syncs_devices(store):
 
 @pytest.mark.asyncio
 async def test_update_nondevice_fields_preserves_devices(store):
-    """Updating comfort_temp does not trigger device sync or alter devices."""
+    """Updating comfort_heat does not trigger device sync or alter devices."""
     await store.async_load()
     original_devices = [
         {"entity_id": "climate.trv1", "type": "trv", "role": "auto", "heating_system_type": "radiator"},
     ]
     await store.async_save_room("stable_room", {"devices": original_devices})
 
-    updated = await store.async_save_room("stable_room", {"comfort_temp": 23.0})
+    updated = await store.async_save_room("stable_room", {"comfort_heat": 23.0})
 
     assert updated["devices"] == original_devices
     assert updated["thermostats"] == ["climate.trv1"]
     assert updated["acs"] == []
-    assert updated["comfort_temp"] == 23.0
-
-
-# ---------------------------------------------------------------------------
-# 7. Split temp sync — comfort_heat <-> comfort_temp
-# ---------------------------------------------------------------------------
-
-
-@pytest.mark.asyncio
-async def test_create_comfort_heat_syncs_to_comfort_temp(store):
-    """On create, comfort_heat sets comfort_temp to same value."""
-    await store.async_load()
-    room = await store.async_save_room("temp_room", {"comfort_heat": 22.5})
-
-    assert room["comfort_heat"] == 22.5
-    assert room["comfort_temp"] == 22.5
-
-
-@pytest.mark.asyncio
-async def test_create_comfort_temp_syncs_to_comfort_heat(store):
-    """On create, comfort_temp (without comfort_heat) sets comfort_heat to same value."""
-    await store.async_load()
-    room = await store.async_save_room("temp_room2", {"comfort_temp": 23.0})
-
-    assert room["comfort_temp"] == 23.0
-    assert room["comfort_heat"] == 23.0
-
-
-@pytest.mark.asyncio
-async def test_create_eco_heat_syncs_to_eco_temp(store):
-    """On create, eco_heat sets eco_temp to same value."""
-    await store.async_load()
-    room = await store.async_save_room("eco_room", {"eco_heat": 18.0})
-
-    assert room["eco_heat"] == 18.0
-    assert room["eco_temp"] == 18.0
-
-
-@pytest.mark.asyncio
-async def test_create_eco_temp_syncs_to_eco_heat(store):
-    """On create, eco_temp (without eco_heat) sets eco_heat to same value."""
-    await store.async_load()
-    room = await store.async_save_room("eco_room2", {"eco_temp": 19.0})
-
-    assert room["eco_temp"] == 19.0
-    assert room["eco_heat"] == 19.0
-
-
-@pytest.mark.asyncio
-async def test_update_comfort_heat_syncs_to_comfort_temp(store):
-    """On update, comfort_heat also updates comfort_temp."""
-    await store.async_load()
-    await store.async_save_room("sync_room", {})
-
-    updated = await store.async_save_room("sync_room", {"comfort_heat": 22.0})
-
-    assert updated["comfort_heat"] == 22.0
-    assert updated["comfort_temp"] == 22.0
-
-
-@pytest.mark.asyncio
-async def test_update_comfort_temp_without_heat_syncs_to_comfort_heat(store):
-    """On update, comfort_temp without comfort_heat also updates comfort_heat."""
-    await store.async_load()
-    await store.async_save_room("sync_room2", {})
-
-    updated = await store.async_save_room("sync_room2", {"comfort_temp": 23.5})
-
-    assert updated["comfort_temp"] == 23.5
-    assert updated["comfort_heat"] == 23.5
-
-
-@pytest.mark.asyncio
-async def test_update_eco_heat_syncs_to_eco_temp(store):
-    """On update, eco_heat also updates eco_temp."""
-    await store.async_load()
-    await store.async_save_room("eco_sync", {})
-
-    updated = await store.async_save_room("eco_sync", {"eco_heat": 16.0})
-
-    assert updated["eco_heat"] == 16.0
-    assert updated["eco_temp"] == 16.0
-
-
-@pytest.mark.asyncio
-async def test_update_eco_temp_without_heat_syncs_to_eco_heat(store):
-    """On update, eco_temp without eco_heat also updates eco_heat."""
-    await store.async_load()
-    await store.async_save_room("eco_sync2", {})
-
-    updated = await store.async_save_room("eco_sync2", {"eco_temp": 18.5})
-
-    assert updated["eco_temp"] == 18.5
-    assert updated["eco_heat"] == 18.5
-
-
-@pytest.mark.asyncio
-async def test_update_comfort_heat_takes_precedence_over_comfort_temp(store):
-    """When both comfort_heat and comfort_temp sent, comfort_heat wins for comfort_temp."""
-    await store.async_load()
-    await store.async_save_room("precedence_room", {})
-
-    updated = await store.async_save_room(
-        "precedence_room",
-        {
-            "comfort_heat": 22.0,
-            "comfort_temp": 25.0,
-        },
-    )
-
-    # comfort_heat sync runs and overwrites comfort_temp
-    assert updated["comfort_heat"] == 22.0
-    assert updated["comfort_temp"] == 22.0
+    assert updated["comfort_heat"] == 23.0
 
 
 # ---------------------------------------------------------------------------

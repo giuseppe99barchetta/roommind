@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import time
-from unittest.mock import MagicMock
+from unittest.mock import ANY, MagicMock
 
 import pytest
 
@@ -22,7 +22,13 @@ class TestUpdateCycle:
         room = rooms["living_room"]
         assert room["target_temp"] == 21.0
         assert room["mode"] in ("heating", "idle")
-        assert coordinator.hass.services.async_call.called
+        coordinator.hass.services.async_call.assert_any_call(
+            "climate",
+            "set_hvac_mode",
+            {"entity_id": "climate.living_room", "hvac_mode": "heat"},
+            blocking=True,
+            context=ANY,
+        )
 
     @pytest.mark.asyncio
     async def test_eco_temp_when_schedule_off(self, coordinator, real_store):

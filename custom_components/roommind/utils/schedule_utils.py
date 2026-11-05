@@ -43,54 +43,6 @@ def find_active_block(schedule_blocks: dict, ts: float) -> dict[str, Any] | None
     return None
 
 
-def resolve_target_at_time(
-    ts: float,
-    schedule_blocks: dict | None,
-    override_until: float | None,
-    override_temp: float | None,
-    vacation_until: float | None,
-    vacation_temp: float | None,
-    comfort_temp: float,
-    eco_temp: float,
-    presence_away: bool = False,
-    block_temp_converter: Callable[[float], float] | None = None,
-    presence_away_action: str = "eco",
-    schedule_off_action: str = "eco",
-) -> float | None:
-    """Resolve what the target temp would be at a specific timestamp.
-
-    Returns None when the action is "off" (devices should be turned off).
-    """
-    # 1. Override
-    if override_temp is not None and (override_until is None or ts < override_until):
-        return float(override_temp)
-    # 2. Vacation
-    if vacation_until is not None and ts < vacation_until and vacation_temp is not None:
-        return float(vacation_temp)
-    # 2.5 Presence
-    if presence_away:
-        if presence_away_action == "off":
-            return None
-        return eco_temp
-    # 3. Schedule blocks
-    if schedule_blocks is None:
-        return comfort_temp
-    data = find_active_block(schedule_blocks, ts)
-    if data is not None:
-        block_temp = data.get("temperature")
-        if block_temp is not None:
-            try:
-                val = float(block_temp)
-                return block_temp_converter(val) if block_temp_converter else val
-            except (ValueError, TypeError):
-                pass
-        return comfort_temp
-    # Not in any block → eco or off
-    if schedule_off_action == "off":
-        return None
-    return eco_temp
-
-
 def resolve_targets_at_time(
     ts: float,
     schedule_blocks: dict | None,
@@ -229,7 +181,7 @@ async def read_schedule_blocks(
     When ``cache`` is provided, successful reads are stored under the entity ID
     so subsequent failures fall back to the last good blocks. Without a cache,
     transient service failures cause the caller's target resolution to silently
-    revert to comfort_temp (see #308).
+    revert to the comfort targets (see #308).
     """
     if not schedule_entity_id or not schedule_entity_id.startswith("schedule."):
         return None
@@ -248,7 +200,7 @@ async def read_schedule_blocks(
             result = response[schedule_entity_id]
             if isinstance(result, dict):
                 blocks = dict(result)
-    except Exception as err:  # noqa: BLE001
+    except Exception as err:
         error = err
 
     if blocks is not None:
@@ -286,9 +238,9 @@ def make_target_resolver(
     Returns TargetTemps with None values for timestamps where devices should
     be turned off.
     """
-    comfort_heat = room.get("comfort_heat", room.get("comfort_temp", DEFAULT_COMFORT_HEAT))
+    comfort_heat = room.get("comfort_heat", DEFAULT_COMFORT_HEAT)
     comfort_cool = room.get("comfort_cool", DEFAULT_COMFORT_COOL)
-    eco_heat = room.get("eco_heat", room.get("eco_temp", DEFAULT_ECO_HEAT))
+    eco_heat = room.get("eco_heat", DEFAULT_ECO_HEAT)
     eco_cool = room.get("eco_cool", DEFAULT_ECO_COOL)
     override_until = room.get("override_until")
     override_heat = room.get("override_heat")

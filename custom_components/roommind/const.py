@@ -42,10 +42,6 @@ MODE_COOLING = "cooling"
 # Schedule states
 SCHEDULE_STATE_ON = "on"
 
-# Defaults
-DEFAULT_COMFORT_TEMP = 21.0
-DEFAULT_ECO_TEMP = 17.0
-
 # Split heat/cool defaults
 DEFAULT_COMFORT_HEAT = 21.0
 DEFAULT_COMFORT_COOL = 24.0

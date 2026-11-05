@@ -701,6 +701,8 @@ export class RsRoomDetail extends LitElement {
                   <rs-comfort-section
                     .hass=${this.hass}
                     .activeProfile=${this._activeProfile}
+                    .profileTargets=${this.config?.profile_targets ?? {}}
+                    .climateMode=${this._climateMode}
                     .nightModeEnabled=${this._nightModeEnabled}
                     .nightStart=${this._nightStart}
                     .nightEnd=${this._nightEnd}

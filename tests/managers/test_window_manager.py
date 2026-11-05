@@ -8,17 +8,17 @@ from custom_components.roommind.managers.window_manager import WindowManager
 
 
 def test_is_paused_default_false():
-    """is_paused returns False for an unknown room."""
+    """paused state is False for an unknown room."""
     mgr = WindowManager()
-    assert mgr.is_paused("living_room") is False
+    assert mgr._paused.get("living_room", False) is False
 
 
 def test_is_paused_after_window_opens():
-    """is_paused returns True after window has been open past the delay."""
+    """paused state is True after window has been open past the delay."""
     mgr = WindowManager()
     # open_delay=0 → immediate pause
     mgr.update("living_room", raw_open=True, open_delay=0, close_delay=0)
-    assert mgr.is_paused("living_room") is True
+    assert mgr._paused.get("living_room", False) is True
 
 
 def test_open_delay_not_yet_reached():
@@ -32,13 +32,13 @@ def test_open_delay_not_yet_reached():
         mock_time.time.return_value = 1000.0
         result = mgr.update("living_room", raw_open=True, open_delay=30, close_delay=0)
         assert result is False
-        assert mgr.is_paused("living_room") is False
+        assert mgr._paused.get("living_room", False) is False
 
         # 15s later, still within delay
         mock_time.time.return_value = 1015.0
         result = mgr.update("living_room", raw_open=True, open_delay=30, close_delay=0)
         assert result is False
-        assert mgr.is_paused("living_room") is False
+        assert mgr._paused.get("living_room", False) is False
 
 
 def test_open_delay_reached():
@@ -51,13 +51,13 @@ def test_open_delay_reached():
 
         mock_time.time.return_value = 1000.0
         mgr.update("living_room", raw_open=True, open_delay=30, close_delay=0)
-        assert mgr.is_paused("living_room") is False
+        assert mgr._paused.get("living_room", False) is False
 
         # Exactly 30s later
         mock_time.time.return_value = 1030.0
         result = mgr.update("living_room", raw_open=True, open_delay=30, close_delay=0)
         assert result is True
-        assert mgr.is_paused("living_room") is True
+        assert mgr._paused.get("living_room", False) is True
 
 
 def test_close_delay_not_yet_reached():
@@ -67,19 +67,19 @@ def test_close_delay_not_yet_reached():
         # Open window, immediate pause
         mock_time.time.return_value = 1000.0
         mgr.update("living_room", raw_open=True, open_delay=0, close_delay=0)
-        assert mgr.is_paused("living_room") is True
+        assert mgr._paused.get("living_room", False) is True
 
         # Close window at t=1010, close_delay=30
         mock_time.time.return_value = 1010.0
         result = mgr.update("living_room", raw_open=False, open_delay=0, close_delay=30)
         assert result is True
-        assert mgr.is_paused("living_room") is True
+        assert mgr._paused.get("living_room", False) is True
 
         # 15s after close, still within delay
         mock_time.time.return_value = 1025.0
         result = mgr.update("living_room", raw_open=False, open_delay=0, close_delay=30)
         assert result is True
-        assert mgr.is_paused("living_room") is True
+        assert mgr._paused.get("living_room", False) is True
 
 
 def test_close_delay_reached():
@@ -89,18 +89,18 @@ def test_close_delay_reached():
         # Open window, immediate pause
         mock_time.time.return_value = 1000.0
         mgr.update("living_room", raw_open=True, open_delay=0, close_delay=0)
-        assert mgr.is_paused("living_room") is True
+        assert mgr._paused.get("living_room", False) is True
 
         # Close window at t=1010
         mock_time.time.return_value = 1010.0
         mgr.update("living_room", raw_open=False, open_delay=0, close_delay=30)
-        assert mgr.is_paused("living_room") is True
+        assert mgr._paused.get("living_room", False) is True
 
         # 30s after close
         mock_time.time.return_value = 1040.0
         result = mgr.update("living_room", raw_open=False, open_delay=0, close_delay=30)
         assert result is False
-        assert mgr.is_paused("living_room") is False
+        assert mgr._paused.get("living_room", False) is False
 
 
 def test_zero_delays_instant():
@@ -133,35 +133,35 @@ def test_state_machine_open_close_open():
     mgr = WindowManager()
     # Open
     mgr.update("living_room", raw_open=True, open_delay=0, close_delay=0)
-    assert mgr.is_paused("living_room") is True
+    assert mgr._paused.get("living_room", False) is True
 
     # Close
     mgr.update("living_room", raw_open=False, open_delay=0, close_delay=0)
-    assert mgr.is_paused("living_room") is False
+    assert mgr._paused.get("living_room", False) is False
 
     # Open again
     mgr.update("living_room", raw_open=True, open_delay=0, close_delay=0)
-    assert mgr.is_paused("living_room") is True
+    assert mgr._paused.get("living_room", False) is True
 
 
 def test_remove_room():
-    """After remove_room, is_paused returns False."""
+    """After remove_room, paused state is False."""
     mgr = WindowManager()
     mgr.update("living_room", raw_open=True, open_delay=0, close_delay=0)
-    assert mgr.is_paused("living_room") is True
+    assert mgr._paused.get("living_room", False) is True
 
     mgr.remove_room("living_room")
-    assert mgr.is_paused("living_room") is False
+    assert mgr._paused.get("living_room", False) is False
 
 
 def test_update_returns_paused_state():
-    """update() return value matches is_paused()."""
+    """update() return value matches the paused state."""
     mgr = WindowManager()
     result = mgr.update("living_room", raw_open=True, open_delay=0, close_delay=0)
-    assert result is mgr.is_paused("living_room")
+    assert result is mgr._paused.get("living_room", False)
 
     result = mgr.update("living_room", raw_open=False, open_delay=0, close_delay=0)
-    assert result is mgr.is_paused("living_room")
+    assert result is mgr._paused.get("living_room", False)
 
 
 def test_reopen_during_close_delay():
@@ -171,18 +171,18 @@ def test_reopen_during_close_delay():
         # Open window, immediate pause
         mock_time.time.return_value = 1000.0
         mgr.update("living_room", raw_open=True, open_delay=0, close_delay=30)
-        assert mgr.is_paused("living_room") is True
+        assert mgr._paused.get("living_room", False) is True
 
         # Close window, start close delay
         mock_time.time.return_value = 1010.0
         mgr.update("living_room", raw_open=False, open_delay=0, close_delay=30)
-        assert mgr.is_paused("living_room") is True  # still paused during delay
+        assert mgr._paused.get("living_room", False) is True  # still paused during delay
 
         # Re-open before close delay expires
         mock_time.time.return_value = 1020.0
         result = mgr.update("living_room", raw_open=True, open_delay=0, close_delay=30)
         assert result is True
-        assert mgr.is_paused("living_room") is True
+        assert mgr._paused.get("living_room", False) is True
 
         # Much later, still open → still paused (close delay should have been cleared)
         mock_time.time.return_value = 1100.0
@@ -193,7 +193,7 @@ def test_reopen_during_close_delay():
         # not use the stale _closed_since from the first close at t=1010.
         mock_time.time.return_value = 1100.0
         mgr.update("living_room", raw_open=False, open_delay=0, close_delay=30)
-        assert mgr.is_paused("living_room") is True  # still in close delay
+        assert mgr._paused.get("living_room", False) is True  # still in close delay
 
         # At t=1120 (only 20s after second close), should still be paused
         mock_time.time.return_value = 1120.0
@@ -213,7 +213,7 @@ def test_multiple_windows_one_open():
     # WindowManager receives the aggregated boolean.
     result = mgr.update("living_room", raw_open=True, open_delay=0, close_delay=0)
     assert result is True
-    assert mgr.is_paused("living_room") is True
+    assert mgr._paused.get("living_room", False) is True
 
 
 def test_multiple_windows_all_closed():
@@ -221,12 +221,12 @@ def test_multiple_windows_all_closed():
     mgr = WindowManager()
     # First make it paused
     mgr.update("living_room", raw_open=True, open_delay=0, close_delay=0)
-    assert mgr.is_paused("living_room") is True
+    assert mgr._paused.get("living_room", False) is True
 
     # All closed
     result = mgr.update("living_room", raw_open=False, open_delay=0, close_delay=0)
     assert result is False
-    assert mgr.is_paused("living_room") is False
+    assert mgr._paused.get("living_room", False) is False
 
 
 def test_window_already_open_at_startup_skips_delay():
@@ -238,7 +238,7 @@ def test_window_already_open_at_startup_skips_delay():
         result = mgr.update("living_room", raw_open=True, open_delay=300, close_delay=0)
         # Should be immediately paused despite 300s open_delay
         assert result is True
-        assert mgr.is_paused("living_room") is True
+        assert mgr._paused.get("living_room", False) is True
 
 
 def test_window_opens_after_startup_respects_delay():
@@ -248,7 +248,7 @@ def test_window_opens_after_startup_respects_delay():
         # First observation: window closed
         mock_time.time.return_value = 1000.0
         mgr.update("living_room", raw_open=False, open_delay=30, close_delay=0)
-        assert mgr.is_paused("living_room") is False
+        assert mgr._paused.get("living_room", False) is False
 
         # Window opens later — normal delay should apply
         mock_time.time.return_value = 1100.0
@@ -267,7 +267,7 @@ def test_window_already_open_at_startup_close_delay_still_works():
         # Startup: window already open → immediate pause
         mock_time.time.return_value = 1000.0
         mgr.update("living_room", raw_open=True, open_delay=60, close_delay=30)
-        assert mgr.is_paused("living_room") is True
+        assert mgr._paused.get("living_room", False) is True
 
         # Window closes
         mock_time.time.return_value = 1010.0
@@ -286,11 +286,11 @@ def test_remove_room_resets_seen_state():
         mock_time.time.return_value = 1000.0
         # Initial: window open → immediate pause (first observation)
         mgr.update("living_room", raw_open=True, open_delay=60, close_delay=0)
-        assert mgr.is_paused("living_room") is True
+        assert mgr._paused.get("living_room", False) is True
 
         # Remove room
         mgr.remove_room("living_room")
-        assert mgr.is_paused("living_room") is False
+        assert mgr._paused.get("living_room", False) is False
 
         # Re-add: window open again → should be treated as first observation
         mock_time.time.return_value = 2000.0

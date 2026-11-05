@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import contextlib
 import csv
 import json
 import logging
@@ -60,30 +61,47 @@ class HistoryStore:
         return os.path.join(self._base_dir, f"{area_id}_history.csv")
 
     @staticmethod
-    def _migrate_header(path: str) -> None:
-        """Rewrite CSV with current DETAIL_FIELDS header if columns changed."""
+    def _write_csv_atomic(path: str, rows: list[dict]) -> None:
+        """Write rows to a temp file and swap it in, so a crash never truncates the original."""
+        tmp_path = f"{path}.tmp"
+        try:
+            with open(tmp_path, "w", newline="") as f:
+                writer = csv.DictWriter(f, fieldnames=DETAIL_FIELDS, extrasaction="ignore")
+                writer.writeheader()
+                writer.writerows(rows)
+            os.replace(tmp_path, path)
+        except BaseException:
+            with contextlib.suppress(OSError):
+                os.remove(tmp_path)
+            raise
+
+    @classmethod
+    def _migrate_header(cls, path: str) -> bool:
+        """Rewrite CSV with current DETAIL_FIELDS header if columns changed.
+
+        Returns False when the file is still in an old format and must not be appended to.
+        """
         if not os.path.isfile(path):
-            return
+            return True
         try:
             with open(path, newline="") as f:
                 reader = csv.DictReader(f)
                 if reader.fieldnames == DETAIL_FIELDS:
-                    return
+                    return True
                 rows = list(reader)
-            with open(path, "w", newline="") as f:
-                writer = csv.DictWriter(f, fieldnames=DETAIL_FIELDS, extrasaction="ignore")
-                writer.writeheader()
-                for row in rows:
-                    writer.writerow({k: row.get(k, "") for k in DETAIL_FIELDS})
-        except Exception:  # noqa: BLE001
-            pass
+            cls._write_csv_atomic(path, rows)
+        except Exception:
+            _LOGGER.warning("Could not migrate history file %s, skipping this sample", path, exc_info=True)
+            return False
+        return True
 
     def record(self, area_id: str, data: dict, timestamp: float | None = None) -> None:
         """Append a data point to the detail CSV."""
         self._ensure_dir()
         ts = timestamp or time.time()
         path = self._detail_path(area_id)
-        self._migrate_header(path)
+        if not self._migrate_header(path):
+            return
 
         with open(path, "a", newline="") as f:
             writer = csv.DictWriter(f, fieldnames=DETAIL_FIELDS, extrasaction="ignore")
@@ -154,39 +172,35 @@ class HistoryStore:
         """Read CSV rows with safe timestamp parsing."""
         if not os.path.isfile(path):
             return []
-        with open(path, newline="") as f:
-            reader = csv.DictReader(f)
-            rows = list(reader)
-        # Keep the CSV compact, but restore per-device power maps for consumers
-        # that rebuild their learned models after a Home Assistant restart.
-        for row in rows:
-            for json_key, value_key in (
-                ("ac_device_power_w_json", "ac_device_power_w"),
-                ("predicted_device_power_w_json", "predicted_device_power_w"),
-            ):
-                try:
-                    value = json.loads(row.get(json_key, ""))
-                except (TypeError, ValueError, json.JSONDecodeError):
-                    value = {}
-                row[value_key] = value if isinstance(value, dict) else {}
         cutoff_start: float | None = None
         if start_ts is not None:
             cutoff_start = start_ts
         elif max_age is not None:
             cutoff_start = time.time() - max_age
-        if cutoff_start is not None or end_ts is not None:
-            filtered = []
-            for r in rows:
-                try:
-                    ts = float(r["timestamp"])
-                    if cutoff_start is not None and ts < cutoff_start:
+        filtering = cutoff_start is not None or end_ts is not None
+        rows = []
+        with open(path, newline="") as f:
+            # Filter before decoding JSON. Scan the whole file: rows are not guaranteed to be sorted.
+            for row in csv.DictReader(f):
+                if filtering:
+                    try:
+                        ts = float(row["timestamp"])
+                    except (ValueError, TypeError, KeyError):
+                        continue  # skip rows with corrupt timestamps
+                    if (cutoff_start is not None and ts < cutoff_start) or (end_ts is not None and ts > end_ts):
                         continue
-                    if end_ts is not None and ts > end_ts:
-                        continue
-                    filtered.append(r)
-                except (ValueError, TypeError, KeyError):
-                    pass  # skip rows with corrupt timestamps
-            rows = filtered
+                # Keep the CSV compact, but restore per-device power maps for consumers
+                # that rebuild their learned models after a Home Assistant restart.
+                for json_key, value_key in (
+                    ("ac_device_power_w_json", "ac_device_power_w"),
+                    ("predicted_device_power_w_json", "predicted_device_power_w"),
+                ):
+                    try:
+                        value = json.loads(row.get(json_key, ""))
+                    except (TypeError, ValueError, json.JSONDecodeError):
+                        value = {}
+                    row[value_key] = value if isinstance(value, dict) else {}
+                rows.append(row)
         return rows
 
     def rotate(self, area_id: str) -> None:
@@ -302,7 +316,4 @@ class HistoryStore:
 
     def _rewrite_csv(self, path: str, rows: list[dict]) -> None:
         self._ensure_dir()
-        with open(path, "w", newline="") as f:
-            writer = csv.DictWriter(f, fieldnames=DETAIL_FIELDS, extrasaction="ignore")
-            writer.writeheader()
-            writer.writerows(rows)
+        self._write_csv_atomic(path, rows)

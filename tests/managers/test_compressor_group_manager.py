@@ -124,7 +124,7 @@ class TestCompressorGroupManager:
         state = mgr._states["g1"]
         assert state.compressor_on_since is not None  # Still running
         assert state.compressor_off_since is None
-        assert mgr.is_compressor_running("g1") is True
+        assert bool(mgr.get_state("g1").active_members) is True
 
     def test_multiple_groups_independent(self):
         mgr = CompressorGroupManager()
@@ -167,14 +167,14 @@ class TestCompressorGroupManager:
         assert mgr.check_can_activate("climate.ac1") is True
         assert mgr.check_must_stay_active("climate.ac1") is False
 
-    def test_is_compressor_running(self):
+    def test_active_members_track_running_compressor(self):
         mgr = CompressorGroupManager()
         mgr.load_groups([_make_group(gid="g1")])
-        assert mgr.is_compressor_running("g1") is False
+        assert bool(mgr.get_state("g1").active_members) is False
         mgr.update_member("climate.ac1", True)
-        assert mgr.is_compressor_running("g1") is True
+        assert bool(mgr.get_state("g1").active_members) is True
         mgr.update_member("climate.ac1", False)
-        assert mgr.is_compressor_running("g1") is False
+        assert bool(mgr.get_state("g1").active_members) is False
 
     def test_update_member_unknown_entity_is_noop(self):
         mgr = CompressorGroupManager()

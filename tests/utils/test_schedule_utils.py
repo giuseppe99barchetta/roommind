@@ -19,7 +19,6 @@ from custom_components.roommind.utils.schedule_utils import (
     make_target_resolver,
     read_schedule_blocks,
     resolve_schedule_index,
-    resolve_target_at_time,
 )
 
 # ---------------------------------------------------------------------------
@@ -47,8 +46,8 @@ def _make_room(**overrides):
             {"entity_id": "schedule.bedroom_weekend"},
         ],
         "schedule_selector_entity": "",
-        "comfort_temp": 21.0,
-        "eco_temp": 18.0,
+        "comfort_heat": 21.0,
+        "eco_heat": 18.0,
     }
     room.update(overrides)
     return room
@@ -149,351 +148,102 @@ class TestResolveScheduleIndex:
 
 
 # ---------------------------------------------------------------------------
-# resolve_target_at_time
+# Priority chain of resolve_targets_at_time (ported from the removed
+# single-target resolve_target_at_time tests)
 # ---------------------------------------------------------------------------
 
 
-class TestResolveTargetAtTime:
-    """Tests for resolve_target_at_time."""
+def _local_ts(day, hour):
+    """Timestamp of 2025-01-<day> <hour>:00 in the HA time zone (6 = Monday)."""
+    return datetime(2025, 1, day, hour, 0, 0, tzinfo=dt_util.DEFAULT_TIME_ZONE).timestamp()
 
-    def test_override_active(self):
-        """Active override returns override_temp."""
-        now = time.time()
-        result = resolve_target_at_time(
-            ts=now,
-            schedule_blocks=None,
-            override_until=now + 3600,
-            override_temp=25.0,
-            vacation_until=None,
-            vacation_temp=None,
-            comfort_temp=21.0,
-            eco_temp=18.0,
-        )
-        assert result == 25.0
 
-    def test_override_expired(self):
-        """Expired override falls through to next priority."""
-        now = time.time()
-        result = resolve_target_at_time(
-            ts=now,
-            schedule_blocks=None,
-            override_until=now - 100,
-            override_temp=25.0,
-            vacation_until=None,
-            vacation_temp=None,
-            comfort_temp=21.0,
-            eco_temp=18.0,
-        )
-        # No vacation, no blocks → comfort_temp
-        assert result == 21.0
+def _monday_block(data):
+    return {"monday": [{"from": "08:00:00", "to": "12:00:00", "data": data}]}
+
+
+def _resolve(ts, **overrides):
+    from custom_components.roommind.utils.schedule_utils import resolve_targets_at_time
+
+    kwargs = {
+        "schedule_blocks": None,
+        "override_until": None,
+        "override_heat": None,
+        "override_cool": None,
+        "vacation_until": None,
+        "vacation_temp": None,
+        "comfort_heat": 21.0,
+        "comfort_cool": 24.0,
+        "eco_heat": 18.0,
+        "eco_cool": 27.0,
+    }
+    kwargs.update(overrides)
+    return resolve_targets_at_time(ts, **kwargs)
+
+
+class TestResolveTargetsPriorityChain:
+    """Override > vacation > presence > schedule > comfort/eco."""
 
     def test_vacation_active(self):
-        """Active vacation returns vacation_temp."""
         now = time.time()
-        result = resolve_target_at_time(
-            ts=now,
-            schedule_blocks=None,
-            override_until=None,
-            override_temp=None,
-            vacation_until=now + 86400,
+        assert _resolve(now, vacation_until=now + 86400, vacation_temp=16.0) == TargetTemps(heat=16.0, cool=27.0)
+
+    def test_vacation_expired_falls_through_to_schedule(self):
+        result = _resolve(
+            _local_ts(6, 10),
+            schedule_blocks=_monday_block({"temperature": 22.0}),
+            vacation_until=_local_ts(6, 10) - 100,
             vacation_temp=16.0,
-            comfort_temp=21.0,
-            eco_temp=18.0,
         )
-        assert result == 16.0
+        assert result == TargetTemps(heat=22.0, cool=22.0)
 
     def test_override_beats_vacation(self):
-        """Override has higher priority than vacation."""
         now = time.time()
-        result = resolve_target_at_time(
-            ts=now,
-            schedule_blocks=None,
-            override_until=now + 3600,
-            override_temp=25.0,
-            vacation_until=now + 86400,
-            vacation_temp=16.0,
-            comfort_temp=21.0,
-            eco_temp=18.0,
+        result = _resolve(
+            now, override_until=now + 3600, override_heat=25.0, vacation_until=now + 86400, vacation_temp=16.0
         )
-        assert result == 25.0
-
-    def test_presence_away_returns_eco(self):
-        """presence_away=True returns eco_temp."""
-        now = time.time()
-        result = resolve_target_at_time(
-            ts=now,
-            schedule_blocks={"monday": []},
-            override_until=None,
-            override_temp=None,
-            vacation_until=None,
-            vacation_temp=None,
-            comfort_temp=21.0,
-            eco_temp=18.0,
-            presence_away=True,
-        )
-        assert result == 18.0
-
-    def test_no_schedule_blocks_returns_comfort(self):
-        """schedule_blocks=None returns comfort_temp."""
-        now = time.time()
-        result = resolve_target_at_time(
-            ts=now,
-            schedule_blocks=None,
-            override_until=None,
-            override_temp=None,
-            vacation_until=None,
-            vacation_temp=None,
-            comfort_temp=21.0,
-            eco_temp=18.0,
-        )
-        assert result == 21.0
-
-    def test_inside_block_with_temperature(self):
-        """Inside a schedule block that has a temperature → returns that temperature."""
-        # Create a timestamp that falls on a known day and time
-        # Use a Monday at 10:00
-        dt = datetime(2025, 1, 6, 10, 0, 0, tzinfo=dt_util.DEFAULT_TIME_ZONE)  # Monday
-        ts = dt.timestamp()
-        schedule_blocks = {
-            "monday": [
-                {
-                    "from": "08:00:00",
-                    "to": "12:00:00",
-                    "data": {"temperature": 22.5},
-                },
-            ],
-        }
-        result = resolve_target_at_time(
-            ts=ts,
-            schedule_blocks=schedule_blocks,
-            override_until=None,
-            override_temp=None,
-            vacation_until=None,
-            vacation_temp=None,
-            comfort_temp=21.0,
-            eco_temp=18.0,
-        )
-        assert result == 22.5
-
-    def test_inside_block_without_temperature(self):
-        """Inside a block without temperature data → returns comfort_temp."""
-        dt = datetime(2025, 1, 6, 10, 0, 0, tzinfo=dt_util.DEFAULT_TIME_ZONE)  # Monday
-        ts = dt.timestamp()
-        schedule_blocks = {
-            "monday": [
-                {
-                    "from": "08:00:00",
-                    "to": "12:00:00",
-                    "data": {},
-                },
-            ],
-        }
-        result = resolve_target_at_time(
-            ts=ts,
-            schedule_blocks=schedule_blocks,
-            override_until=None,
-            override_temp=None,
-            vacation_until=None,
-            vacation_temp=None,
-            comfort_temp=21.0,
-            eco_temp=18.0,
-        )
-        assert result == 21.0
-
-    def test_outside_all_blocks_returns_eco(self):
-        """Outside all schedule blocks → returns eco_temp."""
-        dt = datetime(2025, 1, 6, 6, 0, 0, tzinfo=dt_util.DEFAULT_TIME_ZONE)  # Monday 06:00 — before any block
-        ts = dt.timestamp()
-        schedule_blocks = {
-            "monday": [
-                {
-                    "from": "08:00:00",
-                    "to": "12:00:00",
-                    "data": {"temperature": 22.0},
-                },
-            ],
-        }
-        result = resolve_target_at_time(
-            ts=ts,
-            schedule_blocks=schedule_blocks,
-            override_until=None,
-            override_temp=None,
-            vacation_until=None,
-            vacation_temp=None,
-            comfort_temp=21.0,
-            eco_temp=18.0,
-        )
-        assert result == 18.0
-
-    def test_day_with_no_blocks_returns_eco(self):
-        """Day without any blocks → returns eco_temp."""
-        dt = datetime(2025, 1, 7, 10, 0, 0, tzinfo=dt_util.DEFAULT_TIME_ZONE)  # Tuesday
-        ts = dt.timestamp()
-        schedule_blocks = {
-            "monday": [
-                {
-                    "from": "08:00:00",
-                    "to": "12:00:00",
-                    "data": {"temperature": 22.0},
-                },
-            ],
-        }
-        result = resolve_target_at_time(
-            ts=ts,
-            schedule_blocks=schedule_blocks,
-            override_until=None,
-            override_temp=None,
-            vacation_until=None,
-            vacation_temp=None,
-            comfort_temp=21.0,
-            eco_temp=18.0,
-        )
-        assert result == 18.0
-
-    def test_block_with_invalid_temperature(self):
-        """Block with non-numeric temperature → falls back to comfort_temp."""
-        dt = datetime(2025, 1, 6, 10, 0, 0, tzinfo=dt_util.DEFAULT_TIME_ZONE)  # Monday
-        ts = dt.timestamp()
-        schedule_blocks = {
-            "monday": [
-                {
-                    "from": "08:00:00",
-                    "to": "12:00:00",
-                    "data": {"temperature": "not_a_number"},
-                },
-            ],
-        }
-        result = resolve_target_at_time(
-            ts=ts,
-            schedule_blocks=schedule_blocks,
-            override_until=None,
-            override_temp=None,
-            vacation_until=None,
-            vacation_temp=None,
-            comfort_temp=21.0,
-            eco_temp=18.0,
-        )
-        assert result == 21.0
-
-    def test_vacation_expired_falls_through(self):
-        """Expired vacation falls through to schedule."""
-        dt = datetime(2025, 1, 6, 10, 0, 0, tzinfo=dt_util.DEFAULT_TIME_ZONE)  # Monday
-        ts = dt.timestamp()
-        schedule_blocks = {
-            "monday": [
-                {
-                    "from": "08:00:00",
-                    "to": "12:00:00",
-                    "data": {"temperature": 22.0},
-                },
-            ],
-        }
-        result = resolve_target_at_time(
-            ts=ts,
-            schedule_blocks=schedule_blocks,
-            override_until=None,
-            override_temp=None,
-            vacation_until=ts - 100,  # expired
-            vacation_temp=16.0,
-            comfort_temp=21.0,
-            eco_temp=18.0,
-        )
-        assert result == 22.0
-
-    def test_presence_away_action_off_returns_none(self):
-        """When presence_away_action is 'off' and presence away, returns None."""
-        now = time.time()
-        result = resolve_target_at_time(
-            ts=now,
-            schedule_blocks=None,
-            override_until=None,
-            override_temp=None,
-            vacation_until=None,
-            vacation_temp=None,
-            comfort_temp=21.0,
-            eco_temp=18.0,
-            presence_away=True,
-            presence_away_action="off",
-        )
-        assert result is None
-
-    def test_presence_away_action_eco_returns_eco(self):
-        """When presence_away_action is 'eco' and presence away, returns eco_temp."""
-        now = time.time()
-        result = resolve_target_at_time(
-            ts=now,
-            schedule_blocks=None,
-            override_until=None,
-            override_temp=None,
-            vacation_until=None,
-            vacation_temp=None,
-            comfort_temp=21.0,
-            eco_temp=18.0,
-            presence_away=True,
-            presence_away_action="eco",
-        )
-        assert result == 18.0
-
-    def test_schedule_off_action_off_returns_none(self):
-        """When schedule_off_action is 'off' and outside schedule blocks, returns None."""
-        dt = datetime(2025, 1, 6, 23, 0, 0, tzinfo=dt_util.DEFAULT_TIME_ZONE)  # Monday 23:00 - outside blocks
-        ts = dt.timestamp()
-        schedule_blocks = {
-            "monday": [
-                {"from": "08:00:00", "to": "12:00:00", "data": {"temperature": 22.0}},
-            ],
-        }
-        result = resolve_target_at_time(
-            ts=ts,
-            schedule_blocks=schedule_blocks,
-            override_until=None,
-            override_temp=None,
-            vacation_until=None,
-            vacation_temp=None,
-            comfort_temp=21.0,
-            eco_temp=18.0,
-            schedule_off_action="off",
-        )
-        assert result is None
-
-    def test_schedule_off_action_eco_returns_eco(self):
-        """When schedule_off_action is 'eco' (default), returns eco_temp."""
-        dt = datetime(2025, 1, 6, 23, 0, 0, tzinfo=dt_util.DEFAULT_TIME_ZONE)  # Monday 23:00 - outside blocks
-        ts = dt.timestamp()
-        schedule_blocks = {
-            "monday": [
-                {"from": "08:00:00", "to": "12:00:00", "data": {"temperature": 22.0}},
-            ],
-        }
-        result = resolve_target_at_time(
-            ts=ts,
-            schedule_blocks=schedule_blocks,
-            override_until=None,
-            override_temp=None,
-            vacation_until=None,
-            vacation_temp=None,
-            comfort_temp=21.0,
-            eco_temp=18.0,
-            schedule_off_action="eco",
-        )
-        assert result == 18.0
+        assert result == TargetTemps(heat=25.0, cool=None)
 
     def test_override_beats_presence_away_off(self):
-        """Active override takes priority even when presence_away_action is 'off'."""
         now = time.time()
-        result = resolve_target_at_time(
-            ts=now,
-            schedule_blocks=None,
-            override_until=now + 3600,
-            override_temp=25.0,
-            vacation_until=None,
-            vacation_temp=None,
-            comfort_temp=21.0,
-            eco_temp=18.0,
-            presence_away=True,
-            presence_away_action="off",
+        result = _resolve(
+            now, override_until=now + 3600, override_heat=25.0, presence_away=True, presence_away_action="off"
         )
-        assert result == 25.0
+        assert result == TargetTemps(heat=25.0, cool=None)
+
+    def test_no_schedule_blocks_returns_comfort(self):
+        assert _resolve(time.time()) == TargetTemps(heat=21.0, cool=24.0)
+
+    @pytest.mark.parametrize("data", [{}, {"temperature": "not_a_number"}])
+    def test_block_without_valid_temperature_returns_comfort(self, data):
+        assert _resolve(_local_ts(6, 10), schedule_blocks=_monday_block(data)) == TargetTemps(heat=21.0, cool=24.0)
+
+    @pytest.mark.parametrize(("day", "hour"), [(6, 6), (7, 10)])
+    def test_outside_blocks_or_empty_day_returns_eco(self, day, hour):
+        assert _resolve(_local_ts(day, hour), schedule_blocks=_monday_block({"temperature": 22.0})) == TargetTemps(
+            heat=18.0, cool=27.0
+        )
+
+    def test_schedule_off_action_off_returns_none(self):
+        result = _resolve(
+            _local_ts(6, 6), schedule_blocks=_monday_block({"temperature": 22.0}), schedule_off_action="off"
+        )
+        assert result == TargetTemps(heat=None, cool=None)
+
+    def test_block_temp_converter_converts_fahrenheit_to_celsius(self):
+        result = _resolve(
+            _local_ts(6, 10),
+            schedule_blocks=_monday_block({"temperature": 71.6}),
+            block_temp_converter=lambda v: (v - 32) * 5 / 9,
+        )
+        assert result.heat == pytest.approx(22.0, abs=0.1)
+        assert result.cool == pytest.approx(22.0, abs=0.1)
+
+    def test_block_temp_converter_not_applied_without_block_temp(self):
+        converter = MagicMock(side_effect=lambda v: v)
+        result = _resolve(_local_ts(6, 10), schedule_blocks=_monday_block({}), block_temp_converter=converter)
+        assert result == TargetTemps(heat=21.0, cool=24.0)
+        converter.assert_not_called()
 
 
 class TestMakeTargetResolverOffActions:
@@ -501,7 +251,7 @@ class TestMakeTargetResolverOffActions:
 
     def test_resolver_returns_none_for_presence_off(self):
         """Resolver returns None when presence_away_action is 'off' and away."""
-        room = {"comfort_temp": 21.0, "eco_temp": 17.0}
+        room = {"comfort_heat": 21.0, "eco_heat": 17.0}
         settings = {"presence_away_action": "off"}
         resolver = make_target_resolver(
             None,
@@ -513,7 +263,7 @@ class TestMakeTargetResolverOffActions:
 
     def test_resolver_returns_none_for_schedule_off(self):
         """Resolver returns None when schedule_off_action is 'off' and outside blocks."""
-        room = {"comfort_temp": 21.0, "eco_temp": 17.0}
+        room = {"comfort_heat": 21.0, "eco_heat": 17.0}
         settings = {"schedule_off_action": "off"}
         make_target_resolver(
             None,
@@ -521,7 +271,7 @@ class TestMakeTargetResolverOffActions:
             settings,
         )
         # No schedule blocks → falls through to eco/off logic
-        # Actually with no schedule blocks, it returns comfort_temp (no blocks = comfort)
+        # Actually with no schedule blocks, it returns comfort_heat (no blocks = comfort)
         # So we need schedule_blocks with no matching block
         dt = datetime(2025, 1, 6, 23, 0, 0, tzinfo=dt_util.DEFAULT_TIME_ZONE)
         ts = dt.timestamp()
@@ -531,7 +281,7 @@ class TestMakeTargetResolverOffActions:
 
     def test_resolver_presence_off_returns_none(self):
         """Presence away with action off resolves to no targets."""
-        room = {"comfort_temp": 21.0, "eco_temp": 17.0}
+        room = {"comfort_heat": 21.0, "eco_heat": 17.0}
         settings = {"presence_away_action": "off"}
         resolver = make_target_resolver(None, room, settings, presence_away=True)
         assert resolver(time.time()) == TargetTemps(heat=None, cool=None)
@@ -591,76 +341,6 @@ class TestGetActiveScheduleEntity:
 class TestFahrenheitBlockConversion:
     """Tests for Fahrenheit temperature handling in schedule resolution."""
 
-    def test_block_temp_converter_converts_fahrenheit_to_celsius(self):
-        """resolve_target_at_time applies block_temp_converter to schedule block temps."""
-        from datetime import datetime
-
-        dt = datetime(2025, 1, 6, 10, 0, 0, tzinfo=dt_util.DEFAULT_TIME_ZONE)  # Monday 10:00
-        ts = dt.timestamp()
-        schedule_blocks = {
-            "monday": [
-                {
-                    "from": "08:00:00",
-                    "to": "12:00:00",
-                    # Block temp stored in Fahrenheit: 71.6°F = 22°C
-                    "data": {"temperature": 71.6},
-                },
-            ],
-        }
-        # Converter simulates Fahrenheit → Celsius
-        converter = lambda v: (v - 32) * 5 / 9  # noqa: E731
-
-        result = resolve_target_at_time(
-            ts=ts,
-            schedule_blocks=schedule_blocks,
-            override_until=None,
-            override_temp=None,
-            vacation_until=None,
-            vacation_temp=None,
-            comfort_temp=21.0,
-            eco_temp=18.0,
-            block_temp_converter=converter,
-        )
-        import pytest as _pytest
-
-        assert result == _pytest.approx(22.0, abs=0.1)
-
-    def test_block_temp_converter_not_applied_without_block_temp(self):
-        """Converter is not called when block has no temperature data."""
-        from datetime import datetime
-
-        dt = datetime(2025, 1, 6, 10, 0, 0, tzinfo=dt_util.DEFAULT_TIME_ZONE)  # Monday 10:00
-        ts = dt.timestamp()
-        schedule_blocks = {
-            "monday": [
-                {
-                    "from": "08:00:00",
-                    "to": "12:00:00",
-                    "data": {},  # no temperature
-                },
-            ],
-        }
-        converter_called = False
-
-        def converter(v):
-            nonlocal converter_called
-            converter_called = True
-            return v
-
-        result = resolve_target_at_time(
-            ts=ts,
-            schedule_blocks=schedule_blocks,
-            override_until=None,
-            override_temp=None,
-            vacation_until=None,
-            vacation_temp=None,
-            comfort_temp=21.0,
-            eco_temp=18.0,
-            block_temp_converter=converter,
-        )
-        assert result == 21.0  # falls back to comfort_temp
-        assert not converter_called
-
     def test_make_target_resolver_fahrenheit_block_conversion(self):
         """make_target_resolver with Fahrenheit hass converts block temps to Celsius."""
         from datetime import datetime
@@ -670,7 +350,7 @@ class TestFahrenheitBlockConversion:
         hass = _make_hass()
         hass.config.units.temperature_unit = UnitOfTemperature.FAHRENHEIT
 
-        room = _make_room(comfort_temp=21.0, eco_temp=18.0)
+        room = _make_room(comfort_heat=21.0, eco_heat=18.0)
         settings: dict = {}
 
         # Monday 10:00 schedule block with 71.6°F
@@ -705,7 +385,7 @@ class TestFahrenheitBlockConversion:
         hass = _make_hass()
         hass.config.units.temperature_unit = UnitOfTemperature.CELSIUS
 
-        room = _make_room(comfort_temp=21.0, eco_temp=18.0)
+        room = _make_room(comfort_heat=21.0, eco_heat=18.0)
         settings: dict = {}
 
         dt = datetime(2025, 1, 6, 10, 0, 0, tzinfo=dt_util.DEFAULT_TIME_ZONE)
@@ -990,8 +670,6 @@ class TestMakeTargetResolverCoolValues:
     def test_resolver_returns_correct_cool(self):
         """Resolver returns correct .cool value from room config."""
         room = {
-            "comfort_temp": 21.0,
-            "eco_temp": 17.0,
             "comfort_heat": 21.0,
             "comfort_cool": 24.0,
             "eco_heat": 17.0,
@@ -1006,8 +684,6 @@ class TestMakeTargetResolverCoolValues:
     def test_resolver_returns_heat_and_cool(self):
         """Resolver returns the comfort heat and cool targets unchanged."""
         room = {
-            "comfort_temp": 21.0,
-            "eco_temp": 17.0,
             "comfort_heat": 21.0,
             "comfort_cool": 24.0,
             "eco_heat": 17.0,

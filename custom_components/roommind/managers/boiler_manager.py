@@ -115,7 +115,7 @@ class BoilerManager:
                 for e in er.async_entries_for_device(registry, entry.device_id)
                 if e.domain == "switch" and "child_lock" in (e.translation_key or e.entity_id)
             ]
-        except Exception:  # noqa: BLE001 - registry unavailable (tests, early startup)
+        except Exception:
             return []
 
     async def _lock_bypass(self, settings: dict, entity_id: str) -> None:
@@ -141,7 +141,7 @@ class BoilerManager:
                     blocking=True,
                     context=make_roommind_context(),
                 )
-            except Exception:  # noqa: BLE001
+            except Exception:
                 _LOGGER.warning("Unable to enable child lock '%s'", lock_eid, exc_info=True)
 
     async def _set_bypass(self, settings: dict, open_: bool) -> bool:
@@ -164,7 +164,7 @@ class BoilerManager:
                         blocking=True,
                         context=make_roommind_context(),
                     )
-                except Exception:  # noqa: BLE001
+                except Exception:
                     released = False
                     _LOGGER.warning("Unable to release boiler bypass '%s'", entity_id, exc_info=True)
             self._bypass_released = released
@@ -200,7 +200,7 @@ class BoilerManager:
                     context=make_roommind_context(),
                 )
                 confirmed = confirmed or self._bypass_confirmed(entity_id, target)
-            except Exception:  # noqa: BLE001
+            except Exception:
                 _LOGGER.warning("Unable to open boiler bypass '%s'", entity_id, exc_info=True)
         return confirmed
 
@@ -219,7 +219,7 @@ class BoilerManager:
         try:
             await self.hass.services.async_call(domain, service, data, blocking=True, context=make_roommind_context())
             return True
-        except Exception:  # noqa: BLE001
+        except Exception:
             _LOGGER.warning("Unable to change boiler '%s'", entity_id, exc_info=True)
             return False
 
@@ -234,7 +234,7 @@ class BoilerManager:
                 persistent_notification.async_create(
                     self.hass, message, title="RoomMind: caldaia in blocco", notification_id=FAULT_NOTIFICATION_ID
                 )
-        except Exception:  # noqa: BLE001 - notifications are best effort
+        except Exception:
             _LOGGER.debug("Boiler fault notification unavailable", exc_info=True)
 
     async def _enter_fault(self, settings: dict, reason: str, now: float) -> None:

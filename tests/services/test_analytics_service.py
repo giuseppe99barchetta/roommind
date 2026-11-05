@@ -960,3 +960,32 @@ async def test_comparison_excludes_rooms_without_configured_power_sensor():
     result = await build_comparison_data(MagicMock(), store, None)
 
     assert [room["area_id"] for room in result["rooms"]] == ["living_room"]
+
+
+@pytest.mark.asyncio
+async def test_target_forecast_follows_override_then_vacation_then_presence():
+    """The chart forecast uses the same priority chain as the controller (D2)."""
+    hass = MagicMock()
+    hass.config.units.temperature_unit = "°C"
+    now = 1_750_000_000.0
+    room = {
+        "comfort_heat": 21.0,
+        "comfort_cool": 24.0,
+        "eco_heat": 17.0,
+        "eco_cool": 27.0,
+        "climate_mode": "auto",
+        "override_heat": 23.0,
+        "override_cool": 25.0,
+        "override_until": now + 3600,
+    }
+    settings = {"vacation_until": now + 7200, "vacation_temp": 15.0, "presence_away_action": "eco"}
+
+    with (
+        patch("custom_components.roommind.services.analytics_service.time.time", return_value=now),
+        patch("custom_components.roommind.utils.presence_utils.is_presence_away", return_value=True),
+        patch("custom_components.roommind.utils.schedule_utils.get_active_schedule_entity", return_value=None),
+    ):
+        result = await _compute_target_forecast(hass, room, settings, hours=3.0)
+
+    targets = [(p["heat_target"], p["cool_target"]) for p in result]
+    assert targets == [(23.0, 25.0)] * 12 + [(15.0, 27.0)] * 12 + [(17.0, 27.0)] * 13
