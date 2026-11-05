@@ -932,8 +932,12 @@ export class RoomMindPanel extends LitElement {
     this._navigate("");
   }
 
+  private _deletingAreaId: string | null = null;
+
   private async _onDeleteRoom() {
     if (!this._selectedAreaId) return;
+    // A second delete would fail with not_found and resume saving the deleted room.
+    if (this._deletingAreaId === this._selectedAreaId) return;
     const area = this.hass?.areas?.[this._selectedAreaId];
     if (!area) return;
 
@@ -945,6 +949,7 @@ export class RoomMindPanel extends LitElement {
     // rooms/save recreates the room that was just deleted.
     const detail = this.renderRoot.querySelector("rs-room-detail");
     detail?.beginDelete();
+    this._deletingAreaId = this._selectedAreaId;
     try {
       await this.hass.callWS({
         type: "roommind/rooms/delete",
@@ -958,6 +963,8 @@ export class RoomMindPanel extends LitElement {
         (err as { message?: string } | null)?.message ||
           localize("room.error_delete_fallback", this.hass.language),
       );
+    } finally {
+      this._deletingAreaId = null;
     }
   }
 

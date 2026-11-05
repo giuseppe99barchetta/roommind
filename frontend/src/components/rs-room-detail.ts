@@ -92,6 +92,7 @@ export class RsRoomDetail extends LitElement {
   @state() private _error = "";
   @state() private _dirty = false;
   private _deleting = false;
+  private _editRevision = 0;
   @state() private _editing: EditableSection | null = null;
   @state() private _detailView: "overview" | "equipment" | "advanced" = "overview";
   @state() private _selectedPresencePersons: string[] = [];
@@ -1462,6 +1463,7 @@ export class RsRoomDetail extends LitElement {
 
   private _autoSave() {
     this._dirty = true;
+    this._editRevision++;
     // While the room is being deleted, edits stay dirty but schedule nothing.
     if (this._deleting) return;
     if (this._saveDebounce) clearTimeout(this._saveDebounce);
@@ -1494,6 +1496,7 @@ export class RsRoomDetail extends LitElement {
   }
 
   private async _doSave(areaId = this.area.area_id) {
+    const savedRevision = this._editRevision;
     fireSaveStatus(this, "saving");
     this._error = "";
 
@@ -1558,7 +1561,8 @@ export class RsRoomDetail extends LitElement {
         heat_pump_power_watts: this._heatPumpPowerWatts,
       });
 
-      this._dirty = false;
+      // An edit made while this save was in flight is still unsaved.
+      if (this._editRevision === savedRevision) this._dirty = false;
       fireSaveStatus(this, "saved");
 
       this.dispatchEvent(

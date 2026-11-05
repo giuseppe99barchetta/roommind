@@ -83,3 +83,47 @@ test("a rejected delete saves the pending edit and shows the error", async () =>
   assert.deepEqual(writes, ["roommind/rooms/delete", "roommind/rooms/save"]);
   assert.equal(detail._error, "boom");
 });
+
+test("a second delete while the first is pending is ignored", async () => {
+  const { writes, detail, panel } = setup();
+  const settles = [];
+  detail.hass.callWS = (p) => {
+    writes.push(p.type);
+    if (p.type !== "roommind/rooms/delete") return Promise.resolve({});
+    return new Promise((resolve, reject) => settles.push({ resolve, reject }));
+  };
+  globalThis.confirm = () => true;
+  detail._autoSave();
+  const first = panel._onDeleteRoom();
+  const second = panel._onDeleteRoom();
+  settles[0].resolve({});
+  settles[1]?.reject({ code: "not_found", message: "not found" });
+  await Promise.all([first, second]);
+  detail._autoSave();
+  detail.disconnectedCallback();
+  await new Promise((r) => setTimeout(r, 600));
+  assert.deepEqual(writes, ["roommind/rooms/delete"]);
+});
+
+test("an earlier save finishing during a failed delete keeps the newer edit dirty", async () => {
+  const { writes, detail, panel } = setup();
+  let finishSave;
+  detail.hass.callWS = (p) => {
+    writes.push(p.type);
+    if (p.type === "roommind/rooms/save" && !finishSave) return new Promise((r) => { finishSave = r; });
+    if (p.type === "roommind/rooms/delete") return Promise.reject({ message: "boom" });
+    return Promise.resolve({});
+  };
+  globalThis.confirm = () => true;
+  detail._autoSave();
+  const firstSave = detail._doSave(); // save of the first edit is in flight
+  detail._displayName = "Newer edit";
+  detail._autoSave();
+  detail.beginDelete();
+  finishSave({});
+  await firstSave;
+  assert.equal(detail._dirty, true);
+  await panel._onDeleteRoom();
+  await new Promise((r) => setTimeout(r, 0));
+  assert.deepEqual(writes, ["roommind/rooms/save", "roommind/rooms/delete", "roommind/rooms/save"]);
+});
