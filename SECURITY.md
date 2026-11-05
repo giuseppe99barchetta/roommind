@@ -5,7 +5,7 @@
 If you discover a security vulnerability in RoomMind, please report it responsibly:
 
 1. **Do not** open a public GitHub issue
-2. Send an email to the maintainers or use [GitHub's private vulnerability reporting](https://github.com/snazzybean/roommind/security/advisories/new)
+2. Send an email to the maintainers or use [GitHub's private vulnerability reporting](https://github.com/giuseppe99barchetta/roommind/security/advisories/new)
 3. Include a description of the vulnerability and steps to reproduce it
 
 We will acknowledge your report within 48 hours and work on a fix as soon as possible.

@@ -10,7 +10,7 @@ import { getSelectValue } from "../../utils/events";
 import { toDisplay, toCelsius, tempUnit, tempStep, tempRange } from "../../utils/temperature";
 
 const CONTROL_DOCS_URL =
-  "https://github.com/snazzybean/roommind/blob/main/docs/control-and-devices.md";
+  "https://github.com/giuseppe99barchetta/roommind/blob/main/docs/control-and-devices.md";
 
 @customElement("rs-settings-control")
 export class RsSettingsControl extends RsSettingsBase {

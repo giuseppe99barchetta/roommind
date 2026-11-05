@@ -36,7 +36,7 @@ import { resolveHeatingSystemType } from "../utils/device-utils";
 import type { RsOverrideSection } from "./rs-override-section";
 
 const CONTROL_DOCS_URL =
-  "https://github.com/snazzybean/roommind/blob/main/docs/control-and-devices.md";
+  "https://github.com/giuseppe99barchetta/roommind/blob/main/docs/control-and-devices.md";
 
 type EditableSection =
   | "schedule"

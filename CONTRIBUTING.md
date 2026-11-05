@@ -102,4 +102,4 @@ chore: update dependencies
 
 ## Reporting Issues
 
-Use [GitHub Issues](https://github.com/snazzybean/roommind/issues) with the provided templates for bug reports and feature requests.
+Use [GitHub Issues](https://github.com/giuseppe99barchetta/roommind/issues) with the provided templates for bug reports and feature requests.
