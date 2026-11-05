@@ -161,7 +161,10 @@ export class RsScheduleSettings extends RsScheduleBase {
               })}
             </div>
           `
-        : html`<div class="no-schedules">${localize("schedule.no_schedules", l)}</div>`}
+        : html`<div class="no-schedules">${localize("schedule.no_schedules", l)}</div>
+            <a href="/config/helpers" target="_top" class="helper-link">
+              ${localize("schedule.create_helper_hint", l)}
+            </a>`}
       ${this.climateMode === "auto"
         ? html`
             <div class="view-temps">

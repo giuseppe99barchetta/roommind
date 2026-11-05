@@ -1,5 +1,5 @@
 /**
- * rs-settings-control – Control settings: mode, comfort weight, thresholds, prediction.
+ * rs-settings-control – Control settings: comfort weight, thresholds, prediction.
  */
 import { html, css } from "lit";
 import { RsSettingsBase } from "./rs-settings-base";
@@ -15,7 +15,6 @@ const CONTROL_DOCS_URL =
 @customElement("rs-settings-control")
 export class RsSettingsControl extends RsSettingsBase {
   @property({ attribute: false }) public hass!: HomeAssistant;
-  @property({ type: String }) public controlMode: "mpc" | "bangbang" = "mpc";
   @property({ type: Number }) public comfortWeight = 70;
   @property({ type: Number }) public outdoorCoolingMin = 16;
   @property({ type: Number }) public outdoorHeatingMax = 22;
@@ -27,43 +26,6 @@ export class RsSettingsControl extends RsSettingsBase {
 
     return html`
       <div class="settings-section first">
-        <p class="hint">${localize("settings.control_mode_hint", l)}</p>
-        <div class="radio-group">
-          <label class="radio-option" @click=${() => this._setControlMode("mpc")}>
-            <ha-radio name="control_mode" .checked=${this.controlMode === "mpc"}></ha-radio>
-            <span>${localize("settings.control_mode_mpc", l)}</span>
-          </label>
-          <label class="radio-option" @click=${() => this._setControlMode("bangbang")}>
-            <ha-radio name="control_mode" .checked=${this.controlMode === "bangbang"}></ha-radio>
-            <span>${localize("settings.control_mode_simple", l)}</span>
-          </label>
-        </div>
-      </div>
-
-      <div class="settings-section">
-        <label class="section-label">${localize("settings.comfort_weight", l)}</label>
-        <div class="slider-row">
-          <span class="slider-label">${localize("settings.comfort_weight_efficiency", l)}</span>
-          <input
-            type="range"
-            min="0"
-            max="100"
-            step="5"
-            .value=${String(this.comfortWeight)}
-            @change=${(e: Event) => {
-              const v = parseInt((e.target as HTMLInputElement).value, 10);
-              if (!isNaN(v) && v !== this.comfortWeight) this._fire("comfortWeight", v);
-            }}
-          />
-          <span class="slider-label">${localize("settings.comfort_weight_comfort", l)}</span>
-        </div>
-        <p class="hint helper-text">${localize("settings.comfort_weight_hint", l)}</p>
-        <a class="helper-link" href=${CONTROL_DOCS_URL} target="_blank" rel="noreferrer">
-          ${localize("common.learn_more", l)}
-        </a>
-      </div>
-
-      <div class="settings-section">
         <p class="hint">${localize("settings.smart_control_hint", l)}</p>
         <div class="threshold-grid">
           <div class="threshold-field">
@@ -134,12 +96,32 @@ export class RsSettingsControl extends RsSettingsBase {
           <ha-list-item value="off">${localize("schedule.off_action_off", l)}</ha-list-item>
         </ha-select>
       </div>
-    `;
-  }
 
-  private _setControlMode(mode: "mpc" | "bangbang") {
-    if (this.controlMode === mode) return;
-    this._fire("controlMode", mode);
+      <div class="settings-section">
+        <ha-expansion-panel .header=${localize("common.advanced", l)} outlined>
+          <label class="section-label">${localize("settings.comfort_weight", l)}</label>
+          <div class="slider-row">
+            <span class="slider-label">${localize("settings.comfort_weight_efficiency", l)}</span>
+            <input
+              type="range"
+              min="0"
+              max="100"
+              step="5"
+              .value=${String(this.comfortWeight)}
+              @change=${(e: Event) => {
+                const v = parseInt((e.target as HTMLInputElement).value, 10);
+                if (!isNaN(v) && v !== this.comfortWeight) this._fire("comfortWeight", v);
+              }}
+            />
+            <span class="slider-label">${localize("settings.comfort_weight_comfort", l)}</span>
+          </div>
+          <p class="hint helper-text">${localize("settings.comfort_weight_hint", l)}</p>
+          <a class="helper-link" href=${CONTROL_DOCS_URL} target="_blank" rel="noreferrer">
+            ${localize("common.learn_more", l)}
+          </a>
+        </ha-expansion-panel>
+      </div>
+    `;
   }
 
   static styles = [
@@ -158,18 +140,6 @@ export class RsSettingsControl extends RsSettingsBase {
         margin-bottom: 8px;
         font-size: 14px;
         color: var(--primary-text-color);
-      }
-
-      .radio-group {
-        display: flex;
-        flex-direction: column;
-        gap: 8px;
-      }
-      .radio-option {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-        cursor: pointer;
       }
 
       .slider-row {

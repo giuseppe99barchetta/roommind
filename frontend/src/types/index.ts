@@ -214,8 +214,6 @@ export interface RoomConfig {
   climate_mode: ClimateMode;
   schedules: ScheduleEntry[];
   schedule_selector_entity: string;
-  comfort_temp?: number;
-  eco_temp?: number;
   comfort_heat: number;
   comfort_cool: number;
   eco_heat: number;
@@ -274,7 +272,6 @@ export interface GlobalSettings {
   outdoor_humidity_sensor: string;
   outdoor_cooling_min?: number;
   outdoor_heating_max?: number;
-  control_mode?: "mpc" | "bangbang";
   comfort_weight?: number;
   weather_entity?: string;
   outdoor_unavailable_notify?: boolean;
@@ -438,5 +435,3 @@ export interface AnalyticsData {
     has_occupancy_sensors: boolean;
   };
 }
-
-export type TimeRange = "12h" | "24h" | "2d" | "7d" | "14d" | "30d" | "90d";

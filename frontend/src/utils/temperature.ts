@@ -1,6 +1,6 @@
 import { HomeAssistant } from "../types";
 
-export function usesFahrenheit(hass: HomeAssistant): boolean {
+function usesFahrenheit(hass: HomeAssistant): boolean {
   return hass.config?.unit_system?.temperature === "°F";
 }
 

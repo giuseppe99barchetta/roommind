@@ -54,6 +54,7 @@ export class RsSettingsHeatingSystem extends LitElement {
   }
 
   render() {
+    const l = this.hass.language;
     const fire = (key: string, value: unknown) =>
       this.dispatchEvent(
         new CustomEvent("setting-changed", {
@@ -118,39 +119,44 @@ export class RsSettingsHeatingSystem extends LitElement {
       fire("powerMode", this._powerModeState.value);
     };
     return html`<div class="section">
-        <b>Central boiler</b>
+        <b>${localize("settings.boiler.title", l)}</b>
         <ha-entity-picker
           .hass=${this.hass}
           .includeDomains=${["climate", "switch"]}
           .value=${this.boilerEntity}
-          label="Boiler control entity"
+          .label=${localize("settings.boiler.entity", l)}
           @value-changed=${(e: CustomEvent) => fire("boilerEntity", e.detail.value || "")}
         ></ha-entity-picker>
         ${this.boilerEntity
           ? html`<ha-select
                 .value=${this.boilerControlType}
-                label="Control type"
+                .label=${localize("settings.boiler.control_type", l)}
                 @selected=${(e: CustomEvent) => fire("boilerControlType", e.detail.value)}
-                ><ha-list-item value="climate">Climate</ha-list-item
-                ><ha-list-item value="switch">Switch</ha-list-item></ha-select
+                ><ha-list-item value="climate"
+                  >${localize("settings.boiler.control_type_climate", l)}</ha-list-item
+                ><ha-list-item value="switch"
+                  >${localize("settings.boiler.control_type_switch", l)}</ha-list-item
+                ></ha-select
               >
               <div class="grid">
-                <label>Startup delay ${number("startupDelay", this.startupDelay)}</label
-                ><label>Shutdown hold ${number("shutdownDelay", this.shutdownDelay)}</label>
+                <label
+                  >${localize("settings.boiler.startup_delay", l)}
+                  ${number("startupDelay", this.startupDelay)}</label
+                ><label
+                  >${localize("settings.boiler.shutdown_hold", l)}
+                  ${number("shutdownDelay", this.shutdownDelay)}</label
+                >
               </div>
               <ha-selector
                 .hass=${this.hass}
                 .selector=${HYDRAULIC_BYPASS_SELECTOR}
                 .value=${this.bypassEntities}
-                .label=${"Hydraulic bypass TRVs (required for gas boiler safety)"}
+                .label=${localize("settings.boiler.bypass_entities", l)}
                 @value-changed=${onBypassChanged}
               ></ha-selector>
-              <small
-                >RoomMind opens and verifies at least one bypass valve before starting the boiler,
-                and keeps it open while the boiler runs.</small
-              >
+              <small>${localize("settings.boiler.bypass_hint", l)}</small>
               <label
-                >Forced bypass temperature
+                >${localize("settings.boiler.bypass_temperature", l)}
                 ${number("bypassTemperature", this.bypassTemperature)}</label
               >
               <div class="toggle">
@@ -219,10 +225,8 @@ export class RsSettingsHeatingSystem extends LitElement {
       <div class="section">
         <div class="toggle">
           <span
-            ><b>Electrical power budget</b
-            ><small
-              >Allocate heat-pump starts centrally; a missing sensor falls back to boiler.</small
-            ></span
+            ><b>${localize("settings.power_budget.title", l)}</b
+            ><small>${localize("settings.power_budget.hint", l)}</small></span
           ><ha-switch
             .checked=${this.budgetEnabled}
             @change=${(e: Event) => fire("budgetEnabled", (e.target as HTMLInputElement).checked)}
@@ -233,21 +237,32 @@ export class RsSettingsHeatingSystem extends LitElement {
                 .hass=${this.hass}
                 .includeDomains=${["sensor"]}
                 .value=${this.powerSensor}
-                label="Available power / consumption sensor"
+                .label=${localize("settings.power_budget.sensor", l)}
                 @value-changed=${(e: CustomEvent) => fire("powerSensor", e.detail.value || "")}
               ></ha-entity-picker
               ><ha-select
                 .value=${this._powerModeState.value}
                 .options=${[
-                  { value: "available", label: "Available power" },
-                  { value: "consumption", label: "House consumption" },
+                  {
+                    value: "available",
+                    label: localize("settings.power_budget.mode_available", l),
+                  },
+                  {
+                    value: "consumption",
+                    label: localize("settings.power_budget.mode_consumption", l),
+                  },
                 ]}
-                label="Sensor reports"
+                .label=${localize("settings.power_budget.mode", l)}
                 @selected=${onPowerModeSelected}
               ></ha-select>
               <div class="grid">
-                <label>Maximum house load (W) ${number("maxPower", this.maxPower)}</label
-                ><label>Safety reserve (W) ${number("reserve", this.reserve)}</label>
+                <label
+                  >${localize("settings.power_budget.max_power", l)}
+                  ${number("maxPower", this.maxPower)}</label
+                ><label
+                  >${localize("settings.power_budget.reserve", l)}
+                  ${number("reserve", this.reserve)}</label
+                >
               </div>`
           : nothing}
       </div>`;

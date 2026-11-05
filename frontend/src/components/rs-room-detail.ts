@@ -119,6 +119,9 @@ export class RsRoomDetail extends LitElement {
   @state() private _heatSourceOutdoorThreshold = 5.0;
   @state() private _heatSourceAcMinOutdoor = -15.0;
   @state() private _nativeHeatSource = false;
+  @state() private _heatSourceBoilerOutdoorThreshold = 2;
+  @state() private _heatSourceHeatPumpOutdoorThreshold = 8;
+  @state() private _heatSourceHybridDelta = 1.5;
   @state() private _heatPumpPowerWatts = 0;
   @state() private _optimisticCoverResume = false;
 
@@ -338,6 +341,16 @@ export class RsRoomDetail extends LitElement {
     .helper-link:hover {
       text-decoration: underline;
     }
+
+    .presence-hint {
+      margin: 0 16px 8px;
+      font-size: 13px;
+      color: var(--secondary-text-color);
+    }
+
+    .presence-link {
+      margin: 0 16px 16px;
+    }
   `;
 
   connectedCallback() {
@@ -347,7 +360,7 @@ export class RsRoomDetail extends LitElement {
 
   disconnectedCallback() {
     super.disconnectedCallback();
-    if (this._saveDebounce) clearTimeout(this._saveDebounce);
+    this._flushSave();
   }
 
   updated(changedProps: Map<string, unknown>) {
@@ -355,6 +368,8 @@ export class RsRoomDetail extends LitElement {
     const areaChanged = currentAreaId !== this._prevAreaId;
 
     if (areaChanged) {
+      // State still holds the previous room's values here: save them to that room.
+      if (this._prevAreaId) this._flushSave(this._prevAreaId);
       this._detailView = "overview";
       this._initFromConfig();
       this._prevAreaId = currentAreaId;
@@ -416,9 +431,9 @@ export class RsRoomDetail extends LitElement {
       this._climateMode = this.config.climate_mode;
       this._schedules = this.config.schedules ?? [];
       this._scheduleSelectorEntity = this.config.schedule_selector_entity ?? "";
-      this._comfortHeat = this.config.comfort_heat ?? this.config.comfort_temp ?? 21.0;
+      this._comfortHeat = this.config.comfort_heat ?? 21.0;
       this._comfortCool = this.config.comfort_cool ?? 24.0;
-      this._ecoHeat = this.config.eco_heat ?? this.config.eco_temp ?? 17.0;
+      this._ecoHeat = this.config.eco_heat ?? 17.0;
       this._ecoCool = this.config.eco_cool ?? 27.0;
       this._activeProfile = this.config.active_profile ?? "";
       this._nightModeEnabled = this.config.night_mode_enabled ?? false;
@@ -453,6 +468,11 @@ export class RsRoomDetail extends LitElement {
       this._heatSourceOutdoorThreshold = this.config.heat_source_outdoor_threshold ?? 5.0;
       this._heatSourceAcMinOutdoor = this.config.heat_source_ac_min_outdoor ?? -15.0;
       this._nativeHeatSource = this.config.native_heat_source ?? false;
+      this._heatSourceBoilerOutdoorThreshold =
+        this.config.heat_source_boiler_outdoor_threshold ?? 2;
+      this._heatSourceHeatPumpOutdoorThreshold =
+        this.config.heat_source_heat_pump_outdoor_threshold ?? 8;
+      this._heatSourceHybridDelta = this.config.heat_source_hybrid_delta ?? 1.5;
       this._heatPumpPowerWatts = this.config.heat_pump_power_watts ?? 0;
     } else {
       this._devices = [];
@@ -503,6 +523,10 @@ export class RsRoomDetail extends LitElement {
       this._heatSourcePrimaryDelta = 1.5;
       this._heatSourceOutdoorThreshold = 5.0;
       this._heatSourceAcMinOutdoor = -15.0;
+      this._nativeHeatSource = false;
+      this._heatSourceBoilerOutdoorThreshold = 2;
+      this._heatSourceHeatPumpOutdoorThreshold = 8;
+      this._heatSourceHybridDelta = 1.5;
     }
     this._dirty = false;
 
@@ -774,13 +798,25 @@ export class RsRoomDetail extends LitElement {
                         @ignore-presence-changed=${this._onIgnorePresenceChanged}
                       ></rs-presence-section>
                     </rs-section-card>`
-                  : nothing}
+                  : html`<rs-section-card
+                      class="optional-card"
+                      data-group="advanced"
+                      icon="mdi:home-account"
+                      .heading=${localize("room.section.presence", this.hass.language)}
+                    >
+                      <p class="presence-hint">
+                        ${localize("presence.not_configured_hint", this.hass.language)}
+                      </p>
+                      <a
+                        class="helper-link presence-link"
+                        href="/roommind/settings"
+                        @click=${this._onOpenPresenceSettings}
+                        >${localize("presence.open_settings", this.hass.language)}</a
+                      >
+                    </rs-section-card>`}
               `
             : nothing}
-          ${!this._isOutdoor &&
-          (this._selectedCovers.size > 0 ||
-            this._coversAutoEnabled ||
-            this._coverSchedules.length > 0)
+          ${!this._isOutdoor
             ? html`<rs-section-card
                 class="optional-card"
                 data-group="advanced"
@@ -844,6 +880,10 @@ export class RsRoomDetail extends LitElement {
                   .primaryDelta=${this._heatSourcePrimaryDelta}
                   .outdoorThreshold=${this._heatSourceOutdoorThreshold}
                   .acMinOutdoor=${this._heatSourceAcMinOutdoor}
+                  .native=${this._nativeHeatSource}
+                  .boilerOutdoorThreshold=${this._heatSourceBoilerOutdoorThreshold}
+                  .heatPumpOutdoorThreshold=${this._heatSourceHeatPumpOutdoorThreshold}
+                  .hybridDelta=${this._heatSourceHybridDelta}
                   @setting-changed=${this._onHeatSourceSettingChanged}
                 ></rs-heat-source-section>
               </rs-section-card>`
@@ -1144,6 +1184,9 @@ export class RsRoomDetail extends LitElement {
             .primaryDelta=${this._heatSourcePrimaryDelta}
             .outdoorThreshold=${this._heatSourceOutdoorThreshold}
             .acMinOutdoor=${this._heatSourceAcMinOutdoor}
+            .boilerOutdoorThreshold=${this._heatSourceBoilerOutdoorThreshold}
+            .heatPumpOutdoorThreshold=${this._heatSourceHeatPumpOutdoorThreshold}
+            .hybridDelta=${this._heatSourceHybridDelta}
             .native=${this._nativeHeatSource}
             .heatPumpPower=${this._heatPumpPowerWatts}
             .powerBudgetEstimates=${this.config?.live?.power_budget_estimates}
@@ -1376,8 +1419,22 @@ export class RsRoomDetail extends LitElement {
       this._heatSourceOutdoorThreshold = value as number;
     else if (key === "heat_source_ac_min_outdoor") this._heatSourceAcMinOutdoor = value as number;
     else if (key === "native_heat_source") this._nativeHeatSource = value as boolean;
+    else if (key === "heat_source_boiler_outdoor_threshold")
+      this._heatSourceBoilerOutdoorThreshold = value as number;
+    else if (key === "heat_source_heat_pump_outdoor_threshold")
+      this._heatSourceHeatPumpOutdoorThreshold = value as number;
+    else if (key === "heat_source_hybrid_delta") this._heatSourceHybridDelta = value as number;
     else if (key === "heat_pump_power_watts") this._heatPumpPowerWatts = value as number;
     this._autoSave();
+  }
+
+  // ---- Presence settings link ----
+
+  private _onOpenPresenceSettings(e: Event) {
+    // Same in-panel navigation as roommind-panel's _navigate; presence lives on the default tab.
+    e.preventDefault();
+    history.replaceState(null, "", "/roommind/settings");
+    window.dispatchEvent(new Event("location-changed"));
   }
 
   // ---- Outdoor toggle ----
@@ -1402,17 +1459,27 @@ export class RsRoomDetail extends LitElement {
   private _autoSave() {
     this._dirty = true;
     if (this._saveDebounce) clearTimeout(this._saveDebounce);
-    this._saveDebounce = setTimeout(() => this._doSave(), 500);
+    this._saveDebounce = setTimeout(() => {
+      this._saveDebounce = undefined;
+      this._doSave();
+    }, 500);
   }
 
-  private async _doSave() {
+  private _flushSave(areaId?: string) {
+    if (!this._saveDebounce) return;
+    clearTimeout(this._saveDebounce);
+    this._saveDebounce = undefined;
+    this._doSave(areaId);
+  }
+
+  private async _doSave(areaId = this.area.area_id) {
     fireSaveStatus(this, "saving");
     this._error = "";
 
     try {
       await this.hass.callWS({
         type: "roommind/rooms/save",
-        area_id: this.area.area_id,
+        area_id: areaId,
         devices: this._devices,
         temperature_sensor: this._selectedTempSensor,
         humidity_sensor: this._selectedHumiditySensor,
@@ -1464,6 +1531,9 @@ export class RsRoomDetail extends LitElement {
         heat_source_outdoor_threshold: this._heatSourceOutdoorThreshold,
         heat_source_ac_min_outdoor: this._heatSourceAcMinOutdoor,
         native_heat_source: this._nativeHeatSource,
+        heat_source_boiler_outdoor_threshold: this._heatSourceBoilerOutdoorThreshold,
+        heat_source_heat_pump_outdoor_threshold: this._heatSourceHeatPumpOutdoorThreshold,
+        heat_source_hybrid_delta: this._heatSourceHybridDelta,
         heat_pump_power_watts: this._heatPumpPowerWatts,
       });
 

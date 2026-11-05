@@ -19,6 +19,9 @@ export class RsHeatSourceSection extends LitElement {
   @property({ type: Number }) public primaryDelta = 1.5;
   @property({ type: Number }) public outdoorThreshold = 5.0;
   @property({ type: Number }) public acMinOutdoor = -15.0;
+  @property({ type: Number }) public boilerOutdoorThreshold = 2;
+  @property({ type: Number }) public heatPumpOutdoorThreshold = 8;
+  @property({ type: Number }) public hybridDelta = 1.5;
   @property({ type: Boolean }) public editing = false;
 
   static styles = [
@@ -95,6 +98,11 @@ export class RsHeatSourceSection extends LitElement {
         }
       }
 
+      ha-expansion-panel {
+        display: block;
+        margin-top: 16px;
+      }
+
       .threshold-cell {
         display: flex;
         flex-direction: column;
@@ -149,6 +157,18 @@ export class RsHeatSourceSection extends LitElement {
           ${this._renderPowerLearning(lang)}
         </div>`;
       }
+      if (this.native) {
+        const c = localize("heat_source.outdoor_threshold_suffix", lang);
+        return html`<div class="summary">
+          ${localize("heat_source.boiler_outdoor_threshold", lang)}:
+          <strong>${this.boilerOutdoorThreshold}${c}</strong>
+          · ${localize("heat_source.heat_pump_outdoor_threshold", lang)}:
+          <strong>${this.heatPumpOutdoorThreshold}${c}</strong>
+          · ${localize("heat_source.hybrid_delta", lang)}:
+          <strong>${this.hybridDelta}${c}</strong>
+          ${this._renderPowerLearning(lang)}
+        </div>`;
+      }
       return html`<div class="summary">
         ${localize("heat_source.primary_delta", lang)}:
         <strong>${this.primaryDelta}${localize("heat_source.primary_delta_suffix", lang)}</strong>
@@ -198,10 +218,9 @@ export class RsHeatSourceSection extends LitElement {
         ? html`
             <div class="feature-card">
               <div class="feature-text">
-                <div class="feature-title">Heat pump / Hybrid / Boiler</div>
+                <div class="feature-title">${localize("heat_source.native_toggle", lang)}</div>
                 <div class="feature-description">
-                  Use RoomMind's native source selector, central power allocator and boiler demand
-                  aggregation.
+                  ${localize("heat_source.native_toggle_hint", lang)}
                 </div>
               </div>
               <ha-switch
@@ -210,41 +229,85 @@ export class RsHeatSourceSection extends LitElement {
                   this._emit("native_heat_source", (e.target as HTMLInputElement).checked)}
               ></ha-switch>
             </div>
-            <div class="thresholds">
-              ${this._renderThresholdCell({
-                label: localize("heat_source.primary_delta", lang),
-                hint: localize("heat_source.primary_delta_hint", lang),
-                suffix: localize("heat_source.primary_delta_suffix", lang),
-                value: this.primaryDelta,
-                min: 0.5,
-                max: 5.0,
-                step: 0.1,
-                key: "heat_source_primary_delta",
-              })}
-              ${this._renderThresholdCell({
-                label: localize("heat_source.outdoor_threshold", lang),
-                hint: localize("heat_source.outdoor_threshold_hint", lang),
-                suffix: localize("heat_source.outdoor_threshold_suffix", lang),
-                value: this.outdoorThreshold,
-                min: -20,
-                max: 25,
-                step: 1,
-                key: "heat_source_outdoor_threshold",
-              })}
-              ${this._renderThresholdCell({
-                label: localize("heat_source.ac_min_outdoor", lang),
-                hint: localize("heat_source.ac_min_outdoor_hint", lang),
-                suffix: localize("heat_source.ac_min_outdoor_suffix", lang),
-                value: this.acMinOutdoor,
-                min: -30,
-                max: 5,
-                step: 1,
-                key: "heat_source_ac_min_outdoor",
-              })}
-            </div>
+            ${this.native ? this._renderNativeThresholds(lang) : this._renderLegacyThresholds(lang)}
           `
         : nothing}
     `;
+  }
+
+  private _renderNativeThresholds(lang: string) {
+    const suffix = localize("heat_source.outdoor_threshold_suffix", lang);
+    return html`<div class="thresholds">
+      ${this._renderThresholdCell({
+        label: localize("heat_source.boiler_outdoor_threshold", lang),
+        hint: localize("heat_source.boiler_outdoor_threshold_hint", lang),
+        suffix,
+        value: this.boilerOutdoorThreshold,
+        min: -30,
+        max: 20,
+        step: 0.5,
+        key: "heat_source_boiler_outdoor_threshold",
+      })}
+      ${this._renderThresholdCell({
+        label: localize("heat_source.heat_pump_outdoor_threshold", lang),
+        hint: localize("heat_source.heat_pump_outdoor_threshold_hint", lang),
+        suffix,
+        value: this.heatPumpOutdoorThreshold,
+        min: -20,
+        max: 35,
+        step: 0.5,
+        key: "heat_source_heat_pump_outdoor_threshold",
+      })}
+      ${this._renderThresholdCell({
+        label: localize("heat_source.hybrid_delta", lang),
+        hint: localize("heat_source.hybrid_delta_hint", lang),
+        suffix,
+        value: this.hybridDelta,
+        min: 0,
+        max: 10,
+        step: 0.1,
+        key: "heat_source_hybrid_delta",
+      })}
+    </div>`;
+  }
+
+  private _renderLegacyThresholds(lang: string) {
+    return html`<div class="thresholds">
+        ${this._renderThresholdCell({
+          label: localize("heat_source.outdoor_threshold", lang),
+          hint: localize("heat_source.outdoor_threshold_hint", lang),
+          suffix: localize("heat_source.outdoor_threshold_suffix", lang),
+          value: this.outdoorThreshold,
+          min: -20,
+          max: 25,
+          step: 1,
+          key: "heat_source_outdoor_threshold",
+        })}
+      </div>
+      <ha-expansion-panel .header=${localize("common.advanced", lang)} outlined>
+        <div class="thresholds">
+          ${this._renderThresholdCell({
+            label: localize("heat_source.primary_delta", lang),
+            hint: localize("heat_source.primary_delta_hint", lang),
+            suffix: localize("heat_source.primary_delta_suffix", lang),
+            value: this.primaryDelta,
+            min: 0.5,
+            max: 5.0,
+            step: 0.1,
+            key: "heat_source_primary_delta",
+          })}
+          ${this._renderThresholdCell({
+            label: localize("heat_source.ac_min_outdoor", lang),
+            hint: localize("heat_source.ac_min_outdoor_hint", lang),
+            suffix: localize("heat_source.ac_min_outdoor_suffix", lang),
+            value: this.acMinOutdoor,
+            min: -30,
+            max: 5,
+            step: 1,
+            key: "heat_source_ac_min_outdoor",
+          })}
+        </div>
+      </ha-expansion-panel>`;
   }
 
   private _renderPowerLearning(lang: string) {

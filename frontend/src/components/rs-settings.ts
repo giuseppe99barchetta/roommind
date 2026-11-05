@@ -48,7 +48,6 @@ export class RsSettings extends LitElement {
   @state() private _outdoorHumiditySensor = "";
   @state() private _outdoorCoolingMin = 16;
   @state() private _outdoorHeatingMax = 22;
-  @state() private _controlMode: "mpc" | "bangbang" = "mpc";
   @state() private _comfortWeight = 70;
   @state() private _weatherEntity = "";
   @state() private _outdoorUnavailableNotify = true;
@@ -96,6 +95,7 @@ export class RsSettings extends LitElement {
   @state() private _powerModeDirty = false;
   @state() private _maxPower = 3300;
   @state() private _reserve = 200;
+  @state() private _unavailableBehavior: "boiler" | "allow" = "boiler";
   @state() private _energyPricePerKwh = 0;
   @state() private _loaded = false;
   @state() private _category: "overview" | "system" | "protection" | "advanced" = "overview";
@@ -109,7 +109,11 @@ export class RsSettings extends LitElement {
 
   disconnectedCallback() {
     super.disconnectedCallback();
-    if (this._saveDebounce) clearTimeout(this._saveDebounce);
+    if (this._saveDebounce) {
+      clearTimeout(this._saveDebounce);
+      this._saveDebounce = undefined;
+      this._doSave();
+    }
   }
 
   private async _loadSettings() {
@@ -126,7 +130,6 @@ export class RsSettings extends LitElement {
       this._outdoorHumiditySensor = s.outdoor_humidity_sensor ?? "";
       this._outdoorCoolingMin = s.outdoor_cooling_min ?? 16;
       this._outdoorHeatingMax = s.outdoor_heating_max ?? 22;
-      this._controlMode = s.control_mode ?? "mpc";
       this._comfortWeight = s.comfort_weight ?? 70;
       this._weatherEntity = s.weather_entity ?? "";
       this._outdoorUnavailableNotify = s.outdoor_unavailable_notify ?? true;
@@ -181,6 +184,7 @@ export class RsSettings extends LitElement {
       }
       this._maxPower = s.power_budget_max_watts ?? 3300;
       this._reserve = s.power_budget_reserve_watts ?? 200;
+      this._unavailableBehavior = s.power_budget_unavailable_behavior ?? "boiler";
       this._energyPricePerKwh = s.energy_price_per_kwh ?? 0;
     } catch (err) {
       // eslint-disable-next-line no-console
@@ -321,7 +325,6 @@ export class RsSettings extends LitElement {
           >
             <rs-settings-control
               .hass=${this.hass}
-              .controlMode=${this._controlMode}
               .comfortWeight=${this._comfortWeight}
               .outdoorCoolingMin=${this._outdoorCoolingMin}
               .outdoorHeatingMax=${this._outdoorHeatingMax}
@@ -487,7 +490,10 @@ export class RsSettings extends LitElement {
 
   private _autoSave() {
     if (this._saveDebounce) clearTimeout(this._saveDebounce);
-    this._saveDebounce = setTimeout(() => this._doSave(), 500);
+    this._saveDebounce = setTimeout(() => {
+      this._saveDebounce = undefined;
+      this._doSave();
+    }, 500);
   }
 
   private async _doSave() {
@@ -512,7 +518,6 @@ export class RsSettings extends LitElement {
         outdoor_humidity_sensor: this._outdoorHumiditySensor,
         outdoor_cooling_min: this._outdoorCoolingMin,
         outdoor_heating_max: this._outdoorHeatingMax,
-        control_mode: this._controlMode,
         comfort_weight: this._comfortWeight,
         weather_entity: this._weatherEntity,
         outdoor_unavailable_notify: this._outdoorUnavailableNotify,
@@ -549,7 +554,7 @@ export class RsSettings extends LitElement {
         power_sensor_mode: powerSensorMode,
         power_budget_max_watts: this._maxPower,
         power_budget_reserve_watts: this._reserve,
-        power_budget_unavailable_behavior: "boiler",
+        power_budget_unavailable_behavior: this._unavailableBehavior,
         energy_price_per_kwh: this._energyPricePerKwh,
         mold_detection_enabled: this._moldDetectionEnabled,
         mold_humidity_threshold: this._moldHumidityThreshold,

@@ -150,40 +150,42 @@ export class RsSettingsCompressor extends LitElement {
         ></ha-entity-picker>
         <div class="field-hint">${localize("compressor.members_hint", l)}</div>
 
-        <div class="number-fields">
-          <div>
-            <ha-textfield
-              type="number"
-              .value=${String(group.min_run_minutes)}
-              .label=${localize("compressor.min_run", l)}
-              .suffix=${localize("compressor.min_run_suffix", l)}
-              min="1"
-              max="60"
-              step="1"
-              @change=${(e: Event) => {
-                const v = parseInt((e.target as HTMLInputElement).value, 10);
-                if (!isNaN(v) && v >= 1 && v <= 60) this._updateGroup(idx, "min_run_minutes", v);
-              }}
-            ></ha-textfield>
-            <div class="field-hint">${localize("compressor.min_run_hint", l)}</div>
+        <ha-expansion-panel .header=${localize("common.advanced", l)} outlined>
+          <div class="number-fields">
+            <div>
+              <ha-textfield
+                type="number"
+                .value=${String(group.min_run_minutes)}
+                .label=${localize("compressor.min_run", l)}
+                .suffix=${localize("compressor.min_run_suffix", l)}
+                min="1"
+                max="60"
+                step="1"
+                @change=${(e: Event) => {
+                  const v = parseInt((e.target as HTMLInputElement).value, 10);
+                  if (!isNaN(v) && v >= 1 && v <= 60) this._updateGroup(idx, "min_run_minutes", v);
+                }}
+              ></ha-textfield>
+              <div class="field-hint">${localize("compressor.min_run_hint", l)}</div>
+            </div>
+            <div>
+              <ha-textfield
+                type="number"
+                .value=${String(group.min_off_minutes)}
+                .label=${localize("compressor.min_off", l)}
+                .suffix=${localize("compressor.min_off_suffix", l)}
+                min="1"
+                max="30"
+                step="1"
+                @change=${(e: Event) => {
+                  const v = parseInt((e.target as HTMLInputElement).value, 10);
+                  if (!isNaN(v) && v >= 1 && v <= 30) this._updateGroup(idx, "min_off_minutes", v);
+                }}
+              ></ha-textfield>
+              <div class="field-hint">${localize("compressor.min_off_hint", l)}</div>
+            </div>
           </div>
-          <div>
-            <ha-textfield
-              type="number"
-              .value=${String(group.min_off_minutes)}
-              .label=${localize("compressor.min_off", l)}
-              .suffix=${localize("compressor.min_off_suffix", l)}
-              min="1"
-              max="30"
-              step="1"
-              @change=${(e: Event) => {
-                const v = parseInt((e.target as HTMLInputElement).value, 10);
-                if (!isNaN(v) && v >= 1 && v <= 30) this._updateGroup(idx, "min_off_minutes", v);
-              }}
-            ></ha-textfield>
-            <div class="field-hint">${localize("compressor.min_off_hint", l)}</div>
-          </div>
-        </div>
+        </ha-expansion-panel>
 
         <div class="section-label">${localize("compressor.master_entity", l)}</div>
         <ha-entity-picker
