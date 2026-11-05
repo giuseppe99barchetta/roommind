@@ -49,3 +49,6 @@ do_not_mutate = [
     "**/config_flow.py",  # HA boilerplate
     "**/__init__.py",     # setup/registration, tested via integration
 ]
+
+[tool.pytest.ini_options]
+asyncio_default_fixture_loop_scope = "function"

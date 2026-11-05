@@ -314,7 +314,7 @@ def test_energy_manager_tracks_and_predicts_device_breakdown():
     }
     room_state = {"current_temp": 28, "target_temp": 25, "current_humidity": 60, "commanded_mode": "cooling"}
     for i in range(8):
-        result = manager.update_room("sala", room, room_state, 32, now=1000 + i * 60)
+        result = manager.update_room("sala", room, room_state, 32, now=1_700_000_000 + i * 60)
     assert result["ac_device_power_w"] == {"climate.ac": 450.0}
     assert result["predicted_device_power_w"]["climate.ac"] > 0
     predicted, samples = manager.predict_power("sala", "cooling", 28, 25, 32, 60, 700)

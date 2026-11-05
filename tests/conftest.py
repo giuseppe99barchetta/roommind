@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import os
+import sys
 from unittest.mock import AsyncMock, MagicMock
 from zoneinfo import ZoneInfo
 
@@ -11,6 +12,14 @@ from homeassistant.util import dt as dt_util
 
 from custom_components.roommind.control.mpc_controller import clear_command_cache
 from custom_components.roommind.store import RoomMindStore
+
+if sys.platform == "win32":
+    import pytest_socket
+
+    # Windows asyncio loops build their self-pipe with an AF_INET socketpair,
+    # which pytest-socket blocks. Skip only the socket-creation block; the HA
+    # plugin's socket_allow_hosts guard still limits connections to 127.0.0.1.
+    pytest_socket.disable_socket = lambda *args, **kwargs: None
 
 
 @pytest.fixture(autouse=True)
@@ -167,11 +176,12 @@ def _clear_command_cache():
 
 
 @pytest.fixture
-def hass():
+def hass(tmp_path):
     """Return a mocked Home Assistant instance."""
     hass = MagicMock()
     hass.data = {}
-    hass.config.path = MagicMock(side_effect=lambda *p: "/".join(("/config",) + p))
+    # Per-test config dir: history CSVs written by one test must not leak into another.
+    hass.config.path = MagicMock(side_effect=lambda *p: os.path.join(str(tmp_path), *p))
     hass.config_entries = MagicMock()
     hass.config_entries.async_forward_entry_setups = AsyncMock()
     hass.config_entries.async_unload_platforms = AsyncMock(return_value=True)
