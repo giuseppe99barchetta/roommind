@@ -65,7 +65,7 @@
             <a id="nextFileLink" class="nav" href="z_e1a10107a084a5d3_sensor_py.html">&#xbb; next</a>
             &nbsp; &nbsp; &nbsp;
             <a class="nav" href="https://coverage.readthedocs.io/en/7.17.0">coverage.py v7.17.0</a>,
-            created at 2026-11-05 14:08 +0000
+            created at 2026-11-05 14:25 +0000
         </p>
         <aside class="hidden">
             <button type="button" class="button_next_chunk" data-shortcut="j"></button>
@@ -135,7 +135,7 @@
     <p class="run"><span class="n"><a id="t53" href="#t53">53</a></span><span class="t">    <span class="key">def</span> <span class="nam">current_option</span><span class="op">(</span><span class="nam">self</span><span class="op">)</span> <span class="op">-&gt;</span> <span class="nam">str</span><span class="op">:</span>&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t54" href="#t54">54</a></span><span class="t">        <span class="str">&quot;&quot;&quot;Return the representation selected for this room.&quot;&quot;&quot;</span>&nbsp;</span><span class="r"></span></p>
     <p class="run"><span class="n"><a id="t55" href="#t55">55</a></span><span class="t">        <span class="nam">room</span> <span class="op">=</span> <span class="nam">self</span><span class="op">.</span><span class="nam">coordinator</span><span class="op">.</span><span class="nam">hass</span><span class="op">.</span><span class="nam">data</span><span class="op">[</span><span class="nam">DOMAIN</span><span class="op">]</span><span class="op">[</span><span class="str">&quot;store&quot;</span><span class="op">]</span><span class="op">.</span><span class="nam">get_room</span><span class="op">(</span><span class="nam">self</span><span class="op">.</span><span class="nam">_area_id</span><span class="op">)</span> <span class="key">or</span> <span class="op">{</span><span class="op">}</span>&nbsp;</span><span class="r"></span></p>
-    <p class="run"><span class="n"><a id="t56" href="#t56">56</a></span><span class="t">        <span class="key">return</span> <span class="nam">room</span><span class="op">.</span><span class="nam">get</span><span class="op">(</span><span class="str">&quot;dry_entity_type&quot;</span><span class="op">,</span> <span class="str">&quot;switch&quot;</span><span class="op">)</span>&nbsp;</span><span class="r"></span></p>
+    <p class="run"><span class="n"><a id="t56" href="#t56">56</a></span><span class="t">        <span class="key">return</span> <span class="nam">str</span><span class="op">(</span><span class="nam">room</span><span class="op">.</span><span class="nam">get</span><span class="op">(</span><span class="str">&quot;dry_entity_type&quot;</span><span class="op">,</span> <span class="str">&quot;switch&quot;</span><span class="op">)</span><span class="op">)</span>&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t57" href="#t57">57</a></span><span class="t">&nbsp;</span><span class="r"></span></p>
     <p class="run"><span class="n"><a id="t58" href="#t58">58</a></span><span class="t">    <span class="key">async</span> <span class="key">def</span> <span class="nam">async_select_option</span><span class="op">(</span><span class="nam">self</span><span class="op">,</span> <span class="nam">option</span><span class="op">:</span> <span class="nam">str</span><span class="op">)</span> <span class="op">-&gt;</span> <span class="key">None</span><span class="op">:</span>&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t59" href="#t59">59</a></span><span class="t">        <span class="str">&quot;&quot;&quot;Persist the selected representation and swap the endpoint.&quot;&quot;&quot;</span>&nbsp;</span><span class="r"></span></p>
@@ -152,7 +152,7 @@
             <a class="nav" href="z_e1a10107a084a5d3_sensor_py.html">&#xbb; next</a>
             &nbsp; &nbsp; &nbsp;
             <a class="nav" href="https://coverage.readthedocs.io/en/7.17.0">coverage.py v7.17.0</a>,
-            created at 2026-11-05 14:08 +0000
+            created at 2026-11-05 14:25 +0000
         </p>
     </div>
 </footer>
