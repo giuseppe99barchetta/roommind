@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import time
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, patch
 
 import pytest
 
@@ -11,7 +11,7 @@ from custom_components.roommind.const import MODE_HEATING
 from custom_components.roommind.managers.heat_source_orchestrator import evaluate_native_heat_sources
 
 from . import test_heat_source_integration as hsi
-from .test_heat_source_integration import ROOM_WITH_TRV_AND_AC, _make_hass_states, _setup_store
+from .test_heat_source_integration import DEFAULT_SETTINGS, ROOM_WITH_TRV_AND_AC, _make_hass_states, _setup_store
 
 # Reuse the integration fixtures (TRV + AC room, real store).
 coordinator = hsi.coordinator
@@ -151,3 +151,42 @@ class TestNativeDwell:
             if c.args[2].get("entity_id") == "climate.ac_living" and c.args[2].get("hvac_mode") not in (None, "off")
         ]
         assert ac_starts == []
+
+    @pytest.mark.parametrize(("ac_state", "expected"), [("off", "boiler"), ("heat_cool", "heat_pump")])
+    @pytest.mark.asyncio
+    async def test_dwell_budget_uses_physical_ac_state_with_real_manager(
+        self, coordinator, real_store, hass, ac_state, expected
+    ):
+        """IR2-001: routing history alone must not pre-admit a stopped AC;
+        a physically running AC stays admitted."""
+        await real_store.async_load()
+        with patch(
+            "custom_components.roommind.managers.power_budget_manager.read_sensor_value",
+            return_value=100,
+        ):
+            await real_store.async_save_settings(
+                {
+                    **DEFAULT_SETTINGS,
+                    "power_budget_enabled": True,
+                    "power_sensor": "sensor.house_power",
+                    "power_sensor_mode": "available",
+                }
+            )
+            await real_store.async_save_room("living_room", {**NATIVE_ROOM, "heat_pump_power_watts": 2000})
+            coordinator._heat_source_states["living_room"] = "heat_pump"
+            coordinator._heat_source_changed_at["living_room"] = time.monotonic()
+            hass.states.get = MagicMock(
+                side_effect=_make_hass_states(
+                    outdoor_temp="0.0",
+                    extra={"climate.ac_living": (ac_state, {"hvac_modes": ["off", "heat", "cool", "heat_cool"]})},
+                )
+            )
+            await coordinator._async_update_data()
+        assert coordinator._heat_source_states.get("living_room") == expected
+        if expected == "boiler":
+            ac_starts = [
+                c
+                for c in hass.services.async_call.call_args_list
+                if c.args[2].get("entity_id") == "climate.ac_living" and c.args[2].get("hvac_mode") not in (None, "off")
+            ]
+            assert ac_starts == []

@@ -91,6 +91,7 @@ export class RsRoomDetail extends LitElement {
   @state() private _nightRampMinutes = 60;
   @state() private _error = "";
   @state() private _dirty = false;
+  private _deleting = false;
   @state() private _editing: EditableSection | null = null;
   @state() private _detailView: "overview" | "equipment" | "advanced" = "overview";
   @state() private _selectedPresencePersons: string[] = [];
@@ -371,6 +372,7 @@ export class RsRoomDetail extends LitElement {
       // State still holds the previous room's values here: save them to that room.
       if (this._prevAreaId) this._flushSave(this._prevAreaId);
       this._detailView = "overview";
+      this._deleting = false;
       this._initFromConfig();
       this._prevAreaId = currentAreaId;
     } else if (changedProps.has("config") && !this._dirty) {
@@ -1460,6 +1462,8 @@ export class RsRoomDetail extends LitElement {
 
   private _autoSave() {
     this._dirty = true;
+    // While the room is being deleted, edits stay dirty but schedule nothing.
+    if (this._deleting) return;
     if (this._saveDebounce) clearTimeout(this._saveDebounce);
     this._saveDebounce = setTimeout(() => {
       this._saveDebounce = undefined;
@@ -1467,10 +1471,19 @@ export class RsRoomDetail extends LitElement {
     }, 500);
   }
 
-  /** Drop a pending debounced save, e.g. right before the room is deleted. */
-  cancelPendingSave() {
+  /** Suspend autosave while rooms/delete is pending; pending edits stay dirty.
+   * After a successful delete autosave stays suspended so unmount cannot recreate the room. */
+  beginDelete() {
+    this._deleting = true;
     if (this._saveDebounce) clearTimeout(this._saveDebounce);
     this._saveDebounce = undefined;
+  }
+
+  /** The delete was rejected: resume autosave, save kept edits and show the error. */
+  deleteFailed(message: string) {
+    this._deleting = false;
+    if (this._dirty) void this._doSave();
+    this._error = message;
   }
 
   private _flushSave(areaId?: string) {

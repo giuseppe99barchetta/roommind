@@ -943,7 +943,8 @@ export class RoomMindPanel extends LitElement {
 
     // Otherwise the detail view flushes its pending edit on unmount and
     // rooms/save recreates the room that was just deleted.
-    this.renderRoot.querySelector("rs-room-detail")?.cancelPendingSave();
+    const detail = this.renderRoot.querySelector("rs-room-detail");
+    detail?.beginDelete();
     try {
       await this.hass.callWS({
         type: "roommind/rooms/delete",
@@ -953,8 +954,10 @@ export class RoomMindPanel extends LitElement {
       this._navigate("");
       this._loadRooms();
     } catch (err) {
-      // eslint-disable-next-line no-console
-      console.debug("[RoomMind] deleteRoom:", err);
+      detail?.deleteFailed(
+        (err as { message?: string } | null)?.message ||
+          localize("room.error_delete_fallback", this.hass.language),
+      );
     }
   }
 

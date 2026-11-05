@@ -1948,7 +1948,8 @@ class MPCController:
         if state:
             if service == "set_hvac_mode" and state.state == data.get("hvac_mode"):
                 skip = True
-            elif service == "set_temperature":
+            elif service == "set_temperature" and data.get("hvac_mode") in (None, state.state):
+                # A bundled hvac_mode the device is not in yet is never redundant.
                 # Dual-setpoint (range) devices: proportional deadband is intentionally
                 # NOT applied here — it only governs single-setpoint gentle-regime sends.
                 if "target_temp_low" in data:
@@ -1985,7 +1986,7 @@ class MPCController:
                 if service == "set_hvac_mode":
                     if cached.get("hvac_mode") == data.get("hvac_mode"):
                         skip = True
-                elif service == "set_temperature":
+                elif service == "set_temperature" and cached.get("hvac_mode") == data.get("hvac_mode"):
                     if "target_temp_low" in data:
                         c_low = cached.get("target_temp_low")
                         c_high = cached.get("target_temp_high")

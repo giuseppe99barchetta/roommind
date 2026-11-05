@@ -45,3 +45,41 @@ test("leaving the room normally still flushes the pending edit", async () => {
   detail.disconnectedCallback();
   assert.deepEqual(writes, ["roommind/rooms/save"]);
 });
+
+function deferredDelete(writes, hass) {
+  let settle;
+  hass.callWS = (p) => {
+    writes.push(p.type);
+    if (p.type !== "roommind/rooms/delete") return Promise.resolve({});
+    return new Promise((resolve, reject) => { settle = { resolve, reject }; });
+  };
+  return () => settle;
+}
+
+test("an edit made while the delete is pending is not saved after success", async () => {
+  const { writes, detail, panel } = setup();
+  const settle = deferredDelete(writes, detail.hass);
+  globalThis.confirm = () => true;
+  const pending = panel._onDeleteRoom();
+  detail._displayName = "Edited during delete";
+  detail._autoSave();
+  settle().resolve({});
+  await pending;
+  detail.disconnectedCallback();
+  await new Promise((r) => setTimeout(r, 600));
+  assert.deepEqual(writes, ["roommind/rooms/delete"]);
+});
+
+test("a rejected delete saves the pending edit and shows the error", async () => {
+  const { writes, detail, panel } = setup();
+  const settle = deferredDelete(writes, detail.hass);
+  globalThis.confirm = () => true;
+  detail._displayName = "Edited";
+  detail._autoSave();
+  const pending = panel._onDeleteRoom();
+  settle().reject({ code: "unknown_error", message: "boom" });
+  await pending;
+  await new Promise((r) => setTimeout(r, 0));
+  assert.deepEqual(writes, ["roommind/rooms/delete", "roommind/rooms/save"]);
+  assert.equal(detail._error, "boom");
+});

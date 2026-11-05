@@ -1253,6 +1253,33 @@ async def test_call_skips_redundant_temperature():
 
 
 @pytest.mark.asyncio
+async def test_failed_activation_with_matching_temperature_not_commanded_on():
+    """IR2-002: an off AC already at the target temperature whose set_hvac_mode
+    fails must still get the bundled set_temperature and stay out of commanded_on."""
+    hass = build_hass()
+    state = MagicMock()
+    state.state = "off"
+    state.attributes = {"hvac_modes": ["off", "heat", "cool"], "temperature": 21.0, "min_temp": 5, "max_temp": 30}
+    hass.states.get = MagicMock(return_value=state)
+    hass.services.async_call = AsyncMock(side_effect=RuntimeError("device offline"))
+
+    ctrl = MPCController(
+        hass,
+        make_room(),
+        model_manager=RoomModelManager(),
+        outdoor_temp=5.0,
+        settings={},
+        has_external_sensor=True,
+    )
+    await ctrl._call("set_hvac_mode", {"entity_id": "climate.ac", "hvac_mode": "heat"})
+    await ctrl._call("set_temperature", {"entity_id": "climate.ac", "temperature": 21.0, "hvac_mode": "heat"})
+
+    services = [c.args[1] for c in hass.services.async_call.call_args_list]
+    assert services == ["set_hvac_mode", "set_temperature"]
+    assert "climate.ac" not in ctrl.commanded_on
+
+
+@pytest.mark.asyncio
 async def test_call_skips_redundant_hvac_mode():
     """Redundant set_hvac_mode is skipped."""
     hass = build_hass()

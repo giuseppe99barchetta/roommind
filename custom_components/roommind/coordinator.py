@@ -464,7 +464,9 @@ class RoomMindCoordinator(DataUpdateCoordinator):
             physical_mode = self._energy_manager._physical_mode(self.hass, room, "idle")
             if physical_mode in ("heating", "cooling", "dry"):
                 running_loads[area_id] = self._energy_manager.budget_power_w(area_id, physical_mode, nominal_w)
-            elif self._heat_source_states.get(area_id) in ("heat_pump", "hybrid"):
+            elif any(is_compressor_active(self.hass.states.get(eid)) for eid in get_ac_eids(room.get("devices", []))):
+                # Physically running in a mode _physical_mode can't classify
+                # (e.g. heat_cool/auto); routing history alone never pre-admits.
                 running_loads[area_id] = self._energy_manager.budget_power_w(area_id, "heating", nominal_w)
         for room in rooms.values():
             device = room.get("dehumidifier") or {}
