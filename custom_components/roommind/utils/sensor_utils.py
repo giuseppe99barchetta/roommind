@@ -11,6 +11,16 @@ if TYPE_CHECKING:
 _LOGGER = logging.getLogger(__name__)
 
 
+def power_to_watts(value: float, state: Any) -> float:
+    """Convert a power reading to W using the state's unit_of_measurement (W assumed)."""
+    unit = str(state.attributes.get("unit_of_measurement", "W")).lower()
+    if unit == "kw":
+        return value * 1000.0
+    if unit == "mw":
+        return value / 1000.0
+    return value
+
+
 def _read_climate_attribute(state: Any, value_name: str) -> float | None:
     """Extract a numeric value from a climate entity's attributes.
 

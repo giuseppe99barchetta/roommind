@@ -8,6 +8,9 @@ from dataclasses import dataclass, field
 from datetime import UTC, datetime
 
 from homeassistant.core import HomeAssistant
+from homeassistant.util import dt as dt_util
+
+from ..utils.sensor_utils import power_to_watts
 
 _MIN_ACTIVE_POWER_W = 10.0
 _MIN_SAMPLES_FOR_PREDICTION = 6
@@ -174,12 +177,7 @@ class EnergyManager:
             value = self._safe_float(state.state)
             if value is None:
                 continue
-            unit = str(state.attributes.get("unit_of_measurement", "W")).lower()
-            if unit == "kw":
-                value *= 1000.0
-            elif unit == "mw":
-                value /= 1000.0
-            value = min(max(0.0, value), _MAX_REASONABLE_POWER_W)
+            value = min(max(0.0, power_to_watts(value, state)), _MAX_REASONABLE_POWER_W)
             entity_id = str(dev.get("entity_id") or power_eid)
             breakdown[entity_id] = round(value, 1)
             total += value
@@ -297,7 +295,7 @@ class EnergyManager:
         state = self._rooms.setdefault(area_id, _RoomEnergyState())
         if state.bootstrapped:
             return
-        today = datetime.now().astimezone().date()
+        today = dt_util.now().date()
         today_rows: list[tuple[float, float]] = []
         seen_samples: set[tuple[float, str]] = set()
         for row in rows:
@@ -327,7 +325,7 @@ class EnergyManager:
                         state.device_models.setdefault(str(entity_id), {}).setdefault(mode, _LinearStats()).add(
                             features, device_w, ts
                         )
-            if ts is not None and datetime.fromtimestamp(ts).astimezone().date() == today:
+            if ts is not None and dt_util.as_local(dt_util.utc_from_timestamp(ts)).date() == today:
                 today_rows.append((ts, power))
         today_rows.sort()
         if len(today_rows) >= 2:
@@ -353,7 +351,7 @@ class EnergyManager:
         state = self._rooms.setdefault(area_id, _RoomEnergyState())
         state.bootstrapped = True
         power_w, configured, device_power = self.read_power_breakdown(room)
-        day_key = datetime.fromtimestamp(now_ts).astimezone().date().isoformat()
+        day_key = dt_util.as_local(dt_util.utc_from_timestamp(now_ts)).date().isoformat()
         if state.day_key != day_key:
             state.day_key = day_key
             state.energy_today_kwh = 0.0

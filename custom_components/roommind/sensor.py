@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from datetime import datetime
 from typing import Any
 
 from homeassistant.components.sensor import SensorDeviceClass, SensorEntity, SensorStateClass
@@ -10,6 +11,7 @@ from homeassistant.const import UnitOfTemperature
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
+from homeassistant.util import dt as dt_util
 
 from .const import DOMAIN
 from .coordinator import RoomMindCoordinator, _get_room_display_name, _room_has_power_sensor
@@ -233,6 +235,11 @@ class RoomMindEnergyCostTodaySensor(_RoomMindBaseSensor):
 
     def __init__(self, coordinator: RoomMindCoordinator, area_id: str) -> None:
         super().__init__(coordinator, area_id, "energy_cost_today", "AC Cost Today")
+
+    @property
+    def last_reset(self) -> datetime:
+        """The daily total restarts at local (HA timezone) midnight."""
+        return dt_util.start_of_local_day()
 
 
 class RoomMindPredictedEnergyCostSensor(_RoomMindBaseSensor):

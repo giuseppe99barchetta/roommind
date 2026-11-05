@@ -7,7 +7,7 @@ import logging
 import time
 from collections.abc import AsyncIterator, Callable
 from contextlib import asynccontextmanager
-from datetime import datetime, timedelta
+from datetime import timedelta
 from typing import Any
 
 from homeassistant.components.persistent_notification import async_create as async_create_notification
@@ -16,6 +16,7 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import area_registry as ar
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
+from homeassistant.util import dt as dt_util
 
 from .const import (
     AC_COOLING_BOOST_TARGET,
@@ -103,6 +104,7 @@ from .utils.device_utils import (
     get_all_entity_ids,
     get_direct_setpoint_eids,
     get_trv_eids,
+    is_compressor_active,
     room_contributes_to_group,
 )
 from .utils.device_utils import room_has_power_sensor as _room_has_power_sensor
@@ -859,7 +861,7 @@ class RoomMindCoordinator(DataUpdateCoordinator):
             can_dry="dry" in ac_modes,
             can_dehumidifier=dedicated,
             # A dedicated dehumidifier may run at night; the AC only if serious.
-            night_phase=None if dedicated else night_phase(room, datetime.now().astimezone(), 0),
+            night_phase=None if dedicated else night_phase(room, dt_util.now(), 0),
             # Raw contact state: an open window makes DRY pointless at once,
             # independent of the climate-pause delays.
             window_open=False if dedicated else self._is_window_open(room),
@@ -1129,7 +1131,7 @@ class RoomMindCoordinator(DataUpdateCoordinator):
         else:
             manual_aux_or_off = requested_hvac_mode in ("off", "dry", "fan_only")
             force_off = targets.heat is None and targets.cool is None or manual_aux_or_off
-            targets, night_progress = apply_night_targets(room, targets, datetime.now().astimezone())
+            targets, night_progress = apply_night_targets(room, targets, dt_util.now())
         if mold_prevention_effective:
             night_progress = 0.0
         assigned_dehumidifier = self._dehumidifier_manager.assignments.get(area_id)
@@ -1372,11 +1374,17 @@ class RoomMindCoordinator(DataUpdateCoordinator):
                         )
                 # Source dwell complements compressor protection and avoids
                 # heat-pump/hybrid/boiler flapping on noisy sensor readings.
+                # Never dwell on a source whose devices are no longer usable.
+                usable_types = {c.device_type for c in heat_source_plan.commands} if heat_source_plan else set()
+                previous_usable = (previous_source not in ("heat_pump", "hybrid") or "ac" in usable_types) and (
+                    previous_source not in ("boiler", "hybrid") or "thermostat" in usable_types
+                )
                 if (
                     heat_source_plan
                     and previous_source not in ("inactive", "none")
                     and heat_source_plan.active_sources != previous_source
                     and not heat_pump_denied
+                    and previous_usable
                 ):
                     dwell = float(room.get("heat_source_min_dwell_minutes", 10)) * 60
                     if time.monotonic() - self._heat_source_changed_at.get(area_id, 0) < dwell:
@@ -1565,6 +1573,7 @@ class RoomMindCoordinator(DataUpdateCoordinator):
             )
         else:
             mold_aux_activated: set[str] = set()
+            apply_succeeded = False
             try:
                 smart_ventilation_active = self._smart_ventilation_active(
                     area_id, room, mode, targets, current_temp, current_humidity, window_open, force_off
@@ -1652,6 +1661,7 @@ class RoomMindCoordinator(DataUpdateCoordinator):
                     fan_only_presence_home=bool(settings.get("presence_enabled", False) and not presence_away),
                     fan_only_schedule_active=fan_only_schedule_active,
                 )
+                apply_succeeded = True
                 await self._async_apply_night_fan_mode(area_id, room, mode, night_progress > 0)
                 if mold_prevention_effective and mold_prevention_strategy == "dry" and not window_open:
                     # Unlike a persisted user DRY mode, prevention is an explicit
@@ -1794,7 +1804,12 @@ class RoomMindCoordinator(DataUpdateCoordinator):
                     area_id,
                     exc_info=True,
                 )
-            # Update compressor group member states (always, even after failed apply)
+            # Update compressor group member states (always, even after failed apply).
+            # Only devices actually commanded on (or physically running) count as
+            # active, otherwise a blocked/excluded device would skip the group min-off.
+            not_commanded_on = cycling_eids | budget_blocked_acs | boiler_bypass_eids | boiler_wait_eids
+            if heat_source_plan is not None:
+                not_commanded_on |= {c.entity_id for c in heat_source_plan.commands if not c.active}
             for eid in all_device_eids:
                 if self._compressor_manager.get_group_for_entity(eid) is None:
                     continue
@@ -1805,17 +1820,15 @@ class RoomMindCoordinator(DataUpdateCoordinator):
                 elif eid in compressor_forced_on:
                     # Verify device is actually running before tracking as active.
                     # If user manually turned it off, respect that.
-                    dev_state = self.hass.states.get(eid)
-                    actually_on = dev_state is not None and dev_state.state not in (
-                        "off",
-                        "unavailable",
-                        "unknown",
-                    )
-                    self._compressor_manager.update_member(eid, actually_on)
+                    self._compressor_manager.update_member(eid, is_compressor_active(self.hass.states.get(eid)))
                 elif eid in mold_aux_activated:
                     self._compressor_manager.update_member(eid, True)
                 elif mode != MODE_IDLE:
-                    self._compressor_manager.update_member(eid, True)
+                    self._compressor_manager.update_member(
+                        eid,
+                        (apply_succeeded and eid not in not_commanded_on)
+                        or is_compressor_active(self.hass.states.get(eid)),
+                    )
                 else:
                     self._compressor_manager.update_member(eid, False)
 
@@ -1880,6 +1893,7 @@ class RoomMindCoordinator(DataUpdateCoordinator):
             heat_source_plan=heat_source_plan,
             climate_active=climate_active,
             boiler_wait=boiler_wait,
+            track_mode=apply_control,
         )
 
         room_state = self._build_room_state_dict(
@@ -2019,6 +2033,7 @@ class RoomMindCoordinator(DataUpdateCoordinator):
         heat_source_plan: Any | None,
         climate_active: bool,
         boiler_wait: bool = False,
+        track_mode: bool = True,
     ) -> tuple[str, float]:
         """Observe device state, train EKF, compute display mode.
 
@@ -2153,13 +2168,15 @@ class RoomMindCoordinator(DataUpdateCoordinator):
         else:
             self._ekf_training.clear(area_id)
 
-        # Update mode-start tracking for min-run enforcement in the next cycle
-        _prev_mode = self._previous_modes.get(area_id, MODE_IDLE)
-        if mode != MODE_IDLE and _prev_mode != mode:
-            self._mode_on_since[area_id] = time.time()
-        elif mode == MODE_IDLE:
-            self._mode_on_since.pop(area_id, None)
-        self._previous_modes[area_id] = mode
+        # Update mode-start tracking for min-run enforcement in the next cycle.
+        # A cycle superseded by a manual command applied nothing: keep tracking.
+        if track_mode:
+            _prev_mode = self._previous_modes.get(area_id, MODE_IDLE)
+            if mode != MODE_IDLE and _prev_mode != mode:
+                self._mode_on_since[area_id] = time.time()
+            elif mode == MODE_IDLE:
+                self._mode_on_since.pop(area_id, None)
+            self._previous_modes[area_id] = mode
 
         # Compute display mode: show actual device state when RoomMind doesn't
         # directly control the device, without affecting internal tracking
@@ -2258,7 +2275,7 @@ class RoomMindCoordinator(DataUpdateCoordinator):
         # switched OFF (no heating/cooling) may still be dried. Manual DRY /
         # fan-only keep the AC untouched, and a sleeping room stays quiet.
         blocked = force_off and room.get("room_hvac_mode") != "off"
-        quiet_night = night_phase(room, datetime.now().astimezone(), 0) == "night"
+        quiet_night = night_phase(room, dt_util.now(), 0) == "night"
         if (
             self._dehumidifier_manager.suppress_ac_dry(area_id)
             or target is None
@@ -2726,7 +2743,7 @@ class RoomMindCoordinator(DataUpdateCoordinator):
                         heat=float(profile.get("heat_target", base.heat)) if base.heat is not None else None,
                         cool=float(profile.get("cool_target", base.cool)) if base.cool is not None else None,
                     )
-            return apply_night_targets(room, base, datetime.fromtimestamp(timestamp).astimezone())[0]
+            return apply_night_targets(room, base, dt_util.as_local(dt_util.utc_from_timestamp(timestamp)))[0]
 
         return resolver
 
@@ -3375,17 +3392,19 @@ class RoomMindCoordinator(DataUpdateCoordinator):
         group: CompressorGroupConfig,
         room_states: dict[str, dict],
         rooms_config: dict[str, dict],
-    ) -> None:
+    ) -> str | None:
         """Pre-activate a member zone for ducted multi-zone systems.
 
         Ducted systems (e.g. AirTouch) require at least one active zone
         before the outdoor unit can start.  When all zones are off, set
         one to fan_only (always available) to enable outdoor unit startup.
+        Returns the woken zone; the caller marks it active only once the
+        master has actually started.
         """
         for eid in group.members:
             state = self.hass.states.get(eid)
             if state is not None and state.state not in ("off", "unavailable", "unknown"):
-                return
+                return None
 
         member_set = set(group.members)
         wake_eid: str | None = None
@@ -3424,7 +3443,7 @@ class RoomMindCoordinator(DataUpdateCoordinator):
                 "Group '%s': no zone supports fan_only for pre-activation",
                 group.name,
             )
-            return
+            return None
 
         try:
             await self.hass.services.async_call(
@@ -3434,13 +3453,13 @@ class RoomMindCoordinator(DataUpdateCoordinator):
                 blocking=True,
                 context=make_roommind_context(),
             )
-            self._compressor_manager.update_member(wake_eid, True)
             _LOGGER.debug(
                 "Master '%s' (group '%s'): pre-activated zone '%s' (fan_only)",
                 group.master_entity,
                 group.name,
                 wake_eid,
             )
+            return wake_eid
         except Exception:  # noqa: BLE001
             _LOGGER.warning(
                 "Master '%s' (group '%s'): failed to pre-activate zone '%s'",
@@ -3449,6 +3468,7 @@ class RoomMindCoordinator(DataUpdateCoordinator):
                 wake_eid,
                 exc_info=True,
             )
+        return None
 
     async def _async_control_master_devices(
         self,
@@ -3524,7 +3544,11 @@ class RoomMindCoordinator(DataUpdateCoordinator):
 
                     # Skip when mode is unsupported
                     if resolved_mode is None:
-                        if new_action != "idle":
+                        if new_action == "idle":
+                            # Master cannot idle: stop forcing members to its mode,
+                            # but record no physical master transition.
+                            self._compressor_manager.set_demand_action(gid, new_action)
+                        else:
                             _LOGGER.warning(
                                 "Master '%s' (group '%s'): cannot resolve mode for action '%s', skipping",
                                 group.master_entity,
@@ -3543,8 +3567,9 @@ class RoomMindCoordinator(DataUpdateCoordinator):
 
                     # Pre-activate a zone for ducted multi-zone systems where
                     # the outdoor unit requires at least one active zone (#135).
+                    woken_zone = None
                     if new_action != "idle" and (prev_action is None or prev_action == "idle"):
-                        await self._async_wake_member_zone(group, room_states, rooms_config)
+                        woken_zone = await self._async_wake_member_zone(group, room_states, rooms_config)
 
                     # Send climate command
                     try:
@@ -3567,6 +3592,8 @@ class RoomMindCoordinator(DataUpdateCoordinator):
                             exc_info=True,
                         )
                         continue  # don't update state on failed command
+                    if woken_zone:
+                        self._compressor_manager.update_member(woken_zone, True)
 
                 # 6. Call action script on transition
                 if new_action != prev_action and group.action_script:

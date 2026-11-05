@@ -391,6 +391,7 @@ async def async_idle_device(
     area_id: str = "unknown",
     targets: TargetTemps | None = None,
     force_off: bool = False,
+    window_open: bool = False,
     preserve_fan_only: bool = False,
     fan_only_conditions_met: bool = True,
 ) -> None:
@@ -422,6 +423,9 @@ async def async_idle_device(
     if smart_fan_mode and not force_off:
         idle_action, idle_fan_mode = IDLE_ACTION_FAN_ONLY, smart_fan_mode
     if force_off and idle_action != IDLE_ACTION_LOW:
+        idle_action = IDLE_ACTION_OFF
+    # A setback setpoint still heats/cools into an open window.
+    if window_open and idle_action == IDLE_ACTION_SETBACK:
         idle_action = IDLE_ACTION_OFF
     elif idle_action == IDLE_ACTION_FAN_ONLY and not fan_only_conditions_met:
         idle_action = IDLE_ACTION_OFF
@@ -556,10 +560,11 @@ async def async_idle_device(
         await async_turn_off_climate(hass, entity_id, area_id=area_id, fallback_setpoint=fallback_temp)
         return
 
-    # Redundancy check: already in fan_only with correct fan_mode
+    # Redundancy check: already in fan_only with correct (or unsettable) fan_mode
     if state and state.state == "fan_only":
         current_fan = state.attributes.get("fan_mode")
-        if not idle_fan_mode or current_fan == idle_fan_mode:
+        fan_modes_supported = state.attributes.get("fan_modes") or []
+        if not idle_fan_mode or current_fan == idle_fan_mode or idle_fan_mode not in fan_modes_supported:
             return
 
     # Cache fallback for IR devices (only when device has no reliable state)
@@ -823,6 +828,7 @@ class MPCController:
         self.q_occupancy = q_occupancy
         self._idle_targets: TargetTemps | None = None
         self._force_off = False
+        self._window_open = False
         self._fan_only_presence_home = True
         self._fan_only_schedule_active = True
 
@@ -840,6 +846,8 @@ class MPCController:
 
     def _fan_only_conditions_met(self, entity_id: str) -> bool:
         """Return whether the configured fan-only filters permit this device."""
+        if self._window_open and not self.room_config.get("keep_fan_only_on_window_open", True):
+            return False
         device = next((d for d in self._devices if d.get("entity_id") == entity_id), {})
         if device.get("idle_action") != IDLE_ACTION_FAN_ONLY:
             return True
@@ -1345,6 +1353,7 @@ class MPCController:
         # after backward-compat conversion so legacy callers get a TargetTemps.
         self._idle_targets = targets
         self._force_off = force_off
+        self._window_open = window_open
         self._fan_only_presence_home = fan_only_presence_home
         self._fan_only_schedule_active = fan_only_schedule_active
 
@@ -1755,6 +1764,7 @@ class MPCController:
                     area_id=self._area_id,
                     targets=targets,
                     force_off=force_off,
+                    window_open=window_open,
                     preserve_fan_only=preserve_physical_fan_only,
                     fan_only_conditions_met=fan_only_conditions_met,
                 )
@@ -1787,6 +1797,7 @@ class MPCController:
                 area_id=self._area_id,
                 targets=self._idle_targets,
                 force_off=self._force_off,
+                window_open=self._window_open,
                 fan_only_conditions_met=self._fan_only_conditions_met(eid),
             )
             return
@@ -1877,7 +1888,9 @@ class MPCController:
             dev_max = state.attributes.get("max_temp", temp)
             dev_min = state.attributes.get("min_temp", temp)
             if temp_intent == "heat":
-                cur_high = state.attributes.get("target_temp_high", dev_max)
+                cur_high = state.attributes.get("target_temp_high")
+                if cur_high is None:  # attribute present but null on some devices
+                    cur_high = dev_max if dev_max is not None else temp
                 data = {k: v for k, v in data.items() if k != "temperature"}
                 data["target_temp_low"] = temp
                 data["target_temp_high"] = max(temp, cur_high)

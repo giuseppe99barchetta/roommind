@@ -151,6 +151,8 @@ class BoilerManager:
         if not open_:
             # Releasing control is intentionally conservative: RoomMind idles
             # the bypasses only after the boiler has been stopped and held.
+            # A failed call keeps the release pending so the next tick retries it.
+            released = True
             for entity_id in bypasses:
                 if not self._available(self.hass, entity_id):
                     continue
@@ -163,8 +165,9 @@ class BoilerManager:
                         context=make_roommind_context(),
                     )
                 except Exception:  # noqa: BLE001
+                    released = False
                     _LOGGER.warning("Unable to release boiler bypass '%s'", entity_id, exc_info=True)
-            self._bypass_released = True
+            self._bypass_released = released
             return True
         self._bypass_released = False
         target = float(settings.get("hydraulic_bypass_open_temperature", 28.0))

@@ -6,10 +6,10 @@ import json
 import logging
 import math
 import time
-from datetime import datetime
 from typing import Any, cast
 
 from homeassistant.core import HomeAssistant
+from homeassistant.util import dt as dt_util
 
 from ..const import (
     CLIMATE_MODE_COOL_ONLY,
@@ -645,9 +645,7 @@ async def build_analytics_data(
                 await hass.async_add_executor_job(history_store.read_history, area_id, week_age)
             ) + _csv_to_points(await hass.async_add_executor_job(history_store.read_detail, area_id, week_age))
         now = time.time()
-        today_start = (
-            datetime.fromtimestamp(now).astimezone().replace(hour=0, minute=0, second=0, microsecond=0).timestamp()
-        )
+        today_start = dt_util.start_of_local_day(dt_util.as_local(dt_util.utc_from_timestamp(now))).timestamp()
         energy_cost = {
             "price_eur_kwh": price,
             "today_eur": round(_integrate_power_kwh(cost_points, today_start) * price, 2),

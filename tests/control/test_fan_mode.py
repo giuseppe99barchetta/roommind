@@ -226,6 +226,25 @@ async def test_async_idle_device_fan_only_redundancy():
 
 
 @pytest.mark.asyncio
+@pytest.mark.parametrize("fan_attrs", [{}, {"fan_modes": ["auto", "high"], "fan_mode": "auto"}])
+async def test_async_idle_device_fan_only_redundant_when_fan_mode_unsupported(fan_attrs):
+    """Already in fan_only and idle_fan_mode not settable → nothing resent (A10)."""
+    _last_commands.clear()
+    hass = build_hass()
+    state = MagicMock()
+    state.state = "fan_only"
+    state.attributes = {"hvac_modes": ["cool", "fan_only", "off"], **fan_attrs}
+    hass.states.get = MagicMock(return_value=state)
+
+    devices = [
+        {"entity_id": "climate.ac1", "type": "ac", "role": "auto", "idle_action": "fan_only", "idle_fan_mode": "low"}
+    ]
+    await async_idle_device(hass, "climate.ac1", devices, area_id="living_room")
+
+    hass.services.async_call.assert_not_called()
+
+
+@pytest.mark.asyncio
 async def test_async_idle_device_fan_only_custom_fan_mode():
     """Custom idle_fan_mode='medium' calls set_fan_mode('medium')."""
     _last_commands.clear()

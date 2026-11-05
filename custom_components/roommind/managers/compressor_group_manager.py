@@ -42,6 +42,8 @@ class CompressorGroupState:
     compressor_on_since: float | None = None
     compressor_off_since: float | None = None
     master_action: str | None = None
+    # Group demand; differs from master_action only when the master cannot apply it.
+    demand_action: str | None = None
     master_on_since: float | None = None
     master_off_since: float | None = None
 
@@ -168,7 +170,7 @@ class CompressorGroupManager:
         if group is None or not group.enforce_uniform_mode:
             return None
         state = self._states.get(gid)
-        return state.master_action if state else None
+        return state.demand_action if state else None
 
     def check_master_can_switch(self, group_id: str, new_action: str) -> bool:
         """Check if the master device is allowed to switch to *new_action*.
@@ -202,6 +204,12 @@ class CompressorGroupManager:
 
         return True
 
+    def set_demand_action(self, group_id: str, action: str) -> None:
+        """Record the group demand without a physical master transition."""
+        state = self._states.get(group_id)
+        if state is not None:
+            state.demand_action = action
+
     def set_master_action(self, group_id: str, action: str) -> None:
         """Record the master entity's resolved action after commands are sent."""
         state = self._states.get(group_id)
@@ -209,6 +217,7 @@ class CompressorGroupManager:
             return
         prev = state.master_action
         state.master_action = action
+        state.demand_action = action
         if action != "idle" and (prev is None or prev == "idle"):
             state.master_on_since = monotonic()
             state.master_off_since = None

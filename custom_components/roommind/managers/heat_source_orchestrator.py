@@ -116,12 +116,16 @@ def evaluate_native_heat_sources(
     if outdoor_temp is None:
         # Missing weather must not prevent heat; favour the non-electric source.
         choice, reason = "boiler", "outdoor_unavailable"
-    elif outdoor_temp <= cold - (hysteresis if previous_source == "boiler" else 0):
+    # Outdoor hysteresis holds the current source; thresholds are entered without it.
+    elif outdoor_temp <= cold + (hysteresis if previous_source == "boiler" else 0):
         choice, reason = "boiler", "outdoor_too_cold"
-    elif outdoor_temp >= mild + (hysteresis if previous_source == "heat_pump" else 0):
+    elif outdoor_temp >= mild - (hysteresis if previous_source == "heat_pump" else 0):
         choice, reason = "heat_pump", "mild_outdoor_temperature"
     elif gap >= hybrid_gap + (hysteresis if previous_source != "hybrid" else -hysteresis):
         choice, reason = "hybrid", "large_temperature_deficit"
+    elif previous_source == "hybrid":
+        # Deficit closed in the middle band: drop the boiler boost, keep the heat pump.
+        choice, reason = "heat_pump", "hybrid_deficit_closed"
     else:
         choice, reason = (
             (previous_source if previous_source in {"heat_pump", "hybrid", "boiler"} else "heat_pump"),

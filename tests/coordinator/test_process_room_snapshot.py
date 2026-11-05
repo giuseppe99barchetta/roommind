@@ -491,3 +491,21 @@ class TestProcessRoomSnapshot:
         assert result["target_temp"] is not None
         # Managed mode should still return all normal keys
         assert set(result.keys()) == NORMAL_ROOM_KEYS
+
+    @pytest.mark.asyncio
+    async def test_stale_manual_cycle_keeps_min_run_tracking(self, hass, mock_config_entry):
+        """A cycle skipped for a newer manual command must not reset min-run tracking (A9)."""
+        area_id = "living_room_abc12345"
+        coordinator, store = _setup_coordinator(hass, mock_config_entry, {area_id: SAMPLE_ROOM})
+        hass.states.get = MagicMock(side_effect=make_mock_states_get(temp="18.0", humidity="55.0"))
+        settings = store.get_settings()
+
+        await coordinator._async_process_room(SAMPLE_ROOM, settings, [])
+        assert coordinator._previous_modes[area_id] == "heating"
+        on_since = coordinator._mode_on_since[area_id]
+
+        coordinator._manual_command_generations[area_id] = 5
+        await coordinator._async_process_room(SAMPLE_ROOM, settings, [], command_generation=4)
+
+        assert coordinator._previous_modes[area_id] == "heating"
+        assert coordinator._mode_on_since.get(area_id) == on_since

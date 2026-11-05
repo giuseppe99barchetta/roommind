@@ -86,3 +86,35 @@ def test_stale_house_power_meter_fails_closed_without_affecting_room_sensors():
     assert manager.status().available_watts is None
     assert manager.status().sensor_healthy is False
     assert not manager.request_heat_pump("sala", 600, already_running=False)
+
+
+@pytest.mark.parametrize(
+    ("unit", "raw", "mode", "expected_available"),
+    (
+        ("kW", "2.9", "consumption", 100.0),
+        ("kW", "1.5", "available", 1500.0),
+        ("W", "2900", "consumption", 100.0),
+        ("W", "1500", "available", 1500.0),
+    ),
+)
+def test_power_sensor_unit_is_converted_to_watts(unit, raw, mode, expected_available):
+    """A kW meter must be read as watts, like the energy manager does (A2)."""
+    state = MagicMock()
+    state.state = raw
+    state.attributes = {"unit_of_measurement": unit}
+    state.last_reported = datetime.now(UTC)
+    hass = MagicMock()
+    hass.states.get.return_value = state
+    manager = PowerBudgetManager()
+    manager.begin_cycle(
+        hass,
+        {
+            "power_budget_enabled": True,
+            "power_sensor": "sensor.grid",
+            "power_sensor_mode": mode,
+            "power_budget_max_watts": 3000,
+        },
+        {},
+    )
+
+    assert manager.status().available_watts == pytest.approx(expected_available)

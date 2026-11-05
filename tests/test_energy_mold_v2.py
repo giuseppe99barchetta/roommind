@@ -351,3 +351,36 @@ def test_energy_manager_bootstraps_device_breakdown_from_history(tmp_path):
 
     prediction = manager.predict_device_power("sala", "cooling", 28, 25, 32, 60)
     assert prediction["climate.ac"] > 0
+
+
+def test_energy_day_follows_ha_timezone_not_os():
+    """The energy day rolls over at HA-timezone midnight, whatever the OS TZ is (A7)."""
+    from datetime import UTC, datetime
+    from zoneinfo import ZoneInfo
+
+    from homeassistant.util import dt as dt_util
+
+    # UTC+14: noon UTC on Jan 1 is already Jan 2 for HA, but still Jan 1 for any
+    # realistic OS timezone of a test/CI machine.
+    dt_util.set_default_time_zone(ZoneInfo("Pacific/Kiritimati"))
+    ts = datetime(2026, 1, 1, 12, 0, tzinfo=UTC).timestamp()
+
+    manager = EnergyManager(MagicMock())
+    manager.update_room("studio", {}, {}, None, now=ts)
+    assert manager._rooms["studio"].day_key == "2026-01-02"
+
+    boot = EnergyManager(MagicMock())
+    with pytest.MonkeyPatch.context() as mp:
+        mp.setattr(dt_util, "now", lambda time_zone=None: datetime.fromtimestamp(ts, ZoneInfo("Pacific/Kiritimati")))
+        boot.bootstrap(
+            "studio",
+            [
+                {"timestamp": ts - 600, "ac_power_w": 1000, "mode": "cooling"},
+                {"timestamp": ts, "ac_power_w": 1000, "mode": "cooling"},
+                # 11:00 UTC Jan 1 = 01:00 Jan 2 in Kiritimati → still today for HA
+                {"timestamp": ts - 3600, "ac_power_w": 1000, "mode": "cooling"},
+            ],
+        )
+    assert boot._rooms["studio"].day_key == "2026-01-02"
+    # 900 s (capped gap) + 600 s at 1 kW
+    assert boot._rooms["studio"].energy_today_kwh == pytest.approx(1500 / 3600)

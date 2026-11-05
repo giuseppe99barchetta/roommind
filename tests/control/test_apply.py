@@ -1546,6 +1546,32 @@ async def test_call_dual_setpoint_heat_intent():
 
 
 @pytest.mark.asyncio
+async def test_call_dual_setpoint_heat_intent_with_null_high():
+    """target_temp_high=None falls back to max_temp instead of crashing (A12)."""
+    hass = build_hass()
+    trv_state = MagicMock()
+    trv_state.state = "heat"
+    trv_state.attributes = {
+        "hvac_modes": ["heat", "off"],
+        "temperature": 20.0,
+        "target_temp_low": 18.0,
+        "target_temp_high": None,
+        "min_temp": 5.0,
+        "max_temp": 30.0,
+    }
+    hass.states.get = MagicMock(return_value=trv_state)
+
+    ctrl = MPCController(
+        hass, make_room(), model_manager=RoomModelManager(), outdoor_temp=5.0, settings={}, has_external_sensor=True
+    )
+    await ctrl._call("set_temperature", {"entity_id": "climate.trv", "temperature": 21.0}, temp_intent="heat")
+
+    data = hass.services.async_call.call_args_list[-1][0][2]
+    assert data["target_temp_low"] == 21.0
+    assert data["target_temp_high"] == 30.0
+
+
+@pytest.mark.asyncio
 async def test_call_dual_setpoint_cool_intent():
     """AC with dual-setpoint + temp_intent='cool' sets target_temp_high."""
     hass = build_hass()

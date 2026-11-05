@@ -70,3 +70,30 @@ async def test_bypass_fails_closed_if_no_acknowledgement_after_grace():
         c.args[2] == {"entity_id": "climate.boiler", "hvac_mode": "heat"}
         for c in hass.services.async_call.call_args_list
     )
+
+
+@pytest.mark.asyncio
+async def test_failed_bypass_release_is_retried_next_tick():
+    """A failed release call must not mark the bypass released (A8)."""
+    states = {
+        "climate.bypass": SimpleNamespace(state="heat", attributes={"temperature": 28.0}),
+        "climate.boiler": SimpleNamespace(state="off", attributes={}),
+    }
+    hass = MagicMock()
+    hass.states.get.side_effect = states.get
+    hass.services.async_call = AsyncMock(side_effect=RuntimeError("zigbee timeout"))
+    mgr = BoilerManager(hass)
+    settings = _settings()
+
+    await mgr.async_reconcile(settings, set())
+    assert not mgr._bypass_released
+
+    hass.services.async_call = AsyncMock()
+    await mgr.async_reconcile(settings, set())
+    released = [
+        c
+        for c in hass.services.async_call.call_args_list
+        if c.args[2] == {"entity_id": "climate.bypass", "hvac_mode": "off"}
+    ]
+    assert len(released) == 1
+    assert mgr._bypass_released

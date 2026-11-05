@@ -6,11 +6,11 @@ import asyncio
 import logging
 import math
 from dataclasses import dataclass
-from datetime import datetime
 from time import monotonic
 from typing import Any
 
 from homeassistant.core import HomeAssistant
+from homeassistant.util import dt as dt_util
 
 from ..const import make_roommind_context
 from ..utils.comfort_insights import active_profile
@@ -175,7 +175,7 @@ class DehumidifierManager:
                 "commanded": None,
                 "target_humidity": target,
                 "humidity_floor": floor if len(areas) > 1 else None,
-                "night": night_phase(room, datetime.now().astimezone(), 0) == "night",
+                "night": night_phase(room, dt_util.now(), 0) == "night",
                 "config": config,
             }
         self._comfort.intersection_update(rooms)

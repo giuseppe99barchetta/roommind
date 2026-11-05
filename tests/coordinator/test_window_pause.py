@@ -770,3 +770,97 @@ class TestRoomMindCoordinator:
         assert area_id not in coordinator._window_manager._closed_since
         assert area_id not in coordinator._window_manager._paused
         assert area_id not in coordinator._window_manager._seen
+
+    @pytest.mark.asyncio
+    async def test_window_open_setback_trv_is_not_kept_heating(self, hass, mock_config_entry):
+        """idle_action=setback must not keep a TRV in heat while the window is open (A1)."""
+        trv = "climate.living_room"
+        room = {
+            **SAMPLE_ROOM,
+            "devices": [
+                {"entity_id": trv, "type": "trv", "role": "auto", "heating_system_type": "", "idle_action": "setback"}
+            ],
+            "window_sensors": ["binary_sensor.w"],
+        }
+        hass.data = {"roommind": {"store": _make_store_mock({"living_room_abc12345": room})}}
+        hass.states.get = MagicMock(
+            side_effect=make_mock_states_get(
+                temp="17.0",
+                window_sensors={"binary_sensor.w": "on"},
+                extra={
+                    trv: (
+                        "heat",
+                        {"hvac_modes": ["off", "heat"], "temperature": 30.0, "min_temp": 5.0, "max_temp": 30.0},
+                    )
+                },
+            )
+        )
+        hass.services.async_call = AsyncMock()
+
+        data = await _create_coordinator(hass, mock_config_entry)._async_update_data()
+
+        assert data["rooms"]["living_room_abc12345"]["window_open"] is True
+        climate_calls = [c.args[1:3] for c in hass.services.async_call.call_args_list if c.args[0] == "climate"]
+        assert ("set_hvac_mode", {"entity_id": trv, "hvac_mode": "off"}) in climate_calls
+        # Only the min_temp parking setpoint of the OFF path, never the setback (target - 2).
+        assert all(d["temperature"] == 5.0 for svc, d in climate_calls if svc == "set_temperature")
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize("physical", ["fan_only", "cool"])
+    async def test_window_open_idle_fan_only_turns_off_when_keep_disabled(self, hass, mock_config_entry, physical):
+        """idle_action=fan_only + keep_fan_only_on_window_open=False → OFF (A5)."""
+        ac = "climate.living_room_ac"
+        room = {
+            **SAMPLE_ROOM,
+            "thermostats": [],
+            "acs": [ac],
+            "devices": [
+                {"entity_id": ac, "type": "ac", "role": "auto", "heating_system_type": "", "idle_action": "fan_only"}
+            ],
+            "window_sensors": ["binary_sensor.w"],
+            "keep_fan_only_on_window_open": False,
+        }
+        hass.data = {"roommind": {"store": _make_store_mock({"living_room_abc12345": room})}}
+        hass.states.get = MagicMock(
+            side_effect=make_mock_states_get(
+                window_sensors={"binary_sensor.w": "on"},
+                extra={ac: (physical, {"hvac_modes": ["off", "cool", "fan_only"], "min_temp": 16.0, "max_temp": 30.0})},
+            )
+        )
+        hass.services.async_call = AsyncMock()
+
+        await _create_coordinator(hass, mock_config_entry)._async_update_data()
+
+        climate_calls = [c.args[1:3] for c in hass.services.async_call.call_args_list if c.args[0] == "climate"]
+        assert ("set_hvac_mode", {"entity_id": ac, "hvac_mode": "off"}) in climate_calls
+        assert ("set_hvac_mode", {"entity_id": ac, "hvac_mode": "fan_only"}) not in climate_calls
+
+    @pytest.mark.asyncio
+    async def test_window_open_manual_fan_only_kept_when_keep_enabled(self, hass, mock_config_entry):
+        """Manual fan_only with keep_fan_only_on_window_open=True is left untouched."""
+        ac = "climate.living_room_ac"
+        room = {
+            **SAMPLE_ROOM,
+            "thermostats": [],
+            "acs": [ac],
+            "devices": [
+                {"entity_id": ac, "type": "ac", "role": "auto", "heating_system_type": "", "idle_action": "fan_only"}
+            ],
+            "window_sensors": ["binary_sensor.w"],
+            "keep_fan_only_on_window_open": True,
+        }
+        hass.data = {"roommind": {"store": _make_store_mock({"living_room_abc12345": room})}}
+        hass.states.get = MagicMock(
+            side_effect=make_mock_states_get(
+                window_sensors={"binary_sensor.w": "on"},
+                extra={
+                    ac: ("fan_only", {"hvac_modes": ["off", "cool", "fan_only"], "min_temp": 16.0, "max_temp": 30.0})
+                },
+            )
+        )
+        hass.services.async_call = AsyncMock()
+
+        await _create_coordinator(hass, mock_config_entry)._async_update_data()
+
+        climate_calls = [c.args[1:3] for c in hass.services.async_call.call_args_list if c.args[0] == "climate"]
+        assert ("set_hvac_mode", {"entity_id": ac, "hvac_mode": "off"}) not in climate_calls

@@ -48,6 +48,11 @@ def has_reliable_hvac_modes(state: Any) -> bool:
     return bool(modes & _ACTIVE_HVAC_MODES)
 
 
+def is_compressor_active(state: Any) -> bool:
+    """Whether a climate state means its compressor is physically running (fan_only is not)."""
+    return state is not None and state.state not in ("off", "unavailable", "unknown", "fan_only")
+
+
 def legacy_to_devices(
     thermostats: list[str],
     acs: list[str],

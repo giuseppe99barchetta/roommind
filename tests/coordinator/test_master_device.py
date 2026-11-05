@@ -2,7 +2,8 @@
 
 from __future__ import annotations
 
-from unittest.mock import AsyncMock, MagicMock
+from time import monotonic
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
@@ -2509,3 +2510,141 @@ class TestMasterOrchestrationAware:
         ]
         assert len(boiler_heat) == 0, "Boiler must stay idle when AC is selected"
         assert len(ac_master_heat) >= 1, "AC master must activate when AC is selected"
+
+
+class TestCompressorMemberTracking:
+    """Only devices actually commanded on (or physically running) count as active (A4)."""
+
+    @pytest.mark.asyncio
+    async def test_budget_blocked_ac_not_marked_active(self, hass, mock_config_entry):
+        room = {
+            **SAMPLE_ROOM,
+            "acs": ["climate.ac_a"],
+            "devices": [
+                {"entity_id": "climate.living_room", "type": "trv", "role": "auto", "heating_system_type": ""},
+                {"entity_id": "climate.ac_a", "type": "ac", "role": "auto", "heating_system_type": ""},
+            ],
+        }
+        store = _make_store_mock({"living_room_abc12345": room})
+        store.get_settings.return_value = {
+            "climate_control_active": True,
+            "compressor_groups": [
+                {"id": "g1", "name": "G1", "members": ["climate.ac_a", "climate.ac_b"], "min_off_minutes": 5}
+            ],
+        }
+        hass.data = {"roommind": {"store": store}}
+        hass.states.get = MagicMock(
+            side_effect=make_mock_states_get(
+                temp="18.0",
+                extra={
+                    "climate.ac_a": ("off", {"hvac_modes": ["off", "heat", "cool"], "min_temp": 16, "max_temp": 30})
+                },
+            )
+        )
+        hass.services.async_call = AsyncMock()
+
+        coordinator = _create_coordinator(hass, mock_config_entry)
+        coordinator._compressor_manager.load_groups(store.get_settings.return_value["compressor_groups"])
+        # Off long enough that min-off does not itself exclude the AC.
+        off_since = monotonic() - 400
+        coordinator._compressor_manager.get_state("g1").compressor_off_since = off_since
+        with patch.object(coordinator._power_budget_manager, "request_heat_pump", return_value=False):
+            data = await coordinator._async_update_data()
+
+        assert data["rooms"]["living_room_abc12345"]["power_budget_blocked"] is True
+        assert "climate.ac_a" not in coordinator._compressor_manager.get_state("g1").active_members
+        # The compressor off-time is not reset by a phantom start.
+        assert coordinator._compressor_manager.get_state("g1").compressor_off_since == off_since
+
+    @staticmethod
+    def _wake_setup(hass, coordinator, fail_master: bool):
+        settings = {
+            "climate_control_active": True,
+            "compressor_groups": [
+                {"id": "g1", "name": "G1", "members": ["climate.zone_a"], "master_entity": "climate.outdoor"}
+            ],
+        }
+        coordinator._compressor_manager.load_groups(settings["compressor_groups"])
+        master_state = _make_master_state("off")
+        zone_state = _make_ac_zone_state("off")
+        hass.states.get = MagicMock(side_effect={"climate.outdoor": master_state, "climate.zone_a": zone_state}.get)
+
+        async def call(domain, service, data, **kwargs):
+            if fail_master and data.get("entity_id") == "climate.outdoor":
+                raise RuntimeError("master rejected")
+
+        hass.services.async_call = AsyncMock(side_effect=call)
+        room = _ac_room("room_a", "climate.zone_a")
+        return {"room_a": {"mode": "heating", "commanded_mode": "heating"}}, {"room_a": room}, settings
+
+    @pytest.mark.asyncio
+    async def test_wake_without_master_start_marks_no_member(self, hass, mock_config_entry):
+        coordinator = _create_coordinator(hass, mock_config_entry)
+        room_states, rooms, settings = self._wake_setup(hass, coordinator, fail_master=True)
+
+        await coordinator._async_control_master_devices(room_states, rooms, settings)
+
+        assert coordinator._compressor_manager.get_state("g1").active_members == set()
+
+    @pytest.mark.asyncio
+    async def test_wake_with_master_start_marks_member(self, hass, mock_config_entry):
+        coordinator = _create_coordinator(hass, mock_config_entry)
+        room_states, rooms, settings = self._wake_setup(hass, coordinator, fail_master=False)
+
+        await coordinator._async_control_master_devices(room_states, rooms, settings)
+
+        assert coordinator._compressor_manager.get_state("g1").active_members == {"climate.zone_a"}
+
+
+class TestMasterWithoutIdleMode:
+    """Group demand vs. applied master action when the master cannot idle (A11)."""
+
+    @staticmethod
+    def _setup(hass, coordinator, room_mode):
+        settings = {
+            "climate_control_active": True,
+            "compressor_groups": [
+                {
+                    "id": "g1",
+                    "name": "G1",
+                    "members": ["climate.zone_a"],
+                    "master_entity": "climate.outdoor",
+                    "enforce_uniform_mode": True,
+                }
+            ],
+        }
+        coordinator._compressor_manager.load_groups(settings["compressor_groups"])
+        master_state = _make_master_state("heat", hvac_modes=["heat", "cool"])
+        hass.states.get = MagicMock(side_effect={"climate.outdoor": master_state}.get)
+        hass.services.async_call = AsyncMock()
+        # No temperature sensor: skip the "waiting for first reading" startup guard.
+        room = _room_with_device("room_a", "climate.zone_a", temperature_sensor="")
+        return {"room_a": {"mode": room_mode, "commanded_mode": room_mode}}, {"room_a": room}, settings
+
+    @pytest.mark.asyncio
+    async def test_idle_demand_releases_members_without_fake_off_transition(self, hass, mock_config_entry):
+        coordinator = _create_coordinator(hass, mock_config_entry)
+        mgr = coordinator._compressor_manager
+        room_states, rooms, settings = self._setup(hass, coordinator, "heating")
+        mgr.set_master_action("g1", "heat")
+        # Master has run past its min-run.
+        on_since = mgr.get_state("g1").master_on_since = monotonic() - 10_000
+        assert mgr.get_enforced_action("climate.zone_a") == "heat"
+
+        room_states["room_a"] = {"mode": MODE_IDLE, "commanded_mode": MODE_IDLE}
+        await coordinator._async_control_master_devices(room_states, rooms, settings)
+
+        state = mgr.get_state("g1")
+        # Members are no longer forced to follow a master that merely cannot idle.
+        assert mgr.get_enforced_action("climate.zone_a") == "idle"
+        # The master physically keeps running: no off transition recorded.
+        assert state.master_action == "heat"
+        assert state.master_on_since == on_since
+        assert state.master_off_since is None
+
+        # Demand resuming does not hit a min-off guard.
+        room_states["room_a"] = {"mode": "heating", "commanded_mode": "heating"}
+        assert mgr.check_master_can_switch("g1", "heat")
+        await coordinator._async_control_master_devices(room_states, rooms, settings)
+        assert mgr.get_enforced_action("climate.zone_a") == "heat"
+        assert state.master_on_since == on_since

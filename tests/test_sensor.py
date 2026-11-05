@@ -247,3 +247,27 @@ def test_room_entity_name_uses_display_name():
     entity = RoomMindPowerSensor(coordinator, "sala")
 
     assert entity._attr_name == "Sala AC Power"
+
+
+def test_energy_cost_today_last_reset_is_local_midnight():
+    """TOTAL cost-of-today must expose last_reset = local (HA tz) midnight (A6)."""
+    from datetime import datetime
+    from unittest.mock import patch
+    from zoneinfo import ZoneInfo
+
+    from homeassistant.components.sensor import SensorStateClass
+    from homeassistant.util import dt as dt_util
+
+    rome = ZoneInfo("Europe/Rome")
+    dt_util.set_default_time_zone(rome)
+    sensor = RoomMindEnergyCostTodaySensor(_make_coordinator(), "room_a")
+    assert sensor.state_class == SensorStateClass.TOTAL
+
+    def at(*utc):
+        return patch("homeassistant.util.dt.now", return_value=datetime(*utc, tzinfo=dt_util.UTC).astimezone(rome))
+
+    # 23:30 UTC on Jan 1 is already Jan 2 in Rome.
+    with at(2026, 1, 1, 22, 30):
+        assert sensor.last_reset == datetime(2026, 1, 1, tzinfo=rome)
+    with at(2026, 1, 1, 23, 30):
+        assert sensor.last_reset == datetime(2026, 1, 2, tzinfo=rome)

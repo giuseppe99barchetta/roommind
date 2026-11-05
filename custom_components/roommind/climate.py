@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import time
-from datetime import datetime
 from typing import Any
 
 from homeassistant.components.climate import (
@@ -18,6 +17,7 @@ from homeassistant.const import ATTR_TEMPERATURE, UnitOfTemperature
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
+from homeassistant.util import dt as dt_util
 
 from .const import (
     AUTO_OVERRIDE_HOURS,
@@ -629,7 +629,7 @@ class RoomMindClimate(RoomMindOverrideClimate):
         # Live targets already include the night setback, and the control loop
         # applies it again on top of overrides: store pre-night values so the
         # setpoint the user picked is the one that takes effect.
-        night = apply_night_targets(self._room() or {}, TargetTemps(heat=0.0, cool=0.0), datetime.now().astimezone())[0]
+        night = apply_night_targets(self._room() or {}, TargetTemps(heat=0.0, cool=0.0), dt_util.now())[0]
         if new_heat is not None and night.heat is not None:
             new_heat -= night.heat
         if new_cool is not None and night.cool is not None:

@@ -8,7 +8,7 @@ from datetime import UTC, datetime
 
 from homeassistant.core import HomeAssistant
 
-from ..utils.sensor_utils import read_sensor_value
+from ..utils.sensor_utils import power_to_watts, read_sensor_value
 
 _MAX_POWER_READING_AGE_SECONDS = 180.0
 
@@ -67,6 +67,8 @@ class PowerBudgetManager:
             value = float(raw) if raw is not None else None
         except (TypeError, ValueError):
             value = None
+        if value is not None and state is not None:
+            value = power_to_watts(value, state)
         if value is None or not math.isfinite(value) or value < 0:
             self._available = None
             self._sensor_healthy = False

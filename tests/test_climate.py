@@ -1298,7 +1298,9 @@ async def test_exit_auxiliary_to_auto_stops_the_physical_ac(mock_coordinator):
 @pytest.mark.asyncio
 async def test_auto_override_is_not_lowered_twice_by_night_setback(mock_coordinator):
     """Codex P2: live targets already include the night delta; store pre-night values."""
-    from datetime import datetime as real_datetime
+    from datetime import datetime
+
+    from homeassistant.util import dt as dt_util
 
     coordinator, store = mock_coordinator
     coordinator.hass.states.get.return_value = MagicMock(state="heat", attributes={"hvac_modes": ["off", "heat"]})
@@ -1314,10 +1316,9 @@ async def test_auto_override_is_not_lowered_twice_by_night_setback(mock_coordina
     # Live target 19.5 = comfort 20 with the -0.5 night setback applied.
     coordinator.data = {"rooms": {"living_room": {"heat_target": 19.5}}}
     store.async_update_room = AsyncMock()
-    night = MagicMock(wraps=real_datetime)
-    night.now.return_value = real_datetime(2026, 11, 3, 2, 0).astimezone()
+    night = datetime(2026, 11, 3, 2, 0, tzinfo=dt_util.get_default_time_zone())
 
-    with patch("custom_components.roommind.climate.datetime", night):
+    with patch("custom_components.roommind.climate.dt_util.now", return_value=night):
         await RoomMindClimate(coordinator, "living_room").async_set_temperature(temperature=21.0)
 
     # Stored 21.5 so that 21.5 - 0.5 (night) = 21.0 takes effect.
