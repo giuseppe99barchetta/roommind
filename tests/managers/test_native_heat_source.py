@@ -128,3 +128,26 @@ class TestNativeDwell:
         coordinator._power_budget_manager.request_heat_pump = MagicMock(return_value=False)
         state = await _run(coordinator, hass, real_store, "heat_pump", time.monotonic(), outdoor_temp="12.0")
         assert state == "boiler"
+
+    @pytest.mark.asyncio
+    async def test_dwell_restoring_stopped_heat_pump_respects_denied_budget(self, coordinator, real_store, hass):
+        """CR-02: cold outdoor plans boiler (no budget request); the dwell must not
+        then restart an externally stopped AC without budget admission."""
+        coordinator._power_budget_manager.request_heat_pump = MagicMock(return_value=False)
+        state = await _run(
+            coordinator,
+            hass,
+            real_store,
+            "heat_pump",
+            time.monotonic(),
+            outdoor_temp="0.0",
+            extra={"climate.ac_living": ("off", {"hvac_modes": ["off", "heat", "cool", "heat_cool"]})},
+        )
+        assert state == "boiler"
+        coordinator._power_budget_manager.request_heat_pump.assert_called()
+        ac_starts = [
+            c
+            for c in hass.services.async_call.call_args_list
+            if c.args[2].get("entity_id") == "climate.ac_living" and c.args[2].get("hvac_mode") not in (None, "off")
+        ]
+        assert ac_starts == []

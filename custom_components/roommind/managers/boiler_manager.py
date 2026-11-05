@@ -72,6 +72,9 @@ class BoilerManager:
         # After start-up or a fault the bypass may have been left open by
         # whoever controlled it before. Release it once when idle.
         self._bypass_released = False
+        # Bypasses already idled in the current release, so a pending release
+        # (another bypass unavailable or failed) does not re-send OFF each tick.
+        self._released_bypasses: set[str] = set()
         # A failed OFF command while faulted must be retried every tick: the
         # boiler could still be firing without a verified hydraulic path.
         self._shutdown_pending = False
@@ -151,10 +154,17 @@ class BoilerManager:
         if not open_:
             # Releasing control is intentionally conservative: RoomMind idles
             # the bypasses only after the boiler has been stopped and held.
-            # A failed call keeps the release pending so the next tick retries it.
+            # A failed call or an unavailable bypass keeps the release pending
+            # so the next tick retries it.
             released = True
             for entity_id in bypasses:
+                if entity_id in self._released_bypasses:
+                    continue
                 if not self._available(self.hass, entity_id):
+                    released = False
+                    continue
+                if self.hass.states.get(entity_id).state == "off":
+                    self._released_bypasses.add(entity_id)
                     continue
                 try:
                     await self.hass.services.async_call(
@@ -164,12 +174,14 @@ class BoilerManager:
                         blocking=True,
                         context=make_roommind_context(),
                     )
+                    self._released_bypasses.add(entity_id)
                 except Exception:
                     released = False
                     _LOGGER.warning("Unable to release boiler bypass '%s'", entity_id, exc_info=True)
             self._bypass_released = released
             return True
         self._bypass_released = False
+        self._released_bypasses.clear()
         target = float(settings.get("hydraulic_bypass_open_temperature", 28.0))
         confirmed = False
         for entity_id in bypasses:

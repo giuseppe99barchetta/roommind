@@ -624,15 +624,25 @@ async def websocket_save_room(
     if err:
         connection.send_error(msg["id"], "duplicate_entity", err)
         return
-    existing_room = store.get_room(area_id) or {}
+    existing_room = store.get_room(area_id)
+    # A new room is checked as it will be created, creation defaults included.
+    effective_room = existing_room if existing_room is not None else store._create_room(area_id, config)
     for heat_key, cool_key in _HEAT_COOL_PAIRS:
-        if heat_key not in config and cool_key not in config:
+        if existing_room is not None and heat_key not in config and cool_key not in config:
             continue
-        heat = config.get(heat_key, existing_room.get(heat_key))
-        cool = config.get(cool_key, existing_room.get(cool_key))
+        heat = config.get(heat_key, effective_room.get(heat_key))
+        cool = config.get(cool_key, effective_room.get(cool_key))
         if heat is not None and cool is not None and cool < heat:
             connection.send_error(msg["id"], "invalid", f"{cool_key} must be >= {heat_key}")
             return
+    if "comfort_profiles" in config:
+        # Partial profiles are merged over the built-in ones at runtime.
+        for profile_id, profile in profile_targets({"comfort_profiles": config["comfort_profiles"]}).items():
+            if profile.get("cool_target", math.inf) < profile.get("heat_target", -math.inf):
+                connection.send_error(
+                    msg["id"], "invalid", f"comfort_profiles.{profile_id}: cool_target must be >= heat_target"
+                )
+                return
 
     if ("thermostats" in config or "acs" in config) and "devices" not in config:
         _LOGGER.warning(

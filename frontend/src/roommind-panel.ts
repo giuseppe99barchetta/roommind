@@ -941,6 +941,9 @@ export class RoomMindPanel extends LitElement {
       return;
     }
 
+    // Otherwise the detail view flushes its pending edit on unmount and
+    // rooms/save recreates the room that was just deleted.
+    this.renderRoot.querySelector("rs-room-detail")?.cancelPendingSave();
     try {
       await this.hass.callWS({
         type: "roommind/rooms/delete",

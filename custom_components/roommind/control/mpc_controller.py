@@ -63,6 +63,7 @@ if TYPE_CHECKING:
 _LOGGER = logging.getLogger(__name__)
 
 _SENTINEL: object = object()  # default marker for backward-compat keyword detection
+_ACTIVE_HVAC_MODES = frozenset({"heat", "cool", "heat_cool", "auto", "dry"})
 
 # Cache of last successfully sent command per climate entity.
 # Fallback for IR devices that don't report temperature attributes.
@@ -829,6 +830,9 @@ class MPCController:
         self._shading_factor = shading_factor
         self.q_occupancy = q_occupancy
         self._idle_targets: TargetTemps | None = None
+        # Devices confirmed commanded into an active mode by the last async_apply
+        # (failed service calls and deliberate idles are excluded).
+        self.commanded_on: set[str] = set()
         self._force_off = False
         self._window_open = False
         self._fan_only_presence_home = True
@@ -1354,6 +1358,7 @@ class MPCController:
         # Store targets for _call delegation (setback idle_action) — must be
         # after backward-compat conversion so legacy callers get a TargetTemps.
         self._idle_targets = targets
+        self.commanded_on = set()
         self._force_off = force_off
         self._window_open = window_open
         self._fan_only_presence_home = fan_only_presence_home
@@ -1792,6 +1797,7 @@ class MPCController:
 
         # Delegate "turn off" to fallback-aware helper (handles heat-only TRVs)
         if service == "set_hvac_mode" and data.get("hvac_mode") == "off" and eid:
+            self.commanded_on.discard(eid)
             await async_idle_device(
                 self.hass,
                 eid,
@@ -2000,7 +2006,10 @@ class MPCController:
                         if c_temp is not None and d_temp is not None and round(c_temp, 1) == round(d_temp, 1):
                             skip = True
 
+        activates = data.get("hvac_mode") in _ACTIVE_HVAC_MODES
         if skip:
+            if eid and activates:
+                self.commanded_on.add(eid)
             return
 
         try:
@@ -2013,7 +2022,10 @@ class MPCController:
             )
             if eid:
                 _last_commands[eid] = _cache_entry(service, data)
+                if activates:
+                    self.commanded_on.add(eid)
         except Exception:
+            self.commanded_on.discard(eid)
             _LOGGER.warning(
                 "Area '%s': climate.%s failed on '%s'",
                 self._area_id,

@@ -1330,6 +1330,7 @@ class RoomMindCoordinator(DataUpdateCoordinator):
 
         # Heat source orchestration: legacy routing plus native hybrid mode.
         heat_source_plan = None
+        native_budget_checked = False  # True once native routing made the budget request
         if (
             room.get("heat_source_orchestration", False)
             and mode == MODE_HEATING
@@ -1353,6 +1354,7 @@ class RoomMindCoordinator(DataUpdateCoordinator):
                     self.hass,
                 )
                 if heat_source_plan and heat_source_plan.active_sources in ("heat_pump", "hybrid"):
+                    native_budget_checked = True
                     # Routing history is not proof of physical operation: an
                     # external off command may have stopped the AC meanwhile.
                     running = any(
@@ -1393,7 +1395,23 @@ class RoomMindCoordinator(DataUpdateCoordinator):
                     and previous_usable
                 ):
                     dwell = float(room.get("heat_source_min_dwell_minutes", DEFAULT_HEAT_SOURCE_MIN_DWELL_MINUTES)) * 60
-                    if time.monotonic() - self._heat_source_changed_at.get(area_id, 0) < dwell:
+                    within_dwell = time.monotonic() - self._heat_source_changed_at.get(area_id, 0) < dwell
+                    if within_dwell and previous_source in ("heat_pump", "hybrid") and not native_budget_checked:
+                        # The dwell would (re)start the AC: admit it against the
+                        # shared budget first, or let the new plan stand.
+                        native_budget_checked = True
+                        within_dwell = self._power_budget_manager.request_heat_pump(
+                            area_id,
+                            self._energy_manager.budget_power_w(
+                                area_id, "heating", float(room.get("heat_pump_power_watts", 0) or 0)
+                            ),
+                            any(
+                                (state := self.hass.states.get(eid)) is not None
+                                and state.state in ("heat", "cool", "dry")
+                                for eid in get_ac_eids(room.get("devices", []))
+                            ),
+                        )
+                    if within_dwell:
                         for command in heat_source_plan.commands:
                             command.active = (
                                 command.device_type == "ac" and previous_source in ("heat_pump", "hybrid")
@@ -1454,7 +1472,7 @@ class RoomMindCoordinator(DataUpdateCoordinator):
         budget_blocked_acs: set[str] = set()
         ac_eids = set(get_ac_eids(room.get("devices", [])))
         native_budget_checked = bool(
-            room.get("native_heat_source", False)
+            native_budget_checked
             and heat_source_plan is not None
             and heat_source_plan.reason != "boiler_waiting_ac_fallback"
         )
@@ -1579,7 +1597,6 @@ class RoomMindCoordinator(DataUpdateCoordinator):
             )
         else:
             mold_aux_activated: set[str] = set()
-            apply_succeeded = False
             try:
                 smart_ventilation_active = self._smart_ventilation_active(
                     area_id, room, mode, targets, current_temp, current_humidity, window_open, force_off
@@ -1667,7 +1684,6 @@ class RoomMindCoordinator(DataUpdateCoordinator):
                     fan_only_presence_home=bool(settings.get("presence_enabled", False) and not presence_away),
                     fan_only_schedule_active=fan_only_schedule_active,
                 )
-                apply_succeeded = True
                 await self._async_apply_night_fan_mode(area_id, room, mode, night_progress > 0)
                 if mold_prevention_effective and mold_prevention_strategy == "dry" and not window_open:
                     # Unlike a persisted user DRY mode, prevention is an explicit
@@ -1811,11 +1827,9 @@ class RoomMindCoordinator(DataUpdateCoordinator):
                     exc_info=True,
                 )
             # Update compressor group member states (always, even after failed apply).
-            # Only devices actually commanded on (or physically running) count as
-            # active, otherwise a blocked/excluded device would skip the group min-off.
-            not_commanded_on = cycling_eids | budget_blocked_acs | boiler_bypass_eids | boiler_wait_eids
-            if heat_source_plan is not None:
-                not_commanded_on |= {c.entity_id for c in heat_source_plan.commands if not c.active}
+            # Only devices the controller actually commanded on (service call
+            # succeeded) or that are physically running count as active, otherwise
+            # a blocked, idled or unreachable device would skip the group min-off.
             for eid in all_device_eids:
                 if self._compressor_manager.get_group_for_entity(eid) is None:
                     continue
@@ -1832,8 +1846,7 @@ class RoomMindCoordinator(DataUpdateCoordinator):
                 elif mode != MODE_IDLE:
                     self._compressor_manager.update_member(
                         eid,
-                        (apply_succeeded and eid not in not_commanded_on)
-                        or is_compressor_active(self.hass.states.get(eid)),
+                        eid in controller.commanded_on or is_compressor_active(self.hass.states.get(eid)),
                     )
                 else:
                     self._compressor_manager.update_member(eid, False)

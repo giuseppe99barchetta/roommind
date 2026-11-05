@@ -276,3 +276,56 @@ async def test_new_room_does_not_store_legacy_temps(ws_hass, store):
     assert room["comfort_heat"] == 21.5
     assert "comfort_temp" not in room
     assert "eco_temp" not in room
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "fields",
+    [
+        {"comfort_heat": 30},  # default comfort_cool is lower
+        {"eco_cool": 10},  # default eco_heat is higher
+        {"logical_heat_target": 30},  # default logical_cool_target is lower
+        {"comfort_cool": 10},  # logical targets default from comfort_* too
+    ],
+)
+async def test_save_room_rejects_new_room_conflicting_with_defaults(ws_hass, store, fields):
+    """CR-06: validate the effective new room, after creation defaults are applied."""
+    await store.async_load()
+    conn = MagicMock()
+    await _save_room(ws_hass, conn, {"id": 1, "area_id": "living", **fields})
+    conn.send_error.assert_called_once()
+    assert conn.send_error.call_args.args[1] == "invalid"
+    assert store.get_room("living") is None
+
+
+@pytest.mark.asyncio
+async def test_save_room_accepts_new_room_single_field_within_defaults(ws_hass, store):
+    await store.async_load()
+    await _save(ws_hass, 1, "living", comfort_heat=22)
+    assert store.get_room("living")["comfort_heat"] == 22
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "profiles",
+    [
+        {"work": {"heat_target": 24, "cool_target": 20}},  # explicit inversion
+        {"work": {"heat_target": 30}},  # built-in work cool_target is 25
+        {"away": {"cool_target": 15}},  # built-in away heat_target is 17
+    ],
+)
+async def test_save_room_rejects_inverted_comfort_profiles(ws_hass, store, profiles):
+    """CR-07: each profile is validated after merging the built-in defaults."""
+    await store.async_load()
+    conn = MagicMock()
+    await _save_room(ws_hass, conn, {"id": 1, "area_id": "living", "comfort_profiles": profiles})
+    conn.send_error.assert_called_once()
+    assert conn.send_error.call_args.args[1] == "invalid"
+    assert store.get_room("living") is None
+
+
+@pytest.mark.asyncio
+async def test_save_room_accepts_valid_partial_comfort_profile(ws_hass, store):
+    await store.async_load()
+    await _save(ws_hass, 1, "living", comfort_profiles={"work": {"heat_target": 22}})
+    assert store.get_room("living")["comfort_profiles"] == {"work": {"heat_target": 22.0}}

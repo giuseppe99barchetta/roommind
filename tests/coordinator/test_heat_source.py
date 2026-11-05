@@ -532,3 +532,81 @@ class TestHeatSourceOrchestration:
         assert room_state["mode"] == MODE_IDLE, (
             "cool_only room with blocked AC should be IDLE even when a TRV is present"
         )
+
+    @staticmethod
+    def _grouped_ac_coordinator(hass, mock_config_entry, room, temp, ac_modes):
+        store = _make_store_mock({"living_room_abc12345": room})
+        store.get_settings.return_value = {
+            "compressor_groups": [
+                {
+                    "id": "group1",
+                    "name": "Outdoor Unit",
+                    "members": ["climate.living_room_ac"],
+                    "min_run_minutes": 5,
+                    "min_off_minutes": 5,
+                }
+            ],
+        }
+        hass.data = {"roommind": {"store": store}}
+        hass.states.get = MagicMock(
+            side_effect=make_mock_states_get(
+                temp=temp,
+                extra={"climate.living_room_ac": ("off", {"hvac_modes": ac_modes})},
+            )
+        )
+        coordinator = _create_coordinator(hass, mock_config_entry)
+        coordinator._compressor_manager.load_groups(store.get_settings()["compressor_groups"])
+        return coordinator
+
+    AC_ONLY_COOL_ROOM = {
+        **SAMPLE_ROOM,
+        "thermostats": [],
+        "acs": ["climate.living_room_ac"],
+        "devices": [
+            {"entity_id": "climate.living_room_ac", "type": "ac", "role": "auto", "heating_system_type": ""},
+        ],
+        "climate_mode": "cool_only",
+    }
+
+    @pytest.mark.asyncio
+    async def test_compressor_member_active_when_ac_commanded_on(self, hass, mock_config_entry):
+        """Control: a successfully commanded AC counts as an active compressor member."""
+        coordinator = self._grouped_ac_coordinator(
+            hass, mock_config_entry, self.AC_ONLY_COOL_ROOM, "28.0", ["off", "cool"]
+        )
+        hass.services.async_call = AsyncMock()
+
+        await coordinator._async_update_data()
+
+        assert coordinator._compressor_manager.get_state("group1").active_members
+
+    @pytest.mark.asyncio
+    async def test_compressor_member_inactive_when_activation_calls_fail(self, hass, mock_config_entry):
+        """CR-01: failed activation calls must not register the (off) AC as running."""
+        coordinator = self._grouped_ac_coordinator(
+            hass, mock_config_entry, self.AC_ONLY_COOL_ROOM, "28.0", ["off", "cool"]
+        )
+        hass.services.async_call = AsyncMock(side_effect=RuntimeError("device offline"))
+
+        await coordinator._async_update_data()
+
+        assert not coordinator._compressor_manager.get_state("group1").active_members
+
+    @pytest.mark.asyncio
+    async def test_compressor_member_inactive_when_controller_idles_ac(self, hass, mock_config_entry):
+        """CR-01: an AC the controller deliberately idles (cannot heat) is not active."""
+        room = {
+            **SAMPLE_ROOM,
+            "acs": ["climate.living_room_ac"],
+            "devices": [
+                {"entity_id": "climate.living_room", "type": "trv", "role": "auto", "heating_system_type": ""},
+                {"entity_id": "climate.living_room_ac", "type": "ac", "role": "auto", "heating_system_type": ""},
+            ],
+        }
+        coordinator = self._grouped_ac_coordinator(hass, mock_config_entry, room, "18.0", ["off", "cool"])
+        hass.services.async_call = AsyncMock()
+
+        data = await coordinator._async_update_data()
+
+        assert data["rooms"]["living_room_abc12345"]["mode"] == "heating"
+        assert not coordinator._compressor_manager.get_state("group1").active_members

@@ -1467,6 +1467,12 @@ export class RsRoomDetail extends LitElement {
     }, 500);
   }
 
+  /** Drop a pending debounced save, e.g. right before the room is deleted. */
+  cancelPendingSave() {
+    if (this._saveDebounce) clearTimeout(this._saveDebounce);
+    this._saveDebounce = undefined;
+  }
+
   private _flushSave(areaId?: string) {
     if (!this._saveDebounce) return;
     clearTimeout(this._saveDebounce);
