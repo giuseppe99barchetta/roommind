@@ -936,9 +936,10 @@ export class RoomMindPanel extends LitElement {
 
   private async _onDeleteRoom() {
     if (!this._selectedAreaId) return;
-    // A second delete would fail with not_found and resume saving the deleted room.
-    if (this._deletingAreaId === this._selectedAreaId) return;
-    const area = this.hass?.areas?.[this._selectedAreaId];
+    // One delete at a time: an overlapping one could resume saving a deleted room.
+    if (this._deletingAreaId) return;
+    const areaId = this._selectedAreaId;
+    const area = this.hass?.areas?.[areaId];
     if (!area) return;
 
     if (!confirm(localize("room.confirm_delete", this.hass.language, { name: area.name }))) {
@@ -949,20 +950,23 @@ export class RoomMindPanel extends LitElement {
     // rooms/save recreates the room that was just deleted.
     const detail = this.renderRoot.querySelector("rs-room-detail");
     detail?.beginDelete();
-    this._deletingAreaId = this._selectedAreaId;
+    this._deletingAreaId = areaId;
+    // The user may open another room while the request is pending.
+    const stillShown = () => this._selectedAreaId === areaId;
     try {
-      await this.hass.callWS({
-        type: "roommind/rooms/delete",
-        area_id: this._selectedAreaId,
-      });
-      this._selectedAreaId = null;
-      this._navigate("");
+      await this.hass.callWS({ type: "roommind/rooms/delete", area_id: areaId });
+      if (stillShown()) {
+        this._selectedAreaId = null;
+        this._navigate("");
+      }
       this._loadRooms();
     } catch (err) {
-      detail?.deleteFailed(
-        (err as { message?: string } | null)?.message ||
-          localize("room.error_delete_fallback", this.hass.language),
-      );
+      if (stillShown()) {
+        detail?.deleteFailed(
+          (err as { message?: string } | null)?.message ||
+            localize("room.error_delete_fallback", this.hass.language),
+        );
+      }
     } finally {
       this._deletingAreaId = null;
     }

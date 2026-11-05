@@ -8,11 +8,20 @@ before(async () => {
   ({ RoomMindPanel: Panel } = await server.ssrLoadModule("/src/roommind-panel.ts"));
   ({ RsRoomDetail: RoomDetail } = await server.ssrLoadModule("/src/components/rs-room-detail.ts"));
 });
-after(async () => { await server?.close(); });
+after(async () => {
+  await server?.close();
+});
 
 function setup() {
   const writes = [];
-  const hass = { language: "en", areas: { bed: { area_id: "bed", name: "Bed" } }, callWS: async (p) => { writes.push(p.type); return {}; } };
+  const hass = {
+    language: "en",
+    areas: { bed: { area_id: "bed", name: "Bed" } },
+    callWS: async (p) => {
+      writes.push(p.type);
+      return {};
+    },
+  };
   const detail = new RoomDetail();
   detail.hass = hass;
   detail.area = { area_id: "bed" };
@@ -51,7 +60,9 @@ function deferredDelete(writes, hass) {
   hass.callWS = (p) => {
     writes.push(p.type);
     if (p.type !== "roommind/rooms/delete") return Promise.resolve({});
-    return new Promise((resolve, reject) => { settle = { resolve, reject }; });
+    return new Promise((resolve, reject) => {
+      settle = { resolve, reject };
+    });
   };
   return () => settle;
 }
@@ -110,7 +121,10 @@ test("an earlier save finishing during a failed delete keeps the newer edit dirt
   let finishSave;
   detail.hass.callWS = (p) => {
     writes.push(p.type);
-    if (p.type === "roommind/rooms/save" && !finishSave) return new Promise((r) => { finishSave = r; });
+    if (p.type === "roommind/rooms/save" && !finishSave)
+      return new Promise((r) => {
+        finishSave = r;
+      });
     if (p.type === "roommind/rooms/delete") return Promise.reject({ message: "boom" });
     return Promise.resolve({});
   };
@@ -126,4 +140,29 @@ test("an earlier save finishing during a failed delete keeps the newer edit dirt
   await panel._onDeleteRoom();
   await new Promise((r) => setTimeout(r, 0));
   assert.deepEqual(writes, ["roommind/rooms/save", "roommind/rooms/delete", "roommind/rooms/save"]);
+});
+
+test("while a delete is pending, deleting another room is ignored and the outcome stays on its room", async () => {
+  const { writes, detail, panel } = setup();
+  const settles = [];
+  detail.hass.areas.kid = { area_id: "kid", name: "Kid" };
+  detail.hass.callWS = (p) => {
+    writes.push(`${p.type}:${p.area_id}`);
+    if (p.type !== "roommind/rooms/delete") return Promise.resolve({});
+    return new Promise((resolve, reject) => settles.push({ resolve, reject }));
+  };
+  globalThis.confirm = () => true;
+  const first = panel._onDeleteRoom(); // deleting "bed"
+  // user opens another room while "bed" is still being deleted
+  panel._selectedAreaId = "kid";
+  detail.area = { area_id: "kid" };
+  detail.config = { area_id: "kid", devices: [] };
+  detail.updated(new Map([["config", undefined]]));
+  const second = panel._onDeleteRoom();
+  settles[0].reject({ message: "boom" });
+  settles[1]?.resolve({});
+  await Promise.all([first, second]);
+  assert.deepEqual(writes, ["roommind/rooms/delete:bed"]);
+  assert.equal(panel._selectedAreaId, "kid");
+  assert.equal(detail._error, "");
 });
