@@ -239,7 +239,8 @@ class RoomMindEnergyCostTodaySensor(_RoomMindBaseSensor):
     @property
     def last_reset(self) -> datetime:
         """The daily total restarts at local (HA timezone) midnight."""
-        return dt_util.start_of_local_day()
+        midnight: datetime = dt_util.start_of_local_day()
+        return midnight
 
 
 class RoomMindPredictedEnergyCostSensor(_RoomMindBaseSensor):

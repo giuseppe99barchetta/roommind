@@ -333,4 +333,5 @@ async def async_get_config_entry_diagnostics(hass: HomeAssistant, config_entry: 
             },
         },
     }
-    return async_redact_data(diagnostics, TO_REDACT)
+    redacted: dict[str, Any] = async_redact_data(diagnostics, TO_REDACT)
+    return redacted
