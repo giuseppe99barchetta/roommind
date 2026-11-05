@@ -20,10 +20,7 @@ def build_control_preview(hass, settings: dict, rooms: dict, coordinator, mode: 
     running_rooms = set()
     for area_id, room in rooms.items():
         acs = get_ac_eids(room.get("devices", []))
-        if any(
-            (state := hass.states.get(eid)) is not None and state.state in ("heat", "cool", "dry")
-            for eid in acs
-        ):
+        if any((state := hass.states.get(eid)) is not None and state.state in ("heat", "cool", "dry") for eid in acs):
             running_rooms.add(area_id)
             physical = energy._physical_mode(hass, room, "idle")
             running_loads[area_id] = energy.budget_power_w(

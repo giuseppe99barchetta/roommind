@@ -137,16 +137,61 @@ export class RsRoomDetail extends LitElement {
       flex-direction: column;
       gap: 22px;
     }
-    .detail-navigation { display: flex; align-items: center; gap: 8px; overflow-x: auto; padding: 4px; border-radius: 15px; background: var(--secondary-background-color, rgba(127,127,127,.09)); scrollbar-width: thin; }
-    .detail-tab { display: inline-flex; align-items: center; justify-content: center; gap: 9px; flex: 1 0 auto; white-space: nowrap; padding: 12px 14px; min-height: 44px; border: 1px solid transparent; border-radius: 12px; background: transparent; color: var(--secondary-text-color); font: inherit; font-size: 13px; font-weight: 600; cursor: pointer; transition: background .2s ease, color .2s ease, box-shadow .2s ease; }
-    .detail-tab ha-icon { --mdc-icon-size: 19px; }
-    .detail-tab:hover { color: var(--primary-text-color); }
-    .detail-tab[aria-pressed="true"] { background: var(--card-background-color); color: var(--primary-text-color); box-shadow: 0 2px 10px rgba(0,0,0,.06); }
-    .detail-tab[aria-pressed="true"] ha-icon { color: var(--primary-color); }
-    .detail-tab:focus-visible { outline: 2px solid var(--primary-color); outline-offset: -2px; }
+    .detail-navigation {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      overflow-x: auto;
+      padding: 4px;
+      border-radius: 15px;
+      background: var(--secondary-background-color, rgba(127, 127, 127, 0.09));
+      scrollbar-width: thin;
+    }
+    .detail-tab {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 9px;
+      flex: 1 0 auto;
+      white-space: nowrap;
+      padding: 12px 14px;
+      min-height: 44px;
+      border: 1px solid transparent;
+      border-radius: 12px;
+      background: transparent;
+      color: var(--secondary-text-color);
+      font: inherit;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition:
+        background 0.2s ease,
+        color 0.2s ease,
+        box-shadow 0.2s ease;
+    }
+    .detail-tab ha-icon {
+      --mdc-icon-size: 19px;
+    }
+    .detail-tab:hover {
+      color: var(--primary-text-color);
+    }
+    .detail-tab[aria-pressed="true"] {
+      background: var(--card-background-color);
+      color: var(--primary-text-color);
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.06);
+    }
+    .detail-tab[aria-pressed="true"] ha-icon {
+      color: var(--primary-color);
+    }
+    .detail-tab:focus-visible {
+      outline: 2px solid var(--primary-color);
+      outline-offset: -2px;
+    }
     .detail-grid[data-view="overview"] > :not([data-group="overview"]),
     .detail-grid[data-view="equipment"] > :not([data-group="equipment"]),
-    .detail-grid[data-view="advanced"] > :not([data-group="advanced"]) { display: none; }
+    .detail-grid[data-view="advanced"] > :not([data-group="advanced"]) {
+      display: none;
+    }
 
     .detail-grid {
       display: grid;
@@ -209,9 +254,16 @@ export class RsRoomDetail extends LitElement {
       .detail-grid[data-view="equipment"] > .optional-card {
         grid-column: 1;
       }
-      .detail-navigation { border-radius: 12px; }
-      .detail-tab { padding: 10px 12px; font-size: 12px; }
-      .detail-tab ha-icon { --mdc-icon-size: 17px; }
+      .detail-navigation {
+        border-radius: 12px;
+      }
+      .detail-tab {
+        padding: 10px 12px;
+        font-size: 12px;
+      }
+      .detail-tab ha-icon {
+        --mdc-icon-size: 17px;
+      }
     }
 
     /* Section cards handled by rs-section-card */
@@ -456,8 +508,12 @@ export class RsRoomDetail extends LitElement {
 
     // Unconfigured rooms open the device-edit dialog automatically.
     if (
-      this._devices.length === 0 && !this._dehumidifier && this._editing === null &&
-      !Object.values(this.rooms).some(room => room.dehumidifier?.served_area_ids.includes(this.area.area_id))
+      this._devices.length === 0 &&
+      !this._dehumidifier &&
+      this._editing === null &&
+      !Object.values(this.rooms).some((room) =>
+        room.dehumidifier?.served_area_ids.includes(this.area.area_id),
+      )
     ) {
       this._editing = "devices";
     }

@@ -45,7 +45,7 @@ export class RsHeroStatus extends LitElement {
         overflow: hidden;
         --ha-card-border-radius: 22px;
         --ha-card-box-shadow: none;
-        border: 1px solid var(--divider-color, rgba(128,128,128,.16));
+        border: 1px solid var(--divider-color, rgba(128, 128, 128, 0.16));
       }
 
       .hero-accent {
@@ -82,7 +82,7 @@ export class RsHeroStatus extends LitElement {
       .area-name {
         font-size: clamp(21px, 3vw, 27px);
         font-weight: 750;
-        letter-spacing: -.035em;
+        letter-spacing: -0.035em;
         color: var(--primary-text-color);
         margin: 0;
       }
@@ -99,7 +99,7 @@ export class RsHeroStatus extends LitElement {
         font-weight: 450;
         color: var(--primary-text-color);
         line-height: 1;
-        letter-spacing: -.055em;
+        letter-spacing: -0.055em;
         font-variant-numeric: tabular-nums;
       }
 
@@ -125,7 +125,7 @@ export class RsHeroStatus extends LitElement {
       .hero-target-value {
         font-size: 23px;
         font-weight: 650;
-        letter-spacing: -.025em;
+        letter-spacing: -0.025em;
         color: var(--primary-text-color);
       }
 
@@ -270,11 +270,22 @@ export class RsHeroStatus extends LitElement {
         flex-shrink: 0;
       }
       @media (max-width: 550px) {
-        ha-card { padding: 23px 19px 22px; }
-        .hero-header { gap: 10px; align-items: flex-start; }
-        .hero-status-pills { gap: 6px; }
-        .hero-current { font-size: 48px; }
-        .hero-target-value { font-size: 19px; }
+        ha-card {
+          padding: 23px 19px 22px;
+        }
+        .hero-header {
+          gap: 10px;
+          align-items: flex-start;
+        }
+        .hero-status-pills {
+          gap: 6px;
+        }
+        .hero-current {
+          font-size: 48px;
+        }
+        .hero-target-value {
+          font-size: 19px;
+        }
       }
       .control-mode-badge {
         display: inline-flex;
@@ -704,7 +715,12 @@ export class RsHeroStatus extends LitElement {
               ${live.mold_prevention_active && !this.isOutdoor
                 ? html`<div class="hero-metric info">
                     <ha-icon icon="mdi:shield-check"></ha-icon>
-                    ${localize(live.mold_prevention_strategy === "dehumidifier" ? "dehumidifier.request_mold" : "card.mold_prevention", this.hass?.language ?? "en")}
+                    ${localize(
+                      live.mold_prevention_strategy === "dehumidifier"
+                        ? "dehumidifier.request_mold"
+                        : "card.mold_prevention",
+                      this.hass?.language ?? "en",
+                    )}
                   </div>`
                 : nothing}
               ${live.learning_paused_reason === "outdoor_unavailable" && !this.isOutdoor

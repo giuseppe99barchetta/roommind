@@ -45,6 +45,4 @@ def test_automatic_mold_drying_does_not_masquerade_as_humidity_comfort():
 
 
 def test_humidity_comfort_still_has_its_own_reason():
-    assert build_decision_reasons(
-        {"mode": "idle", "humidity_action": "dehumidifying"}
-    ) == ["humidity_comfort"]
+    assert build_decision_reasons({"mode": "idle", "humidity_action": "dehumidifying"}) == ["humidity_comfort"]

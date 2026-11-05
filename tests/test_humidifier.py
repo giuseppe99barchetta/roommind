@@ -56,9 +56,7 @@ def test_dehumidifier_reflects_physical_dry_mode(mock_coordinator, requested_mod
 
 def test_dehumidifier_handles_missing_ac_state(mock_coordinator):
     coordinator, store = mock_coordinator
-    store.get_room.return_value = {
-        "devices": [{"type": "ac", "entity_id": "climate.bedroom_ac"}]
-    }
+    store.get_room.return_value = {"devices": [{"type": "ac", "entity_id": "climate.bedroom_ac"}]}
     coordinator.hass.states.get.return_value = None
     assert RoomMindDryDehumidifier(coordinator, "bedroom").is_on is False
 

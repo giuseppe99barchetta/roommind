@@ -6,13 +6,7 @@ import { customElement, property } from "lit/decorators.js";
 import { RsSettingsBase } from "./rs-settings-base";
 import type { HomeAssistant } from "../../types";
 import { localize } from "../../utils/localize";
-import {
-  tempRange,
-  tempStep,
-  tempUnit,
-  toCelsius,
-  toDisplay,
-} from "../../utils/temperature";
+import { tempRange, tempStep, tempUnit, toCelsius, toDisplay } from "../../utils/temperature";
 
 @customElement("rs-settings-mold")
 export class RsSettingsMold extends RsSettingsBase {

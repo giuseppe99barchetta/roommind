@@ -296,10 +296,30 @@ export class RsAnalytics extends LitElement {
     :host {
       display: block;
     }
-    .analytics-intro { padding: 8px 2px 24px; }
-    .analytics-intro .eyebrow { font-size: 10px; letter-spacing: .14em; font-weight: 750; text-transform: uppercase; color: var(--secondary-text-color); }
-    .analytics-intro h1 { margin: 9px 0 7px; font-size: clamp(25px, 3vw, 34px); line-height: 1.2; letter-spacing: -.04em; font-weight: 750; }
-    .analytics-intro p { margin: 0; max-width: 650px; font-size: 13px; line-height: 1.6; color: var(--secondary-text-color); }
+    .analytics-intro {
+      padding: 8px 2px 24px;
+    }
+    .analytics-intro .eyebrow {
+      font-size: 10px;
+      letter-spacing: 0.14em;
+      font-weight: 750;
+      text-transform: uppercase;
+      color: var(--secondary-text-color);
+    }
+    .analytics-intro h1 {
+      margin: 9px 0 7px;
+      font-size: clamp(25px, 3vw, 34px);
+      line-height: 1.2;
+      letter-spacing: -0.04em;
+      font-weight: 750;
+    }
+    .analytics-intro p {
+      margin: 0;
+      max-width: 650px;
+      font-size: 13px;
+      line-height: 1.6;
+      color: var(--secondary-text-color);
+    }
 
     .no-data {
       display: flex;

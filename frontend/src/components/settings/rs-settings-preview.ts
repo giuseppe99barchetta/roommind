@@ -10,7 +10,12 @@ interface PreviewRoom {
   samples: number;
   already_running: boolean;
   would_allow: boolean;
-  reason: "eligible" | "control_disabled" | "room_safety" | "compressor_protection" | "power_budget";
+  reason:
+    | "eligible"
+    | "control_disabled"
+    | "room_safety"
+    | "compressor_protection"
+    | "power_budget";
   current_decision_reasons: string[];
 }
 interface ControlPreview {
@@ -34,15 +39,48 @@ export class RsSettingsPreview extends LitElement {
   @state() private _error = false;
 
   static styles = css`
-    :host { display: block; font-size: 13px; }
-    .controls { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
-    select, button { padding: 8px 12px; border-radius: 9px; background: var(--card-background-color); color: var(--primary-text-color); border: 1px solid var(--divider-color); }
-    button { cursor: pointer; }
-    button:disabled { opacity: .6; cursor: default; }
-    .summary { margin: 12px 0; color: var(--secondary-text-color); line-height: 1.6; }
-    .room { padding: 10px 0; border-top: 1px solid var(--divider-color); display: grid; gap: 3px; }
-    .room strong { color: var(--primary-text-color); }
-    .reason { color: var(--secondary-text-color); }
+    :host {
+      display: block;
+      font-size: 13px;
+    }
+    .controls {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+    select,
+    button {
+      padding: 8px 12px;
+      border-radius: 9px;
+      background: var(--card-background-color);
+      color: var(--primary-text-color);
+      border: 1px solid var(--divider-color);
+    }
+    button {
+      cursor: pointer;
+    }
+    button:disabled {
+      opacity: 0.6;
+      cursor: default;
+    }
+    .summary {
+      margin: 12px 0;
+      color: var(--secondary-text-color);
+      line-height: 1.6;
+    }
+    .room {
+      padding: 10px 0;
+      border-top: 1px solid var(--divider-color);
+      display: grid;
+      gap: 3px;
+    }
+    .room strong {
+      color: var(--primary-text-color);
+    }
+    .reason {
+      color: var(--secondary-text-color);
+    }
   `;
 
   private async _refresh() {
@@ -89,20 +127,31 @@ export class RsSettingsPreview extends LitElement {
               ${localize("preview.headroom", lang)}:
               ${r.house_available_watts === null ? "—" : `${Math.round(r.house_available_watts)} W`}
               · ${localize("preview.meter", lang)}:
-              ${r.power_sensor_healthy ? localize("preview.healthy", lang) : localize("preview.unavailable", lang)}
-              ${r.power_sensor_age_seconds !== null ? `(${Math.round(r.power_sensor_age_seconds)} s)` : nothing}
-              · ${localize("preview.boiler", lang)}: ${r.boiler_state}
-              · ${localize("preview.bypass", lang)}:
-              ${r.bypass_acknowledged ? localize("preview.acknowledged", lang) : localize("preview.not_acknowledged", lang)}
+              ${r.power_sensor_healthy
+                ? localize("preview.healthy", lang)
+                : localize("preview.unavailable", lang)}
+              ${r.power_sensor_age_seconds !== null
+                ? `(${Math.round(r.power_sensor_age_seconds)} s)`
+                : nothing}
+              · ${localize("preview.boiler", lang)}: ${r.boiler_state} ·
+              ${localize("preview.bypass", lang)}:
+              ${r.bypass_acknowledged
+                ? localize("preview.acknowledged", lang)
+                : localize("preview.not_acknowledged", lang)}
             </div>
             ${Object.entries(r.rooms).map(
               ([areaId, room]) => html`
                 <div class="room">
                   <strong>${areaId.replaceAll("_", " ")}</strong>
-                  <span>${room.watts} W · ${localize(`heat_source.budget_${room.source}`, lang)}</span>
+                  <span
+                    >${room.watts} W · ${localize(`heat_source.budget_${room.source}`, lang)}</span
+                  >
                   <span class="reason">${localize(`preview.reason_${room.reason}`, lang)}</span>
                   ${room.current_decision_reasons.length
-                    ? html`<span class="reason">${localize("preview.current_reasons", lang)}: ${room.current_decision_reasons.join(", ")}</span>`
+                    ? html`<span class="reason"
+                        >${localize("preview.current_reasons", lang)}:
+                        ${room.current_decision_reasons.join(", ")}</span
+                      >`
                     : nothing}
                 </div>
               `,

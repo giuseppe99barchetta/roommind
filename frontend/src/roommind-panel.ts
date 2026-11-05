@@ -68,12 +68,19 @@ export class RoomMindPanel extends LitElement {
   static styles = css`
     :host {
       display: block;
-      font-family: var(--primary-font-family, Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif);
+      font-family: var(
+        --primary-font-family,
+        Inter,
+        -apple-system,
+        BlinkMacSystemFont,
+        "Segoe UI",
+        sans-serif
+      );
       color: var(--primary-text-color);
       background: var(--primary-background-color);
       min-height: 100vh;
       --rs-radius: 18px;
-      --rs-stroke: var(--divider-color, rgba(127,127,127,.16));
+      --rs-stroke: var(--divider-color, rgba(127, 127, 127, 0.16));
 
       /* Round the corners of all MDC-based inputs (ha-textfield, ha-select,
          ha-entity-picker, ha-combo-box) to match the rest of the design.
@@ -98,13 +105,26 @@ export class RoomMindPanel extends LitElement {
       top: 0;
       z-index: 4;
     }
-    .brand-mark { display: flex; align-items: center; justify-content: center; width: 34px; height: 34px; border-radius: 11px; background: var(--primary-color); color: white; margin-right: 10px; flex-shrink: 0; }
-    .brand-mark ha-icon { --mdc-icon-size: 19px; }
+    .brand-mark {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 34px;
+      height: 34px;
+      border-radius: 11px;
+      background: var(--primary-color);
+      color: white;
+      margin-right: 10px;
+      flex-shrink: 0;
+    }
+    .brand-mark ha-icon {
+      --mdc-icon-size: 19px;
+    }
 
     .toolbar .title {
       margin-left: 4px;
       font-weight: 750;
-      letter-spacing: -.035em;
+      letter-spacing: -0.035em;
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
@@ -168,14 +188,18 @@ export class RoomMindPanel extends LitElement {
       color: var(--secondary-text-color);
       font-size: 13px;
       font-weight: 650;
-      transition: background .18s ease, color .18s ease;
+      transition:
+        background 0.18s ease,
+        color 0.18s ease;
       font-family: inherit;
       display: inline-flex;
       align-items: center;
       gap: 9px;
       white-space: nowrap;
     }
-    .tab ha-icon { --mdc-icon-size: 18px; }
+    .tab ha-icon {
+      --mdc-icon-size: 18px;
+    }
 
     .tab:hover {
       color: var(--primary-text-color);
@@ -185,8 +209,13 @@ export class RoomMindPanel extends LitElement {
       background: var(--primary-background-color);
       color: var(--primary-text-color);
     }
-    .tab[active] ha-icon { color: var(--primary-color); }
-    .tab:focus-visible { outline: 2px solid var(--primary-color); outline-offset: -2px; }
+    .tab[active] ha-icon {
+      color: var(--primary-color);
+    }
+    .tab:focus-visible {
+      outline: 2px solid var(--primary-color);
+      outline-offset: -2px;
+    }
 
     .content {
       padding: 30px 24px 64px;
@@ -196,10 +225,23 @@ export class RoomMindPanel extends LitElement {
     }
 
     @media (max-width: 600px) {
-      .toolbar { padding: 0 10px; min-height: 56px; }
-      .tabs { top: 56px; padding: 7px 12px; gap: 4px; }
-      .tab { padding: 10px 12px; font-size: 12px; gap: 6px; }
-      .tab ha-icon { --mdc-icon-size: 16px; }
+      .toolbar {
+        padding: 0 10px;
+        min-height: 56px;
+      }
+      .tabs {
+        top: 56px;
+        padding: 7px 12px;
+        gap: 4px;
+      }
+      .tab {
+        padding: 10px 12px;
+        font-size: 12px;
+        gap: 6px;
+      }
+      .tab ha-icon {
+        --mdc-icon-size: 16px;
+      }
       .content {
         padding: 20px 14px 58px;
       }
@@ -230,14 +272,60 @@ export class RoomMindPanel extends LitElement {
       grid-template-columns: repeat(auto-fill, minmax(min(320px, 100%), 1fr));
       gap: 18px;
     }
-    .dashboard-heading { display: flex; justify-content: space-between; align-items: flex-end; gap: 18px; margin: 0 0 20px; }
-    .dashboard-heading h1 { margin: 7px 0 6px; font-weight: 750; letter-spacing: -.04em; font-size: clamp(25px,3vw,34px); line-height: 1.2; }
-    .dashboard-heading p { margin: 0; color: var(--secondary-text-color); line-height: 1.5; font-size: 13px; }
-    .dashboard-eyebrow { text-transform: uppercase; font-size: 10px !important; letter-spacing: .14em; font-weight: 750; }
-    .system-chip { display: inline-flex; align-items: center; gap: 9px; flex: 0 0 auto; padding: 10px 13px; font-size: 12px; font-weight: 650; border-radius: 999px; background: var(--card-background-color); border: 1px solid var(--rs-stroke); }
-    .system-chip .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--secondary-text-color); }
-    .system-chip.active .dot { background: var(--success-color, #36aa78); }
-    @media (max-width: 650px) { .dashboard-heading { align-items: flex-start; flex-direction: column; gap: 13px; } }
+    .dashboard-heading {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-end;
+      gap: 18px;
+      margin: 0 0 20px;
+    }
+    .dashboard-heading h1 {
+      margin: 7px 0 6px;
+      font-weight: 750;
+      letter-spacing: -0.04em;
+      font-size: clamp(25px, 3vw, 34px);
+      line-height: 1.2;
+    }
+    .dashboard-heading p {
+      margin: 0;
+      color: var(--secondary-text-color);
+      line-height: 1.5;
+      font-size: 13px;
+    }
+    .dashboard-eyebrow {
+      text-transform: uppercase;
+      font-size: 10px !important;
+      letter-spacing: 0.14em;
+      font-weight: 750;
+    }
+    .system-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 9px;
+      flex: 0 0 auto;
+      padding: 10px 13px;
+      font-size: 12px;
+      font-weight: 650;
+      border-radius: 999px;
+      background: var(--card-background-color);
+      border: 1px solid var(--rs-stroke);
+    }
+    .system-chip .dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--secondary-text-color);
+    }
+    .system-chip.active .dot {
+      background: var(--success-color, #36aa78);
+    }
+    @media (max-width: 650px) {
+      .dashboard-heading {
+        align-items: flex-start;
+        flex-direction: column;
+        gap: 13px;
+      }
+    }
 
     .loading {
       display: flex;
@@ -314,7 +402,7 @@ export class RoomMindPanel extends LitElement {
     .stat-value {
       font-size: 24px;
       font-weight: 700;
-      letter-spacing: -.04em;
+      letter-spacing: -0.04em;
       color: var(--primary-text-color);
       --mdc-icon-size: 22px;
       line-height: 1;
@@ -328,7 +416,7 @@ export class RoomMindPanel extends LitElement {
       font-size: 10px;
       color: var(--secondary-text-color);
       text-transform: uppercase;
-      letter-spacing: .09em;
+      letter-spacing: 0.09em;
     }
 
     .floor-heading {
@@ -425,7 +513,11 @@ export class RoomMindPanel extends LitElement {
               @click=${this._onBackFromDetail}
             ></ha-icon-button>`
           : html`<ha-menu-button .hass=${this.hass} .narrow=${this.narrow}></ha-menu-button>`}
-        ${!inDetail ? html`<span class="brand-mark"><ha-icon icon="mdi:home-thermometer-outline"></ha-icon></span>` : nothing}
+        ${!inDetail
+          ? html`<span class="brand-mark"
+              ><ha-icon icon="mdi:home-thermometer-outline"></ha-icon
+            ></span>`
+          : nothing}
         <div class="title">
           ${inDetail
             ? this._rooms[this._selectedAreaId!]?.display_name || detailArea?.name || ""
@@ -458,7 +550,13 @@ export class RoomMindPanel extends LitElement {
                     aria-current=${this._activeTab === tab ? "page" : "false"}
                     @click=${() => this._onTabClicked(tab)}
                   >
-                    <ha-icon icon=${tab === "areas" ? "mdi:home-outline" : tab === "analytics" ? "mdi:chart-areaspline" : "mdi:cog-outline"}></ha-icon>
+                    <ha-icon
+                      icon=${tab === "areas"
+                        ? "mdi:home-outline"
+                        : tab === "analytics"
+                          ? "mdi:chart-areaspline"
+                          : "mdi:cog-outline"}
+                    ></ha-icon>
                     ${tabLabels[tab]}
                   </button>
                 `,
@@ -501,7 +599,7 @@ export class RoomMindPanel extends LitElement {
         const config = this._rooms[this._selectedAreaId] ?? null;
         return html`
           <rs-room-detail
-              .rooms=${this._rooms}
+            .rooms=${this._rooms}
             .area=${area}
             .config=${config}
             .hass=${this.hass}
@@ -556,7 +654,9 @@ export class RoomMindPanel extends LitElement {
         </div>
         <div class="system-chip ${this._climateControlActive ? "active" : ""}">
           <span class="dot"></span>
-          ${this._climateControlActive ? localize("panel.control_active", l) : localize("panel.control_paused", l)}
+          ${this._climateControlActive
+            ? localize("panel.control_active", l)
+            : localize("panel.control_paused", l)}
         </div>
       </section>
       ${configuredCount > 0 || hiddenAreaInfos.length > 0

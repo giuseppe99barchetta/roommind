@@ -39,14 +39,17 @@ export class RsAreaCard extends LitElement {
         box-sizing: border-box;
         --ha-card-border-radius: 18px;
         --ha-card-box-shadow: none;
-        border: 1px solid var(--divider-color, rgba(128,128,128,.16));
+        border: 1px solid var(--divider-color, rgba(128, 128, 128, 0.16));
       }
 
       ha-card:hover {
         box-shadow: 0 12px 30px rgba(0, 0, 0, 0.075);
         transform: translateY(-2px);
       }
-      ha-card:focus-visible { outline: 2px solid var(--primary-color); outline-offset: 3px; }
+      ha-card:focus-visible {
+        outline: 2px solid var(--primary-color);
+        outline-offset: 3px;
+      }
 
       .hide-btn {
         --mdc-icon-button-size: 28px;
@@ -66,8 +69,14 @@ export class RsAreaCard extends LitElement {
       .hide-btn:hover {
         opacity: 1 !important;
       }
-      @media (hover: none) { .hide-btn { opacity: .65; } }
-      ha-card:focus-within .hide-btn { opacity: 1; }
+      @media (hover: none) {
+        .hide-btn {
+          opacity: 0.65;
+        }
+      }
+      ha-card:focus-within .hide-btn {
+        opacity: 1;
+      }
 
       /* Colored left accent based on mode */
       .accent {
@@ -119,7 +128,7 @@ export class RsAreaCard extends LitElement {
         font-weight: 700;
         color: var(--primary-text-color);
         margin: 0;
-        letter-spacing: -.025em;
+        letter-spacing: -0.025em;
         overflow: hidden;
         text-overflow: ellipsis;
         white-space: nowrap;
@@ -155,7 +164,7 @@ export class RsAreaCard extends LitElement {
         color: var(--primary-text-color);
         line-height: 1;
         font-variant-numeric: tabular-nums;
-        letter-spacing: -.05em;
+        letter-spacing: -0.05em;
       }
 
       .temp-unit {
@@ -206,7 +215,7 @@ export class RsAreaCard extends LitElement {
         margin-top: 18px;
         min-height: 20px;
         padding-top: 14px;
-        border-top: 1px solid var(--divider-color, rgba(128,128,128,.16));
+        border-top: 1px solid var(--divider-color, rgba(128, 128, 128, 0.16));
         gap: 10px;
       }
 
@@ -494,7 +503,9 @@ export class RsAreaCard extends LitElement {
           <div class="card-header">
             <h3 class="area-name">${this.config?.display_name || this.area.name}</h3>
             <span class="card-status">
-              ${isConfigured && live && live.comfort_score &&
+              ${isConfigured &&
+              live &&
+              live.comfort_score &&
               (live.comfort_score.label === "poor" || live.comfort_score.label === "fair")
                 ? this._renderComfortScore(live)
                 : nothing}

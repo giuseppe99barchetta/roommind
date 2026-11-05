@@ -43,6 +43,7 @@ def test_ac_is_in_mode_uses_only_real_ac_states():
     states.get.return_value = None
     assert not ac_is_in_mode(states, devices, "dry")
 
+
 # ---------------------------------------------------------------------------
 # Constants
 # ---------------------------------------------------------------------------

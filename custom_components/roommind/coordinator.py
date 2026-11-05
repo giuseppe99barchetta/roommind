@@ -1121,7 +1121,9 @@ class RoomMindCoordinator(DataUpdateCoordinator):
             night_progress = 0.0
         assigned_dehumidifier = self._dehumidifier_manager.assignments.get(area_id)
         dedicated_mold_active = bool(
-            mold_prevention_active_room and automation_enabled and mold_prevention_strategy == "dehumidifier"
+            mold_prevention_active_room
+            and automation_enabled
+            and mold_prevention_strategy == "dehumidifier"
             and assigned_dehumidifier
             and self._dehumidifier_manager.devices[assigned_dehumidifier]["commanded"] is True
         )
@@ -1337,8 +1339,7 @@ class RoomMindCoordinator(DataUpdateCoordinator):
                     # Routing history is not proof of physical operation: an
                     # external off command may have stopped the AC meanwhile.
                     running = any(
-                        (state := self.hass.states.get(eid)) is not None
-                        and state.state in ("heat", "cool", "dry")
+                        (state := self.hass.states.get(eid)) is not None and state.state in ("heat", "cool", "dry")
                         for eid in get_ac_eids(room.get("devices", []))
                     )
                     if not self._power_budget_manager.request_heat_pump(
@@ -1559,7 +1560,8 @@ class RoomMindCoordinator(DataUpdateCoordinator):
                 preserve_dry_acs = (
                     set(get_ac_eids(room.get("devices", [])))
                     if (mold_prevention_effective and mold_prevention_strategy == "dry" and not window_open)
-                    or comfort_dry_requested else set()
+                    or comfort_dry_requested
+                    else set()
                 )
                 preserve_dry_acs.update(mold_dry_restores)
                 await controller.async_apply(

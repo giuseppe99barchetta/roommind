@@ -105,10 +105,7 @@ def test_manual_ac_start_uses_learned_cooling_peak_without_manual_watts(mock_coo
     coordinator._energy_manager = EnergyManager(coordinator.hass)
     coordinator._energy_manager.bootstrap(
         "living_room",
-        [
-            {"timestamp": 1_700_000_000 + n * 60, "energy_mode": "cooling", "ac_power_w": 400}
-            for n in range(6)
-        ],
+        [{"timestamp": 1_700_000_000 + n * 60, "energy_mode": "cooling", "ac_power_w": 400} for n in range(6)],
     )
     coordinator._power_budget_manager = PowerBudgetManager()
     entity = RoomMindClimate(coordinator, "living_room")
@@ -708,9 +705,7 @@ async def test_canonical_manual_fan_only_bypasses_automation_switches(mock_coord
     store.get_room.return_value = room
     store.get_settings.return_value = {"climate_control_active": global_enabled}
     store.async_update_room = AsyncMock()
-    physical = MagicMock(
-        state="off", attributes={"hvac_modes": ["off", "cool", "fan_only"]}
-    )
+    physical = MagicMock(state="off", attributes={"hvac_modes": ["off", "cool", "fan_only"]})
     coordinator.hass.states.get.return_value = physical
 
     async def apply_service(_domain, service, data, **_kwargs):

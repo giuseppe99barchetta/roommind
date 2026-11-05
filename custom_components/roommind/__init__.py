@@ -170,9 +170,7 @@ async def _async_register_panel(hass: HomeAssistant) -> None:
     # HA's custom panel loader and browsers may retain the old JS under a
     # fixed URL after an update, even if the file on disk is newer. Use a
     # content-derived version so each deployment gets a fresh cache key.
-    panel_digest = await hass.async_add_executor_job(
-        lambda: hashlib.sha256(panel_js.read_bytes()).hexdigest()[:12]
-    )
+    panel_digest = await hass.async_add_executor_job(lambda: hashlib.sha256(panel_js.read_bytes()).hexdigest()[:12])
 
     try:
         await hass.http.async_register_static_paths(

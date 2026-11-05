@@ -73,9 +73,7 @@ def test_budget_disabled_preserves_unrestricted_activation():
 def test_stale_house_power_meter_fails_closed_without_affecting_room_sensors():
     manager = PowerBudgetManager()
     hass = MagicMock()
-    hass.states.get.return_value = MagicMock(
-        last_reported=datetime.now(UTC) - timedelta(minutes=5)
-    )
+    hass.states.get.return_value = MagicMock(last_reported=datetime.now(UTC) - timedelta(minutes=5))
     settings = {
         "power_budget_enabled": True,
         "power_sensor": "sensor.fastweb_power_control_consumo_istantaneo",

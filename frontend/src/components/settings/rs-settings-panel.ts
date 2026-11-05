@@ -36,8 +36,13 @@ export class RsSettingsPanel extends LitElement {
     :host {
       display: block;
     }
-    :host([hidden]) { display: none !important; }
-    ha-expansion-panel { --ha-card-border-radius: 16px; --ha-card-box-shadow: none; }
+    :host([hidden]) {
+      display: none !important;
+    }
+    ha-expansion-panel {
+      --ha-card-border-radius: 16px;
+      --ha-card-box-shadow: none;
+    }
 
     .panel-header {
       display: flex;

@@ -23,7 +23,7 @@ export class RsSectionCard extends LitElement {
       min-width: 0;
       --ha-card-border-radius: 18px;
       --ha-card-box-shadow: none;
-      border: 1px solid var(--divider-color, rgba(128,128,128,.16));
+      border: 1px solid var(--divider-color, rgba(128, 128, 128, 0.16));
     }
 
     .section-header {
@@ -41,7 +41,7 @@ export class RsSectionCard extends LitElement {
     .section-title {
       font-size: 15px;
       font-weight: 700;
-      letter-spacing: -.02em;
+      letter-spacing: -0.02em;
       color: var(--primary-text-color);
       margin: 0;
       flex: 1;
@@ -69,8 +69,14 @@ export class RsSectionCard extends LitElement {
     .section-body {
       padding: 0 22px 22px;
     }
-    @media (hover: none) { .edit-btn { opacity: .75; } }
-    .edit-btn:focus-visible { opacity: 1; }
+    @media (hover: none) {
+      .edit-btn {
+        opacity: 0.75;
+      }
+    }
+    .edit-btn:focus-visible {
+      opacity: 1;
+    }
   `;
 
   render() {

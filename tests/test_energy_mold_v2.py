@@ -58,14 +58,8 @@ def test_budget_learns_separately_per_mode_and_falls_back_safely():
     manager = EnergyManager(MagicMock())
     manager.bootstrap(
         "studio",
-        [
-            {"timestamp": 1_700_000_000 + n * 60, "energy_mode": "cooling", "ac_power_w": 400}
-            for n in range(6)
-        ]
-        + [
-            {"timestamp": 1_700_010_000 + n * 60, "energy_mode": "heating", "ac_power_w": 1000}
-            for n in range(6)
-        ]
+        [{"timestamp": 1_700_000_000 + n * 60, "energy_mode": "cooling", "ac_power_w": 400} for n in range(6)]
+        + [{"timestamp": 1_700_010_000 + n * 60, "energy_mode": "heating", "ac_power_w": 1000} for n in range(6)]
         + [{"timestamp": 1_700_020_000, "energy_mode": "dry", "ac_power_w": 200}],
     )
     assert manager.budget_power_estimate("studio", "cooling", 700) == (520.0, "learned", 6)
@@ -78,10 +72,7 @@ def test_budget_learns_separately_per_mode_and_falls_back_safely():
 def test_budget_history_bootstrap_deduplicates_overlapping_recordings():
     """Daily and detailed RoomMind history can contain the same timestamp."""
     manager = EnergyManager(MagicMock())
-    rows = [
-        {"timestamp": 1_700_000_000 + n * 60, "energy_mode": "cooling", "ac_power_w": 300}
-        for n in range(3)
-    ]
+    rows = [{"timestamp": 1_700_000_000 + n * 60, "energy_mode": "cooling", "ac_power_w": 300} for n in range(3)]
     manager.bootstrap("camera", rows + rows)
     assert manager.budget_power_estimate("camera", "cooling", 700) == (700.0, "fallback", 3)
 
@@ -89,10 +80,7 @@ def test_budget_history_bootstrap_deduplicates_overlapping_recordings():
 def test_budget_requires_observation_spanning_five_minutes():
     """Six 30-second cycles are not sufficient to establish a safe peak."""
     manager = EnergyManager(MagicMock())
-    rows = [
-        {"timestamp": 1_700_000_000 + n * 30, "energy_mode": "cooling", "ac_power_w": 400}
-        for n in range(6)
-    ]
+    rows = [{"timestamp": 1_700_000_000 + n * 30, "energy_mode": "cooling", "ac_power_w": 400} for n in range(6)]
     manager.bootstrap("sala", rows)
     assert manager.budget_power_estimate("sala", "cooling", 1000) == (1000.0, "fallback", 6)
 
