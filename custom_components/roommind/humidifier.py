@@ -25,7 +25,7 @@ def _room_has_ac(room: dict) -> bool:
 
 def _is_humidifier_representation(room: dict) -> bool:
     """Return whether the room exposes Dry as a dehumidifier entity."""
-    return room.get("dry_entity_type", "switch") == "humidifier"
+    return bool(room.get("dry_entity_type", "switch") == "humidifier")
 
 
 async def async_setup_entry(

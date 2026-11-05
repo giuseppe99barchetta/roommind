@@ -107,7 +107,7 @@ def _comparison_metrics(points: list[dict], price: float) -> dict[str, float | i
     session_mode = ""
     for previous, current in zip(points, points[1:], strict=False):
         dt_minutes = min(max(current["ts"] - previous["ts"], 0.0), 900.0) / 60.0
-        mode = current.get("energy_mode") or current.get("mode")
+        mode = current.get("energy_mode") or current.get("mode") or ""
         active = mode in ("heating", "cooling")
         if active:
             active_minutes += dt_minutes
@@ -662,8 +662,8 @@ async def build_analytics_data(
         target_error = float(latest["room_temp"]) - float(latest["target_temp"])
     energy_insights = {
         "suggestions": energy_suggestions(
-            heating_minutes=float(operation_summary["heating_minutes"]),
-            cooling_minutes=float(operation_summary["cooling_minutes"]),
+            heating_minutes=float(cast(float, operation_summary["heating_minutes"])),
+            cooling_minutes=float(cast(float, operation_summary["cooling_minutes"])),
             target_error_c=target_error,
             has_power_sensor=has_power_sensors,
         ),

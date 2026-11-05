@@ -2,12 +2,18 @@
 
 from __future__ import annotations
 
+from typing import Any
+
+from homeassistant.core import HomeAssistant
+
 from ..managers.power_budget_manager import PowerBudgetManager
 from ..utils.device_utils import get_ac_eids
 from ..utils.room_insights import build_decision_reasons
 
 
-def build_control_preview(hass, settings: dict, rooms: dict, coordinator, mode: str = "cooling") -> dict:
+def build_control_preview(
+    hass: HomeAssistant, settings: dict, rooms: dict, coordinator: Any, mode: str = "cooling"
+) -> dict:
     """Simulate one hypothetical AC request per room; do not actuate devices.
 
     This is a power/compressor safety preview, not a new MPC forecast. The

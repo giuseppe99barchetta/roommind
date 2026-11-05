@@ -1142,17 +1142,16 @@ class RoomMindCoordinator(DataUpdateCoordinator):
         )
         mold_prevention_active_room = mold_prevention_effective or dedicated_mold_active
         presence_away = not room.get("ignore_presence", False) and self._is_presence_away(room, settings)
-        target_resolver = make_target_resolver(
+        base_resolver = make_target_resolver(
             schedule_blocks,
             room,
             settings,
             hass=self.hass,
             presence_away=presence_away,
         )
-        if not room.get("preconditioning_enabled", True):
-            target_resolver = None
-        else:
-            target_resolver = self._lookahead_resolver(target_resolver, room, settings, presence_away)
+        target_resolver: Callable[[float], TargetTemps] | None = None
+        if room.get("preconditioning_enabled", True):
+            target_resolver = self._lookahead_resolver(base_resolver, room, settings, presence_away)
 
         # --- Compute residual heat from previous cycle state ---
         system_type = room.get("heating_system_type", "")
@@ -2237,7 +2236,7 @@ class RoomMindCoordinator(DataUpdateCoordinator):
         if not room.get("humidity_comfort_enabled", False):
             return None
         profile = active_profile(room)
-        value = profile.get("humidity_target") if profile else room.get("humidity_target", 55.0)
+        value: Any = profile.get("humidity_target") if profile else room.get("humidity_target", 55.0)
         try:
             return float(value)
         except (TypeError, ValueError):

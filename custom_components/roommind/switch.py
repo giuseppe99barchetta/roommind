@@ -42,7 +42,7 @@ def _dry_entity_type(room: dict) -> str:
     Existing stored rooms predate this setting and retain their switch
     representation for backwards compatibility.
     """
-    return room.get("dry_entity_type", "switch")
+    return str(room.get("dry_entity_type", "switch"))
 
 
 async def async_setup_entry(
@@ -160,7 +160,7 @@ class RoomMindDrySwitch(CoordinatorEntity, SwitchEntity):
 
     @property
     def is_on(self) -> bool:
-        return self._climate().hvac_mode == HVACMode.DRY
+        return bool(self._climate().hvac_mode == HVACMode.DRY)
 
     async def async_turn_on(self, **kwargs: Any) -> None:
         await self._climate().async_set_hvac_mode(HVACMode.DRY)

@@ -382,7 +382,8 @@ class MoldManager:
                     self._throttler.record_sent(
                         f"prevent_{area_id}",
                     )
-            self._prevention_strategy[area_id] = result.prevention_strategy
+            if result.prevention_strategy is not None:
+                self._prevention_strategy[area_id] = result.prevention_strategy
             result.prevention_active = True
         elif activated:
             self._prevention_active.pop(area_id, None)

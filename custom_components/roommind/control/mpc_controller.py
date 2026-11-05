@@ -762,7 +762,7 @@ def is_mpc_active(
 
 def ac_boost_delta(settings: dict) -> float:
     """Max °C an AC setpoint may sit beyond the room target (comfort slider)."""
-    cw = settings.get("comfort_weight", DEFAULT_COMFORT_WEIGHT)
+    cw: float = settings.get("comfort_weight", DEFAULT_COMFORT_WEIGHT)
     return min(
         AC_BOOST_DELTA_MAX,
         AC_BOOST_DELTA_MIN + (AC_BOOST_DELTA_MAX - AC_BOOST_DELTA_MIN) * cw / DEFAULT_COMFORT_WEIGHT,

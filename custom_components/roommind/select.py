@@ -53,7 +53,7 @@ class RoomMindDryEntityTypeSelect(CoordinatorEntity, SelectEntity):
     def current_option(self) -> str:
         """Return the representation selected for this room."""
         room = self.coordinator.hass.data[DOMAIN]["store"].get_room(self._area_id) or {}
-        return room.get("dry_entity_type", "switch")
+        return str(room.get("dry_entity_type", "switch"))
 
     async def async_select_option(self, option: str) -> None:
         """Persist the selected representation and swap the endpoint."""

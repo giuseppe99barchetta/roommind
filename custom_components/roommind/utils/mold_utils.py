@@ -218,7 +218,7 @@ def airing_recommended(
     outdoor air is clearly drier in absolute terms and not warmer than the
     room.  A hysteresis band avoids flapping on sensor noise.
     """
-    if None in (t_room, rh_room, t_outdoor, rh_outdoor):
+    if t_room is None or rh_room is None or t_outdoor is None or rh_outdoor is None:
         return False
     humid = rh_room >= AIRING_MIN_INDOOR_RH or (surface_rh or 0.0) >= MOLD_SURFACE_RH_EARLY
     if not humid or t_outdoor >= t_room:
