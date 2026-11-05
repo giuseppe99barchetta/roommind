@@ -29,6 +29,13 @@ export class RsSettingsHeatingSystem extends LitElement {
   @property({ type: Number }) public startupDelay = 30;
   @property({ type: Number }) public shutdownDelay = 60;
   @property({ type: Number }) public bypassTemperature = 28;
+  @property({ type: Boolean }) public bypassChildLock = true;
+  @property({ type: Number }) public minDemandRooms = 1;
+  @property({ type: String }) public demandUnit: "valves" | "rooms" = "valves";
+  @property({ type: Number }) public minRunMinutes = 5;
+  @property({ type: Number }) public minOffMinutes = 3;
+  @property({ type: Number }) public faultRetryMinutes = 5;
+  @property({ type: Number }) public maxWaitMinutes = 120;
   @property({ type: Boolean }) public budgetEnabled = false;
   @property({ type: String }) public powerSensor = "";
   @property({ type: String }) public powerMode: "available" | "consumption" = "available";
@@ -145,6 +152,60 @@ export class RsSettingsHeatingSystem extends LitElement {
               <label
                 >Forced bypass temperature
                 ${number("bypassTemperature", this.bypassTemperature)}</label
+              >
+              <div class="toggle">
+                <span
+                  ><b>${localize("settings.boiler.child_lock", this.hass.language)}</b
+                  ><small
+                    >${localize("settings.boiler.child_lock_hint", this.hass.language)}</small
+                  ></span
+                ><ha-switch
+                  .checked=${this.bypassChildLock}
+                  @change=${(e: Event) =>
+                    fire("bypassChildLock", (e.target as HTMLInputElement).checked)}
+                ></ha-switch>
+              </div>
+              <ha-select
+                .value=${this.demandUnit}
+                .label=${localize("settings.boiler.demand_unit", this.hass.language)}
+                @selected=${(e: Event) => {
+                  const value = getSelectValue(e);
+                  if (value === "valves" || value === "rooms") fire("demandUnit", value);
+                }}
+                ><ha-list-item value="valves"
+                  >${localize(
+                    "settings.boiler.demand_unit_valves",
+                    this.hass.language,
+                  )}</ha-list-item
+                ><ha-list-item value="rooms"
+                  >${localize(
+                    "settings.boiler.demand_unit_rooms",
+                    this.hass.language,
+                  )}</ha-list-item
+                ></ha-select
+              >
+              <label
+                >${localize("settings.boiler.min_demand_rooms", this.hass.language)}
+                ${number("minDemandRooms", this.minDemandRooms)}</label
+              >
+              <small>${localize("settings.boiler.min_demand_hint", this.hass.language)}</small>
+              <label
+                >${localize("settings.boiler.max_wait_minutes", this.hass.language)}
+                ${number("maxWaitMinutes", this.maxWaitMinutes)}</label
+              >
+              <small>${localize("settings.boiler.max_wait_hint", this.hass.language)}</small>
+              <div class="grid">
+                <label
+                  >${localize("settings.boiler.min_run_minutes", this.hass.language)}
+                  ${number("minRunMinutes", this.minRunMinutes)}</label
+                ><label
+                  >${localize("settings.boiler.min_off_minutes", this.hass.language)}
+                  ${number("minOffMinutes", this.minOffMinutes)}</label
+                >
+              </div>
+              <label
+                >${localize("settings.boiler.fault_retry_minutes", this.hass.language)}
+                ${number("faultRetryMinutes", this.faultRetryMinutes)}</label
               >`
           : nothing}
       </div>

@@ -723,7 +723,7 @@
   "room.section.comfort": "Comfort & profiles",
   "room.section.area": "Area settings",
   "comfort.profiles": "Active comfort profile",
-  "comfort.profile.default": "Scheduled",
+  "comfort.profile.default": "No profile (schedule)",
   "comfort.profile.work": "Work",
   "comfort.profile.sleep": "Sleep",
   "comfort.profile.guests": "Guests",
@@ -821,5 +821,18 @@
   "equipment.no_sensors": "Assign sensors to measure the conditions in this room.",
   "equipment.edit_devices": "Manage appliances",
   "equipment.edit_sensors": "Manage sensors",
-  "dehumidifier.waiting_hint": "Ready: the appliance starts when a served room requests drying, subject to its protections."
+  "dehumidifier.waiting_hint": "Ready: the appliance starts when a served room requests drying, subject to its protections.",
+  "settings.boiler.min_demand_rooms": "Requests needed to start the boiler",
+  "settings.boiler.min_demand_hint": "Below this number, radiators that want heat wait with their valves closed. Once running, the boiler keeps going while anything asks for heat.",
+  "settings.boiler.min_run_minutes": "Minimum run (min)",
+  "settings.boiler.min_off_minutes": "Minimum off (min)",
+  "settings.boiler.fault_retry_minutes": "Retry after a fault (min)",
+  "settings.boiler.child_lock": "Lock bypass valve buttons",
+  "settings.boiler.child_lock_hint": "Turns on the valve's child lock so a button press cannot take the bypass out of forced heat and stop the boiler.",
+  "settings.boiler.max_wait_minutes": "Maximum wait below the quorum (min)",
+  "settings.boiler.max_wait_hint": "A room asking for heat this long starts the boiler on its own, so radiator-only rooms are never left cold. 0 keeps the quorum strict.",
+  "comfort.profile_clear_hint": "Tap the active profile again, or \"No profile\", to go back to the schedule and comfort/eco temperatures.",
+  "settings.boiler.demand_unit": "Count requests by",
+  "settings.boiler.demand_unit_valves": "Radiator valves (a room with 2 radiators counts 2)",
+  "settings.boiler.demand_unit_rooms": "Rooms"
 }

@@ -109,4 +109,4 @@ class RoomMindDryDehumidifier(CoordinatorEntity, HumidifierEntity):
     async def async_turn_off(self, **kwargs: Any) -> None:
         """Turn the AC off only when this entity activated Dry mode."""
         if self._room().get("room_hvac_mode") == HVACMode.DRY.value:
-            await self._climate().async_set_hvac_mode(HVACMode.OFF)
+            await self._climate().async_exit_auxiliary_mode()

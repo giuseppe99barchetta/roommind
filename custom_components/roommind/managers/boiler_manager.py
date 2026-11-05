@@ -12,6 +12,23 @@ from ..const import make_roommind_context
 
 _LOGGER = logging.getLogger(__name__)
 
+FAULT_NOTIFICATION_ID = "roommind_boiler_fault"
+
+# Defaults for the settings below. Minimum demand 1 keeps the historic
+# behaviour; the run/off guards prevent the 30-second boiler cycles that a
+# single noisy room (or a lost bypass) could otherwise cause.
+DEFAULT_BOILER_MIN_DEMAND_ROOMS = 1
+# The quorum counts radiator valves by default: a room with two radiators
+# asking for heat weighs as much as two single-radiator rooms.
+DEFAULT_BOILER_DEMAND_UNIT = "valves"
+DEFAULT_BOILER_MIN_RUN_MINUTES = 5.0
+DEFAULT_BOILER_MIN_OFF_MINUTES = 3.0
+DEFAULT_BOILER_FAULT_RETRY_MINUTES = 5.0
+# A room that has been asking for radiator heat this long starts the boiler
+# on its own, so a quorum can never leave a radiator-only room cold forever.
+# 0 disables the escape (strict quorum).
+DEFAULT_BOILER_MAX_WAIT_MINUTES = 120.0
+
 
 class BoilerState(StrEnum):
     OFF = "off"
@@ -21,20 +38,49 @@ class BoilerState(StrEnum):
     FAULT = "fault"
 
 
+def bypass_entities(settings: dict) -> set[str]:
+    """Bypass TRVs owned exclusively by the boiler manager (empty without a boiler)."""
+    if not settings.get("boiler_entity"):
+        return set()
+    return {e for e in settings.get("hydraulic_bypass_entities", []) if e}
+
+
 class BoilerManager:
     """Enforce: an enabled boiler always has a verified hydraulic path.
 
     Delays are state timestamps rather than sleeps, keeping the HA event loop
     responsive and making restart recovery conservative.
+
+    The boiler starts only when at least ``boiler_min_demand_rooms`` rooms ask
+    for radiator heat; once running it keeps going while any room still asks
+    (start quorum, continue on any demand). The bypass valves belong to this
+    manager alone: room control never writes them while a boiler is configured.
     """
 
     def __init__(self, hass: HomeAssistant) -> None:
         self.hass = hass
         self.state = BoilerState.OFF
         self._state_since = monotonic()
+        self._on_since: float | None = None
+        self._off_since: float | None = None
         self.demand_rooms: set[str] = set()
+        self.demand_count = 0
         self.path_safe = False
+        self.fault_reason: str | None = None
         self._last_bypass_command: dict[str, float] = {}
+        self._last_lock_command: dict[str, float] = {}
+        # After start-up or a fault the bypass may have been left open by
+        # whoever controlled it before. Release it once when idle.
+        self._bypass_released = False
+        # A failed OFF command while faulted must be retried every tick: the
+        # boiler could still be firing without a verified hydraulic path.
+        self._shutdown_pending = False
+        self._demand_since: dict[str, float] = {}
+
+    @property
+    def heat_available(self) -> bool:
+        """True while radiators can actually receive hot water (or are about to)."""
+        return self.state in (BoilerState.PREOPENING, BoilerState.ON)
 
     def _bypass_confirmed(self, entity_id: str, target: float) -> bool:
         """Check HA's *reported* heat mode and setpoint, not command success.
@@ -55,6 +101,49 @@ class BoilerManager:
         st = hass.states.get(entity_id)
         return bool(st and st.state not in ("unknown", "unavailable"))
 
+    def _child_lock_switches(self, entity_id: str) -> list[str]:
+        """Child-lock switches exposed by the bypass TRV's device, if any."""
+        try:
+            from homeassistant.helpers import entity_registry as er
+
+            registry = er.async_get(self.hass)
+            entry = registry.async_get(entity_id)
+            if entry is None or not entry.device_id:
+                return []
+            return [
+                e.entity_id
+                for e in er.async_entries_for_device(registry, entry.device_id)
+                if e.domain == "switch" and "child_lock" in (e.translation_key or e.entity_id)
+            ]
+        except Exception:  # noqa: BLE001 - registry unavailable (tests, early startup)
+            return []
+
+    async def _lock_bypass(self, settings: dict, entity_id: str) -> None:
+        """Keep physical buttons from taking the bypass out of forced heat.
+
+        A press on the valve (or its vendor app) switches it to its own
+        schedule mode, which drops the readback and trips the interlock.
+        """
+        if not settings.get("hydraulic_bypass_child_lock", True):
+            return
+        for lock_eid in self._child_lock_switches(entity_id):
+            state = self.hass.states.get(lock_eid)
+            if state is None or state.state != "off":
+                continue
+            if monotonic() - self._last_lock_command.get(lock_eid, float("-inf")) < 60:
+                continue
+            self._last_lock_command[lock_eid] = monotonic()
+            try:
+                await self.hass.services.async_call(
+                    "switch",
+                    "turn_on",
+                    {"entity_id": lock_eid},
+                    blocking=True,
+                    context=make_roommind_context(),
+                )
+            except Exception:  # noqa: BLE001
+                _LOGGER.warning("Unable to enable child lock '%s'", lock_eid, exc_info=True)
+
     async def _set_bypass(self, settings: dict, open_: bool) -> bool:
         bypasses = [e for e in settings.get("hydraulic_bypass_entities", []) if e]
         if not bypasses:
@@ -63,6 +152,8 @@ class BoilerManager:
             # Releasing control is intentionally conservative: RoomMind idles
             # the bypasses only after the boiler has been stopped and held.
             for entity_id in bypasses:
+                if not self._available(self.hass, entity_id):
+                    continue
                 try:
                     await self.hass.services.async_call(
                         "climate",
@@ -73,12 +164,15 @@ class BoilerManager:
                     )
                 except Exception:  # noqa: BLE001
                     _LOGGER.warning("Unable to release boiler bypass '%s'", entity_id, exc_info=True)
+            self._bypass_released = True
             return True
+        self._bypass_released = False
         target = float(settings.get("hydraulic_bypass_open_temperature", 28.0))
         confirmed = False
         for entity_id in bypasses:
             if not self._available(self.hass, entity_id):
                 continue
+            await self._lock_bypass(settings, entity_id)
             if self._bypass_confirmed(entity_id, target):
                 confirmed = True
                 continue
@@ -126,58 +220,119 @@ class BoilerManager:
             _LOGGER.warning("Unable to change boiler '%s'", entity_id, exc_info=True)
             return False
 
-    async def async_reconcile(self, settings: dict, demand_rooms: set[str]) -> None:
-        """Advance one safe transition. Missing safety configuration disables boiler."""
+    def _notify(self, message: str | None) -> None:
+        """Raise (or clear) a persistent notification for boiler faults."""
+        try:
+            from homeassistant.components import persistent_notification
+
+            if message is None:
+                persistent_notification.async_dismiss(self.hass, FAULT_NOTIFICATION_ID)
+            else:
+                persistent_notification.async_create(
+                    self.hass, message, title="RoomMind: caldaia in blocco", notification_id=FAULT_NOTIFICATION_ID
+                )
+        except Exception:  # noqa: BLE001 - notifications are best effort
+            _LOGGER.debug("Boiler fault notification unavailable", exc_info=True)
+
+    async def _enter_fault(self, settings: dict, reason: str, now: float) -> None:
+        was_running = self.state == BoilerState.ON
+        self._shutdown_pending = not await self._set_boiler(settings, False)
+        if self._shutdown_pending:
+            _LOGGER.error("Boiler fault (%s) and the OFF command failed; retrying every cycle", reason)
+        if was_running:
+            self._off_since = now
+        self.path_safe = False
+        self.fault_reason = reason
+        self.state, self._state_since = BoilerState.FAULT, now
+        self._notify(
+            f"{reason}. La caldaia è stata spenta per sicurezza; RoomMind riprova "
+            "automaticamente finché le stanze chiedono calore."
+        )
+
+    def _off_long_enough(self, now: float, min_off: float) -> bool:
+        return self._off_since is None or now - self._off_since >= min_off
+
+    async def async_reconcile(
+        self, settings: dict, demand_rooms: set[str], valves_per_room: dict[str, int] | None = None
+    ) -> None:
+        """Advance one safe transition. Missing safety configuration disables boiler.
+
+        ``valves_per_room`` gives the radiator valves of each demanding room;
+        with the default "valves" unit they are what the start quorum counts.
+        """
         if not settings.get("climate_control_active", True):
             demand_rooms = set()
         self.demand_rooms = set(demand_rooms)
+        if settings.get("boiler_demand_unit", DEFAULT_BOILER_DEMAND_UNIT) == "rooms" or valves_per_room is None:
+            self.demand_count = len(self.demand_rooms)
+        else:
+            self.demand_count = sum(max(1, int(valves_per_room.get(room, 1))) for room in self.demand_rooms)
         if not settings.get("boiler_entity"):
             self.state = BoilerState.OFF
             self.path_safe = False
             return
         now = monotonic()
         demand = bool(demand_rooms)
+        self._demand_since = {room: self._demand_since.get(room, now) for room in demand_rooms}
+        min_rooms = max(1, int(settings.get("boiler_min_demand_rooms", DEFAULT_BOILER_MIN_DEMAND_ROOMS)))
+        max_wait = float(settings.get("boiler_max_wait_minutes", DEFAULT_BOILER_MAX_WAIT_MINUTES)) * 60
+        starved = sorted(r for r, since in self._demand_since.items() if max_wait > 0 and now - since >= max_wait)
+        quorum = self.demand_count >= min_rooms or bool(starved)
+        if starved and self.demand_count < min_rooms and self.state in (BoilerState.OFF, BoilerState.POSTSTOP):
+            _LOGGER.info("Boiler quorum waived: %s waiting for heat too long", ", ".join(starved))
         pre_delay = float(settings.get("boiler_startup_delay_seconds", 30))
         post_delay = float(settings.get("boiler_shutdown_delay_seconds", 60))
-        if self.state == BoilerState.OFF and demand:
-            self.path_safe = await self._set_bypass(settings, True)
-            # Allow state-report propagation during PREOPENING; never turn the
-            # boiler on before HA confirms the bypass mode and setpoint.
-            if not settings.get("hydraulic_bypass_entities"):
-                self.state = BoilerState.FAULT
-                await self._set_boiler(settings, False)
-                return
-            self.state, self._state_since = BoilerState.PREOPENING, now
-            _LOGGER.info("Boiler demand %d: opening hydraulic bypass", len(demand_rooms))
+        min_run = float(settings.get("boiler_min_run_minutes", DEFAULT_BOILER_MIN_RUN_MINUTES)) * 60
+        min_off = float(settings.get("boiler_min_off_minutes", DEFAULT_BOILER_MIN_OFF_MINUTES)) * 60
+        fault_retry = float(settings.get("boiler_fault_retry_minutes", DEFAULT_BOILER_FAULT_RETRY_MINUTES)) * 60
+
+        if self.state == BoilerState.OFF:
+            if quorum and self._off_long_enough(now, min_off):
+                if not settings.get("hydraulic_bypass_entities"):
+                    await self._enter_fault(settings, "Nessuna valvola di bypass configurata", now)
+                    return
+                self.path_safe = await self._set_bypass(settings, True)
+                # Allow state-report propagation during PREOPENING; never turn the
+                # boiler on before HA confirms the bypass mode and setpoint.
+                self.state, self._state_since = BoilerState.PREOPENING, now
+                _LOGGER.info("Boiler demand %d/%d: opening hydraulic bypass", self.demand_count, min_rooms)
+            elif not self._bypass_released:
+                await self._set_bypass(settings, False)
+                self.path_safe = False
         elif self.state == BoilerState.PREOPENING:
-            self.path_safe = await self._set_bypass(settings, True)
-            if not demand:
-                await self._set_boiler(settings, False)
+            if not quorum:
+                # Demand fell below the start quorum before the burner fired.
                 await self._set_bypass(settings, False)
                 self.path_safe = False
                 self.state, self._state_since = BoilerState.OFF, now
-            elif not self.path_safe:
+                return
+            self.path_safe = await self._set_bypass(settings, True)
+            if not self.path_safe:
                 if now - self._state_since >= max(90.0, pre_delay * 2):
                     _LOGGER.error("Boiler bypass never acknowledged; refusing to start boiler")
-                    self.state = BoilerState.FAULT
-                    await self._set_boiler(settings, False)
+                    await self._enter_fault(settings, "Il bypass idraulico non ha confermato l'apertura", now)
             elif now - self._state_since >= pre_delay:
                 if await self._set_boiler(settings, True):
                     self.state, self._state_since = BoilerState.ON, now
+                    self._on_since = now
+                    self.fault_reason = None
+                    self._notify(None)
                     _LOGGER.info("Boiler hydraulic path verified; starting boiler")
                 else:
-                    self.state = BoilerState.FAULT
+                    await self._enter_fault(settings, "Impossibile accendere la caldaia", now)
         elif self.state == BoilerState.ON:
             self.path_safe = await self._set_bypass(settings, True)
             if not self.path_safe:
+                # Safety beats the minimum run time.
                 _LOGGER.error("Hydraulic path lost while boiler active; shutting boiler down")
-                await self._set_boiler(settings, False)
-                self.state, self._state_since = BoilerState.FAULT, now
-            elif not demand:
-                await self._set_boiler(settings, False)
-                self.state, self._state_since = BoilerState.POSTSTOP, now
+                await self._enter_fault(settings, "Il bypass idraulico ha perso la posizione aperta", now)
+            elif not demand and (self._on_since is None or now - self._on_since >= min_run):
+                # Keep the bypass open and retry next cycle if OFF did not go through.
+                if await self._set_boiler(settings, False):
+                    self._off_since = now
+                    self.state, self._state_since = BoilerState.POSTSTOP, now
         elif self.state == BoilerState.POSTSTOP:
-            if demand:
+            if quorum and self._off_long_enough(now, min_off):
                 self.path_safe = await self._set_bypass(settings, True)
                 self.state, self._state_since = BoilerState.PREOPENING, now
             elif now - self._state_since >= post_delay:
@@ -185,7 +340,19 @@ class BoilerManager:
                 self.path_safe = False
                 self.state, self._state_since = BoilerState.OFF, now
         elif self.state == BoilerState.FAULT:
-            await self._set_boiler(settings, False)
+            if self._shutdown_pending:
+                # Safety first: nothing else happens until the boiler is off.
+                self._shutdown_pending = not await self._set_boiler(settings, False)
+                if self._shutdown_pending:
+                    return
+                self._off_since = now
+            # Once OFF went through, do not re-send it every tick.
             if not demand:
+                await self._set_bypass(settings, False)
                 self.path_safe = False
+                self.fault_reason = None
+                self._notify(None)
+                self.state, self._state_since = BoilerState.OFF, now
+            elif now - self._state_since >= fault_retry:
+                _LOGGER.warning("Boiler fault (%s): retrying", self.fault_reason)
                 self.state, self._state_since = BoilerState.OFF, now

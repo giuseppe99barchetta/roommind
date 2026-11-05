@@ -66,17 +66,16 @@ async def test_dehumidifier_controls_canonical_climate(mock_coordinator):
     """Turning the entity on and off controls the room's Dry mode."""
     coordinator, store = mock_coordinator
     store.get_room.return_value = {"room_hvac_mode": "dry"}
-    climate = MagicMock(async_set_hvac_mode=AsyncMock())
+    climate = MagicMock(async_set_hvac_mode=AsyncMock(), async_exit_auxiliary_mode=AsyncMock())
     dehumidifier = RoomMindDryDehumidifier(coordinator, "bedroom")
     dehumidifier._climate = MagicMock(return_value=climate)
 
     await dehumidifier.async_turn_on()
     await dehumidifier.async_turn_off()
 
-    assert climate.async_set_hvac_mode.await_args_list == [
-        ((HVACMode.DRY,), {}),
-        ((HVACMode.OFF,), {}),
-    ]
+    # Turning DRY off resumes the room's previous mode instead of shutting it down.
+    assert climate.async_set_hvac_mode.await_args_list == [((HVACMode.DRY,), {})]
+    climate.async_exit_auxiliary_mode.assert_awaited_once()
 
 
 @pytest.mark.asyncio
