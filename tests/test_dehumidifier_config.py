@@ -46,6 +46,7 @@ async def test_registration_defaults_roundtrip_and_old_room_compatibility(regist
         "min_run_minutes": 5,
         "min_off_minutes": 5,
         "power_watts": 0,
+        "start_mode": "",
     }
     assert store.get_room("bath")["dehumidifier"] is None
     await save(registration, display_name="Bedroom")
@@ -192,3 +193,30 @@ async def test_delete_beneficiary_prunes_membership_without_stopping_device(regi
     await inspect.unwrap(websocket_delete_room)(hass, conn, {"id": 2, "area_id": "bath"})
     assert store.get_room("bed")["dehumidifier"]["served_area_ids"] == []
     hass.services.async_call.assert_not_awaited()
+
+
+@pytest.mark.asyncio
+async def test_start_mode_and_season_targets_roundtrip(registration):
+    _, store, conn, _ = registration
+    await store.async_load()
+    await save(
+        registration,
+        dehumidifier={"entity_id": "humidifier.dryer", "start_mode": "auto"},
+        humidity_season_targets={"winter": 48, "summer": None},
+    )
+    conn.send_error.assert_not_called()
+    room = store.get_room("bed")
+    assert room["dehumidifier"]["start_mode"] == "auto"
+    assert room["humidity_season_targets"] == {"winter": 48.0, "summer": None}
+
+
+def test_new_rooms_have_no_season_targets(store):
+    assert store._create_room("x", {})["humidity_season_targets"] == {}
+
+
+@pytest.mark.parametrize("targets", [{"winter": 90}, {"winter": 20}, {"monsoon": 50}])
+def test_invalid_season_targets_fail_schema(targets):
+    with pytest.raises(vol.Invalid):
+        websocket_save_room._ws_schema(
+            {"id": 1, "type": "roommind/rooms/save", "area_id": "bed", "humidity_season_targets": targets}
+        )

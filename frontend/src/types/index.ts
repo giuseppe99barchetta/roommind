@@ -123,6 +123,8 @@ export interface DehumidifierConfig {
   min_off_minutes: number;
   power_watts: number;
   tank_full_entity?: string;
+  /** Mode applied when RoomMind starts a native dehumidifier; empty keeps it. */
+  start_mode?: string;
 }
 
 export type DehumidifierPauseReason =
@@ -198,12 +200,16 @@ export interface CompressorGroup {
   enforce_uniform_mode: boolean;
 }
 
+export type Season = "winter" | "spring" | "summer" | "autumn";
+export type SeasonHumidityTargets = Partial<Record<Season, number | null>>;
+
 export interface RoomConfig {
   dehumidifier?: DehumidifierConfig | null;
   humidity_comfort_enabled?: boolean;
   humidity_target?: number;
   humidity_tolerance?: number;
   humidity_priority?: "comfort" | "balanced" | "energy";
+  humidity_season_targets?: SeasonHumidityTargets;
   area_id: string;
   thermostats: string[];
   acs: string[];

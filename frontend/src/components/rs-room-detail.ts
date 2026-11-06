@@ -65,6 +65,7 @@ export class RsRoomDetail extends LitElement {
     humidity_target: 55,
     humidity_tolerance: 5,
     humidity_priority: "balanced",
+    humidity_season_targets: {},
   };
   @state() private _devices: DeviceConfig[] = [];
   @state() private _selectedTempSensor = "";
@@ -404,6 +405,7 @@ export class RsRoomDetail extends LitElement {
       humidity_target: this.config?.humidity_target ?? 55,
       humidity_tolerance: this.config?.humidity_tolerance ?? 5,
       humidity_priority: this.config?.humidity_priority ?? "balanced",
+      humidity_season_targets: { ...(this.config?.humidity_season_targets ?? {}) },
     };
     if (this.config) {
       if (this.config.devices?.length) {

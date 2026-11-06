@@ -50,7 +50,7 @@ async def test_setup_entry_creates_entities(hass, mock_config_entry, store):
     add_entities.assert_called_once()
     entities = add_entities.call_args[0][0]
     room_entities = [e for e in entities if getattr(e, "_area_id", None) == "room_a"]
-    assert len(room_entities) == 6
+    assert len(room_entities) == 7
     assert not any(isinstance(e, RoomMindPowerSensor) for e in room_entities)
     assert not any(isinstance(e, RoomMindEnergyTodaySensor) for e in room_entities)
 
@@ -91,14 +91,14 @@ async def test_setup_entry_multiple_rooms(hass, mock_config_entry, store):
     await async_setup_entry(hass, mock_config_entry, add_entities)
 
     entities = add_entities.call_args[0][0]
-    assert sum(getattr(e, "_area_id", None) in {"room_a", "room_b"} for e in entities) == 12
+    assert sum(getattr(e, "_area_id", None) in {"room_a", "room_b"} for e in entities) == 14
 
 
 def test_create_room_entities():
     """_create_room_entities returns target temp and mode sensors."""
     coordinator = _make_coordinator()
     entities = _create_room_entities(coordinator, "room_a")
-    assert len(entities) == 6
+    assert len(entities) == 7
     assert isinstance(entities[0], RoomMindTargetTemperatureSensor)
     assert isinstance(entities[1], RoomMindModeSensor)
     assert not any(isinstance(e, RoomMindPowerSensor) for e in entities)
@@ -193,9 +193,9 @@ def test_energy_entities_require_configured_ac_power_sensor():
     }
     outdoor = {**measured, "is_outdoor": True}
 
-    assert len(_create_room_entities(coordinator, "sala", plain)) == 6
-    assert len(_create_room_entities(coordinator, "sala", measured)) == 14
-    assert len(_create_room_entities(coordinator, "terrazzo", outdoor)) == 6
+    assert len(_create_room_entities(coordinator, "sala", plain)) == 7
+    assert len(_create_room_entities(coordinator, "sala", measured)) == 15
+    assert len(_create_room_entities(coordinator, "terrazzo", outdoor)) == 7
 
 
 def test_energy_prediction_confidence_sensor_value():
@@ -271,3 +271,56 @@ def test_energy_cost_today_last_reset_is_local_midnight():
         assert sensor.last_reset == datetime(2026, 1, 1, tzinfo=rome)
     with at(2026, 1, 1, 23, 30):
         assert sensor.last_reset == datetime(2026, 1, 2, tzinfo=rome)
+
+
+@pytest.mark.parametrize(
+    ("status", "expected"),
+    [
+        (None, "no_device"),
+        ({"devices": [], "request": "comfort", "assigned_entity_id": None}, "no_device"),
+        (
+            {
+                "devices": [{"entity_id": "h.d", "state": "on", "reason": None}],
+                "request": "comfort",
+                "assigned_entity_id": "h.d",
+            },
+            "running",
+        ),
+        ({"devices": [{"entity_id": "h.d", "state": "on", "reason": "manual"}], "request": None}, "manual"),
+        (
+            {"devices": [{"entity_id": "h.d", "state": "off", "reason": None, "commanded": True}], "request": "mold"},
+            "starting",
+        ),
+        ({"devices": [{"entity_id": "h.d", "state": "off", "reason": "window"}], "request": "comfort"}, "window"),
+        (
+            {"devices": [{"entity_id": "h.d", "state": "off", "reason": "power_budget"}], "request": "comfort"},
+            "power_budget",
+        ),
+        ({"devices": [{"entity_id": "h.d", "state": "off", "reason": "night"}], "request": None}, "night"),
+        ({"devices": [{"entity_id": "h.d", "state": "off", "reason": None}], "request": None}, "idle"),
+    ],
+)
+def test_dehumidifier_status_summary(status, expected):
+    from custom_components.roommind.sensor import dehumidifier_status
+
+    state, attributes = dehumidifier_status(status)
+    assert state == expected
+    assert "request" in attributes
+
+
+def test_dehumidifier_status_prefers_assigned_device():
+    from custom_components.roommind.sensor import dehumidifier_status
+
+    state, attributes = dehumidifier_status(
+        {
+            "devices": [
+                {"entity_id": "h.a", "state": "off", "reason": "window"},
+                {"entity_id": "h.b", "state": "on", "reason": None, "target_humidity": 50},
+            ],
+            "request": "comfort",
+            "assigned_entity_id": "h.b",
+        }
+    )
+    assert state == "running"
+    assert attributes["entity_id"] == "h.b"
+    assert attributes["target_humidity"] == 50

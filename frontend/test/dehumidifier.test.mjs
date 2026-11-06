@@ -249,3 +249,53 @@ test("equipment cards remain actionable without any configured entities", () => 
   assert.ok(text.includes("Non disponibile"));
   assert.ok(!text.includes("Chiusa"));
 });
+
+test("seasonal targets start from the room target and can be cleared", () => {
+  const section = new Section();
+  section.hass = { language: "en", states: {} };
+  section.humidity = {
+    humidity_comfort_enabled: true, humidity_target: 55, humidity_tolerance: 5,
+    humidity_priority: "balanced", humidity_season_targets: {},
+  };
+  const events = [];
+  section.dispatchEvent = (event) => { events.push(event.detail); return true; };
+  assert.equal(section._seasonTargetsEnabled(), false);
+  section._toggleSeasonTargets(true);
+  assert.deepEqual(events[0], {
+    humidity_season_targets: { winter: 55, spring: 55, summer: 55, autumn: 55 },
+  });
+  section.humidity = { ...section.humidity, ...events[0] };
+  section._seasonTarget("winter", 20);
+  assert.equal(events[1].humidity_season_targets.winter, 30);
+  section._toggleSeasonTargets(false);
+  assert.deepEqual(events[2], { humidity_season_targets: {} });
+});
+
+test("start mode choices come from the native humidifier only", () => {
+  const section = new Section();
+  section.hass = {
+    language: "en",
+    states: { "humidifier.bed": { attributes: { available_modes: ["auto", "clothes_dry"] } } },
+  };
+  section.config = { ...config, mode: "auto" };
+  assert.deepEqual(section._availableModes(), ["auto", "clothes_dry"]);
+  section.config = { ...config, entity_id: "switch.plug", mode: "auto" };
+  assert.deepEqual(section._availableModes(), []);
+});
+
+test("room saves keep seasonal humidity targets", async () => {
+  const detail = new RoomDetail();
+  const writes = [];
+  detail.hass = { language: "en", callWS: async (payload) => { writes.push(payload); } };
+  detail.area = { area_id: "bed" };
+  detail.config = {
+    area_id: "bed", devices: [], dehumidifier: { ...config, start_mode: "auto" },
+    humidity_comfort_enabled: true, humidity_target: 55, humidity_tolerance: 5,
+    humidity_priority: "balanced", humidity_season_targets: { winter: 48 },
+  };
+  detail.dispatchEvent = () => true;
+  detail._initFromConfig();
+  await detail._doSave();
+  assert.deepEqual(writes[0].humidity_season_targets, { winter: 48 });
+  assert.equal(writes[0].dehumidifier.start_mode, "auto");
+});
