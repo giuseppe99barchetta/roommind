@@ -122,6 +122,7 @@ export interface DehumidifierConfig {
   min_run_minutes: number;
   min_off_minutes: number;
   power_watts: number;
+  tank_full_entity?: string;
 }
 
 export type DehumidifierPauseReason =
@@ -132,6 +133,8 @@ export type DehumidifierPauseReason =
   | "window"
   | "humidity_floor"
   | "min_off"
+  | "tank_full"
+  | "user_off"
   | "min_run"
   | "night"
   | "power_budget"
@@ -152,6 +155,7 @@ export interface DehumidifierDeviceStatus {
   commanded: boolean | null;
   target_humidity: number | null;
   humidity_floor: number | null;
+  user_off_until: number | null;
 }
 
 export interface DehumidifierStatus {

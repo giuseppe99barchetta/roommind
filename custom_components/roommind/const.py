@@ -202,6 +202,7 @@ COVER_POS_SCALE: float = 50.0
 COVER_MAX_EFFECTIVENESS: float = 0.85
 COVER_USER_CONFLICT_THRESHOLD: int = 15
 COVER_USER_OVERRIDE_MINUTES: int = 60
+DEHUMIDIFIER_USER_OFF_MINUTES: int = 60
 COVER_TRANSITION_SETTLE_S: int = 90  # seconds after commanding before override detection activates
 COVER_DEFAULT_BETA_S: float = 3.0  # °C/h per unit q_solar (default for rooms without learned data)
 COVER_LINEAR_LOOKAHEAD_H: float = 1.0  # linear fallback: 1h (no heat-loss correction → keep short)

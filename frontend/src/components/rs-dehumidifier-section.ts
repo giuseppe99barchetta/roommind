@@ -444,6 +444,19 @@ export class RsDehumidifierSection extends LitElement {
           @value-changed=${this._selectDevice}
         ></rs-entity-picker-field>
         <p class="hint">${this._label("dehumidifier.device_hint")}</p>
+        ${config
+          ? html`<rs-entity-picker-field
+                .hass=${this.hass}
+                .label=${this._label("dehumidifier.tank_sensor")}
+                .value=${config.tank_full_entity ?? ""}
+                .includeDomains=${["binary_sensor"]}
+                @value-changed=${(e: CustomEvent<string>) => {
+                  e.stopPropagation();
+                  this._deviceChanged({ ...config, tank_full_entity: e.detail || undefined });
+                }}
+              ></rs-entity-picker-field>
+              <p class="hint">${this._label("dehumidifier.tank_sensor_hint")}</p>`
+          : nothing}
         ${!config && sharedDevices.length
           ? html`<div class="notice">
               <ha-icon icon="mdi:home-group"></ha-icon>
@@ -655,7 +668,7 @@ export class RsDehumidifierSection extends LitElement {
                 : ""}"
             >
               <ha-icon
-                icon=${device.reason === "manual"
+                icon=${device.reason === "manual" || device.reason === "user_off"
                   ? "mdi:hand-back-right-outline"
                   : "mdi:pause-circle-outline"}
               ></ha-icon>
@@ -663,7 +676,19 @@ export class RsDehumidifierSection extends LitElement {
                 <strong>${this._label(`dehumidifier.reason_${device.reason}`)}</strong>
                 ${device.reason === "manual"
                   ? html`<p class="hint">${this._label("dehumidifier.manual_hint")}</p>`
-                  : nothing}
+                  : device.reason === "user_off" && device.user_off_until != null
+                    ? html`<p class="hint">
+                        ${localize("dehumidifier.user_off_hint", this.hass.language, {
+                          time: new Date(device.user_off_until * 1000).toLocaleTimeString(
+                            this.hass.language,
+                            {
+                              hour: "2-digit",
+                              minute: "2-digit",
+                            },
+                          ),
+                        })}
+                      </p>`
+                    : nothing}
               </div>
             </div>`
           : device.state === "off" && !device.requested

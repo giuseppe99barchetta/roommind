@@ -484,3 +484,149 @@ async def test_release_preserves_manual_run(control, prepared):
         prepare(control)
     await manager.release(rooms["bed"]["dehumidifier"], None, True)
     manager.hass.services.async_call.assert_not_awaited()
+
+
+@pytest.mark.asyncio
+async def test_user_off_is_respected_until_timeout(control):
+    manager, _, states, clock = control
+    await start_automatic_run(control)
+    states["switch.dryer"].state = "off"
+    clock[0] += 10
+    prepare(control)
+    await manager.apply(PowerBudgetManager())
+    assert manager.devices["switch.dryer"]["reason"] == "user_off"
+    assert manager.devices["switch.dryer"]["user_off_until"] is not None
+    manager.hass.services.async_call.assert_not_awaited()
+    clock[0] += 60 * 60
+    prepare(control)
+    await manager.apply(PowerBudgetManager())
+    assert manager.hass.services.async_call.call_args.args[1] == "turn_on"
+
+
+@pytest.mark.asyncio
+async def test_user_off_ends_when_demand_ends(control):
+    manager, _, states, clock = control
+    await start_automatic_run(control)
+    states["switch.dryer"].state = "off"
+    clock[0] += 10
+    prepare(control)
+    assert manager.devices["switch.dryer"]["reason"] == "user_off"
+    prepare(control, {"bed": 55, "bath": 55})
+    clock[0] += 10
+    prepare(control)
+    await manager.apply(PowerBudgetManager())
+    assert manager.devices["switch.dryer"]["reason"] is None
+    assert manager.hass.services.async_call.call_args.args[1] == "turn_on"
+
+
+@pytest.mark.asyncio
+async def test_user_off_blocks_mold_demand(control):
+    manager, _, states, clock = control
+    await start_automatic_run(control)
+    states["switch.dryer"].state = "off"
+    clock[0] += 10
+    prepare(control, molds={"bath": (None, None, True, "dehumidifier", None)})
+    await manager.apply(PowerBudgetManager())
+    assert manager.devices["switch.dryer"]["reason"] == "user_off"
+    manager.hass.services.async_call.assert_not_awaited()
+
+
+@pytest.mark.asyncio
+async def test_our_off_is_not_a_user_off(control):
+    manager, rooms, states, clock = control
+    await start_automatic_run(control)
+    rooms["bed"]["dehumidifier"]["min_run_minutes"] = 0
+    prepare(control, {"bed": 55, "bath": 55})
+    await manager.apply(PowerBudgetManager())
+    assert manager.hass.services.async_call.call_args.args[1] == "turn_off"
+    states["switch.dryer"].state = "off"
+    clock[0] += 120
+    prepare(control)
+    assert manager.devices["switch.dryer"]["reason"] is None
+
+
+async def _user_turns_off(control):
+    manager, _, states, clock = control
+    await start_automatic_run(control)
+    states["switch.dryer"].state = "off"
+    clock[0] += 10
+
+
+@pytest.mark.asyncio
+async def test_tank_full_off_is_not_a_user_off(control):
+    manager, rooms, states, clock = control
+    rooms["bed"]["dehumidifier"]["tank_full_entity"] = "binary_sensor.tank"
+    states["binary_sensor.tank"] = SimpleNamespace(state="off", attributes={})
+    await _user_turns_off(control)
+    states["binary_sensor.tank"].state = "on"
+    prepare(control)
+    await manager.apply(PowerBudgetManager())
+    assert manager.devices["switch.dryer"]["reason"] == "tank_full"
+    manager.hass.services.async_call.assert_not_awaited()
+    states["binary_sensor.tank"].state = "off"
+    clock[0] += 10
+    prepare(control)
+    await manager.apply(PowerBudgetManager())
+    assert manager.hass.services.async_call.call_args.args[1] == "turn_on"
+
+
+@pytest.mark.asyncio
+async def test_late_tank_full_report_cancels_user_off(control):
+    manager, rooms, states, clock = control
+    rooms["bed"]["dehumidifier"]["tank_full_entity"] = "binary_sensor.tank"
+    states["binary_sensor.tank"] = SimpleNamespace(state="off", attributes={})
+    await _user_turns_off(control)
+    prepare(control)
+    assert manager.devices["switch.dryer"]["reason"] == "user_off"
+    states["binary_sensor.tank"].state = "on"
+    prepare(control)
+    states["binary_sensor.tank"].state = "off"
+    prepare(control)
+    assert manager.devices["switch.dryer"]["reason"] is None
+
+
+@pytest.mark.asyncio
+async def test_off_after_unavailable_is_not_a_user_off(control):
+    manager, _, states, clock = control
+    await start_automatic_run(control)
+    states["switch.dryer"].state = "unavailable"
+    clock[0] += 10
+    prepare(control)
+    states["switch.dryer"].state = "off"
+    clock[0] += 10
+    prepare(control)
+    assert manager.devices["switch.dryer"]["reason"] is None
+
+
+@pytest.mark.asyncio
+async def test_sensor_dropout_keeps_user_off(control):
+    manager, _, _, _ = control
+    await _user_turns_off(control)
+    prepare(control, {"bed": 55, "bath": None})
+    prepare(control)
+    assert manager.devices["switch.dryer"]["reason"] == "user_off"
+
+
+@pytest.mark.asyncio
+async def test_user_on_ends_user_off(control):
+    manager, _, states, clock = control
+    await _user_turns_off(control)
+    prepare(control)
+    states["switch.dryer"].state = "on"
+    clock[0] += 10
+    prepare(control)
+    states["switch.dryer"].state = "off"
+    clock[0] += 10
+    prepare(control)
+    assert manager.devices["switch.dryer"]["reason"] is None
+
+
+@pytest.mark.asyncio
+async def test_user_off_during_min_run_is_respected(control):
+    manager, rooms, states, clock = control
+    rooms["bed"]["dehumidifier"]["min_run_minutes"] = 30
+    await _user_turns_off(control)
+    prepare(control)
+    await manager.apply(PowerBudgetManager())
+    assert manager.devices["switch.dryer"]["reason"] == "user_off"
+    manager.hass.services.async_call.assert_not_awaited()

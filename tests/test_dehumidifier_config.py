@@ -53,6 +53,15 @@ async def test_registration_defaults_roundtrip_and_old_room_compatibility(regist
 
 
 @pytest.mark.asyncio
+async def test_tank_full_entity_is_saved(registration):
+    _, store, conn, _ = registration
+    await store.async_load()
+    await save(registration, dehumidifier={"entity_id": "switch.dryer", "tank_full_entity": "binary_sensor.tank"})
+    conn.send_error.assert_not_called()
+    assert store.get_room("bed")["dehumidifier"]["tank_full_entity"] == "binary_sensor.tank"
+
+
+@pytest.mark.asyncio
 @pytest.mark.parametrize(
     "entity_id",
     ["climate.ac", "switch.", "humidifier.roommind_bed_dehumidification", "switch.roommind_bed_dehumidification"],

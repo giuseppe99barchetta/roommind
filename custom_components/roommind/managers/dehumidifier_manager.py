@@ -6,13 +6,13 @@ import asyncio
 import logging
 import math
 from dataclasses import dataclass
-from time import monotonic
+from time import monotonic, time
 from typing import Any
 
 from homeassistant.core import HomeAssistant
 from homeassistant.util import dt as dt_util
 
-from ..const import make_roommind_context
+from ..const import DEHUMIDIFIER_USER_OFF_MINUTES, make_roommind_context
 from ..utils.comfort_insights import active_profile
 from ..utils.night_mode import night_phase
 from .power_budget_manager import PowerBudgetManager
@@ -56,6 +56,7 @@ class DeviceRuntime:
     target_at: float = -math.inf
     available: bool = True
     owned_on: bool = False
+    user_off_until: float = -math.inf
 
 
 class DehumidifierManager:
@@ -106,9 +107,18 @@ class DehumidifierManager:
             runtime = self.runtime.setdefault(eid, DeviceRuntime(on, now, now, available=available))
             if available and not runtime.available and not on:
                 runtime.off_since = now
-            runtime.available = available
+            was_available, runtime.available = runtime.available, available
+            tank = self.hass.states.get(config.get("tank_full_entity") or "")
+            tank_full = tank is not None and tank.state == "on"
             if available and on != runtime.observed_on:
                 runtime.observed_on = on
+                # The user stopping our run: respect it for a while. Ending their
+                # own manual run hands control straight back; a full tank or a
+                # device returning from unavailable is not the user.
+                stopped_ours = (
+                    not on and was_available and not tank_full and runtime.owned_on and runtime.command is not False
+                )
+                runtime.user_off_until = now + DEHUMIDIFIER_USER_OFF_MINUTES * 60 if stopped_ours else -math.inf
                 # A physical OFF ends our run. A later manual ON must not
                 # inherit ownership or a still-pending OFF command.
                 if not on or runtime.command is not True:
@@ -119,6 +129,9 @@ class DehumidifierManager:
                     runtime.on_since = now
                 else:
                     runtime.off_since = now
+            if tank_full:
+                # The tank sensor may report after the OFF: it was not the user.
+                runtime.user_off_until = -math.inf
             effective_on = runtime.command if now - runtime.command_at < 60 else on
             paused = self._windows.update(
                 owner,
@@ -153,6 +166,10 @@ class DehumidifierManager:
                 reason = "disabled"
             elif not available:
                 reason = "unavailable"
+            elif tank_full:
+                reason = "tank_full"
+            elif now < runtime.user_off_until:
+                reason = "user_off"
             elif humidity is None:
                 reason = "sensor"
             elif paused:
@@ -175,6 +192,7 @@ class DehumidifierManager:
                 "commanded": None,
                 "target_humidity": target,
                 "humidity_floor": floor if len(areas) > 1 else None,
+                "user_off_until": time() + runtime.user_off_until - now if reason == "user_off" else None,
                 "night": night_phase(room, dt_util.now(), 0) == "night",
                 "config": config,
             }
@@ -230,6 +248,12 @@ class DehumidifierManager:
                 chosen["requesting_rooms"].append(area_id)
                 chosen["requested"] = True
         for d in self.devices.values():
+            if d["reason"] == "user_off" and not any(
+                a in self.requests or humidities.get(a) is None for a in d["served_area_ids"]
+            ):
+                # The demand the user switched off is over (a missing reading proves nothing):
+                # resume automatic control next cycle.
+                self.runtime[d["entity_id"]].user_off_until = -math.inf
             if (
                 not d["requested"]
                 and d["reason"] is None
@@ -271,7 +295,7 @@ class DehumidifierManager:
 
     async def _apply_device(self, device: dict, budget: PowerBudgetManager) -> None:
         reason = device["reason"]
-        if reason in ("manual", "disabled", "unavailable"):
+        if reason in ("manual", "disabled", "unavailable", "tank_full", "user_off"):
             return
         eid = device["entity_id"]
         runtime = self.runtime[eid]
