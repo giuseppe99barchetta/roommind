@@ -111,6 +111,7 @@ from .utils.device_utils import (
 )
 from .utils.device_utils import room_has_power_sensor as _room_has_power_sensor
 from .utils.history_store import HistoryStore
+from .utils.humidity_targets import current_season, room_humidity_target
 from .utils.mold_utils import absolute_humidity, airing_recommended, mold_exposure_hours
 from .utils.night_mode import apply_night_targets, night_phase
 from .utils.notification_utils import NotificationThrottler, async_send_mold_notification, dismiss_mold_notification
@@ -185,6 +186,7 @@ ROOM_ENTITY_SUFFIXES = (
     "_ac_efficiency",
     "_mold_surface_humidity",
     "_mold_exposure_7d",
+    "_dehumidifier_status",
 )
 # Suffixes only valid when the room has covers configured.
 COVER_ENTITY_SUFFIXES = ("_cover_auto", "_cover_paused")
@@ -2268,17 +2270,9 @@ class RoomMindCoordinator(DataUpdateCoordinator):
                 self._smart_ventilation_until[area_id] = until
         return until > now and not window_open and not force_off
 
-    @staticmethod
-    def _humidity_target(room: dict) -> float | None:
-        """Return the humidity target selected for the room/profile."""
-        if not room.get("humidity_comfort_enabled", False):
-            return None
-        profile = active_profile(room)
-        value: Any = profile.get("humidity_target") if profile else room.get("humidity_target", 55.0)
-        try:
-            return float(value)
-        except (TypeError, ValueError):
-            return None
+    def _humidity_target(self, room: dict) -> float | None:
+        """Return the humidity target selected for the room, profile or season."""
+        return room_humidity_target(room, current_season(self.hass))
 
     def _humidity_dry_requested(
         self,

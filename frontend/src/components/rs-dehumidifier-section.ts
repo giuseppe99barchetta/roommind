@@ -7,9 +7,10 @@ import type {
   DehumidifierStatus,
   HomeAssistant,
   RoomConfig,
+  Season,
 } from "../types";
 import { localize, type TranslationKey } from "../utils/localize";
-import { openEntityInfo } from "../utils/events";
+import { getSelectValue, openEntityInfo } from "../utils/events";
 import { inputStyles } from "../styles/input-styles";
 import "./shared/rs-entity-picker-field";
 import "./shared/rs-threshold-field";
@@ -18,9 +19,15 @@ import "./shared/rs-toggle-row";
 export type HumiditySettings = Required<
   Pick<
     RoomConfig,
-    "humidity_comfort_enabled" | "humidity_target" | "humidity_tolerance" | "humidity_priority"
+    | "humidity_comfort_enabled"
+    | "humidity_target"
+    | "humidity_tolerance"
+    | "humidity_priority"
+    | "humidity_season_targets"
   >
 >;
+
+const SEASONS: Season[] = ["winter", "spring", "summer", "autumn"];
 
 @customElement("rs-dehumidifier-section")
 export class RsDehumidifierSection extends LitElement {
@@ -396,6 +403,85 @@ export class RsDehumidifierSection extends LitElement {
       });
   }
 
+  /** Native modes the selected humidifier reports, for the start mode picker. */
+  private _availableModes(): string[] {
+    const entityId = this.config?.entity_id ?? "";
+    if (!entityId.startsWith("humidifier.")) return [];
+    const modes = this.hass.states?.[entityId]?.attributes?.available_modes;
+    return Array.isArray(modes) ? modes.map(String) : [];
+  }
+
+  private _seasonTargetsEnabled() {
+    return Object.values(this.humidity.humidity_season_targets ?? {}).some((v) => v != null);
+  }
+
+  private _toggleSeasonTargets(enabled: boolean) {
+    const base = this.humidity.humidity_target;
+    this._humidityChanged({
+      humidity_season_targets: enabled
+        ? Object.fromEntries(SEASONS.map((season) => [season, base]))
+        : {},
+    });
+  }
+
+  private _seasonTarget(season: Season, value: number) {
+    this._humidityChanged({
+      humidity_season_targets: {
+        ...this.humidity.humidity_season_targets,
+        [season]: Math.max(30, Math.min(80, value)),
+      },
+    });
+  }
+
+  private _startModePicker(config: DehumidifierConfig) {
+    const modes = this._availableModes();
+    if (config.mode !== "auto" || !modes.length) return nothing;
+    return html`<ha-select
+        .label=${this._label("dehumidifier.start_mode")}
+        .value=${config.start_mode ?? ""}
+        .options=${[
+          { value: "", label: this._label("dehumidifier.start_mode_keep") },
+          ...modes.map((mode) => ({ value: mode, label: mode })),
+        ]}
+        @selected=${(e: Event) => {
+          const value = getSelectValue(e);
+          if (value !== (config.start_mode ?? ""))
+            this._deviceChanged({ ...config, start_mode: value });
+        }}
+        @closed=${(e: Event) => e.stopPropagation()}
+        fixedMenuPosition
+        style="width: 100%;"
+      ></ha-select>
+      <p class="hint">${this._label("dehumidifier.start_mode_hint")}</p>`;
+  }
+
+  private _seasonTargetFields() {
+    const enabled = this._seasonTargetsEnabled();
+    return html`<rs-toggle-row
+        .label=${this._label("dehumidifier.season_targets")}
+        .checked=${enabled}
+        @toggle-changed=${(e: CustomEvent<boolean>) => this._toggleSeasonTargets(e.detail)}
+      ></rs-toggle-row>
+      <p class="hint">${this._label("dehumidifier.season_targets_hint")}</p>
+      ${enabled
+        ? html`<div class="numbers">
+            ${SEASONS.map(
+              (season) =>
+                html`<rs-threshold-field
+                  .label=${this._label(`dehumidifier.season_${season}`)}
+                  .value=${this.humidity.humidity_season_targets?.[season] ??
+                  this.humidity.humidity_target}
+                  .min=${30}
+                  .max=${80}
+                  .step=${1}
+                  suffix="%"
+                  @value-changed=${(e: CustomEvent<number>) => this._seasonTarget(season, e.detail)}
+                ></rs-threshold-field>`,
+            )}
+          </div>`
+        : nothing}`;
+  }
+
   private _heading(step: string, title: TranslationKey) {
     return html`<div class="panel-heading">
       <span class="step">${step}</span>
@@ -479,6 +565,7 @@ export class RsDehumidifierSection extends LitElement {
                     </button>`,
                 )}
               </div>
+              ${this._startModePicker(config)}
             `
           : nothing}
       </section>
@@ -555,6 +642,7 @@ export class RsDehumidifierSection extends LitElement {
           ></rs-threshold-field>
         </div>
         <p class="hint">${this._label("dehumidifier.tolerance_hint")}</p>
+        ${this._seasonTargetFields()}
         <h4>${this._label("dehumidifier.priority")}</h4>
         <div
           class="choices priority"
@@ -741,7 +829,9 @@ export class RsDehumidifierSection extends LitElement {
         </div>
         ${!this.humidity.humidity_comfort_enabled
           ? html`<p class="hint">${this._label("dehumidifier.comfort_off_hint")}</p>`
-          : nothing}
+          : this._seasonTargetsEnabled()
+            ? html`<p class="hint">${this._label("dehumidifier.season_targets_active")}</p>`
+            : nothing}
       </div>
       ${!devices.length
         ? html`<div class="notice">

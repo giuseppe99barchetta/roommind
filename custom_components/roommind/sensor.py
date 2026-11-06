@@ -45,6 +45,7 @@ def _create_room_entities(
         RoomMindHeatSourceReasonSensor(coordinator, area_id),
         RoomMindMoldSurfaceHumiditySensor(coordinator, area_id),
         RoomMindMoldExposureSensor(coordinator, area_id),
+        RoomMindDehumidifierStatusSensor(coordinator, area_id),
     ]
     if _room_has_power_sensor(room):
         entities.extend(_create_room_energy_entities(coordinator, area_id))
@@ -178,6 +179,62 @@ class RoomMindMoldExposureSensor(_RoomMindBaseSensor):
 
     def __init__(self, coordinator: RoomMindCoordinator, area_id: str) -> None:
         super().__init__(coordinator, area_id, "mold_exposure_7d", "Mold Exposure 7 Days")
+
+
+def dehumidifier_status(status: dict | None) -> tuple[str, dict[str, Any]]:
+    """Summarise why the room's dehumidifier runs or not, in one state.
+
+    States: ``no_device``, ``running``, ``starting``, ``idle`` or the pause
+    reason RoomMind already tracks (``manual``, ``window``, ``night``,
+    ``power_budget``, ``min_off``, ``min_run``, ``humidity_floor``, ``sensor``,
+    ``unavailable``, ``disabled``, ``error``).
+    """
+    status = status or {}
+    devices = status.get("devices") or []
+    request = status.get("request")
+    if not devices:
+        return "no_device", {"request": request}
+    assigned = status.get("assigned_entity_id")
+    device = next((d for d in devices if d.get("entity_id") == assigned), devices[0])
+    reason = device.get("reason")
+    if device.get("state") == "on":
+        state = "manual" if reason == "manual" else "running"
+    elif request and device.get("commanded"):
+        state = "starting"
+    elif reason:
+        state = reason
+    else:
+        state = "idle"
+    return state, {
+        "request": request,
+        "entity_id": device.get("entity_id"),
+        "reason": reason,
+        "target_humidity": device.get("target_humidity"),
+        "requesting_rooms": device.get("requesting_rooms", []),
+    }
+
+
+class RoomMindDehumidifierStatusSensor(_RoomMindBaseSensor):
+    """What the room's dehumidifier is doing, and why it is not running."""
+
+    _attr_icon = "mdi:air-humidifier"
+
+    def __init__(self, coordinator: RoomMindCoordinator, area_id: str) -> None:
+        super().__init__(coordinator, area_id, "dehumidifier_status", "Dehumidifier Status")
+
+    def _status(self) -> tuple[str, dict[str, Any]] | None:
+        room = self.coordinator.data.get("rooms", {}).get(self._area_id)
+        return dehumidifier_status(room.get("dehumidifier")) if room else None
+
+    @property
+    def native_value(self) -> str | None:
+        status = self._status()
+        return status[0] if status else None
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any] | None:
+        status = self._status()
+        return status[1] if status else None
 
 
 class RoomMindPowerSensor(_RoomMindBaseSensor):

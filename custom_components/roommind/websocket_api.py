@@ -176,6 +176,7 @@ _ROOM_SAVE_FIELDS = (
     "humidity_target",
     "humidity_tolerance",
     "humidity_priority",
+    "humidity_season_targets",
     "active_profile",
     "comfort_profiles",
     "anomaly_detection_enabled",
@@ -502,6 +503,7 @@ async def websocket_list_rooms(
                 vol.Optional("min_run_minutes", default=5): vol.All(_FLOAT, vol.Range(min=0, max=1440)),
                 vol.Optional("min_off_minutes", default=5): vol.All(_FLOAT, vol.Range(min=0, max=1440)),
                 vol.Optional("power_watts", default=0): vol.All(_FLOAT, vol.Range(min=0, max=100000)),
+                vol.Optional("start_mode", default=""): vol.All(str, vol.Length(max=64)),
             },
         ),
         vol.Optional("dry_entity_type"): vol.In(["switch", "humidifier"]),
@@ -585,6 +587,9 @@ async def websocket_list_rooms(
         vol.Optional("humidity_target"): vol.All(_FLOAT, vol.Range(min=30, max=80)),
         vol.Optional("humidity_tolerance"): vol.All(_FLOAT, vol.Range(min=0, max=20)),
         vol.Optional("humidity_priority"): vol.In(["energy", "balanced", "comfort"]),
+        vol.Optional("humidity_season_targets"): {
+            vol.In(["winter", "spring", "summer", "autumn"]): vol.Any(None, vol.All(_FLOAT, vol.Range(min=30, max=80)))
+        },
         vol.Optional("active_profile"): vol.In(["", "work", "sleep", "guests", "away"]),
         vol.Optional("comfort_profiles"): {vol.In(["work", "sleep", "guests", "away"]): _COMFORT_PROFILE_SCHEMA},
         vol.Optional("anomaly_detection_enabled"): bool,

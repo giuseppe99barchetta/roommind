@@ -484,3 +484,65 @@ async def test_release_preserves_manual_run(control, prepared):
         prepare(control)
     await manager.release(rooms["bed"]["dehumidifier"], None, True)
     manager.hass.services.async_call.assert_not_awaited()
+
+
+def _native(states, mode="clothes_dry", state="off"):
+    states["humidifier.native"] = SimpleNamespace(
+        state=state,
+        attributes={
+            "device_class": "dehumidifier",
+            "humidity": 50,
+            "mode": mode,
+            "available_modes": ["auto", "continuous", "clothes_dry"],
+        },
+    )
+
+
+@pytest.mark.asyncio
+async def test_start_mode_applied_when_roommind_starts_device(control):
+    manager, rooms, states, _ = control
+    rooms["bed"]["dehumidifier"].update(entity_id="humidifier.native", served_area_ids=[], start_mode="auto")
+    _native(states)
+    prepare(control, {"bed": 70, "bath": 55})
+    await manager.apply(PowerBudgetManager())
+    calls = [c.args for c in manager.hass.services.async_call.call_args_list]
+    assert calls[-2][1] == "turn_on"
+    assert calls[-1] == ("humidifier", "set_mode", {"entity_id": "humidifier.native", "mode": "auto"})
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("start_mode", ["", "silent", "clothes_dry"])
+async def test_start_mode_skipped_when_unset_unsupported_or_already_set(control, start_mode):
+    manager, rooms, states, _ = control
+    rooms["bed"]["dehumidifier"].update(entity_id="humidifier.native", served_area_ids=[], start_mode=start_mode)
+    _native(states)
+    prepare(control, {"bed": 70, "bath": 55})
+    await manager.apply(PowerBudgetManager())
+    services = [c.args[1] for c in manager.hass.services.async_call.call_args_list]
+    assert "turn_on" in services
+    assert "set_mode" not in services
+
+
+@pytest.mark.asyncio
+async def test_start_mode_never_touches_a_manual_run(control):
+    manager, rooms, states, _ = control
+    rooms["bed"]["dehumidifier"].update(entity_id="humidifier.native", served_area_ids=[], start_mode="auto")
+    _native(states, state="on")
+    prepare(control, {"bed": 70, "bath": 55})
+    await manager.apply(PowerBudgetManager())
+    services = [c.args[1] for c in manager.hass.services.async_call.call_args_list]
+    assert "set_mode" not in services
+
+
+@pytest.mark.asyncio
+async def test_native_target_follows_season(control, monkeypatch):
+    manager, rooms, states, _ = control
+    monkeypatch.setattr(
+        "custom_components.roommind.managers.dehumidifier_manager.current_season", lambda hass: "winter"
+    )
+    rooms["bed"].update(humidity_target=55, humidity_season_targets={"winter": 48, "summer": 58})
+    rooms["bed"]["dehumidifier"].update(entity_id="humidifier.native", served_area_ids=[])
+    _native(states, mode="auto")
+    prepare(control, {"bed": 70, "bath": 55})
+    await manager.apply(PowerBudgetManager())
+    assert manager.hass.services.async_call.call_args_list[0].args[2]["humidity"] == 48
