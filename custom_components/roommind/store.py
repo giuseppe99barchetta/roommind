@@ -118,6 +118,7 @@ def _migrate_room(room: dict) -> dict:
     room.setdefault("humidity_target", 55.0)
     room.setdefault("humidity_tolerance", 5.0)
     room.setdefault("humidity_priority", "balanced")
+    room.setdefault("humidity_season_targets", {})
     room.setdefault("dehumidifier", None)
     room.setdefault("active_profile", "")
     room.setdefault("comfort_profiles", {})
@@ -351,6 +352,7 @@ class RoomMindStore:
             "humidity_target": config.get("humidity_target", 55.0),
             "humidity_tolerance": config.get("humidity_tolerance", 5.0),
             "humidity_priority": config.get("humidity_priority", "balanced"),
+            "humidity_season_targets": config.get("humidity_season_targets", {}),
             "active_profile": config.get("active_profile", ""),
             "comfort_profiles": config.get("comfort_profiles", {}),
             "anomaly_detection_enabled": config.get("anomaly_detection_enabled", True),

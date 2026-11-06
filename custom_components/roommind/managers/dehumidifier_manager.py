@@ -13,7 +13,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.util import dt as dt_util
 
 from ..const import make_roommind_context
-from ..utils.comfort_insights import active_profile
+from ..utils.humidity_targets import current_season, room_humidity_target
 from ..utils.night_mode import night_phase
 from .power_budget_manager import PowerBudgetManager
 from .window_manager import WindowManager
@@ -26,13 +26,9 @@ def served_areas(owner: str, config: dict) -> set[str]:
     return {owner, *config.get("served_area_ids", [])}
 
 
-def humidity_target(room: dict) -> float | None:
-    """Use the same opt-in and profile targets as AC humidity comfort."""
-    if not room.get("humidity_comfort_enabled", False):
-        return None
-    profile = active_profile(room)
-    value = profile.get("humidity_target") if profile else room.get("humidity_target", 55.0)
-    return valid_humidity(value)
+def humidity_target(room: dict, season: str | None = None) -> float | None:
+    """Use the same opt-in, profile and seasonal targets as AC humidity comfort."""
+    return room_humidity_target(room, season)
 
 
 def valid_humidity(value: Any) -> float | None:
@@ -193,12 +189,13 @@ class DehumidifierManager:
 
     def collect(self, rooms: dict, humidities: dict, molds: dict) -> None:
         """Allocate each demand once; stable ordering makes overlaps deterministic."""
+        season = current_season(self.hass)
         for area_id, room in sorted(rooms.items()):
             if room.get("is_outdoor") or not room.get("climate_control_enabled", True):
                 self._comfort.discard(area_id)
                 continue
             humidity = humidities.get(area_id)
-            target = humidity_target(room)
+            target = humidity_target(room, season)
             if humidity is None:
                 self._comfort.discard(area_id)
                 continue
@@ -240,7 +237,7 @@ class DehumidifierManager:
                 d["reason"] = "night"
             if len(d["served_area_ids"]) == 1:
                 owner = d["owner_area_id"]
-                target = humidity_target(rooms[owner]) or 55.0
+                target = humidity_target(rooms[owner], season) or 55.0
                 mold = molds.get(owner)
                 if self.requests.get(owner) == "mold" and mold and mold[4] is not None:
                     # The wall needs drier air than comfort asks for.
@@ -324,9 +321,31 @@ class DehumidifierManager:
             if desired:
                 runtime.owned_on = True
                 runtime.on_since = now
+                await self._apply_start_mode(device)
             else:
                 runtime.off_since = now
         device["commanded"] = desired
+
+    async def _apply_start_mode(self, device: dict) -> None:
+        """Switch to the configured mode when RoomMind itself starts the device.
+
+        Only on our own start: a run the user started by hand keeps its mode
+        (e.g. a laundry program), and an unsupported mode is ignored.
+        """
+        mode = str(device["config"].get("start_mode") or "")
+        eid = device["entity_id"]
+        state = self.hass.states.get(eid)
+        if not mode or not eid.startswith("humidifier.") or state is None:
+            return
+        if mode not in (state.attributes.get("available_modes") or []) or state.attributes.get("mode") == mode:
+            return
+        await self.hass.services.async_call(
+            "humidifier",
+            "set_mode",
+            {"entity_id": eid, "mode": mode},
+            blocking=True,
+            context=make_roommind_context(),
+        )
 
     def room_status(self, area_id: str) -> dict:
         """Public data never confuses a command with an observed action."""
