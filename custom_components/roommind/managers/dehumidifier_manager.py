@@ -10,6 +10,7 @@ from time import monotonic, time
 from typing import Any
 
 from homeassistant.core import HomeAssistant
+from homeassistant.helpers import entity_registry as er
 from homeassistant.util import dt as dt_util
 
 from ..const import DEHUMIDIFIER_USER_OFF_MINUTES, make_roommind_context
@@ -274,7 +275,16 @@ class DehumidifierManager:
             return target
         minimum = valid_humidity(state.attributes.get("min_humidity")) or 0.0
         maximum = valid_humidity(state.attributes.get("max_humidity")) or 100.0
-        step = valid_humidity(state.attributes.get("target_humidity_step")) or 1.0
+        configured_step = valid_humidity(state.attributes.get("target_humidity_step"))
+        step = configured_step or 1.0
+        if not configured_step and hasattr(self.hass, "data"):
+            # HA's Midea integration does not expose the physical 5% setpoint step.
+            # Sending 51% is acknowledged as 50%, causing a command every minute.
+            entry = er.async_get(self.hass).async_get(eid)
+            if entry is not None and entry.platform == "midea":
+                # Round DOWN: mold prevention must not get a wetter target.
+                step = 5.0
+                return min(maximum, max(minimum, minimum + math.floor((target - minimum) / step) * step))
         return min(maximum, max(minimum, minimum + math.ceil((target - minimum) / step) * step))
 
     async def apply(self, budget: PowerBudgetManager) -> None:
@@ -320,7 +330,7 @@ class DehumidifierManager:
             if (
                 target is not None
                 and state is not None
-                and state.attributes.get("humidity") != target
+                and valid_humidity(state.attributes.get("humidity")) != target
                 and (runtime.target != target or now - runtime.target_at >= 60)
             ):
                 await self.hass.services.async_call(

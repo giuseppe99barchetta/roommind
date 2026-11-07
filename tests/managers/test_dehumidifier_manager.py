@@ -222,6 +222,67 @@ async def test_native_setpoint_and_internal_sensor_fallback(control):
 
 
 @pytest.mark.asyncio
+async def test_midea_five_percent_step_does_not_reissue_commands(control, monkeypatch):
+    """Midea omits the step in HA: 51% must be commanded as 50%, not retried every minute."""
+    manager, rooms, states, clock = control
+    rooms["bed"].update(humidity_target=55)
+    rooms["bed"]["dehumidifier"].update(
+        entity_id="humidifier.midea", served_area_ids=[], min_off_minutes=0
+    )
+    states["humidifier.midea"] = SimpleNamespace(
+        state="off",
+        attributes={"device_class": "dehumidifier", "min_humidity": 35, "max_humidity": 85, "humidity": 45},
+    )
+    manager.hass.data = {}
+    registry = SimpleNamespace(
+        async_get=lambda eid: SimpleNamespace(platform="midea") if eid == "humidifier.midea" else None
+    )
+    monkeypatch.setattr(
+        "custom_components.roommind.managers.dehumidifier_manager.er.async_get", lambda hass: registry
+    )
+    humidity = {"bed": 65, "bath": 55}
+    molds = {"bed": ("warning", 75, True, "dehumidifier", 51)}
+
+    prepare(control, humidity, molds=molds)
+    assert manager.devices["humidifier.midea"]["target_humidity"] == 50
+    await manager.apply(PowerBudgetManager())
+    calls = [call.args[:3] for call in manager.hass.services.async_call.call_args_list]
+    assert ("humidifier", "set_humidity", {"entity_id": "humidifier.midea", "humidity": 50}) in calls
+    assert ("humidifier", "turn_on", {"entity_id": "humidifier.midea"}) in calls
+
+    states["humidifier.midea"].state = "on"
+    states["humidifier.midea"].attributes["humidity"] = "50"  # Integration may return a numeric string.
+    clock[0] += 61
+    manager.hass.services.async_call.reset_mock()
+    prepare(control, humidity, molds=molds)
+    await manager.apply(PowerBudgetManager())
+    manager.hass.services.async_call.assert_not_awaited()
+
+    # A genuinely drier mold target must still result in a new device command.
+    molds["bed"] = ("warning", 75, True, "dehumidifier", 49)
+    prepare(control, humidity, molds=molds)
+    await manager.apply(PowerBudgetManager())
+    assert manager.hass.services.async_call.call_args.args[:3] == (
+        "humidifier", "set_humidity", {"entity_id": "humidifier.midea", "humidity": 45}
+    )
+
+
+def test_non_midea_without_reported_step_keeps_precise_target(control, monkeypatch):
+    """Do not impose Midea's five-percent increments on other humidifier platforms."""
+    manager, _, states, _ = control
+    states["humidifier.native"] = SimpleNamespace(
+        state="off",
+        attributes={"device_class": "dehumidifier", "min_humidity": 35, "max_humidity": 85},
+    )
+    manager.hass.data = {}
+    registry = SimpleNamespace(async_get=lambda eid: SimpleNamespace(platform="other"))
+    monkeypatch.setattr(
+        "custom_components.roommind.managers.dehumidifier_manager.er.async_get", lambda hass: registry
+    )
+    assert manager._native_target("humidifier.native", 51) == 51
+
+
+@pytest.mark.asyncio
 async def test_power_budget_requires_nominal_power_and_reserves_once(control):
     manager, rooms, _, _ = control
     budget = MagicMock(spec=PowerBudgetManager)
