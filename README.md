@@ -25,7 +25,7 @@
 | custom\_components/roommind/managers/compressor\_group\_manager.py |      160 |        2 |     99% |  123, 181 |
 | custom\_components/roommind/managers/cover\_manager.py             |      197 |        0 |    100% |           |
 | custom\_components/roommind/managers/cover\_orchestrator.py        |      165 |        2 |     99% |   73, 176 |
-| custom\_components/roommind/managers/dehumidifier\_manager.py      |      256 |        4 |     98% |197, 199, 213-214 |
+| custom\_components/roommind/managers/dehumidifier\_manager.py      |      263 |        4 |     98% |198, 200, 214-215 |
 | custom\_components/roommind/managers/ekf\_training\_manager.py     |       54 |        1 |     98% |        28 |
 | custom\_components/roommind/managers/energy\_manager.py            |      301 |       10 |     97% |60, 165, 168, 175-177, 180, 243, 294, 301 |
 | custom\_components/roommind/managers/heat\_source\_orchestrator.py |      163 |       10 |     94% |92, 96, 99, 103, 118, 130, 141, 149, 280, 286 |
@@ -59,7 +59,7 @@
 | custom\_components/roommind/utils/sensor\_utils.py                 |       36 |        2 |     94% |    20, 35 |
 | custom\_components/roommind/utils/temp\_utils.py                   |       67 |        9 |     87% |72-73, 84, 111-112, 118-121 |
 | custom\_components/roommind/websocket\_api.py                      |      417 |       10 |     98% |290, 304, 725-728, 1018-1023, 1300-1301 |
-| **TOTAL**                                                          | **9231** |  **583** | **94%** |           |
+| **TOTAL**                                                          | **9238** |  **583** | **94%** |           |
 
 
 ## Setup coverage badge
