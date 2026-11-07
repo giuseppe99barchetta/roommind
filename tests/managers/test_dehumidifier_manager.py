@@ -265,6 +265,31 @@ async def test_midea_five_percent_step_does_not_reissue_commands(control, monkey
     )
 
 
+def test_mold_demand_stops_when_air_is_well_below_comfort_target(control):
+    manager, rooms, _, _ = control
+    rooms["bed"].update(humidity_target=56)
+    molds = {"bed": ("warning", 75, True, "dehumidifier", 45)}
+
+    prepare(control, {"bed": 52.0, "bath": 50.0}, molds=molds)
+    assert manager.requests.get("bed") == "mold"
+
+    prepare(control, {"bed": 51.0, "bath": 50.0}, molds=molds)  # target - 5
+    assert "bed" not in manager.requests
+
+    prepare(control, {"bed": 52.5, "bath": 50.0}, molds=molds)  # hysteresis: still stopped
+    assert "bed" not in manager.requests
+
+    prepare(control, {"bed": 53.5, "bath": 50.0}, molds=molds)  # above target - 3: resumes
+    assert manager.requests.get("bed") == "mold"
+
+
+def test_mold_demand_unaffected_without_comfort_target(control):
+    manager, rooms, _, _ = control
+    rooms["bed"]["humidity_comfort_enabled"] = False
+    prepare(control, {"bed": 40.0, "bath": 40.0}, molds={"bed": ("warning", 75, True, "dehumidifier", 45)})
+    assert manager.requests.get("bed") == "mold"
+
+
 def test_non_midea_without_reported_step_keeps_precise_target(control, monkeypatch):
     """Do not impose Midea's five-percent increments on other humidifier platforms."""
     manager, _, states, _ = control

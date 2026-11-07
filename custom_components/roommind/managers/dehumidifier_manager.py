@@ -21,6 +21,8 @@ from .window_manager import WindowManager
 
 _LOGGER = logging.getLogger(__name__)
 
+MOLD_OVERDRY_MARGIN = 5.0  # RH points below comfort target where mold drying stops
+
 
 def served_areas(owner: str, config: dict) -> set[str]:
     """The device always serves its host, in addition to selected rooms."""
@@ -67,6 +69,7 @@ class DehumidifierManager:
         self.assignments: dict[str, str] = {}
         self.requests: dict[str, str] = {}
         self._comfort: set[str] = set()
+        self._mold_dry: set[str] = set()
         self._windows = WindowManager()
         self._previous_requests: dict[str, list[str]] = {}
 
@@ -194,6 +197,7 @@ class DehumidifierManager:
                 "config": config,
             }
         self._comfort.intersection_update(rooms)
+        self._mold_dry.intersection_update(rooms)
         for owner in previous_owners - {d["owner_area_id"] for d in self.devices.values()}:
             self._windows.remove_room(owner)
         for eid in set(self.runtime) - self.devices.keys():
@@ -228,6 +232,16 @@ class DehumidifierManager:
                 self._comfort.add(area_id)
             mold = molds.get(area_id)
             mold_request = bool(mold and mold[2] and mold[3] == "dehumidifier")
+            # Air already well below comfort: a still-humid wall must not over-dry the room.
+            # Hysteresis (stop at -5, resume above -3) avoids on/off chatter.
+            if mold_request and target is not None:
+                if humidity <= target - MOLD_OVERDRY_MARGIN:
+                    self._mold_dry.add(area_id)
+                elif humidity > target - MOLD_OVERDRY_MARGIN + 2:
+                    self._mold_dry.discard(area_id)
+                mold_request = area_id not in self._mold_dry
+            else:
+                self._mold_dry.discard(area_id)
             demand = "mold" if mold_request else "comfort" if area_id in self._comfort else None
             if demand is None:
                 continue
