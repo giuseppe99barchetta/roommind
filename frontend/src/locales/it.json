@@ -362,6 +362,8 @@
   "dehumidifier.reason_tank_full": "Tanica piena",
   "dehumidifier.tank_sensor": "Sensore tanica piena",
   "dehumidifier.tank_sensor_hint": "Facoltativo. Quando segnala tanica piena, RoomMind attende e non considera lo spegnimento come manuale.",
+  "dehumidifier.fan_entity": "Velocità ventola (select)",
+  "dehumidifier.fan_entity_hint": "Facoltativo. Mentre il deumidificatore lavora, RoomMind imposta la ventola su «low» di notte e su «auto» di giorno, se l'entità supporta queste opzioni.",
   "dehumidifier.user_off_hint": "Il controllo automatico riprende alle {time} o quando l’umidità torna nel target.",
   "dehumidifier.reason_min_run": "Completamento tempo minimo acceso",
   "dehumidifier.reason_night": "Fascia notte della stanza ospitante",

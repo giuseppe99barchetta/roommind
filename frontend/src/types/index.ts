@@ -123,6 +123,8 @@ export interface DehumidifierConfig {
   min_off_minutes: number;
   power_watts: number;
   tank_full_entity?: string;
+  /** Optional select entity for the fan: low at night, auto by day. */
+  fan_entity?: string;
   /** Mode applied when RoomMind starts a native dehumidifier; empty keeps it. */
   start_mode?: string;
 }

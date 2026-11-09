@@ -601,6 +601,42 @@ async def test_user_off_ends_when_demand_ends(control):
     assert manager.hass.services.async_call.call_args.args[1] == "turn_on"
 
 
+def _fan_calls(manager):
+    return [c.args[:3] for c in manager.hass.services.async_call.call_args_list if c.args[0] == "select"]
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("night", "current", "expected"),
+    [(True, "high", "low"), (False, "low", "auto"), (True, "low", None), (False, "auto", None)],
+)
+async def test_fan_low_at_night_auto_by_day(control, night, current, expected):
+    manager, rooms, states, _ = control
+    rooms["bed"]["dehumidifier"]["fan_entity"] = "select.fan"
+    states["select.fan"] = SimpleNamespace(state=current, attributes={"options": ["low", "high", "auto"]})
+    prepare(control)
+    manager.devices["switch.dryer"]["night"] = night
+    await manager.apply(PowerBudgetManager())
+    want = [("select", "select_option", {"entity_id": "select.fan", "option": expected})] if expected else []
+    assert _fan_calls(manager) == want
+
+
+@pytest.mark.asyncio
+async def test_fan_untouched_without_entity_or_option(control):
+    manager, rooms, states, _ = control
+    prepare(control)
+    manager.devices["switch.dryer"]["night"] = True
+    await manager.apply(PowerBudgetManager())
+    assert _fan_calls(manager) == []  # no fan_entity configured
+
+    rooms["bed"]["dehumidifier"]["fan_entity"] = "select.fan"
+    states["select.fan"] = SimpleNamespace(state="high", attributes={"options": ["medium", "high"]})
+    prepare(control)
+    manager.devices["switch.dryer"]["night"] = True
+    await manager.apply(PowerBudgetManager())
+    assert _fan_calls(manager) == []  # "low" unsupported
+
+
 @pytest.mark.asyncio
 async def test_user_off_blocks_mold_demand(control):
     manager, _, states, clock = control

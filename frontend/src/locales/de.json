@@ -716,6 +716,8 @@
   "dehumidifier.reason_tank_full": "Wassertank voll",
   "dehumidifier.tank_sensor": "Sensor Wassertank voll",
   "dehumidifier.tank_sensor_hint": "Optional. Meldet er einen vollen Tank, wartet RoomMind und wertet das Ausschalten nicht als manuell.",
+  "dehumidifier.fan_entity": "Lüfterstufe (select)",
+  "dehumidifier.fan_entity_hint": "Optional. Während des Betriebs stellt RoomMind den Lüfter nachts auf „low“ und tagsüber auf „auto“, sofern die Entität diese Optionen unterstützt.",
   "dehumidifier.user_off_hint": "Die Automatik übernimmt wieder um {time} oder sobald die Feuchtigkeit im Zielbereich ist.",
   "dehumidifier.reason_min_run": "Mindestlaufzeit abschließen",
   "dehumidifier.reason_night": "Nachtruhe im Aufstellraum",

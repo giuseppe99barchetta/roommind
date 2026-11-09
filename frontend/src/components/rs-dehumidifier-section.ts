@@ -541,7 +541,18 @@ export class RsDehumidifierSection extends LitElement {
                   this._deviceChanged({ ...config, tank_full_entity: e.detail || undefined });
                 }}
               ></rs-entity-picker-field>
-              <p class="hint">${this._label("dehumidifier.tank_sensor_hint")}</p>`
+              <p class="hint">${this._label("dehumidifier.tank_sensor_hint")}</p>
+              <rs-entity-picker-field
+                .hass=${this.hass}
+                .label=${this._label("dehumidifier.fan_entity")}
+                .value=${config.fan_entity ?? ""}
+                .includeDomains=${["select"]}
+                @value-changed=${(e: CustomEvent<string>) => {
+                  e.stopPropagation();
+                  this._deviceChanged({ ...config, fan_entity: e.detail || undefined });
+                }}
+              ></rs-entity-picker-field>
+              <p class="hint">${this._label("dehumidifier.fan_entity_hint")}</p>`
           : nothing}
         ${!config && sharedDevices.length
           ? html`<div class="notice">

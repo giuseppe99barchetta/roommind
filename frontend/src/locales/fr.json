@@ -716,6 +716,8 @@
   "dehumidifier.reason_tank_full": "Réservoir plein",
   "dehumidifier.tank_sensor": "Capteur réservoir plein",
   "dehumidifier.tank_sensor_hint": "Facultatif. Quand il signale un réservoir plein, RoomMind attend et ne traite pas l’arrêt comme manuel.",
+  "dehumidifier.fan_entity": "Vitesse du ventilateur (select)",
+  "dehumidifier.fan_entity_hint": "Facultatif. Pendant le fonctionnement, RoomMind règle le ventilateur sur « low » la nuit et « auto » le jour, si l’entité prend en charge ces options.",
   "dehumidifier.user_off_hint": "La commande automatique reprend à {time} ou quand l’humidité revient à la cible.",
   "dehumidifier.reason_min_run": "Fin de la durée minimale de marche",
   "dehumidifier.reason_night": "Repos nocturne de la pièce hôte",

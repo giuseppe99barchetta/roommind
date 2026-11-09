@@ -21,6 +21,8 @@ from .window_manager import WindowManager
 
 _LOGGER = logging.getLogger(__name__)
 
+FAN_NIGHT = "low"
+FAN_DAY = "auto"
 MOLD_OVERDRY_MARGIN = 5.0  # RH points below comfort target where mold drying stops
 
 
@@ -56,6 +58,7 @@ class DeviceRuntime:
     available: bool = True
     owned_on: bool = False
     user_off_until: float = -math.inf
+    fan_at: float = -math.inf
 
 
 class DehumidifierManager:
@@ -372,7 +375,30 @@ class DehumidifierManager:
                 await self._apply_start_mode(device)
             else:
                 runtime.off_since = now
+        if desired:
+            await self._apply_fan(device, runtime, now)
         device["commanded"] = desired
+
+    async def _apply_fan(self, device: dict, runtime: DeviceRuntime, now: float) -> None:
+        """Quiet fan at night, auto by day, via the device's separate fan select."""
+        fan = str(device["config"].get("fan_entity") or "")
+        state = self.hass.states.get(fan) if fan.startswith("select.") else None
+        speed = FAN_NIGHT if device["night"] else FAN_DAY
+        if (
+            state is None
+            or state.state == speed
+            or speed not in (state.attributes.get("options") or [])
+            or now - runtime.fan_at < 60
+        ):
+            return
+        runtime.fan_at = now
+        await self.hass.services.async_call(
+            "select",
+            "select_option",
+            {"entity_id": fan, "option": speed},
+            blocking=True,
+            context=make_roommind_context(),
+        )
 
     async def _apply_start_mode(self, device: dict) -> None:
         """Switch to the configured mode when RoomMind itself starts the device.

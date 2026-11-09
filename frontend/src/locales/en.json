@@ -778,6 +778,8 @@
   "dehumidifier.reason_tank_full": "Tank full",
   "dehumidifier.tank_sensor": "Tank full sensor",
   "dehumidifier.tank_sensor_hint": "Optional. When it reports full, RoomMind waits and does not treat the stop as a manual one.",
+  "dehumidifier.fan_entity": "Fan speed (select)",
+  "dehumidifier.fan_entity_hint": "Optional. While the dehumidifier runs, RoomMind sets the fan to \"low\" at night and \"auto\" by day, if the entity supports those options.",
   "dehumidifier.user_off_hint": "Automatic control resumes at {time} or when humidity is back on target.",
   "dehumidifier.reason_min_run": "Completing minimum run time",
   "dehumidifier.reason_night": "Host quiet hours",
