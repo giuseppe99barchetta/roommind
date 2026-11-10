@@ -810,3 +810,38 @@ async def test_native_target_follows_season(control, monkeypatch):
     prepare(control, {"bed": 70, "bath": 55})
     await manager.apply(PowerBudgetManager())
     assert manager.hass.services.async_call.call_args_list[0].args[2]["humidity"] == 48
+
+
+@pytest.mark.asyncio
+async def test_adopt_hands_a_manual_run_to_roommind(control):
+    manager, _, states, clock = control
+    states["switch.dryer"].state = "on"
+    prepare(control)
+    assert manager.devices["switch.dryer"]["reason"] == "manual"
+    assert manager.adopt("switch.dryer") is True
+    clock[0] += 400  # past min_run
+    prepare(control, humidities={"bed": 40.0, "bath": 40.0})  # no demand any more
+    await manager.apply(PowerBudgetManager())
+    assert manager.hass.services.async_call.call_args.args[1] == "turn_off"
+
+
+def test_adopt_refused_unless_device_runs_manually(control):
+    manager, rooms, states, _ = control
+    prepare(control)
+    assert manager.adopt("switch.dryer") is False  # off: nothing to adopt
+    assert manager.adopt("switch.missing") is False
+    states["switch.dryer"].state = "on"
+    rooms["bed"]["dehumidifier"]["mode"] = "manual"
+    prepare(control)
+    assert manager.adopt("switch.dryer") is False  # user chose manual mode in settings
+
+
+def test_room_status_reports_fan_speed(control):
+    manager, rooms, states, _ = control
+    rooms["bed"]["dehumidifier"]["fan_entity"] = "select.fan"
+    states["select.fan"] = SimpleNamespace(state="high", attributes={})
+    prepare(control)
+    assert manager.room_status("bath")["devices"][0]["fan_speed"] == "high"
+    del states["select.fan"]
+    prepare(control)
+    assert manager.room_status("bath")["devices"][0]["fan_speed"] is None

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import inspect
 from unittest.mock import AsyncMock, MagicMock, patch
 
@@ -13,6 +14,7 @@ from custom_components.roommind.websocket_api import (
     _safe_float,
     websocket_control_preview,
     websocket_covers_clear_override,
+    websocket_dehumidifier_adopt,
     websocket_delete_room,
     websocket_get_analytics,
     websocket_get_analytics_comparison,
@@ -45,6 +47,23 @@ _get_analytics_comparison = inspect.unwrap(websocket_get_analytics_comparison)
 _get_diagnostics = inspect.unwrap(websocket_get_diagnostics)
 _covers_clear_override = inspect.unwrap(websocket_covers_clear_override)
 _control_preview = inspect.unwrap(websocket_control_preview)
+_dehumidifier_adopt = inspect.unwrap(websocket_dehumidifier_adopt)
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("adopted", [True, False])
+async def test_dehumidifier_adopt_websocket(ws_hass, connection, adopted):
+    coordinator = MagicMock()
+    coordinator._dehumidifier_manager.lock = asyncio.Lock()
+    coordinator._dehumidifier_manager.adopt.return_value = adopted
+    coordinator.async_request_refresh = AsyncMock()
+    ws_hass.data[DOMAIN]["coordinator"] = coordinator
+    await _dehumidifier_adopt(
+        ws_hass, connection, {"id": 7, "type": "roommind/dehumidifier/adopt", "entity_id": "switch.d"}
+    )
+    coordinator._dehumidifier_manager.adopt.assert_called_once_with("switch.d")
+    assert connection.send_result.called is adopted
+    assert connection.send_error.called is not adopted
 
 
 @pytest.mark.asyncio
@@ -1886,7 +1905,7 @@ def test_register_websocket_commands(hass):
 
     with patch("custom_components.roommind.websocket_api.websocket_api.async_register_command") as mock_reg:
         async_register_websocket_commands(hass)
-    assert mock_reg.call_count == 15
+    assert mock_reg.call_count == 16
 
 
 # ---------------------------------------------------------------------------
@@ -2978,6 +2997,7 @@ async def test_save_room_clears_active_profile(ws_hass, store, connection):
 _ADMIN_ONLY_COMMANDS = (
     "websocket_save_room",
     "websocket_delete_room",
+    "websocket_dehumidifier_adopt",
     "websocket_save_settings",
     "websocket_thermal_reset",
     "websocket_thermal_reset_all",

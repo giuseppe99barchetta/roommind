@@ -229,6 +229,12 @@ export class RsRoomDetail extends LitElement {
     .insights-card {
       grid-column: 1 / -1;
     }
+    @media (min-width: 1051px) {
+      /* Tall comfort card spans two rows so the heat-source card fills the gap under the others. */
+      .detail-grid[data-view="overview"] > .comfort-card {
+        grid-row: span 2;
+      }
+    }
 
     .control-card rs-toggle-row {
       margin-bottom: 16px;

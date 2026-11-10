@@ -197,6 +197,7 @@ class DehumidifierManager:
                 "humidity_floor": floor if len(areas) > 1 else None,
                 "user_off_until": time() + runtime.user_off_until - now if reason == "user_off" else None,
                 "night": night_phase(room, dt_util.now(), 0) == "night",
+                "fan_speed": self._fan_speed(config),
                 "config": config,
             }
         self._comfort.intersection_update(rooms)
@@ -378,6 +379,20 @@ class DehumidifierManager:
         if desired:
             await self._apply_fan(device, runtime, now)
         device["commanded"] = desired
+
+    def _fan_speed(self, config: dict) -> str | None:
+        fan = str(config.get("fan_entity") or "")
+        state = self.hass.states.get(fan) if fan.startswith("select.") else None
+        return state.state if state is not None and state.state not in ("unknown", "unavailable") else None
+
+    def adopt(self, entity_id: str) -> bool:
+        """Hand a device the user switched on over to RoomMind's automatic control."""
+        device = self.devices.get(entity_id)
+        runtime = self.runtime.get(entity_id)
+        if device is None or runtime is None or device["reason"] != "manual" or device["mode"] == "manual":
+            return False
+        runtime.owned_on = True
+        return True
 
     async def _apply_fan(self, device: dict, runtime: DeviceRuntime, now: float) -> None:
         """Quiet fan at night, auto by day, via the device's separate fan select."""

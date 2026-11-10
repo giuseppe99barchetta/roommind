@@ -1,6 +1,6 @@
 /** Dedicated and shared humidity control, separate from thermal equipment. */
 import { LitElement, html, css, nothing } from "lit";
-import { customElement, property } from "lit/decorators.js";
+import { customElement, property, state } from "lit/decorators.js";
 import type {
   DehumidifierConfig,
   DehumidifierDeviceStatus,
@@ -41,6 +41,7 @@ export class RsDehumidifierSection extends LitElement {
   @property({ type: Boolean }) public climateControlActive = true;
   @property({ type: Boolean }) public roomControlEnabled = true;
   @property({ type: Number }) public currentHumidity: number | null = null;
+  @state() private _adopting = false;
 
   static styles = [
     inputStyles,
@@ -713,6 +714,17 @@ export class RsDehumidifierSection extends LitElement {
     </div>`;
   }
 
+  private async _adopt(entityId: string) {
+    this._adopting = true;
+    try {
+      await this.hass.callWS({ type: "roommind/dehumidifier/adopt", entity_id: entityId });
+    } catch {
+      /* the next status refresh shows whether the device is still manual */
+    } finally {
+      this._adopting = false;
+    }
+  }
+
   private _deviceView(device: DehumidifierDeviceStatus) {
     const shared = device.served_area_ids.length > 1;
     const stateLabel = !device.available
@@ -774,7 +786,18 @@ export class RsDehumidifierSection extends LitElement {
               <div>
                 <strong>${this._label(`dehumidifier.reason_${device.reason}`)}</strong>
                 ${device.reason === "manual"
-                  ? html`<p class="hint">${this._label("dehumidifier.manual_hint")}</p>`
+                  ? html`<p class="hint">${this._label("dehumidifier.manual_hint")}</p>
+                      ${device.mode !== "manual" && device.available
+                        ? html`<button
+                            class="configure"
+                            type="button"
+                            ?disabled=${this._adopting}
+                            @click=${() => this._adopt(device.entity_id)}
+                          >
+                            <ha-icon icon="mdi:robot"></ha-icon>
+                            ${this._label("dehumidifier.adopt")}
+                          </button>`
+                        : nothing}`
                   : device.reason === "user_off" && device.user_off_until != null
                     ? html`<p class="hint">
                         ${localize("dehumidifier.user_off_hint", this.hass.language, {
@@ -809,6 +832,9 @@ export class RsDehumidifierSection extends LitElement {
             ${this._label("dehumidifier.requests")}:
             ${device.pending_rooms.map((id) => this._roomName(id)).join(", ")}
           </p>`
+        : nothing}
+      ${device.fan_speed
+        ? html`<p class="hint">${this._label("dehumidifier.fan_speed")}: ${device.fan_speed}</p>`
         : nothing}
       ${device.target_humidity != null || device.humidity_floor != null
         ? html`<details>

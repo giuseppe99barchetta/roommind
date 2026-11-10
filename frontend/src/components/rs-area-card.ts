@@ -503,12 +503,7 @@ export class RsAreaCard extends LitElement {
           <div class="card-header">
             <h3 class="area-name">${this.config?.display_name || this.area.name}</h3>
             <span class="card-status">
-              ${isConfigured &&
-              live &&
-              live.comfort_score &&
-              (live.comfort_score.label === "poor" || live.comfort_score.label === "fair")
-                ? this._renderComfortScore(live)
-                : nothing}
+              ${isConfigured && live?.comfort_score ? this._renderComfortScore(live) : nothing}
               ${isConfigured && live
                 ? html`
                     <span class="mode-pill ${getModeClass(live.mode)}">

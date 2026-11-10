@@ -741,6 +741,28 @@ async def websocket_delete_room(
     connection.send_result(msg["id"], {"success": True})
 
 
+@websocket_api.require_admin
+@websocket_api.websocket_command({vol.Required("type"): "roommind/dehumidifier/adopt", vol.Required("entity_id"): str})
+@websocket_api.async_response
+async def websocket_dehumidifier_adopt(
+    hass: HomeAssistant,
+    connection: ActiveConnection,
+    msg: dict,
+) -> None:
+    """Let RoomMind control a dehumidifier that is already running manually."""
+    coordinator = _get_coordinator(hass)
+    if coordinator is None:
+        connection.send_error(msg["id"], "not_ready", "RoomMind is not ready")
+        return
+    async with coordinator._dehumidifier_manager.lock:
+        adopted = coordinator._dehumidifier_manager.adopt(msg["entity_id"])
+    if not adopted:
+        connection.send_error(msg["id"], "not_manual", "The dehumidifier is not running in manual control")
+        return
+    await coordinator.async_request_refresh()
+    connection.send_result(msg["id"], {"success": True})
+
+
 # ---------------------------------------------------------------------------
 # Set override
 # ---------------------------------------------------------------------------
@@ -1350,6 +1372,7 @@ def async_register_websocket_commands(hass: HomeAssistant) -> None:
     websocket_api.async_register_command(hass, websocket_list_rooms)
     websocket_api.async_register_command(hass, websocket_save_room)
     websocket_api.async_register_command(hass, websocket_delete_room)
+    websocket_api.async_register_command(hass, websocket_dehumidifier_adopt)
     websocket_api.async_register_command(hass, websocket_override_set)
     websocket_api.async_register_command(hass, websocket_override_clear)
     websocket_api.async_register_command(hass, websocket_get_settings)

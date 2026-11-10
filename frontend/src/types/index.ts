@@ -160,6 +160,7 @@ export interface DehumidifierDeviceStatus {
   target_humidity: number | null;
   humidity_floor: number | null;
   user_off_until: number | null;
+  fan_speed?: string | null;
 }
 
 export interface DehumidifierStatus {
