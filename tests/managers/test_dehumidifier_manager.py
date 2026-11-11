@@ -617,6 +617,11 @@ async def test_fan_low_at_night_auto_by_day(control, night, current, expected):
     prepare(control)
     manager.devices["switch.dryer"]["night"] = night
     await manager.apply(PowerBudgetManager())
+    assert _fan_calls(manager) == []  # never in the turn_on cycle: it would switch the unit off
+    states["switch.dryer"].state = "on"
+    prepare(control)
+    manager.devices["switch.dryer"]["night"] = night
+    await manager.apply(PowerBudgetManager())
     want = [("select", "select_option", {"entity_id": "select.fan", "option": expected})] if expected else []
     assert _fan_calls(manager) == want
 

@@ -376,7 +376,9 @@ class DehumidifierManager:
                 await self._apply_start_mode(device)
             else:
                 runtime.off_since = now
-        if desired:
+        # Only once the unit reports "on": Midea's fan write sends the whole cached
+        # state, so right after turn_on it would switch the unit straight back off.
+        if desired and device["state"] == "on":
             await self._apply_fan(device, runtime, now)
         device["commanded"] = desired
 
