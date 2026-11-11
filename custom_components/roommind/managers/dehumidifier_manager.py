@@ -13,7 +13,13 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers import entity_registry as er
 from homeassistant.util import dt as dt_util
 
-from ..const import DEHUMIDIFIER_USER_OFF_MINUTES, make_roommind_context
+from ..const import (
+    DEHUMIDIFIER_USER_OFF_MINUTES,
+    MOLD_RISK_CRITICAL,
+    MOLD_RISK_WARNING,
+    MOLD_SURFACE_RH_EARLY,
+    make_roommind_context,
+)
 from ..utils.humidity_targets import current_season, room_humidity_target
 from ..utils.night_mode import night_phase
 from .power_budget_manager import PowerBudgetManager
@@ -22,7 +28,10 @@ from .window_manager import WindowManager
 _LOGGER = logging.getLogger(__name__)
 
 FAN_NIGHT = "low"
-FAN_DAY = "auto"
+# Day fan speed from how far the air is above its target (RH points) and from wall risk.
+FAN_LEVELS = ("low", "medium", "high")
+FAN_STEPS = (4.0, 9.0)  # gap that raises the level to medium / high
+FAN_HYSTERESIS = 2.0  # points the gap must fall below a step before the level drops
 MOLD_OVERDRY_MARGIN = 5.0  # RH points below comfort target where mold drying stops
 
 
@@ -34,6 +43,12 @@ def served_areas(owner: str, config: dict) -> set[str]:
 def humidity_target(room: dict, season: str | None = None) -> float | None:
     """Use the same opt-in, profile and seasonal targets as AC humidity comfort."""
     return room_humidity_target(room, season)
+
+
+def fan_level(gap: float, previous: int) -> int:
+    """Step up at once, step down only once the gap is clearly below the step."""
+    level = sum(gap >= step for step in FAN_STEPS)
+    return level if level > previous else min(previous, sum(gap >= step - FAN_HYSTERESIS for step in FAN_STEPS))
 
 
 def valid_humidity(value: Any) -> float | None:
@@ -59,6 +74,8 @@ class DeviceRuntime:
     owned_on: bool = False
     user_off_until: float = -math.inf
     fan_at: float = -math.inf
+    fan_sent: tuple[str, str] | None = None  # (option sent, state read back right after)
+    fan_level: int = 1
 
 
 class DehumidifierManager:
@@ -276,6 +293,22 @@ class DehumidifierManager:
                 and any(humidities.get(a) is None for a in self._previous_requests.get(d["entity_id"], []))
             ):
                 d["reason"] = "sensor"
+            if d["requested"]:
+                level = 0
+                for area in d["requesting_rooms"]:
+                    mold = molds.get(area) or (None,) * 5
+                    target = humidity_target(rooms[area], season) or 55.0
+                    if self.requests[area] == "mold" and mold[4] is not None:
+                        target = min(target, mold[4])
+                    wall = (
+                        2
+                        if mold[0] == MOLD_RISK_CRITICAL
+                        else int(mold[0] == MOLD_RISK_WARNING or (mold[1] or 0) >= MOLD_SURFACE_RH_EARLY)
+                    )
+                    level = max(
+                        level, wall, fan_level(humidities[area] - target, self.runtime[d["entity_id"]].fan_level)
+                    )
+                self.runtime[d["entity_id"]].fan_level = level
             if d["night"] and not d["requested"] and d["reason"] is None:
                 d["reason"] = "night"
             if len(d["served_area_ids"]) == 1:
@@ -372,6 +405,7 @@ class DehumidifierManager:
             runtime.command_at = now
             if desired:
                 runtime.owned_on = True
+                runtime.fan_sent = None
                 runtime.on_since = now
                 await self._apply_start_mode(device)
             else:
@@ -397,15 +431,17 @@ class DehumidifierManager:
         return True
 
     async def _apply_fan(self, device: dict, runtime: DeviceRuntime, now: float) -> None:
-        """Quiet fan at night, auto by day, via the device's separate fan select."""
+        """Quiet fan at night, by day sized to the humidity gap and wall risk, via the fan select."""
         fan = str(device["config"].get("fan_entity") or "")
         state = self.hass.states.get(fan) if fan.startswith("select.") else None
-        speed = FAN_NIGHT if device["night"] else FAN_DAY
+        speed = FAN_NIGHT if device["night"] else FAN_LEVELS[runtime.fan_level]
         if (
             state is None
             or state.state == speed
             or speed not in (state.attributes.get("options") or [])
             or now - runtime.fan_at < 60
+            # Midea reads "auto" back as "high": don't resend while the readback is what we got last time.
+            or runtime.fan_sent == (speed, state.state)
         ):
             return
         runtime.fan_at = now
@@ -416,6 +452,8 @@ class DehumidifierManager:
             blocking=True,
             context=make_roommind_context(),
         )
+        after = self.hass.states.get(fan)
+        runtime.fan_sent = (speed, after.state if after is not None else state.state)
 
     async def _apply_start_mode(self, device: dict) -> None:
         """Switch to the configured mode when RoomMind itself starts the device.

@@ -6,7 +6,7 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
-from custom_components.roommind.managers.dehumidifier_manager import DehumidifierManager
+from custom_components.roommind.managers.dehumidifier_manager import DehumidifierManager, fan_level
 from custom_components.roommind.managers.power_budget_manager import PowerBudgetManager
 
 
@@ -608,7 +608,7 @@ def _fan_calls(manager):
 @pytest.mark.asyncio
 @pytest.mark.parametrize(
     ("night", "current", "expected"),
-    [(True, "high", "low"), (False, "low", "auto"), (True, "low", None), (False, "auto", None)],
+    [(True, "high", "low"), (False, "low", "high"), (True, "low", None), (False, "high", None)],
 )
 async def test_fan_low_at_night_auto_by_day(control, night, current, expected):
     manager, rooms, states, _ = control
@@ -624,6 +624,46 @@ async def test_fan_low_at_night_auto_by_day(control, night, current, expected):
     await manager.apply(PowerBudgetManager())
     want = [("select", "select_option", {"entity_id": "select.fan", "option": expected})] if expected else []
     assert _fan_calls(manager) == want
+
+
+@pytest.mark.asyncio
+async def test_fan_not_resent_when_device_reads_option_back_differently(control):
+    manager, rooms, states, clock = control
+    rooms["bed"]["dehumidifier"]["fan_entity"] = "select.fan"
+    states["select.fan"] = SimpleNamespace(state="low", attributes={"options": ["low", "medium", "high"]})
+
+    def midea_quirk(domain, service, data, **kwargs):
+        if domain == "select":
+            states["select.fan"].state = "medium"  # the device reports another speed than the one set
+
+    manager.hass.services.async_call.side_effect = midea_quirk
+    prepare(control)
+    await manager.apply(PowerBudgetManager())  # turn_on cycle
+    states["switch.dryer"].state = "on"
+    for _ in range(3):
+        clock[0] += 61
+        prepare(control)
+        await manager.apply(PowerBudgetManager())
+    assert len(_fan_calls(manager)) == 1
+
+
+@pytest.mark.parametrize(
+    ("risk", "surface_rh", "expected"), [("critical", 90, 2), ("warning", 70, 1), ("ok", 66, 1), ("ok", 50, 0)]
+)
+def test_wall_risk_sets_a_minimum_fan_level(control, risk, surface_rh, expected):
+    manager, _, _, _ = control
+    # Air only just above target (small gap): the wall alone decides the level.
+    prepare(control, {"bed": 56.0, "bath": 56.0}, molds={"bed": (risk, surface_rh, True, "dehumidifier", None)})
+    assert manager.requests.get("bed") in ("mold", "comfort")
+    assert manager.runtime["switch.dryer"].fan_level == expected
+
+
+@pytest.mark.parametrize(
+    ("gap", "previous", "expected"),
+    [(1, 0, 0), (4, 0, 1), (9, 0, 2), (12, 2, 2), (8, 2, 2), (6, 2, 1), (3, 1, 1), (1.5, 1, 0), (-5, 2, 0)],
+)
+def test_fan_level_steps_up_at_once_and_down_with_hysteresis(gap, previous, expected):
+    assert fan_level(gap, previous) == expected
 
 
 @pytest.mark.asyncio
