@@ -152,7 +152,7 @@ class RoomMindStore:
 
         self._settings = stored.get("settings", {}) if stored else {}
         self._thermal_data = stored.get("thermal_data", {}) if stored else {}
-        self._dehumidifier_data = stored.get("dehumidifier_data", {}) if stored else {}
+        self._dehumidifier_data = (stored.get("dehumidifier_data") if stored else None) or {}
 
         # One-time migrations (combined into single pass + single save)
         device_migrated = 0

@@ -749,6 +749,7 @@
   "dehumidifier.power_entity_hint": "Real power draw in W or kW. Used instead of the nominal power for the forecast.",
   "dehumidifier.forecast_unreachable": "Target likely not reachable within 12 hours at this speed.",
   "dehumidifier.forecast_over": "> 12 h",
+  "dehumidifier.power_measured": "measured",
   "dehumidifier.last_run": "Last run, predicted / actual",
   "dehumidifier.served_rooms": "Served rooms",
   "dehumidifier.host_included": "The room hosting the device is always included.",

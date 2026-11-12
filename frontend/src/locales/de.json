@@ -749,6 +749,7 @@
   "dehumidifier.power_entity_hint": "Tatsächliche Leistungsaufnahme in W oder kW. Ersetzt die Nennleistung in der Prognose.",
   "dehumidifier.forecast_unreachable": "Zielwert bei dieser Stufe voraussichtlich nicht innerhalb von 12 Stunden erreichbar.",
   "dehumidifier.forecast_over": "> 12 Std.",
+  "dehumidifier.power_measured": "gemessen",
   "dehumidifier.last_run": "Letzter Lauf, geplant / tatsächlich",
   "dehumidifier.served_rooms": "Versorgte Räume",
   "dehumidifier.host_included": "Der Aufstellraum ist immer enthalten.",

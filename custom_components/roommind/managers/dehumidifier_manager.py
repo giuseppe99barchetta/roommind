@@ -38,6 +38,7 @@ LEARN_WINDOW_S = 600.0  # measure the drying rate over at least 10 min (sensors 
 LEARN_ALPHA = 0.3  # weight of a new observation in the learned rate
 SERVED_FACTOR = 0.5  # a served room dries slower than the host until its own rate is learned
 LATENT_HEAT_RATIO = 0.8  # condensing water returns ~0.7-1.4 kWh per kWh drawn; a cautious mid-low value
+COMFORT_STOP_MARGIN = 2.0  # comfort demand clears this many RH points above target
 RUN_HISTORY = 10  # completed runs kept for the predicted-vs-actual readout
 
 
@@ -129,7 +130,7 @@ class DehumidifierManager:
             try:
                 k = [float(v) for v in raw["k"]]
                 k_n = [int(v) for v in raw["k_n"]]
-            except (KeyError, TypeError, ValueError):
+            except (KeyError, TypeError, ValueError, OverflowError):
                 return None
             ok = len(k) == len(k_n) == size and all(0 < v <= K_MAX for v in k) and all(n >= 0 for n in k_n)
             return {"k": k, "k_n": k_n} if ok else None
@@ -137,8 +138,10 @@ class DehumidifierManager:
         def number(value: Any) -> bool:
             return isinstance(value, (int, float)) and math.isfinite(value)
 
-        for eid, entry in (data or {}).items():
-            own = rates(entry)
+        if not isinstance(data, dict):
+            return
+        for eid, entry in data.items():
+            own = rates(entry) if isinstance(entry, dict) else None
             if own is None:
                 continue
             areas = {
@@ -148,7 +151,7 @@ class DehumidifierManager:
             }
             runs = [
                 {"predicted": float(r["predicted"]), "actual": float(r["actual"])}
-                for r in (entry.get("runs") or [])
+                for r in (entry["runs"] if isinstance(entry.get("runs"), list) else [])
                 if isinstance(r, dict) and number(r.get("predicted")) and number(r.get("actual"))
             ][-RUN_HISTORY:]
             self.learned[eid] = {**own, "areas": areas, "runs": runs}
@@ -385,6 +388,11 @@ class DehumidifierManager:
             target = min(target, mold[4])  # the wall needs drier air than comfort asks for
         return target
 
+    def _area_goal(self, area: str, rooms: dict, molds: dict, season: str | None) -> float:
+        """Humidity at which the run is expected to end: comfort demand stops 2 points above its target."""
+        target = self._area_target(area, rooms, molds, season)
+        return target if self.requests.get(area) == "mold" else target + COMFORT_STOP_MARGIN
+
     def _rate(self, d: dict, runtime: DeviceRuntime, area: str, level: int) -> tuple[float, bool]:
         """Drying rate of one served room: its own once learned, else a damped host rate."""
         if area == d["owner_area_id"]:
@@ -396,7 +404,7 @@ class DehumidifierManager:
 
     def _learn(self, d: dict, runtime: DeviceRuntime, area: str, level: int, k: float) -> None:
         if area == d["owner_area_id"]:
-            entry = {"k": runtime.k, "k_n": runtime.k_n}
+            entry: dict[str, list] = {"k": runtime.k, "k_n": runtime.k_n}
         else:
             areas = self.learned[d["entity_id"]]["areas"]
             entry = areas.setdefault(area, {"k": [v * SERVED_FACTOR for v in runtime.k], "k_n": [0] * len(DEFAULT_K)})
@@ -439,6 +447,8 @@ class DehumidifierManager:
         else:
             level = FAN_LEVELS.index(speed) if speed in FAN_LEVELS else 0 if d["night"] else runtime.fan_level
         d["learn_level"] = level
+        # Forecast at the speed the unit is about to run at, not the one it still reads back.
+        plan_level = 0 if not d["config"].get("fan_entity") or d["night"] else runtime.fan_level
         now = monotonic()
         running = d["state"] == "on" and d["reason"] is None and d["requested"]
         for area in d["served_area_ids"]:
@@ -456,7 +466,7 @@ class DehumidifierManager:
                 # No drop yet (1% sensor): let the window grow instead of biasing k upward.
                 if k is not None or rh > anchor[0] or now - anchor[1] >= 6 * LEARN_WINDOW_S:
                     runtime.anchors[area] = (rh, now, level)
-        self._track_run(d, runtime, entry, rooms, humidities, molds, season, level, running, now)
+        self._track_run(d, runtime, entry, rooms, humidities, molds, season, plan_level, running, now)
         d["last_run"] = entry["runs"][-1] if entry["runs"] else None
         if d["reason"] is not None or not (d["requested"] or d["state"] == "on"):
             return
@@ -466,9 +476,9 @@ class DehumidifierManager:
             rh = humidities.get(area)
             if rh is None or area not in rooms:
                 continue
-            k, known = self._rate(d, runtime, area, level)
+            k, known = self._rate(d, runtime, area, plan_level)
             learned &= known
-            minutes[area] = minutes_to_target(rh, self._area_target(area, rooms, molds, season), k)
+            minutes[area] = minutes_to_target(rh, self._area_goal(area, rooms, molds, season), k)
         power = float(d["config"].get("power_watts", 0) or 0)
         if d["state"] == "on" and d["measured_power_w"] is not None:
             power = d["measured_power_w"]
@@ -482,7 +492,19 @@ class DehumidifierManager:
             forecast_unreachable=d["requested"] and any(minutes.get(a, 0.0) is None for a in d["requesting_rooms"]),
         )
 
-    def _track_run(self, d, runtime, entry, rooms, humidities, molds, season, level, running, now) -> None:
+    def _track_run(
+        self,
+        d: dict,
+        runtime: DeviceRuntime,
+        entry: dict,
+        rooms: dict,
+        humidities: dict,
+        molds: dict,
+        season: str | None,
+        plan_level: int,
+        running: bool,
+        now: float,
+    ) -> None:
         """Keep predicted-vs-actual minutes of the last completed drying run."""
         run = runtime.run
         if run is not None and (not running or run["area"] not in d["requesting_rooms"]):
@@ -499,7 +521,8 @@ class DehumidifierManager:
                 if rh is None or area not in rooms:
                     continue
                 target = self._area_target(area, rooms, molds, season)
-                predicted = minutes_to_target(rh, target, self._rate(d, runtime, area, level)[0])
+                goal = self._area_goal(area, rooms, molds, season)
+                predicted = minutes_to_target(rh, goal, self._rate(d, runtime, area, plan_level)[0])
                 if predicted:
                     runtime.run = {"area": area, "target": target, "start": now, "predicted": predicted}
                     break
@@ -510,7 +533,7 @@ class DehumidifierManager:
             if area_id in d["served_area_ids"]:
                 return {
                     "dehumidifier_on": d["state"] == "on",
-                    "dehumidifier_fan": d.get("learn_level"),
+                    "dehumidifier_fan": d.get("learn_level") if d["state"] == "on" else None,
                     "dehumidifier_power_w": d.get("measured_power_w"),
                 }
         return {}

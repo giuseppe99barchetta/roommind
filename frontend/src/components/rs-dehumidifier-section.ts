@@ -559,6 +559,9 @@ export class RsDehumidifierSection extends LitElement {
                 .label=${this._label("dehumidifier.power_entity")}
                 .value=${config.power_entity ?? ""}
                 .includeDomains=${["sensor"]}
+                .entityFilter=${(e: { attributes: Record<string, unknown> }) =>
+                  e.attributes.device_class === "power" ||
+                  ["W", "kW"].includes(String(e.attributes.unit_of_measurement))}
                 @value-changed=${(e: CustomEvent<string>) => {
                   e.stopPropagation();
                   this._deviceChanged({ ...config, power_entity: e.detail || undefined });
@@ -856,7 +859,9 @@ export class RsDehumidifierSection extends LitElement {
                   `${this._roomName(id)} ${m == null ? this._label("dehumidifier.forecast_over") : m === 0 ? "✓" : `${m} min`}`,
               )
               .join(", ")}
-            ${device.forecast_power_w ? ` · ${device.forecast_power_w} W` : ""}
+            ${device.forecast_power_w
+              ? ` · ${device.forecast_power_w} W${device.state === "on" && device.measured_power_w != null ? ` (${this._label("dehumidifier.power_measured")})` : ""}`
+              : ""}
             ${device.forecast_heat_c ? ` · +${device.forecast_heat_c} °C` : ""}
             ${device.forecast_learned ? "" : ` (${this._label("dehumidifier.forecast_estimate")})`}
           </p>`

@@ -749,6 +749,7 @@
   "dehumidifier.power_entity_hint": "Consommation réelle en W ou kW. Remplace la puissance nominale dans la prévision.",
   "dehumidifier.forecast_unreachable": "Cible probablement hors d'atteinte en 12 heures à cette vitesse.",
   "dehumidifier.forecast_over": "> 12 h",
+  "dehumidifier.power_measured": "mesurée",
   "dehumidifier.last_run": "Dernier cycle, prévu / réel",
   "dehumidifier.served_rooms": "Pièces desservies",
   "dehumidifier.host_included": "La pièce accueillant l’appareil est toujours incluse.",

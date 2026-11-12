@@ -1050,3 +1050,32 @@ async def test_interrupted_run_is_not_recorded_and_removed_device_is_forgotten(c
     rooms["bed"].pop("dehumidifier")
     prepare(control)
     assert "switch.dryer" not in manager.learned and manager.dirty is True
+
+
+def test_corrupt_learning_data_never_raises(control):
+    manager, _, _, _ = control
+    good = {"k": [0.2, 0.3, 0.4], "k_n": [1, 0, 0]}
+    for bad in ("junk", 5, None, [1]):
+        manager.load_learned(bad)
+    manager.load_learned(
+        {
+            "a": "x",
+            "b": {"k": [0.2, 0.3, 0.4], "k_n": [float("inf"), 0, 0]},
+            "c": {**good, "runs": 5, "areas": [1]},
+        }
+    )
+    assert list(manager.learned) == ["c"] and manager.learned["c"]["runs"] == []
+
+
+@pytest.mark.asyncio
+async def test_forecast_targets_where_comfort_demand_actually_stops(control):
+    from custom_components.roommind.managers.dehumidifier_manager import SERVED_FACTOR
+    from custom_components.roommind.utils.dehumidifier_forecast import minutes_to_target
+
+    manager, _, _, _ = control
+    await start_automatic_run(control)
+    prepare(control, humidities={"bed": 55.0, "bath": 62.0})
+    runtime = manager.runtime["switch.dryer"]
+    k = runtime.k[0] * SERVED_FACTOR  # no fan entity: a single speed bucket
+    # Comfort demand clears at target + 2, so the ETA is to 57, not 55.
+    assert manager.room_status("bath")["devices"][0]["forecast_minutes"]["bath"] == minutes_to_target(62.0, 57.0, k)

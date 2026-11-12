@@ -351,3 +351,20 @@ test("power sensor is kept across other edits and removed when cleared", () => {
   section._deviceChanged({ ...section.config, power_entity: undefined });
   assert.equal("power_entity" in JSON.parse(JSON.stringify(events[1].detail)), false);
 });
+
+test("measured power is labelled and the picker only offers power sensors", () => {
+  const section = new Section();
+  section.hass = { language: "en", states: {}, areas: {} };
+  section.humidity = { humidity_comfort_enabled: true, humidity_target: 55 };
+  section.live = {
+    request: "comfort", assigned_entity_id: null, devices: [{
+      entity_id: "switch.bed", owner_area_id: "bed", served_area_ids: ["bed"],
+      state: "on", action: "drying", available: true, reason: null, commanded: true,
+      requesting_rooms: ["bed"], pending_rooms: [], target_humidity: 55, humidity_floor: null,
+      forecast_minutes: { bed: 30 }, forecast_power_w: 150, measured_power_w: 150, forecast_learned: true,
+    }],
+  };
+  assert.ok(renderedText(section.render()).includes("measured"));
+  section.live.devices[0].measured_power_w = null;
+  assert.ok(!renderedText(section.render()).includes("measured"));
+});

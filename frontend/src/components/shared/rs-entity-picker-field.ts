@@ -9,6 +9,10 @@ export class RsEntityPickerField extends LitElement {
   @property({ type: String }) public label = "";
   @property({ type: String }) public value = "";
   @property({ type: Array }) public includeDomains: string[] = [];
+  /** Optional extra filter, e.g. by device class or unit. */
+  @property({ attribute: false }) public entityFilter?: (stateObj: {
+    attributes: Record<string, unknown>;
+  }) => boolean;
   @property({ type: String }) public currentValue = "";
   @property({ type: String }) public currentValueLabel = "";
 
@@ -38,6 +42,7 @@ export class RsEntityPickerField extends LitElement {
         .label=${this.label}
         .value=${this.value}
         .includeDomains=${this.includeDomains}
+        .entityFilter=${this.entityFilter}
         allow-custom-entity
         @value-changed=${this._onValueChanged}
       ></ha-entity-picker>
