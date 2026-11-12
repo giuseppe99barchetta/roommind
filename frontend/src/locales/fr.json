@@ -743,6 +743,8 @@
   "dehumidifier.manual_hint": "RoomMind n’intervient pas sur les démarrages manuels (ex. séchage du linge).",
   "dehumidifier.adopt": "Confier le contrôle à RoomMind",
   "dehumidifier.fan_speed": "Vitesse du ventilateur",
+  "dehumidifier.forecast": "Prévision jusqu'à la cible",
+  "dehumidifier.forecast_estimate": "estimation par défaut, s'affine à l'usage",
   "dehumidifier.served_rooms": "Pièces desservies",
   "dehumidifier.host_included": "La pièce accueillant l’appareil est toujours incluse.",
   "dehumidifier.shared_hint": "Chaque pièce utilise son capteur. Fenêtre et nuit de la pièce hôte s’appliquent ; pause à 45%, reprise à 50%, selon les limites de l’appareil.",

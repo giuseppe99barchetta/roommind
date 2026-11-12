@@ -836,6 +836,20 @@ export class RsDehumidifierSection extends LitElement {
       ${device.fan_speed
         ? html`<p class="hint">${this._label("dehumidifier.fan_speed")}: ${device.fan_speed}</p>`
         : nothing}
+      ${device.forecast_minutes
+        ? html`<p class="hint">
+            ${this._label("dehumidifier.forecast")}:
+            ${Object.entries(device.forecast_minutes)
+              .map(
+                ([id, m]) =>
+                  `${this._roomName(id)} ${m == null ? "—" : m === 0 ? "✓" : `${m} min`}`,
+              )
+              .join(", ")}
+            ${device.forecast_power_w ? ` · ${device.forecast_power_w} W` : ""}
+            ${device.forecast_heat_c ? ` · +${device.forecast_heat_c} °C` : ""}
+            ${device.forecast_learned ? "" : ` (${this._label("dehumidifier.forecast_estimate")})`}
+          </p>`
+        : nothing}
       ${device.target_humidity != null || device.humidity_floor != null
         ? html`<details>
             <summary>${this._label("dehumidifier.device_details")}</summary>

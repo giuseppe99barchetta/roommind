@@ -743,6 +743,8 @@
   "dehumidifier.manual_hint": "RoomMind does not touch manual runs (e.g. laundry drying).",
   "dehumidifier.adopt": "Let RoomMind take control",
   "dehumidifier.fan_speed": "Fan speed",
+  "dehumidifier.forecast": "Forecast to target",
+  "dehumidifier.forecast_estimate": "default estimate, improves as the unit runs",
   "dehumidifier.served_rooms": "Served rooms",
   "dehumidifier.host_included": "The room hosting the device is always included.",
   "dehumidifier.shared_hint": "Shared control uses each room’s own sensor. Host window and night rules apply; pause at 45% and resume at 50% in the host, subject to device limits.",

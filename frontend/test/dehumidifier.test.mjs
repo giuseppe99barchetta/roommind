@@ -299,3 +299,25 @@ test("room saves keep seasonal humidity targets", async () => {
   assert.deepEqual(writes[0].humidity_season_targets, { winter: 48 });
   assert.equal(writes[0].dehumidifier.start_mode, "auto");
 });
+
+test("forecast shows minutes per room, power, heat and the estimate hint until learned", () => {
+  const section = new Section();
+  section.hass = { language: "en", states: {}, areas: {} };
+  section.humidity = { humidity_comfort_enabled: true, humidity_target: 55 };
+  section.live = {
+    request: "comfort", assigned_entity_id: null, devices: [{
+      entity_id: "switch.bed", owner_area_id: "bed", served_area_ids: ["bed", "bath"],
+      state: "on", action: "drying", available: true, reason: null, commanded: true,
+      requesting_rooms: ["bath"], pending_rooms: ["bath"], target_humidity: 55, humidity_floor: null,
+      forecast_minutes: { bed: 0, bath: 90 }, forecast_power_w: 200, forecast_heat_c: 1.4, forecast_learned: false,
+    }],
+  };
+  const text = renderedText(section.render());
+  assert.ok(text.includes("Forecast to target"));
+  assert.ok(text.includes("90 min"));
+  assert.ok(text.includes("200 W"));
+  assert.ok(text.includes("+1.4 °C"));
+  assert.ok(text.includes("improves as the unit runs"));
+  section.live.devices[0].forecast_learned = true;
+  assert.ok(!renderedText(section.render()).includes("improves as the unit runs"));
+});

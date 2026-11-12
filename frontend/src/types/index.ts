@@ -161,6 +161,11 @@ export interface DehumidifierDeviceStatus {
   humidity_floor: number | null;
   user_off_until: number | null;
   fan_speed?: string | null;
+  /** Minutes to target per served room (null = unreachable); null while idle. */
+  forecast_minutes?: Record<string, number | null> | null;
+  forecast_power_w?: number | null;
+  forecast_heat_c?: number | null;
+  forecast_learned?: boolean;
 }
 
 export interface DehumidifierStatus {

@@ -890,3 +890,36 @@ def test_room_status_reports_fan_speed(control):
     del states["select.fan"]
     prepare(control)
     assert manager.room_status("bath")["devices"][0]["fan_speed"] is None
+
+
+@pytest.mark.asyncio
+async def test_forecast_reports_minutes_power_and_heat_for_each_served_room(control):
+    manager, rooms, _, _ = control
+    rooms["bed"]["dehumidifier"]["power_watts"] = 200
+    await start_automatic_run(control)
+    device = manager.room_status("bath")["devices"][0]
+    assert device["forecast_minutes"]["bed"] == 0  # already at target
+    assert device["forecast_minutes"]["bath"] > 0
+    assert device["forecast_power_w"] == 200
+    assert device["forecast_learned"] is False
+
+
+def test_forecast_is_empty_when_device_idle(control):
+    prepare(control, humidities={"bed": 40.0, "bath": 40.0})
+    device = control[0].room_status("bath")["devices"][0]
+    assert device["forecast_minutes"] is None
+    assert device["forecast_heat_c"] is None
+
+
+@pytest.mark.asyncio
+async def test_drying_rate_is_learned_over_a_ten_minute_run(control):
+    manager, _, _, clock = control
+    await start_automatic_run(control)
+    before = list(manager.runtime["switch.dryer"].k)
+    clock[0] += 601
+    prepare(control, humidities={"bed": 50.0, "bath": 64.0})  # bath stays above the high-fan step
+    runtime = manager.runtime["switch.dryer"]
+    level = runtime.fan_level
+    assert runtime.k_n[level] == 1
+    assert runtime.k[level] != before[level]
+    assert manager.room_status("bath")["devices"][0]["forecast_learned"] is True

@@ -743,6 +743,8 @@
   "dehumidifier.manual_hint": "RoomMind greift in manuell gestartete Läufe nicht ein (z. B. Wäschetrocknen).",
   "dehumidifier.adopt": "Steuerung an RoomMind übergeben",
   "dehumidifier.fan_speed": "Lüfterstufe",
+  "dehumidifier.forecast": "Prognose bis Zielwert",
+  "dehumidifier.forecast_estimate": "Standardschätzung, verbessert sich im Betrieb",
   "dehumidifier.served_rooms": "Versorgte Räume",
   "dehumidifier.host_included": "Der Aufstellraum ist immer enthalten.",
   "dehumidifier.shared_hint": "Jeder Raum nutzt seinen Sensor. Fenster und Nachtzeit des Aufstellraums gelten; Pause bei 45%, Fortsetzung bei 50%, innerhalb der Gerätegrenzen.",

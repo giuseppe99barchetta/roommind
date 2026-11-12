@@ -5,7 +5,7 @@ from __future__ import annotations
 import asyncio
 import logging
 import math
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from time import monotonic, time
 from typing import Any
 
@@ -20,6 +20,7 @@ from ..const import (
     MOLD_SURFACE_RH_EARLY,
     make_roommind_context,
 )
+from ..utils.dehumidifier_forecast import DEFAULT_K, heat_gain_c, minutes_to_target, observed_k
 from ..utils.humidity_targets import current_season, room_humidity_target
 from ..utils.night_mode import night_phase
 from .power_budget_manager import PowerBudgetManager
@@ -33,6 +34,8 @@ FAN_LEVELS = ("low", "medium", "high")
 FAN_STEPS = (4.0, 9.0)  # gap that raises the level to medium / high
 FAN_HYSTERESIS = 2.0  # points the gap must fall below a step before the level drops
 MOLD_OVERDRY_MARGIN = 5.0  # RH points below comfort target where mold drying stops
+LEARN_WINDOW_S = 600.0  # measure the drying rate over at least 10 min (sensors are 1% coarse)
+LEARN_ALPHA = 0.3  # weight of a new observation in the learned rate
 
 
 def served_areas(owner: str, config: dict) -> set[str]:
@@ -76,6 +79,9 @@ class DeviceRuntime:
     fan_at: float = -math.inf
     fan_sent: tuple[str, str] | None = None  # (option sent, state read back right after)
     fan_level: int = 1
+    k: list[float] = field(default_factory=lambda: list(DEFAULT_K))  # learned drying rate per fan level
+    k_n: list[int] = field(default_factory=lambda: [0, 0, 0])
+    anchor: tuple[float, float, int] | None = None  # (RH, time, fan level) a drying run is measured from
 
 
 class DehumidifierManager:
@@ -309,6 +315,7 @@ class DehumidifierManager:
                         level, wall, fan_level(humidities[area] - target, self.runtime[d["entity_id"]].fan_level)
                     )
                 self.runtime[d["entity_id"]].fan_level = level
+            self._learn_and_forecast(d, rooms, humidities, molds, season)
             if d["night"] and not d["requested"] and d["reason"] is None:
                 d["reason"] = "night"
             if len(d["served_area_ids"]) == 1:
@@ -319,6 +326,47 @@ class DehumidifierManager:
                     # The wall needs drier air than comfort asks for.
                     target = min(target, mold[4])
                 d["target_humidity"] = self._native_target(d["entity_id"], target)
+
+    def _learn_and_forecast(self, d: dict, rooms: dict, humidities: dict, molds: dict, season: str | None) -> None:
+        """Learn the drying rate of the fan level in use, then predict time to target per served room."""
+        runtime = self.runtime[d["entity_id"]]
+        d.update(forecast_minutes=None, forecast_power_w=None, forecast_heat_c=None, forecast_learned=False)
+        speed = d["fan_speed"]
+        level = FAN_LEVELS.index(speed) if speed in FAN_LEVELS else 0 if d["night"] else runtime.fan_level
+        owner_rh = humidities.get(d["owner_area_id"])
+        now = monotonic()
+        if d["state"] == "on" and d["reason"] is None and d["requested"] and owner_rh is not None:
+            if runtime.anchor is None or runtime.anchor[2] != level:
+                runtime.anchor = (owner_rh, now, level)
+            elif now - runtime.anchor[1] >= LEARN_WINDOW_S:
+                k = observed_k(runtime.anchor[0], owner_rh, (now - runtime.anchor[1]) / 3600)
+                if k is not None:
+                    first = runtime.k_n[level] == 0
+                    runtime.k[level] = k if first else (1 - LEARN_ALPHA) * runtime.k[level] + LEARN_ALPHA * k
+                    runtime.k_n[level] += 1
+                runtime.anchor = (owner_rh, now, level)
+        else:
+            runtime.anchor = None
+        if not (d["requested"] or d["state"] == "on"):
+            return
+        minutes: dict[str, float | None] = {}
+        for area in d["served_area_ids"]:
+            rh = humidities.get(area)
+            if rh is None or area not in rooms:
+                continue
+            target = humidity_target(rooms[area], season) or 55.0
+            mold = molds.get(area)
+            if self.requests.get(area) == "mold" and mold and mold[4] is not None:
+                target = min(target, mold[4])
+            minutes[area] = minutes_to_target(rh, target, runtime.k[level])
+        power = float(d["config"].get("power_watts", 0) or 0)
+        own = minutes.get(d["owner_area_id"])
+        d.update(
+            forecast_minutes=minutes,
+            forecast_power_w=power or None,
+            forecast_heat_c=heat_gain_c(power, own) if power and own else None,
+            forecast_learned=runtime.k_n[level] > 0,
+        )
 
     def _native_target(self, eid: str, target: float) -> float:
         state = self.hass.states.get(eid)
