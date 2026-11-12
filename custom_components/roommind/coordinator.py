@@ -2035,6 +2035,7 @@ class RoomMindCoordinator(DataUpdateCoordinator):
             window_open=window_open,
             mold_risk_level=mold_risk_level,
             anomalies=anomalies,
+            mold_surface_rh=mold_surface_rh,
         )
         return room_state
 

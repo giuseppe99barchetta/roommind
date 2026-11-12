@@ -4,6 +4,10 @@ from __future__ import annotations
 
 from typing import Any
 
+from ..const import MOLD_SURFACE_RH_EARLY
+
+HUMIDITY_FALLBACK_LIMIT = 60.0  # RH % above which air counts as damp when no humidity target is set
+
 DEFAULT_PROFILES: dict[str, dict[str, Any]] = {
     "work": {"heat_target": 21.0, "cool_target": 25.0, "humidity_target": 55.0, "fan_mode": "auto"},
     "sleep": {"heat_target": 19.5, "cool_target": 26.0, "humidity_target": 55.0, "fan_mode": "low"},
@@ -50,6 +54,7 @@ def calculate_comfort_score(
     window_open: bool,
     mold_risk_level: str | None,
     anomalies: list[dict[str, str]] | None = None,
+    mold_surface_rh: float | None = None,
 ) -> dict[str, Any]:
     """Score a room from 0 to 100 using only available measurements."""
     score = 100.0
@@ -85,6 +90,12 @@ def calculate_comfort_score(
             if humidity > humidity_target
             else "on_target",
         }
+    elif humidity is not None and humidity > HUMIDITY_FALLBACK_LIMIT:
+        # No comfort target: still penalise clearly damp air.
+        penalty = min(25, round((humidity - HUMIDITY_FALLBACK_LIMIT) * 2.5))
+        score -= penalty
+        factors["humidity"] = 100 - penalty
+        breakdown["humidity"] = {"penalty": penalty, "status": "above_target"}
     else:
         breakdown["humidity"] = {"penalty": 0, "status": "unavailable"}
     if window_open:
@@ -92,10 +103,13 @@ def calculate_comfort_score(
         factors["window"] = 0
     breakdown["window"] = {"penalty": 15 if window_open else 0, "status": "open" if window_open else "closed"}
     risk_penalty = {"warning": 10, "critical": 25}.get(mold_risk_level or "", 0)
+    status = mold_risk_level or "ok"
+    if not risk_penalty and mold_surface_rh is not None and mold_surface_rh >= MOLD_SURFACE_RH_EARLY:
+        risk_penalty, status = 5, "elevated"  # walls approaching warning, before the level flips
     score -= risk_penalty
     if risk_penalty:
         factors["air_quality"] = 100 - risk_penalty
-    breakdown["air_quality"] = {"penalty": risk_penalty, "status": mold_risk_level or "ok"}
+    breakdown["air_quality"] = {"penalty": risk_penalty, "status": status}
     anomaly_penalty = min(20, 5 * len(anomalies or []))
     score -= anomaly_penalty
     breakdown["anomalies"] = {"penalty": anomaly_penalty, "status": "active" if anomaly_penalty else "none"}
