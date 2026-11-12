@@ -3543,7 +3543,7 @@
             ${e.pending_rooms.map(e=>this._roomName(e)).join(`, `)}
           </p>`:h}
       ${e.fan_speed?m`<p class="hint">${this._label(`dehumidifier.fan_speed`)}: ${e.fan_speed}</p>`:h}
-      ${e.forecast_minutes?m`<p class="hint">
+      ${e.forecast_minutes&&Object.keys(e.forecast_minutes).length?m`<p class="hint">
             ${this._label(`dehumidifier.forecast`)}:
             ${Object.entries(e.forecast_minutes).map(([e,t])=>`${this._roomName(e)} ${t==null?`—`:t===0?`✓`:`${t} min`}`).join(`, `)}
             ${e.forecast_power_w?` · ${e.forecast_power_w} W`:``}

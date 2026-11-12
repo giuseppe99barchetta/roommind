@@ -332,7 +332,10 @@ class DehumidifierManager:
         runtime = self.runtime[d["entity_id"]]
         d.update(forecast_minutes=None, forecast_power_w=None, forecast_heat_c=None, forecast_learned=False)
         speed = d["fan_speed"]
-        level = FAN_LEVELS.index(speed) if speed in FAN_LEVELS else 0 if d["night"] else runtime.fan_level
+        if not d["config"].get("fan_entity"):
+            level = 0  # one speed: a single bucket, not three that never get told apart
+        else:
+            level = FAN_LEVELS.index(speed) if speed in FAN_LEVELS else 0 if d["night"] else runtime.fan_level
         owner_rh = humidities.get(d["owner_area_id"])
         now = monotonic()
         if d["state"] == "on" and d["reason"] is None and d["requested"] and owner_rh is not None:
@@ -344,10 +347,12 @@ class DehumidifierManager:
                     first = runtime.k_n[level] == 0
                     runtime.k[level] = k if first else (1 - LEARN_ALPHA) * runtime.k[level] + LEARN_ALPHA * k
                     runtime.k_n[level] += 1
-                runtime.anchor = (owner_rh, now, level)
+                # No drop yet (1% sensor): let the window grow instead of biasing k upward.
+                if k is not None or owner_rh > runtime.anchor[0] or now - runtime.anchor[1] >= 6 * LEARN_WINDOW_S:
+                    runtime.anchor = (owner_rh, now, level)
         else:
             runtime.anchor = None
-        if not (d["requested"] or d["state"] == "on"):
+        if d["reason"] is not None or not (d["requested"] or d["state"] == "on"):
             return
         minutes: dict[str, float | None] = {}
         for area in d["served_area_ids"]:

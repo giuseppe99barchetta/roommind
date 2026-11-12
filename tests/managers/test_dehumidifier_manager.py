@@ -919,7 +919,28 @@ async def test_drying_rate_is_learned_over_a_ten_minute_run(control):
     clock[0] += 601
     prepare(control, humidities={"bed": 50.0, "bath": 64.0})  # bath stays above the high-fan step
     runtime = manager.runtime["switch.dryer"]
-    level = runtime.fan_level
+    level = 0  # no fan entity: a single bucket
     assert runtime.k_n[level] == 1
     assert runtime.k[level] != before[level]
     assert manager.room_status("bath")["devices"][0]["forecast_learned"] is True
+
+
+@pytest.mark.asyncio
+async def test_window_without_a_visible_drop_keeps_measuring(control):
+    manager, _, _, clock = control
+    await start_automatic_run(control)
+    clock[0] += 601
+    prepare(control, humidities={"bed": 55.0, "bath": 65.0})  # sensor still shows no change
+    runtime = manager.runtime["switch.dryer"]
+    assert sum(runtime.k_n) == 0
+    anchor = runtime.anchor
+    clock[0] += 601
+    prepare(control, humidities={"bed": 50.0, "bath": 65.0})
+    assert sum(runtime.k_n) == 1 and runtime.anchor != anchor
+
+
+def test_single_speed_unit_has_no_forecast_while_paused(control):
+    manager, _, states, _ = control
+    states["switch.dryer"].state = "on"
+    prepare(control, windows={"bed": True})
+    assert manager.room_status("bath")["devices"][0]["forecast_minutes"] is None

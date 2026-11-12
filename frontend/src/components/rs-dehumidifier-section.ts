@@ -836,7 +836,7 @@ export class RsDehumidifierSection extends LitElement {
       ${device.fan_speed
         ? html`<p class="hint">${this._label("dehumidifier.fan_speed")}: ${device.fan_speed}</p>`
         : nothing}
-      ${device.forecast_minutes
+      ${device.forecast_minutes && Object.keys(device.forecast_minutes).length
         ? html`<p class="hint">
             ${this._label("dehumidifier.forecast")}:
             ${Object.entries(device.forecast_minutes)
