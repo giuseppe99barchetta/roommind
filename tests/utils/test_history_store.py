@@ -674,3 +674,36 @@ def test_read_filters_out_of_order_timestamps(history_dir):
 
     assert [float(r["timestamp"]) for r in rows] == [5000.0, 5500.0]
     assert [r["ac_device_power_w"] for r in rows] == [{"climate.a": 5000.0}, {"climate.a": 5500.0}]
+
+
+def test_dehumidifier_columns_round_trip_and_downsample_to_duty_cycle(history_dir):
+    store = HistoryStore(history_dir)
+    base = 1_000_000.0 - (1_000_000.0 % 300)
+    for i, on in enumerate((True, False, True, True)):
+        store.record(
+            "bath",
+            {
+                "room_temp": 20.0,
+                "mode": "idle",
+                "dehumidifier_on": on,
+                "dehumidifier_fan": 2,
+                "dehumidifier_power_w": 180,
+            },
+            timestamp=base + i * 60,
+        )
+    store.record("bath", {"room_temp": 20.0, "mode": "idle"}, timestamp=base + 600)  # room without a unit
+    rows = store.read_detail("bath")
+    assert [r["dehumidifier_on"] for r in rows] == ["1", "0", "1", "1", ""]
+    assert rows[-1]["dehumidifier_fan"] == ""
+    avg = store._downsample(rows[:4], bucket_seconds=300)[0]
+    assert avg["dehumidifier_on"] == 0.75 and avg["dehumidifier_fan"] == 2.0 and avg["dehumidifier_power_w"] == 180.0
+
+
+def test_old_history_files_gain_dehumidifier_columns(history_dir):
+    os.makedirs(history_dir)
+    with open(os.path.join(history_dir, "bath_detail.csv"), "w", newline="") as f:
+        f.write("timestamp,room_temp,mode\n1000000.0,20.0,idle\n")
+    store = HistoryStore(history_dir)
+    store.record("bath", {"room_temp": 21.0, "mode": "idle", "dehumidifier_on": True}, timestamp=1_000_060.0)
+    rows = store.read_detail("bath")
+    assert rows[0]["dehumidifier_on"] == "" and rows[1]["dehumidifier_on"] == "1"

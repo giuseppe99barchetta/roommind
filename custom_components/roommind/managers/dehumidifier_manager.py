@@ -36,6 +36,9 @@ FAN_HYSTERESIS = 2.0  # points the gap must fall below a step before the level d
 MOLD_OVERDRY_MARGIN = 5.0  # RH points below comfort target where mold drying stops
 LEARN_WINDOW_S = 600.0  # measure the drying rate over at least 10 min (sensors are 1% coarse)
 LEARN_ALPHA = 0.3  # weight of a new observation in the learned rate
+SERVED_FACTOR = 0.5  # a served room dries slower than the host until its own rate is learned
+LATENT_HEAT_RATIO = 0.8  # condensing water returns ~0.7-1.4 kWh per kWh drawn; a cautious mid-low value
+RUN_HISTORY = 10  # completed runs kept for the predicted-vs-actual readout
 
 
 def served_areas(owner: str, config: dict) -> set[str]:
@@ -63,6 +66,10 @@ def valid_humidity(value: Any) -> float | None:
     return number if math.isfinite(number) and 0 <= number <= 100 else None
 
 
+def _new_learning() -> dict:
+    return {"k": list(DEFAULT_K), "k_n": [0] * len(DEFAULT_K), "areas": {}, "runs": []}
+
+
 @dataclass
 class DeviceRuntime:
     observed_on: bool
@@ -81,7 +88,8 @@ class DeviceRuntime:
     fan_level: int = 1
     k: list[float] = field(default_factory=lambda: list(DEFAULT_K))  # learned drying rate per fan level
     k_n: list[int] = field(default_factory=lambda: [0, 0, 0])
-    anchor: tuple[float, float, int] | None = None  # (RH, time, fan level) a drying run is measured from
+    anchors: dict[str, tuple[float, float, int]] = field(default_factory=dict)  # area -> (RH, time, level)
+    run: dict | None = None  # drying run being timed: area, target, start, predicted
 
 
 class DehumidifierManager:
@@ -93,7 +101,8 @@ class DehumidifierManager:
         self.devices: dict[str, dict] = {}
         self.runtime: dict[str, DeviceRuntime] = {}
         # Learned drying rates per entity; outlives runtime resets and is persisted by the store.
-        self.learned: dict[str, dict[str, list]] = {}
+        self.learned: dict[str, dict] = {}
+        self.dirty = False  # learning changed since the coordinator last persisted it
         self.assignments: dict[str, str] = {}
         self.requests: dict[str, str] = {}
         self._comfort: set[str] = set()
@@ -114,16 +123,37 @@ class DehumidifierManager:
 
     def load_learned(self, data: dict) -> None:
         """Restore persisted drying rates, ignoring anything malformed."""
-        for eid, entry in (data or {}).items():
+        size = len(DEFAULT_K)
+
+        def rates(raw: Any) -> dict | None:
             try:
-                k = [float(v) for v in entry["k"]]
-                k_n = [int(v) for v in entry["k_n"]]
+                k = [float(v) for v in raw["k"]]
+                k_n = [int(v) for v in raw["k_n"]]
             except (KeyError, TypeError, ValueError):
+                return None
+            ok = len(k) == len(k_n) == size and all(0 < v <= K_MAX for v in k) and all(n >= 0 for n in k_n)
+            return {"k": k, "k_n": k_n} if ok else None
+
+        def number(value: Any) -> bool:
+            return isinstance(value, (int, float)) and math.isfinite(value)
+
+        for eid, entry in (data or {}).items():
+            own = rates(entry)
+            if own is None:
                 continue
-            if len(k) == len(k_n) == len(DEFAULT_K) and all(0 < v <= K_MAX for v in k) and all(n >= 0 for n in k_n):
-                self.learned[eid] = {"k": k, "k_n": k_n}
-                if eid in self.runtime:
-                    self.runtime[eid].k, self.runtime[eid].k_n = k, k_n
+            areas = {
+                a: r
+                for a, raw in (entry["areas"] if isinstance(entry.get("areas"), dict) else {}).items()
+                if (r := rates(raw)) is not None
+            }
+            runs = [
+                {"predicted": float(r["predicted"]), "actual": float(r["actual"])}
+                for r in (entry.get("runs") or [])
+                if isinstance(r, dict) and number(r.get("predicted")) and number(r.get("actual"))
+            ][-RUN_HISTORY:]
+            self.learned[eid] = {**own, "areas": areas, "runs": runs}
+            if eid in self.runtime:
+                self.runtime[eid].k, self.runtime[eid].k_n = own["k"], own["k_n"]
 
     def prepare(self, rooms: dict, settings: dict, humidities: dict, raw_windows: dict) -> None:
         """Snapshot availability and host constraints before evaluating any room."""
@@ -145,7 +175,7 @@ class DehumidifierManager:
                 and (not eid.startswith("humidifier.") or state.attributes.get("device_class") == "dehumidifier")
             )
             on = available and state.state == "on"
-            learned = self.learned.setdefault(eid, {"k": list(DEFAULT_K), "k_n": [0] * len(DEFAULT_K)})
+            learned = self.learned.setdefault(eid, _new_learning())
             runtime = self.runtime.setdefault(
                 eid, DeviceRuntime(on, now, now, available=available, k=learned["k"], k_n=learned["k_n"])
             )
@@ -247,6 +277,9 @@ class DehumidifierManager:
             self._windows.remove_room(owner)
         for eid in set(self.runtime) - self.devices.keys():
             self.runtime.pop(eid)
+        for eid in set(self.learned) - self.devices.keys():
+            self.learned.pop(eid)  # device no longer configured anywhere
+            self.dirty = True
 
     def suppress_ac_dry(self, area_id: str) -> bool:
         """Only physical unavailability of every associated device permits fallback."""
@@ -345,51 +378,142 @@ class DehumidifierManager:
                     target = min(target, mold[4])
                 d["target_humidity"] = self._native_target(d["entity_id"], target)
 
+    def _area_target(self, area: str, rooms: dict, molds: dict, season: str | None) -> float:
+        target = humidity_target(rooms[area], season) or 55.0
+        mold = molds.get(area)
+        if self.requests.get(area) == "mold" and mold and mold[4] is not None:
+            target = min(target, mold[4])  # the wall needs drier air than comfort asks for
+        return target
+
+    def _rate(self, d: dict, runtime: DeviceRuntime, area: str, level: int) -> tuple[float, bool]:
+        """Drying rate of one served room: its own once learned, else a damped host rate."""
+        if area == d["owner_area_id"]:
+            return runtime.k[level], runtime.k_n[level] > 0
+        own = self.learned[d["entity_id"]]["areas"].get(area)
+        if own and own["k_n"][level] > 0:
+            return own["k"][level], True
+        return runtime.k[level] * SERVED_FACTOR, False
+
+    def _learn(self, d: dict, runtime: DeviceRuntime, area: str, level: int, k: float) -> None:
+        if area == d["owner_area_id"]:
+            entry = {"k": runtime.k, "k_n": runtime.k_n}
+        else:
+            areas = self.learned[d["entity_id"]]["areas"]
+            entry = areas.setdefault(area, {"k": [v * SERVED_FACTOR for v in runtime.k], "k_n": [0] * len(DEFAULT_K)})
+        entry["k"][level] = k if entry["k_n"][level] == 0 else (1 - LEARN_ALPHA) * entry["k"][level] + LEARN_ALPHA * k
+        entry["k_n"][level] += 1
+        # Persist the first observation at once; later refinements ride the periodic save.
+        self.dirty = self.dirty or entry["k_n"][level] == 1
+
+    def _power_w(self, config: dict) -> float | None:
+        """Measured draw from the optional power sensor, in W."""
+        state = self.hass.states.get(str(config.get("power_entity") or ""))
+        if state is None or state.state in ("unknown", "unavailable"):
+            return None
+        try:
+            watts = float(state.state)
+        except ValueError:
+            return None
+        unit = state.attributes.get("unit_of_measurement")
+        if unit not in ("W", "kW"):
+            return None  # an energy (kWh) or unrelated sensor would make the forecast nonsense
+        if unit == "kW":
+            watts *= 1000
+        return watts if math.isfinite(watts) and watts >= 0 else None
+
     def _learn_and_forecast(self, d: dict, rooms: dict, humidities: dict, molds: dict, season: str | None) -> None:
-        """Learn the drying rate of the fan level in use, then predict time to target per served room."""
+        """Learn each room's drying rate at the fan level in use, then predict time to target."""
         runtime = self.runtime[d["entity_id"]]
-        d.update(forecast_minutes=None, forecast_power_w=None, forecast_heat_c=None, forecast_learned=False)
+        entry = self.learned[d["entity_id"]]
+        d.update(
+            forecast_minutes=None,
+            forecast_power_w=None,
+            forecast_heat_c=None,
+            forecast_learned=False,
+            forecast_unreachable=False,
+            measured_power_w=self._power_w(d["config"]),
+        )
         speed = d["fan_speed"]
         if not d["config"].get("fan_entity"):
             level = 0  # one speed: a single bucket, not three that never get told apart
         else:
             level = FAN_LEVELS.index(speed) if speed in FAN_LEVELS else 0 if d["night"] else runtime.fan_level
-        owner_rh = humidities.get(d["owner_area_id"])
+        d["learn_level"] = level
         now = monotonic()
-        if d["state"] == "on" and d["reason"] is None and d["requested"] and owner_rh is not None:
-            if runtime.anchor is None or runtime.anchor[2] != level:
-                runtime.anchor = (owner_rh, now, level)
-            elif now - runtime.anchor[1] >= LEARN_WINDOW_S:
-                k = observed_k(runtime.anchor[0], owner_rh, (now - runtime.anchor[1]) / 3600)
+        running = d["state"] == "on" and d["reason"] is None and d["requested"]
+        for area in d["served_area_ids"]:
+            rh = humidities.get(area)
+            if not running or rh is None or not (area == d["owner_area_id"] or area in d["requesting_rooms"]):
+                runtime.anchors.pop(area, None)
+                continue
+            anchor = runtime.anchors.get(area)
+            if anchor is None or anchor[2] != level:
+                runtime.anchors[area] = (rh, now, level)
+            elif now - anchor[1] >= LEARN_WINDOW_S:
+                k = observed_k(anchor[0], rh, (now - anchor[1]) / 3600)
                 if k is not None:
-                    first = runtime.k_n[level] == 0
-                    runtime.k[level] = k if first else (1 - LEARN_ALPHA) * runtime.k[level] + LEARN_ALPHA * k
-                    runtime.k_n[level] += 1
+                    self._learn(d, runtime, area, level, k)
                 # No drop yet (1% sensor): let the window grow instead of biasing k upward.
-                if k is not None or owner_rh > runtime.anchor[0] or now - runtime.anchor[1] >= 6 * LEARN_WINDOW_S:
-                    runtime.anchor = (owner_rh, now, level)
-        else:
-            runtime.anchor = None
+                if k is not None or rh > anchor[0] or now - anchor[1] >= 6 * LEARN_WINDOW_S:
+                    runtime.anchors[area] = (rh, now, level)
+        self._track_run(d, runtime, entry, rooms, humidities, molds, season, level, running, now)
+        d["last_run"] = entry["runs"][-1] if entry["runs"] else None
         if d["reason"] is not None or not (d["requested"] or d["state"] == "on"):
             return
         minutes: dict[str, float | None] = {}
+        learned = True
         for area in d["served_area_ids"]:
             rh = humidities.get(area)
             if rh is None or area not in rooms:
                 continue
-            target = humidity_target(rooms[area], season) or 55.0
-            mold = molds.get(area)
-            if self.requests.get(area) == "mold" and mold and mold[4] is not None:
-                target = min(target, mold[4])
-            minutes[area] = minutes_to_target(rh, target, runtime.k[level])
+            k, known = self._rate(d, runtime, area, level)
+            learned &= known
+            minutes[area] = minutes_to_target(rh, self._area_target(area, rooms, molds, season), k)
         power = float(d["config"].get("power_watts", 0) or 0)
-        own = minutes.get(d["owner_area_id"])
+        if d["state"] == "on" and d["measured_power_w"] is not None:
+            power = d["measured_power_w"]
+        own = minutes.get(d["owner_area_id"], 0.0)
         d.update(
             forecast_minutes=minutes,
-            forecast_power_w=power or None,
-            forecast_heat_c=heat_gain_c(power, own) if power and own else None,
-            forecast_learned=runtime.k_n[level] > 0,
+            forecast_power_w=round(power) or None,
+            # Drying releases the water's latent heat too; with no finite ETA show the steady state.
+            forecast_heat_c=heat_gain_c(power * (1 + LATENT_HEAT_RATIO), own) if power and own != 0 else None,
+            forecast_learned=learned and bool(minutes),
+            forecast_unreachable=d["requested"] and any(minutes.get(a, 0.0) is None for a in d["requesting_rooms"]),
         )
+
+    def _track_run(self, d, runtime, entry, rooms, humidities, molds, season, level, running, now) -> None:
+        """Keep predicted-vs-actual minutes of the last completed drying run."""
+        run = runtime.run
+        if run is not None and (not running or run["area"] not in d["requesting_rooms"]):
+            rh = humidities.get(run["area"])
+            # Only a run whose own demand ended normally counts: a window, user-off or tank stop does not.
+            if d["reason"] is None and rh is not None and rh <= run["target"] + 2.0:  # comfort stops 2 above target
+                done = {"predicted": run["predicted"], "actual": round((now - run["start"]) / 60)}
+                entry["runs"] = [*entry["runs"], done][-RUN_HISTORY:]
+                self.dirty = True
+            runtime.run = None
+        if running and runtime.run is None:
+            for area in sorted(d["requesting_rooms"]):
+                rh = humidities.get(area)
+                if rh is None or area not in rooms:
+                    continue
+                target = self._area_target(area, rooms, molds, season)
+                predicted = minutes_to_target(rh, target, self._rate(d, runtime, area, level)[0])
+                if predicted:
+                    runtime.run = {"area": area, "target": target, "start": now, "predicted": predicted}
+                    break
+
+    def history_sample(self, area_id: str) -> dict:
+        """Dehumidifier columns for the room history row; empty when the room has no unit."""
+        for d in self.devices.values():
+            if area_id in d["served_area_ids"]:
+                return {
+                    "dehumidifier_on": d["state"] == "on",
+                    "dehumidifier_fan": d.get("learn_level"),
+                    "dehumidifier_power_w": d.get("measured_power_w"),
+                }
+        return {}
 
     def _native_target(self, eid: str, target: float) -> float:
         state = self.hass.states.get(eid)
@@ -550,7 +674,7 @@ class DehumidifierManager:
     def room_status(self, area_id: str) -> dict:
         """Public data never confuses a command with an observed action."""
         devices = [
-            {k: v for k, v in d.items() if k not in ("config", "night")}
+            {k: v for k, v in d.items() if k not in ("config", "night", "learn_level")}
             for d in self.devices.values()
             if area_id in d["served_area_ids"]
         ]
@@ -585,3 +709,4 @@ class DehumidifierManager:
                 eid.split(".")[0], "turn_off", {"entity_id": eid}, blocking=True, context=make_roommind_context()
             )
         self.runtime.pop(eid, None)
+        self.learned.pop(eid, None)

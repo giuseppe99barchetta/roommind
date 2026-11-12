@@ -505,6 +505,7 @@ async def websocket_list_rooms(
                 vol.Optional("power_watts", default=0): vol.All(_FLOAT, vol.Range(min=0, max=100000)),
                 vol.Optional("tank_full_entity"): str,
                 vol.Optional("fan_entity"): str,
+                vol.Optional("power_entity"): str,
                 vol.Optional("start_mode", default=""): vol.All(str, vol.Length(max=64)),
             },
         ),

@@ -125,6 +125,8 @@ export interface DehumidifierConfig {
   tank_full_entity?: string;
   /** Optional select entity for the fan: low at night, auto by day. */
   fan_entity?: string;
+  /** Optional power sensor (W or kW): replaces the nominal power in forecasts. */
+  power_entity?: string;
   /** Mode applied when RoomMind starts a native dehumidifier; empty keeps it. */
   start_mode?: string;
 }
@@ -166,6 +168,10 @@ export interface DehumidifierDeviceStatus {
   forecast_power_w?: number | null;
   forecast_heat_c?: number | null;
   forecast_learned?: boolean;
+  forecast_unreachable?: boolean;
+  measured_power_w?: number | null;
+  /** Minutes predicted at the start vs actually taken by the last completed run. */
+  last_run?: { predicted: number; actual: number } | null;
 }
 
 export interface DehumidifierStatus {

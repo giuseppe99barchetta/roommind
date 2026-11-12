@@ -39,9 +39,7 @@ def test_comfort_score_combines_temperature_humidity_and_window() -> None:
 
 
 def test_comfort_score_penalises_damp_air_without_target_and_elevated_walls() -> None:
-    kwargs = dict(
-        current_temp=21.0, heat_target=21.0, cool_target=25.0, window_open=False, mold_risk_level="ok"
-    )
+    kwargs = dict(current_temp=21.0, heat_target=21.0, cool_target=25.0, window_open=False, mold_risk_level="ok")
     damp = calculate_comfort_score(humidity=70.0, humidity_target=None, mold_surface_rh=71.0, **kwargs)
     assert damp["breakdown"]["humidity"] == {"penalty": 25, "status": "above_target"}
     assert damp["breakdown"]["air_quality"] == {"penalty": 5, "status": "elevated"}

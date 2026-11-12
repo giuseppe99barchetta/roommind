@@ -933,10 +933,10 @@ async def test_window_without_a_visible_drop_keeps_measuring(control):
     prepare(control, humidities={"bed": 55.0, "bath": 65.0})  # sensor still shows no change
     runtime = manager.runtime["switch.dryer"]
     assert sum(runtime.k_n) == 0
-    anchor = runtime.anchor
+    anchor = runtime.anchors["bed"]
     clock[0] += 601
     prepare(control, humidities={"bed": 50.0, "bath": 65.0})
-    assert sum(runtime.k_n) == 1 and runtime.anchor != anchor
+    assert runtime.k_n[0] == 1 and runtime.anchors["bed"] != anchor
 
 
 def test_single_speed_unit_has_no_forecast_while_paused(control):
@@ -957,5 +957,96 @@ def test_learned_rates_survive_runtime_reset_and_restore_from_storage(control):
 
     fresh = DehumidifierManager(manager.hass)
     fresh.load_learned({**manager.learned, "switch.bad": {"k": [9, 9, 9], "k_n": [1, 1, 1]}, "x": "junk"})
-    assert fresh.learned["switch.dryer"] == {"k": manager.learned["switch.dryer"]["k"], "k_n": [0, 4, 0]}
+    assert fresh.learned["switch.dryer"]["k"] == manager.learned["switch.dryer"]["k"]
+    assert fresh.learned["switch.dryer"]["k_n"] == [0, 4, 0]
     assert "switch.bad" not in fresh.learned and "x" not in fresh.learned
+
+
+@pytest.mark.asyncio
+async def test_served_room_learns_its_own_rate_and_is_flagged_until_then(control):
+    manager, _, _, clock = control
+    await start_automatic_run(control)
+    device = manager.room_status("bath")["devices"][0]
+    assert device["forecast_learned"] is False  # bath only has the damped host default
+    assert manager.learned["switch.dryer"]["areas"] == {}
+    clock[0] += 601
+    prepare(control, humidities={"bed": 50.0, "bath": 64.0})
+    assert manager.learned["switch.dryer"]["areas"]["bath"]["k_n"][0] == 1
+    assert manager.dirty is True
+
+
+@pytest.mark.asyncio
+async def test_measured_power_overrides_nominal_and_handles_kw(control):
+    manager, rooms, states, _ = control
+    rooms["bed"]["dehumidifier"].update(power_watts=200, power_entity="sensor.p")
+    states["sensor.p"] = SimpleNamespace(state="0.15", attributes={"unit_of_measurement": "kW"})
+    await start_automatic_run(control)
+    device = manager.room_status("bath")["devices"][0]
+    assert device["measured_power_w"] == 150 and device["forecast_power_w"] == 150
+    states["sensor.p"].state = "unavailable"
+    prepare(control)
+    device = manager.room_status("bath")["devices"][0]
+    assert device["measured_power_w"] is None and device["forecast_power_w"] == 200
+
+
+@pytest.mark.asyncio
+async def test_completed_run_records_predicted_vs_actual_and_flags_unreachable(control):
+    manager, rooms, _, clock = control
+    await start_automatic_run(control)
+    assert manager.runtime["switch.dryer"].run["area"] == "bath"
+    predicted = manager.runtime["switch.dryer"].run["predicted"]
+    clock[0] += 1800
+    prepare(control, humidities={"bed": 50.0, "bath": 55.0})  # demand over: comfort stops
+    assert manager.learned["switch.dryer"]["runs"] == [{"predicted": predicted, "actual": 30}]
+    assert manager.room_status("bath")["devices"][0]["last_run"]["actual"] == 30
+
+    manager.learned["switch.dryer"]["k"] = [0.001] * 3
+    manager.runtime["switch.dryer"].k = manager.learned["switch.dryer"]["k"]
+    prepare(control, humidities={"bed": 70.0, "bath": 80.0})
+    assert manager.room_status("bath")["devices"][0]["forecast_unreachable"] is True
+
+
+def test_heat_estimate_includes_latent_heat_and_steady_state_without_eta():
+    from custom_components.roommind.utils.dehumidifier_forecast import heat_gain_c
+
+    assert heat_gain_c(360.0, None) == 3.6
+    assert heat_gain_c(360.0, 10_000) == 3.6
+    assert heat_gain_c(360.0, 0.0) == 0.0
+
+
+def test_load_learned_validates_areas_and_runs(control):
+    manager, _, _, _ = control
+    good = {"k": [0.2, 0.3, 0.4], "k_n": [1, 0, 0]}
+    manager.load_learned(
+        {
+            "switch.dryer": {
+                **good,
+                "areas": {"bath": good, "bad": {"k": [0], "k_n": [0]}},
+                "runs": [{"predicted": 60, "actual": 80}, {"predicted": "x"}, "junk"],
+            }
+        }
+    )
+    entry = manager.learned["switch.dryer"]
+    assert list(entry["areas"]) == ["bath"]
+    assert entry["runs"] == [{"predicted": 60.0, "actual": 80.0}]
+
+
+@pytest.mark.asyncio
+async def test_energy_sensor_is_not_read_as_power(control):
+    manager, rooms, states, _ = control
+    rooms["bed"]["dehumidifier"]["power_entity"] = "sensor.p"
+    states["sensor.p"] = SimpleNamespace(state="12.3", attributes={"unit_of_measurement": "kWh"})
+    await start_automatic_run(control)
+    assert manager.room_status("bath")["devices"][0]["measured_power_w"] is None
+
+
+@pytest.mark.asyncio
+async def test_interrupted_run_is_not_recorded_and_removed_device_is_forgotten(control):
+    manager, rooms, _, clock = control
+    await start_automatic_run(control)
+    clock[0] += 120
+    prepare(control, humidities={"bed": 50.0, "bath": 55.0}, windows={"bed": True})  # window stops it, at target
+    assert manager.learned["switch.dryer"]["runs"] == []
+    rooms["bed"].pop("dehumidifier")
+    prepare(control)
+    assert "switch.dryer" not in manager.learned and manager.dirty is True

@@ -24,10 +24,12 @@ def minutes_to_target(rh: float, target: float, k_per_h: float) -> float | None:
     return round(minutes) if minutes <= MAX_MINUTES else None
 
 
-def heat_gain_c(power_w: float, minutes: float) -> float:
-    """Room warming from the unit's electrical power (all of it ends up as heat), with losses."""
-    tau_s = HEAT_C_J_PER_K / HEAT_UA_W_PER_K
-    return round(power_w / HEAT_UA_W_PER_K * (1 - math.exp(-minutes * 60 / tau_s)), 1)
+def heat_gain_c(heat_w: float, minutes: float | None) -> float:
+    """Room warming from the unit's heat output, with losses; steady state when no finite ETA."""
+    steady = heat_w / HEAT_UA_W_PER_K
+    if minutes is None:
+        return round(steady, 1)
+    return round(steady * (1 - math.exp(-minutes * 60 * HEAT_UA_W_PER_K / HEAT_C_J_PER_K)), 1)
 
 
 def observed_k(rh_start: float, rh_end: float, hours: float) -> float | None:

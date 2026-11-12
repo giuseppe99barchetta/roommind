@@ -625,6 +625,7 @@ class RoomMindCoordinator(DataUpdateCoordinator):
                             "window_impact_c": rs.get("window_impact_c"),
                             "ac_efficiency_status": rs.get("ac_efficiency_status"),
                             "ac_efficiency_reason": rs.get("ac_efficiency_reason"),
+                            **self._dehumidifier_manager.history_sample(area_id),
                         },
                     )
                 except Exception:
@@ -670,8 +671,9 @@ class RoomMindCoordinator(DataUpdateCoordinator):
 
         # Save thermal data periodically
         self._thermal_save_count += 1
-        if self._thermal_save_count >= THERMAL_SAVE_CYCLES:
+        if self._thermal_save_count >= THERMAL_SAVE_CYCLES or self._dehumidifier_manager.dirty:
             self._thermal_save_count = 0
+            self._dehumidifier_manager.dirty = False
             store.set_dehumidifier_data(self._dehumidifier_manager.learned)
             await store.async_save_thermal_data(self._model_manager.to_dict())
 

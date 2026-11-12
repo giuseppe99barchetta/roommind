@@ -321,3 +321,33 @@ test("forecast shows minutes per room, power, heat and the estimate hint until l
   section.live.devices[0].forecast_learned = true;
   assert.ok(!renderedText(section.render()).includes("improves as the unit runs"));
 });
+
+test("forecast flags unreachable targets, shows last run and unbounded ETA", () => {
+  const section = new Section();
+  section.hass = { language: "en", states: {}, areas: {} };
+  section.humidity = { humidity_comfort_enabled: true, humidity_target: 55 };
+  section.live = {
+    request: "comfort", assigned_entity_id: null, devices: [{
+      entity_id: "switch.bed", owner_area_id: "bed", served_area_ids: ["bed"],
+      state: "on", action: "drying", available: true, reason: null, commanded: true,
+      requesting_rooms: ["bed"], pending_rooms: [], target_humidity: 55, humidity_floor: null,
+      forecast_minutes: { bed: null }, forecast_unreachable: true, forecast_learned: true,
+      last_run: { predicted: 62.4, actual: 80 },
+    }],
+  };
+  const text = renderedText(section.render());
+  assert.ok(text.includes("> 12 h"));
+  assert.ok(text.includes("not reachable within 12 hours"));
+  assert.ok(text.replace(/\s+/g, " ").includes("62 80"), text);
+});
+
+test("power sensor is kept across other edits and removed when cleared", () => {
+  const section = new Section();
+  section.config = { ...config, power_entity: "sensor.dryer_power" };
+  const events = [];
+  section.dispatchEvent = (event) => { events.push(event); return true; };
+  section._deviceChanged({ ...section.config, min_run_minutes: 11 });
+  assert.equal(events[0].detail.power_entity, "sensor.dryer_power");
+  section._deviceChanged({ ...section.config, power_entity: undefined });
+  assert.equal("power_entity" in JSON.parse(JSON.stringify(events[1].detail)), false);
+});

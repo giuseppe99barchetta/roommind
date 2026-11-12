@@ -553,7 +553,18 @@ export class RsDehumidifierSection extends LitElement {
                   this._deviceChanged({ ...config, fan_entity: e.detail || undefined });
                 }}
               ></rs-entity-picker-field>
-              <p class="hint">${this._label("dehumidifier.fan_entity_hint")}</p>`
+              <p class="hint">${this._label("dehumidifier.fan_entity_hint")}</p>
+              <rs-entity-picker-field
+                .hass=${this.hass}
+                .label=${this._label("dehumidifier.power_entity")}
+                .value=${config.power_entity ?? ""}
+                .includeDomains=${["sensor"]}
+                @value-changed=${(e: CustomEvent<string>) => {
+                  e.stopPropagation();
+                  this._deviceChanged({ ...config, power_entity: e.detail || undefined });
+                }}
+              ></rs-entity-picker-field>
+              <p class="hint">${this._label("dehumidifier.power_entity_hint")}</p>`
           : nothing}
         ${!config && sharedDevices.length
           ? html`<div class="notice">
@@ -842,12 +853,24 @@ export class RsDehumidifierSection extends LitElement {
             ${Object.entries(device.forecast_minutes)
               .map(
                 ([id, m]) =>
-                  `${this._roomName(id)} ${m == null ? "—" : m === 0 ? "✓" : `${m} min`}`,
+                  `${this._roomName(id)} ${m == null ? this._label("dehumidifier.forecast_over") : m === 0 ? "✓" : `${m} min`}`,
               )
               .join(", ")}
             ${device.forecast_power_w ? ` · ${device.forecast_power_w} W` : ""}
             ${device.forecast_heat_c ? ` · +${device.forecast_heat_c} °C` : ""}
             ${device.forecast_learned ? "" : ` (${this._label("dehumidifier.forecast_estimate")})`}
+          </p>`
+        : nothing}
+      ${device.forecast_unreachable
+        ? html`<div class="notice" role="status">
+            <ha-icon icon="mdi:alert-outline"></ha-icon>
+            <div>${this._label("dehumidifier.forecast_unreachable")}</div>
+          </div>`
+        : nothing}
+      ${device.last_run
+        ? html`<p class="hint">
+            ${this._label("dehumidifier.last_run")}: ${Math.round(device.last_run.predicted)} /
+            ${Math.round(device.last_run.actual)} min
           </p>`
         : nothing}
       ${device.target_humidity != null || device.humidity_floor != null

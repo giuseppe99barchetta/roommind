@@ -40,9 +40,16 @@ DETAIL_FIELDS = [
     "window_impact_c",
     "ac_efficiency_status",
     "ac_efficiency_reason",
+    "dehumidifier_on",
+    "dehumidifier_fan",
+    "dehumidifier_power_w",
 ]
 DETAIL_MAX_AGE = 48 * 3600  # 48 hours
 HISTORY_MAX_AGE = 90 * 24 * 3600  # 90 days
+
+
+def _blank(value: object) -> object:
+    return "" if value is None else value
 
 
 class HistoryStore:
@@ -139,6 +146,12 @@ class HistoryStore:
                     "window_impact_c": data.get("window_impact_c", ""),
                     "ac_efficiency_status": data.get("ac_efficiency_status", ""),
                     "ac_efficiency_reason": data.get("ac_efficiency_reason", ""),
+                    # on/off as 1/0 so the 5-minute downsample averages it into a duty cycle
+                    "dehumidifier_on": ""
+                    if data.get("dehumidifier_on") is None
+                    else int(bool(data["dehumidifier_on"])),
+                    "dehumidifier_fan": _blank(data.get("dehumidifier_fan")),
+                    "dehumidifier_power_w": _blank(data.get("dehumidifier_power_w")),
                 }
             )
 
@@ -281,6 +294,9 @@ class HistoryStore:
                 "energy_learning_samples",
                 "window_open_minutes",
                 "window_impact_c",
+                "dehumidifier_on",
+                "dehumidifier_fan",
+                "dehumidifier_power_w",
             ):
                 vals = []
                 for r in bucket:
