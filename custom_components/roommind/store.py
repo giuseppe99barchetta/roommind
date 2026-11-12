@@ -140,6 +140,7 @@ class RoomMindStore:
         self._data: dict[str, dict] = {}
         self._settings: dict = {}
         self._thermal_data: dict = {}
+        self._dehumidifier_data: dict = {}
 
     async def async_load(self) -> None:
         """Load room data from the HA store."""
@@ -151,6 +152,7 @@ class RoomMindStore:
 
         self._settings = stored.get("settings", {}) if stored else {}
         self._thermal_data = stored.get("thermal_data", {}) if stored else {}
+        self._dehumidifier_data = stored.get("dehumidifier_data", {}) if stored else {}
 
         # One-time migrations (combined into single pass + single save)
         device_migrated = 0
@@ -184,7 +186,12 @@ class RoomMindStore:
     async def _async_save(self) -> None:
         """Persist current room data to the HA store."""
         await self._store.async_save(
-            {"rooms": self._data, "settings": self._settings, "thermal_data": self._thermal_data}
+            {
+                "rooms": self._data,
+                "settings": self._settings,
+                "thermal_data": self._thermal_data,
+                "dehumidifier_data": self._dehumidifier_data,
+            }
         )
 
     def get_rooms(self) -> dict[str, dict]:
@@ -221,6 +228,14 @@ class RoomMindStore:
         """Replace thermal learning data and persist."""
         self._thermal_data = data
         await self._async_save()
+
+    def get_dehumidifier_data(self) -> dict:
+        """Return a deep copy of learned dehumidifier drying rates, keyed by entity id."""
+        return copy.deepcopy(dict(self._dehumidifier_data))
+
+    def set_dehumidifier_data(self, data: dict) -> None:
+        """Stage learned drying rates; persisted by the next save."""
+        self._dehumidifier_data = copy.deepcopy(data)
 
     async def async_clear_thermal_data_room(self, area_id: str) -> None:
         """Clear thermal learning data for a single room."""

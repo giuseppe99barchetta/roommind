@@ -20,7 +20,7 @@ from ..const import (
     MOLD_SURFACE_RH_EARLY,
     make_roommind_context,
 )
-from ..utils.dehumidifier_forecast import DEFAULT_K, heat_gain_c, minutes_to_target, observed_k
+from ..utils.dehumidifier_forecast import DEFAULT_K, K_MAX, heat_gain_c, minutes_to_target, observed_k
 from ..utils.humidity_targets import current_season, room_humidity_target
 from ..utils.night_mode import night_phase
 from .power_budget_manager import PowerBudgetManager
@@ -92,6 +92,8 @@ class DehumidifierManager:
         self.lock = asyncio.Lock()
         self.devices: dict[str, dict] = {}
         self.runtime: dict[str, DeviceRuntime] = {}
+        # Learned drying rates per entity; outlives runtime resets and is persisted by the store.
+        self.learned: dict[str, dict[str, list]] = {}
         self.assignments: dict[str, str] = {}
         self.requests: dict[str, str] = {}
         self._comfort: set[str] = set()
@@ -109,6 +111,19 @@ class DehumidifierManager:
         if state is not None and state.state not in ("unknown", "unavailable"):
             return valid_humidity(state.attributes.get("current_humidity"))
         return valid_humidity(measured)
+
+    def load_learned(self, data: dict) -> None:
+        """Restore persisted drying rates, ignoring anything malformed."""
+        for eid, entry in (data or {}).items():
+            try:
+                k = [float(v) for v in entry["k"]]
+                k_n = [int(v) for v in entry["k_n"]]
+            except (KeyError, TypeError, ValueError):
+                continue
+            if len(k) == len(k_n) == len(DEFAULT_K) and all(0 < v <= K_MAX for v in k) and all(n >= 0 for n in k_n):
+                self.learned[eid] = {"k": k, "k_n": k_n}
+                if eid in self.runtime:
+                    self.runtime[eid].k, self.runtime[eid].k_n = k, k_n
 
     def prepare(self, rooms: dict, settings: dict, humidities: dict, raw_windows: dict) -> None:
         """Snapshot availability and host constraints before evaluating any room."""
@@ -130,7 +145,10 @@ class DehumidifierManager:
                 and (not eid.startswith("humidifier.") or state.attributes.get("device_class") == "dehumidifier")
             )
             on = available and state.state == "on"
-            runtime = self.runtime.setdefault(eid, DeviceRuntime(on, now, now, available=available))
+            learned = self.learned.setdefault(eid, {"k": list(DEFAULT_K), "k_n": [0] * len(DEFAULT_K)})
+            runtime = self.runtime.setdefault(
+                eid, DeviceRuntime(on, now, now, available=available, k=learned["k"], k_n=learned["k_n"])
+            )
             if available and not runtime.available and not on:
                 runtime.off_since = now
             was_available, runtime.available = runtime.available, available

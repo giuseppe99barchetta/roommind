@@ -397,6 +397,7 @@ class RoomMindCoordinator(DataUpdateCoordinator):
                 self._ekf_training._model_manager = self._model_manager
                 self._cover_orchestrator._model_manager = self._model_manager
             self._valve_manager.load_actuation_data(settings.get("valve_last_actuation", {}))
+            self._dehumidifier_manager.load_learned(store.get_dehumidifier_data())
             self._model_loaded = True
 
         # Initialize history store (once)
@@ -671,6 +672,7 @@ class RoomMindCoordinator(DataUpdateCoordinator):
         self._thermal_save_count += 1
         if self._thermal_save_count >= THERMAL_SAVE_CYCLES:
             self._thermal_save_count = 0
+            store.set_dehumidifier_data(self._dehumidifier_manager.learned)
             await store.async_save_thermal_data(self._model_manager.to_dict())
 
         # Rotate history periodically

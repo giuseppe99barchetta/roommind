@@ -784,3 +784,13 @@ async def test_migration_persists_legacy_temps_as_split_fields(store):
     assert saved["eco_heat"] == 16.0
     assert saved["comfort_cool"] == 24.0
     assert saved["eco_cool"] == 27.0
+
+
+@pytest.mark.asyncio
+async def test_dehumidifier_learning_persists_with_the_store(store):
+    await store.async_load()
+    data = {"switch.dryer": {"k": [0.2, 0.3, 0.5], "k_n": [1, 2, 3]}}
+    store.set_dehumidifier_data(data)
+    await store.async_save_thermal_data({})
+    assert store._store.async_save.call_args.args[0]["dehumidifier_data"] == data
+    assert store.get_dehumidifier_data() == data

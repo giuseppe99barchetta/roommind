@@ -944,3 +944,18 @@ def test_single_speed_unit_has_no_forecast_while_paused(control):
     states["switch.dryer"].state = "on"
     prepare(control, windows={"bed": True})
     assert manager.room_status("bath")["devices"][0]["forecast_minutes"] is None
+
+
+def test_learned_rates_survive_runtime_reset_and_restore_from_storage(control):
+    manager, _, _, _ = control
+    prepare(control)
+    manager.runtime["switch.dryer"].k[1] = 0.9
+    manager.runtime["switch.dryer"].k_n[1] = 4
+    manager.runtime.clear()  # reconfigure drops runtime, not what was learned
+    prepare(control)
+    assert manager.runtime["switch.dryer"].k[1] == 0.9
+
+    fresh = DehumidifierManager(manager.hass)
+    fresh.load_learned({**manager.learned, "switch.bad": {"k": [9, 9, 9], "k_n": [1, 1, 1]}, "x": "junk"})
+    assert fresh.learned["switch.dryer"] == {"k": manager.learned["switch.dryer"]["k"], "k_n": [0, 4, 0]}
+    assert "switch.bad" not in fresh.learned and "x" not in fresh.learned
