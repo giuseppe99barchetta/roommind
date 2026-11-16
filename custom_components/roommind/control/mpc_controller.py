@@ -72,6 +72,18 @@ _ACTIVE_HVAC_MODES = frozenset({"heat", "cool", "heat_cool", "auto", "dry"})
 # resets on integration reload (module reimport).
 _last_commands: dict[str, dict[str, Any]] = {}
 _setpoint_override_warned: set[str] = set()
+# Resolved (heat, cool) targets at each device's last active command, so the compressor
+# hold can tell a deliberate target change from a room that merely reached its target.
+_active_targets: dict[str, tuple[float | None, float | None]] = {}
+# A resolved target that moved by more than this since the last active command is a
+# deliberate change (°C)
+COMPRESSOR_HOLD_RETARGET_TOLERANCE = 0.05
+
+
+def _target_moved(previous: float | None, current: float | None) -> bool:
+    if previous is None or current is None:
+        return previous is not current
+    return abs(previous - current) > COMPRESSOR_HOLD_RETARGET_TOLERANCE
 
 
 def _cache_entry(service: str, data: dict) -> dict[str, Any]:
@@ -113,6 +125,7 @@ def clear_command_cache() -> None:
     """Clear the sent-command cache (for tests)."""
     _last_commands.clear()
     _setpoint_override_warned.clear()
+    _active_targets.clear()
 
 
 def _resolve_idle_setpoint(
@@ -1245,6 +1258,60 @@ class MPCController:
         )
         return max(pf, MIN_POWER_FRACTION) if pf_mode == mode else MIN_POWER_FRACTION
 
+    async def _async_hold_retarget(self, eid: str, targets: TargetTemps, current_temp: float | None) -> None:
+        """Pass a deliberately changed target on to a device held by the compressor min-run.
+
+        The hold sends nothing while the resolved target is the one of the last
+        active command: the room has only reached it and the unit keeps running on
+        its last setpoint (#436). A target that moved since then (eco override,
+        vacation, schedule off with eco, presence) would otherwise reach the unit
+        only after the min-run. Only the side the device regulates on counts, so
+        editing the cooling target does not drop a heating unit. The device stays
+        in its mode; one that is off, or has no state, is left alone.
+        """
+        state = self.hass.states.get(eid)
+        hvac = state.state if state else None
+        previous = _active_targets.get(eid)
+        if state is None or hvac not in ("heat", "cool", "heat_cool", "auto") or previous is None:
+            return
+        heat_moved = hvac != "cool" and _target_moved(previous[0], targets.heat)
+        cool_moved = hvac != "heat" and _target_moved(previous[1], targets.cool)
+        if not heat_moved and not cool_moved:
+            return
+        _active_targets[eid] = (targets.heat, targets.cool)
+
+        if hvac in ("heat", "cool"):
+            target = targets.heat if hvac == "heat" else targets.cool
+            if target is not None:
+                await self._call(
+                    "set_temperature",
+                    {"entity_id": eid, "temperature": celsius_to_ha_temp(self.hass, target)},
+                    temp_intent=hvac,
+                )
+            return
+
+        # heat_cool/auto regulate from both sides onto what they get, so a single
+        # side's value would make the device chase it the wrong way (heating target
+        # 17 °C under an eco override cools a 21 °C room, #284).
+        heat_ha = celsius_to_ha_temp(self.hass, targets.heat) if targets.heat is not None else None
+        cool_ha = celsius_to_ha_temp(self.hass, targets.cool) if targets.cool is not None else None
+        if state.attributes.get("target_temp_low") is not None:
+            try:
+                low = heat_ha if heat_ha is not None else float(state.attributes["min_temp"])
+                high = cool_ha if cool_ha is not None else float(state.attributes["max_temp"])
+            except (KeyError, TypeError, ValueError):
+                return
+            await self._call(
+                "set_temperature",
+                {"entity_id": eid, "target_temp_low": min(low, high), "target_temp_high": max(low, high)},
+            )
+        elif current_temp is not None:
+            # Single setpoint: only a side the room is already past is safe to send.
+            if targets.heat is not None and current_temp <= targets.heat and heat_ha is not None:
+                await self._call("set_temperature", {"entity_id": eid, "temperature": heat_ha}, temp_intent="heat")
+            elif targets.cool is not None and current_temp >= targets.cool and cool_ha is not None:
+                await self._call("set_temperature", {"entity_id": eid, "temperature": cool_ha}, temp_intent="cool")
+
     def _evaluate_bangbang(
         self,
         current_temp: float | None,
@@ -1560,6 +1627,9 @@ class MPCController:
             # In managed auto mode, thermostats get heat target and ACs get cool target
             ha_heat_target = celsius_to_ha_temp(self.hass, targets.heat) if targets.heat is not None else None
             ha_cool_target = celsius_to_ha_temp(self.hass, targets.cool) if targets.cool is not None else None
+            for eid in thermostats + self.acs:
+                if eid not in _forced_off:
+                    _active_targets[eid] = (targets.heat, targets.cool)
             for eid in thermostats:
                 if eid in _forced_off:
                     await async_idle_device(self.hass, eid, self._devices, area_id=self._area_id, targets=targets)
@@ -1656,9 +1726,11 @@ class MPCController:
                     continue
                 if cmd.entity_id in _forced_on and not cmd.active:
                     # Compressor min-run: the plan parked a device that must keep
-                    # running. Same rule as the idle hold: send nothing, the device
-                    # keeps its last setpoint (#436). A device that reports off
-                    # (state lag or switched off by hand) is not switched on again.
+                    # running. Same rule as the idle hold: the device keeps its last
+                    # setpoint unless the target changed on purpose (#436). A device
+                    # that reports off (state lag or switched off by hand) is not
+                    # switched on again.
+                    await self._async_hold_retarget(cmd.entity_id, targets, current_temp)
                     _LOGGER.debug(
                         "Area '%s': keeping '%s' active (compressor min-run protection)",
                         self._area_id,
@@ -1671,6 +1743,7 @@ class MPCController:
                     )
                     continue
                 if cmd.active:
+                    _active_targets[cmd.entity_id] = (targets.heat, targets.cool)
                     if cmd.device_type == "thermostat":
                         if self.has_external_sensor and current_temp is not None:
                             t = round(
@@ -1742,6 +1815,11 @@ class MPCController:
                         # ACs can be turned off without boiler cycling concerns
                         await self._call("set_hvac_mode", {"entity_id": cmd.entity_id, "hvac_mode": "off"})
             return
+
+        if mode in (MODE_HEATING, MODE_COOLING):
+            for eid in thermostats + self.acs:
+                if eid not in _forced_off:
+                    _active_targets[eid] = (targets.heat, targets.cool)
 
         if mode == MODE_HEATING:
             # Proportional TRV setpoint for Full Control mode
@@ -1842,10 +1920,12 @@ class MPCController:
             # OFF before the auxiliary mode is applied.
             for eid in [e for e in thermostats + self.acs if e not in _exclude]:
                 if eid in _forced_on:
-                    # Compressor min-run: leave the device alone. Its last active
-                    # setpoint keeps the compressor running; falling back to the
-                    # room target would stop it at once on units whose own sensor
-                    # reads the room as already warm/cold enough (#436).
+                    # Compressor min-run: keep the device running. Its last active
+                    # setpoint does that; falling back to the room target at once
+                    # would stop units whose own sensor reads the room as already
+                    # warm/cold enough (#436). Only a target that changed on purpose
+                    # (eco override, vacation, schedule off) is passed on.
+                    await self._async_hold_retarget(eid, targets, current_temp)
                     _LOGGER.debug(
                         "Area '%s': keeping '%s' active (compressor min-run protection)",
                         self._area_id,
