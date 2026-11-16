@@ -3356,9 +3356,14 @@ class RoomMindCoordinator(DataUpdateCoordinator):
             return
         for area_id, room in stored.items():
             if has_area(self.hass, area_id):
-                # Running again (area back, also without an event): no longer waiting
+                # Running again (area back, also without an event, e.g. during setup): no longer
+                # waiting, and its entities come back as a resume would bring them
                 if room.get(REST_SWITCHED_OFF):
-                    await store.async_update_room(area_id, {REST_SWITCHED_OFF: False, REST_SHUTDOWN_EXPIRED: False})
+                    resumed = await store.async_update_room(
+                        area_id, {REST_SWITCHED_OFF: False, REST_SHUTDOWN_EXPIRED: False}
+                    )
+                    if area_id not in self._entity_areas and getattr(self, "async_add_entities", None):
+                        await self.async_room_added(resumed)
                 pending.forget_area(area_id)
             elif not room.get(REST_SWITCHED_OFF) and self._room_rest_shutdown_wanted(room):
                 pending.queue(area_id, list(room.get("devices", [])), now)

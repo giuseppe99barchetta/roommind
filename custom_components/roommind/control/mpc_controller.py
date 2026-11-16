@@ -1139,6 +1139,7 @@ class MPCController:
             approach_rate=self._approach_rate,
             preheat_max_blocks=self._preheat_max_blocks,
             afterglow_control=self._afterglow is not None,
+            heat_capable_ac=self._afterglow is not None and check_acs_can_heat(self.hass, self.room_config),
             residual_scale=self._afterglow["scale"] if self._afterglow else 1.0,
             residual_tau=self._afterglow["tau"] if self._afterglow else None,
         )

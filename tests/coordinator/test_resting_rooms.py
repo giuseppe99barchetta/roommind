@@ -476,3 +476,15 @@ async def test_unload_releases_a_resting_rooms_valve_without_its_target(hass):
         await _async_release_all_valves(hass)
     hand_back = {c.args[1]: c.kwargs["hand_back"] for c in release.await_args_list}
     assert hand_back == {"climate.bed_trv": False, "climate.living_trv": True}
+
+
+@pytest.mark.asyncio
+async def test_area_back_during_setup_brings_the_entities_back(hass, mock_config_entry):
+    """C1/B-02: an area created while setup ran (no event seen) gets its room's entities on the next cycle."""
+    store = FakeStore({"bed": _room("bed", "climate.bed_ac", **{REST_SWITCHED_OFF: True})})
+    coordinator = _coord(hass, mock_config_entry, store)
+    coordinator.async_add_entities = MagicMock()
+    with patch.object(coordinator, "async_room_added", new=AsyncMock()) as added:
+        await coordinator._async_process_pending_shutdowns()
+    added.assert_awaited_once()
+    assert store.rooms["bed"][REST_SWITCHED_OFF] is False

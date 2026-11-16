@@ -165,3 +165,52 @@ def test_paused_learning_keeps_the_run_and_folds_nothing():
             is None
         )
     assert learner._obs == {} and learner.take_tau_sample("r") is None
+
+
+def test_a_continuing_run_keeps_its_delivered_power():
+    """C1-01: a pinned valve's run at 0.4 is not turned into a full-power run by planning on."""
+    from custom_components.roommind.control.mpc_optimizer import _extend_run
+
+    assert _extend_run((60.0, 0.4), 5.0) == (65.0, 0.4)
+    assert _extend_run(None, 10.0) == (10.0, 1.0)
+    opt = _opt(True)
+    opt._glow_cache = {}
+    # The heating hypothesis' own run carries the run's power as well
+    low = opt._evaluate_action(MODE_IDLE, 20.6, 21.0, 21.0, [5.0] * N, [21.0] * N, [21.0] * N, 5.0, run=(60.0, 0.4))
+    high = opt._evaluate_action(MODE_IDLE, 20.6, 21.0, 21.0, [5.0] * N, [21.0] * N, [21.0] * N, 5.0, run=(60.0, 1.0))
+    assert low != high
+
+
+def test_heat_capable_ac_keeps_the_base_lookahead_in_a_heat_only_room():
+    """C1-02: can_cool is False in a heat-only room, the AC can still heat: no long lookahead."""
+    opt = MPCOptimizer(
+        model=ROOM,
+        can_heat=True,
+        can_cool=False,
+        heating_system_type="radiator",
+        afterglow_control=True,
+        residual_tau=30.0,
+        heat_capable_ac=True,
+    )
+    assert _plan(opt, 20.0).lookahead_blocks == LOOKAHEAD_BASE_BLOCKS
+
+
+def test_kept_run_plan_matches_the_command():
+    """C1-03: the plan of a run kept on is simulated with the first block heating."""
+    opt = _opt(True)
+    real = MPCOptimizer._evaluate_action
+    calls = {"i": 0}
+
+    def _eval(self, action, *args, **kwargs):
+        cost = real(self, action, *args, **kwargs)
+        block = calls["i"]
+        if action == MODE_IDLE:
+            calls["i"] += 1
+            return cost - 1e6 if block == 0 else cost + 1e6
+        return cost
+
+    with patch.object(MPCOptimizer, "_evaluate_action", _eval):
+        plan = _plan(opt, 20.0, target=22.0)
+    assert plan.actions[0] == MODE_HEATING
+    expected = ROOM.predict(20.0, 5.0, plan.power_fractions[0] * ROOM.Q_heat, 5.0)
+    assert plan.temperatures[1] == pytest.approx(expected, abs=0.01)

@@ -55,6 +55,9 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
     clear_valve_cache()  # after an unload, which stopped valve control (#413)
     coordinator = RoomMindCoordinator(hass, entry)
+    # Before the first refresh: an area created or deleted during setup is not missed (#494);
+    # events arriving before the coordinator is stored are reconciled by its cycle
+    entry.async_on_unload(async_track_area_changes(hass))
     await coordinator.async_config_entry_first_refresh()
 
     hass.data[DOMAIN][entry.entry_id] = coordinator
@@ -64,7 +67,6 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
     # Clean up orphaned entities (e.g. cover entities for rooms without covers, resting rooms)
     coordinator.cleanup_orphaned_entities()
-    entry.async_on_unload(async_track_area_changes(hass))
 
     await _async_register_panel(hass)
     await _async_register_card(hass)

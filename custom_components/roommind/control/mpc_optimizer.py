@@ -40,6 +40,17 @@ RADIATOR_LOOKAHEAD_TAUS = 2.0
 RADIATOR_PAUSE_BLOCKS = 2
 
 
+def _extend_run(run: tuple[float, float] | None, minutes: float) -> tuple[float, float]:
+    """A radiator run (minutes, power) heated *minutes* longer.
+
+    The run so far keeps its delivered power (a pinned valve's opening); the planned part runs
+    at that power too, or at full power for a run that starts now (an unpinned TRV opens fully).
+    """
+    if run is None:
+        return minutes, 1.0
+    return run[0] + minutes, run[1]
+
+
 def preheat_max_blocks(comfort_weight: float, dt_minutes: float = 5.0) -> int | None:
     """Pre-heat lead the comfort/efficiency slider allows: the default and above
     plan up to the horizon, towards efficiency the lead shrinks to none."""
@@ -107,6 +118,8 @@ class MPCOptimizer:
     afterglow_control: bool = False
     residual_scale: float = 1.0
     residual_tau: float | None = None
+    # A heat-capable AC in the room (also in a heat-only room, where can_cool is False)
+    heat_capable_ac: bool = False
 
     def __post_init__(self) -> None:
         # Set before optimize() runs so callers / patched optimize() still expose
@@ -126,6 +139,7 @@ class MPCOptimizer:
         occupancy_series: list[float] | None = None,
         initial_mode: str = MODE_IDLE,
         heat_run: tuple[float, float] | None = None,
+        _keep_first_heating: bool = False,
     ) -> MPCPlan:
         """Find optimal action sequence over the planning horizon.
 
@@ -153,7 +167,7 @@ class MPCOptimizer:
         profile = HEATING_SYSTEM_PROFILES.get(self.heating_system_type) if self.heating_system_type else None
         glow_on = self.afterglow_control and self.heating_system_type == HEATING_SYSTEM_RADIATOR
         self._glow_cache: dict[tuple[float, float, float], float] = {}
-        if glow_on and dt_minutes > 0 and not self.can_cool:
+        if glow_on and dt_minutes > 0 and not self.can_cool and not self.heat_capable_ac:
             # A heat-capable AC in the room keeps the base lookahead (no AC overshoot weighing)
             tau_l = residual_tau(HEATING_SYSTEM_RADIATOR, self.residual_tau)
             self._lookahead_blocks = max(
@@ -209,7 +223,10 @@ class MPCOptimizer:
 
             # If in a run and below min_run_blocks, must continue
             forced = current_mode != MODE_IDLE and blocks_in_mode < self.min_run_blocks
-            if forced:
+            if _keep_first_heating and i == 0 and MODE_HEATING in available:
+                # Re-plan of a radiator run that the first pass paused and restarted: it goes on
+                best_action = MODE_HEATING
+            elif forced:
                 if current_mode in available:
                     best_action = current_mode
                 else:
@@ -344,7 +361,7 @@ class MPCOptimizer:
                     if glow is not None:
                         # A restart cannot deliver less than the radiator still releases
                         Q = max(Q, self.model.Q_heat * self._afterglow(glow_elapsed, glow))
-                    run = ((run[0] if run is not None else 0.0) + dt_minutes, 1.0)
+                    run = _extend_run(run, dt_minutes)
                     glow = None
                 elif run is not None:
                     glow, glow_elapsed, run = run, 0.0, None
@@ -377,15 +394,27 @@ class MPCOptimizer:
 
         if (
             glow_on
+            and not _keep_first_heating
             and initial_mode == MODE_HEATING
             and actions
             and actions[0] == MODE_IDLE
             and MODE_HEATING in actions[1 : 1 + RADIATOR_PAUSE_BLOCKS]
         ):
-            # A radiator run is not paused for a block or two and restarted: it goes on
-            resume = actions.index(MODE_HEATING, 1)
-            actions[0] = MODE_HEATING
-            power_fractions[0] = power_fractions[resume]
+            # A radiator run is not paused for a block or two and restarted: it goes on. Planned
+            # again with the first block heating, so temperatures and fractions match the command.
+            return self.optimize(
+                T_room,
+                T_outdoor_series,
+                heat_target_series,
+                cool_target_series,
+                dt_minutes,
+                solar_series=solar_series,
+                residual_series=residual_series,
+                occupancy_series=occupancy_series,
+                initial_mode=initial_mode,
+                heat_run=heat_run,
+                _keep_first_heating=True,
+            )
 
         return MPCPlan(
             actions=actions,
@@ -553,7 +582,7 @@ class MPCOptimizer:
             and bool(self.heating_system_type)
             and not glow_on
         )
-        own_run = ((run[0] if run is not None else 0.0) + self.min_run_blocks * dt_minutes, 1.0)
+        own_run = _extend_run(run, self.min_run_blocks * dt_minutes)
         heating_duration_minutes = self.min_run_blocks * dt_minutes
         if action != MODE_IDLE and not synthesis_enabled:
             Q *= self._hypothesis_power_fraction(
