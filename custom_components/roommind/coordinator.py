@@ -13,7 +13,7 @@ from typing import Any
 from homeassistant.components.persistent_notification import async_create as async_create_notification
 from homeassistant.components.persistent_notification import async_dismiss as async_dismiss_notification
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.core import HomeAssistant
+from homeassistant.core import CoreState, HomeAssistant
 from homeassistant.helpers import area_registry as ar
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 from homeassistant.util import dt as dt_util
@@ -1255,15 +1255,27 @@ class RoomMindCoordinator(DataUpdateCoordinator):
             self._prediction_forecasts.pop(area_id, None)
 
         # Pause climate control when any window/door is open (with configurable delays)
-        raw_open = self._is_window_open(room)
-        window_open = self._window_manager.update(
-            area_id,
-            raw_open,
-            room.get("window_open_delay", 0),
-            room.get("window_close_delay", 0),
-            room.get("window_recovery_ramp_minutes", 15) if room.get("window_smart_recovery_enabled", False) else 0,
+        window_states = self._read_window_states(room)
+        raw_state = self._window_manager.resolve_raw(
+            area_id, window_states, self._missing_window_sensors(window_states)
         )
-        if window_open:
+        # Pending: sensors unavailable and no state known yet (typically right after
+        # a restart). Keep the current pause state and send no commands; update()
+        # is skipped so the first real reading still counts as the first observation (#437).
+        window_pending = raw_state is None
+        if raw_state is None:
+            raw_open = True  # skips EKF training like an open_delay window
+            window_open = self._window_manager.is_paused(area_id)
+        else:
+            raw_open = raw_state
+            window_open = self._window_manager.update(
+                area_id,
+                raw_state,
+                room.get("window_open_delay", 0),
+                room.get("window_close_delay", 0),
+                room.get("window_recovery_ramp_minutes", 15) if room.get("window_smart_recovery_enabled", False) else 0,
+            )
+        if window_open or window_pending:
             mode = MODE_IDLE
             power_fraction = 0.0
         window_recovery_progress = self._window_manager.recovery_progress(area_id)
@@ -1295,11 +1307,12 @@ class RoomMindCoordinator(DataUpdateCoordinator):
         )
         # Startup guard: Full Control room without any temperature reading yet —
         # leave devices in their current state instead of idling them.
-        waiting_for_data = has_external_sensor and self._waiting_for_first_reading(area_id)
+        waiting_for_temp = has_external_sensor and self._waiting_for_first_reading(area_id)
+        waiting_for_data = waiting_for_temp or window_pending
         if (
             climate_active
             and has_external_sensor
-            and not waiting_for_data
+            and not waiting_for_temp
             and area_id not in self._had_valid_temp
             and area_id not in self._startup_guard_warned
         ):
@@ -1600,7 +1613,7 @@ class RoomMindCoordinator(DataUpdateCoordinator):
             mode = MODE_IDLE
             power_fraction = 0.0
             _LOGGER.debug(
-                "Room '%s': no temperature reading since startup, skipping device control",
+                "Room '%s': waiting for first temperature reading or window state, skipping device control",
                 area_id,
             )
         else:
@@ -2715,6 +2728,28 @@ class RoomMindCoordinator(DataUpdateCoordinator):
                 continue
         return MODE_IDLE
 
+    def _read_window_states(self, room: dict) -> dict[str, str | None]:
+        """Return the raw state of each configured window/door sensor (None if it has no state object)."""
+        states: dict[str, str | None] = {}
+        for entity_id in room.get("window_sensors", []):
+            state = self.hass.states.get(entity_id)
+            states[entity_id] = state.state if state else None
+        return states
+
+    def _missing_window_sensors(self, states: dict[str, str | None]) -> frozenset[str]:
+        """Return sensors without a state that HA also does not know in the entity registry.
+
+        Only once HA is fully running: while it is still starting, entities may
+        not be loaded yet, so a missing state means "not yet", not "gone".
+        """
+        stateless = [entity_id for entity_id, state in states.items() if state is None]
+        if not stateless or self.hass.state is not CoreState.running:
+            return frozenset()
+        from homeassistant.helpers import entity_registry as er
+
+        registry = er.async_get(self.hass)
+        return frozenset(entity_id for entity_id in stateless if registry.async_get(entity_id) is None)
+
     def _is_window_open(self, room: dict) -> bool:
         """Return True if any configured window/door sensor reports 'on' (open)."""
         for entity_id in room.get("window_sensors", []):
@@ -3373,10 +3408,11 @@ class RoomMindCoordinator(DataUpdateCoordinator):
         return time.monotonic() - self._startup_ts < MAX_SENSOR_STALENESS
 
     def _any_member_room_waiting(self, members: list[str], rooms_config: dict[str, dict]) -> bool:
-        """Return True when a Full Control member room has no temperature reading yet."""
+        """Return True when a member room has no temperature reading or window state yet."""
         member_set = set(members)
         for area_id, room in rooms_config.items():
-            if not room.get("temperature_sensor") or not self._waiting_for_first_reading(area_id):
+            waiting_for_temp = bool(room.get("temperature_sensor")) and self._waiting_for_first_reading(area_id)
+            if not waiting_for_temp and not self._window_manager.is_pending(area_id):
                 continue
             if room.get("is_outdoor", False) or not room.get("climate_control_enabled", True):
                 continue
