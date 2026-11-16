@@ -404,3 +404,33 @@ async def test_hold_never_commands_an_ac_the_power_budget_blocked():
         exclude_eids={AC},
     )
     assert hass.services.async_call.call_args_list == []
+
+
+@pytest.mark.asyncio
+async def test_failed_retarget_is_tried_again_next_cycle():
+    """A set_temperature that fails must not mark the new target as delivered."""
+    hass, ctrl = _setup(_state())
+    lowered = TargetTemps(heat=17.0, cool=27.0)
+    await ctrl.async_apply(MODE_HEATING, COMFORT, power_fraction=1.0, current_temp=19.0)
+    hass.services.async_call.reset_mock()
+    hass.services.async_call.side_effect = RuntimeError("radio down")
+    await ctrl.async_apply(MODE_IDLE, lowered, current_temp=19.5, compressor_forced_on=HELD)
+    assert len(_sent(hass)) == 1  # tried, failed
+    hass.services.async_call.reset_mock()
+    hass.services.async_call.side_effect = None
+    await ctrl.async_apply(MODE_IDLE, lowered, current_temp=19.5, compressor_forced_on=HELD)
+    assert [c["temperature"] for c in _sent(hass)] == [17.0]
+
+
+@pytest.mark.asyncio
+async def test_range_device_without_limits_keeps_the_retarget_pending():
+    """Missing min/max: nothing is sent and the change stays pending until the limits are known."""
+    state = _state("heat_cool", target_temp_low=20.0, target_temp_high=24.0)
+    del state.attributes["max_temp"]
+    hass, ctrl = _setup(state)
+    assert await _start_then_hold(hass, ctrl, TargetTemps(heat=17.0, cool=None), current_temp=21.0) == []
+    state.attributes["max_temp"] = 30.0
+    hass.services.async_call.reset_mock()
+    await ctrl.async_apply(MODE_IDLE, TargetTemps(heat=17.0, cool=None), current_temp=21.0, compressor_forced_on=HELD)
+    (call,) = _sent(hass)
+    assert (call["target_temp_low"], call["target_temp_high"]) == (17.0, 30.0)

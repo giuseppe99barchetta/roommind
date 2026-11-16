@@ -710,7 +710,11 @@ class RoomMindCoordinator(DataUpdateCoordinator):
 
         # Valve protection: check for stale valves (throttled)
         if self._valve_manager.should_run_cycle_check():
-            await self._valve_manager.async_check_and_cycle(rooms, settings)
+            # Live rooms only: a room deleted during this cycle must not get its valves cycled
+            live_rooms = store.get_rooms()
+            await self._valve_manager.async_check_and_cycle(
+                {area_id: room for area_id, room in rooms.items() if area_id in live_rooms}, settings
+            )
 
         # Persist valve actuation timestamps (piggyback on thermal save cycle)
         if self._valve_manager.actuation_dirty and self._thermal_save_count == 0:
@@ -2818,10 +2822,18 @@ class RoomMindCoordinator(DataUpdateCoordinator):
         then nothing is sent. Not now: a cycle running at the same time could still send
         the room's last command after it.
         """
+        # A cycle that already took this room's snapshot must not apply it any more
+        self._manual_command_generations[area_id] = self._manual_command_generations.get(area_id, 0) + 1
         if room.get("is_outdoor") or not room.get("climate_control_enabled", True):
+            return False
+        if not self._live_climate_control_active():
             return False
         self._deleted_rooms_to_switch_off[area_id] = list(room.get("devices", []))
         return True
+
+    def _live_climate_control_active(self) -> bool:
+        """Global climate control as stored now (not a cycle's copy of the settings)."""
+        return bool(self.hass.data[DOMAIN]["store"].get_settings().get("climate_control_active", True))
 
     async def _async_switch_deleted_rooms_off(self, settings: dict) -> None:
         """Switch off the climate devices of rooms deleted since the last cycle.
@@ -2834,20 +2846,25 @@ class RoomMindCoordinator(DataUpdateCoordinator):
         if not self._deleted_rooms_to_switch_off:
             return
         pending, self._deleted_rooms_to_switch_off = self._deleted_rooms_to_switch_off, {}
-        if not settings.get("climate_control_active", True):
-            return
-        stored = self.hass.data[DOMAIN]["store"].get_rooms()
-        driven = {eid for other in stored.values() for eid in get_all_entity_ids(other.get("devices", []))}
+        store = self.hass.data[DOMAIN]["store"]
         for area_id, devices in pending.items():
-            if area_id in stored:
-                continue
-            for eid in get_all_entity_ids(devices):
-                if eid in driven:
+            # Serialized with the room's commands: a cycle holding the lock finishes first,
+            # and one waiting for it carries a stale generation and sends nothing.
+            async with self._room_command_locks.setdefault(area_id, asyncio.Lock()):
+                stored = store.get_rooms()
+                if area_id in stored:
                     continue
-                try:
-                    await async_turn_off_climate(self.hass, eid, area_id=area_id)
-                except Exception:  # noqa: BLE001
-                    _LOGGER.warning("Deleted room '%s': could not switch '%s' off", area_id, eid, exc_info=True)
+                driven = {eid for other in stored.values() for eid in get_all_entity_ids(other.get("devices", []))}
+                for eid in get_all_entity_ids(devices):
+                    # Checked before each command: control switched off meanwhile leaves the rest alone
+                    if not self._live_climate_control_active():
+                        return
+                    if eid in driven:
+                        continue
+                    try:
+                        await async_turn_off_climate(self.hass, eid, area_id=area_id)
+                    except Exception:  # noqa: BLE001
+                        _LOGGER.warning("Deleted room '%s': could not switch '%s' off", area_id, eid, exc_info=True)
 
     def _warn_block_temp_rejected(self, area_id: str, field: str, raw: Any) -> None:
         """Log a rejected schedule block temperature once per distinct value."""

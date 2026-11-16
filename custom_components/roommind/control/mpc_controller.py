@@ -1319,39 +1319,46 @@ class MPCController:
             cool_overshoot = current_temp is not None and current_temp <= limit
         if not (heat_moved or cool_moved or heat_overshoot or cool_overshoot):
             return
-        _active_targets[eid] = (targets.heat, targets.cool)
+        # Recorded only once the device took the value: a failed or not yet sendable
+        # retarget stays pending and is tried again next cycle.
+        delivered = False
 
         if hvac in ("heat", "cool"):
             target = targets.heat if hvac == "heat" else targets.cool
             if target is not None:
-                await self._call(
+                delivered = await self._call(
                     "set_temperature",
                     {"entity_id": eid, "temperature": celsius_to_ha_temp(self.hass, target)},
                     temp_intent=hvac,
                 )
-            return
-
-        # heat_cool/auto regulate from both sides onto what they get, so a single
-        # side's value would make the device chase it the wrong way (heating target
-        # 17 °C under an eco override cools a 21 °C room, #284).
-        heat_ha = celsius_to_ha_temp(self.hass, targets.heat) if targets.heat is not None else None
-        cool_ha = celsius_to_ha_temp(self.hass, targets.cool) if targets.cool is not None else None
-        if state.attributes.get("target_temp_low") is not None:
-            try:
-                low = heat_ha if heat_ha is not None else float(state.attributes["min_temp"])
-                high = cool_ha if cool_ha is not None else float(state.attributes["max_temp"])
-            except (KeyError, TypeError, ValueError):
-                return
-            await self._call(
-                "set_temperature",
-                {"entity_id": eid, "target_temp_low": min(low, high), "target_temp_high": max(low, high)},
-            )
-        elif current_temp is not None:
-            # Single setpoint: only a side the room is already past is safe to send.
-            if targets.heat is not None and current_temp <= targets.heat and heat_ha is not None:
-                await self._call("set_temperature", {"entity_id": eid, "temperature": heat_ha}, temp_intent="heat")
-            elif targets.cool is not None and current_temp >= targets.cool and cool_ha is not None:
-                await self._call("set_temperature", {"entity_id": eid, "temperature": cool_ha}, temp_intent="cool")
+        else:
+            # heat_cool/auto regulate from both sides onto what they get, so a single
+            # side's value would make the device chase it the wrong way (heating target
+            # 17 °C under an eco override cools a 21 °C room, #284).
+            heat_ha = celsius_to_ha_temp(self.hass, targets.heat) if targets.heat is not None else None
+            cool_ha = celsius_to_ha_temp(self.hass, targets.cool) if targets.cool is not None else None
+            if state.attributes.get("target_temp_low") is not None:
+                try:
+                    low = heat_ha if heat_ha is not None else float(state.attributes["min_temp"])
+                    high = cool_ha if cool_ha is not None else float(state.attributes["max_temp"])
+                except (KeyError, TypeError, ValueError):
+                    return
+                delivered = await self._call(
+                    "set_temperature",
+                    {"entity_id": eid, "target_temp_low": min(low, high), "target_temp_high": max(low, high)},
+                )
+            elif current_temp is not None:
+                # Single setpoint: only a side the room is already past is safe to send.
+                if targets.heat is not None and current_temp <= targets.heat and heat_ha is not None:
+                    delivered = await self._call(
+                        "set_temperature", {"entity_id": eid, "temperature": heat_ha}, temp_intent="heat"
+                    )
+                elif targets.cool is not None and current_temp >= targets.cool and cool_ha is not None:
+                    delivered = await self._call(
+                        "set_temperature", {"entity_id": eid, "temperature": cool_ha}, temp_intent="cool"
+                    )
+        if delivered:
+            _active_targets[eid] = (targets.heat, targets.cool)
 
     def _evaluate_bangbang(
         self,
@@ -2041,7 +2048,12 @@ class MPCController:
             return bool(state.state == desired_mode)
         return bool(state.state != "off")
 
-    async def _call(self, service: str, data: dict, *, temp_intent: str = "", deadband: float | None = None) -> None:
+    async def _call(self, service: str, data: dict, *, temp_intent: str = "", deadband: float | None = None) -> bool:
+        """Send a climate service call unless the device already holds the value.
+
+        Returns True when the device has (or already had) the value, False when nothing
+        went out (unsupported mode, failed call).
+        """
         eid = data.get("entity_id")
         state = self.hass.states.get(eid) if eid else None
 
@@ -2058,7 +2070,7 @@ class MPCController:
                 window_open=self._window_open,
                 fan_only_conditions_met=self._fan_only_conditions_met(eid),
             )
-            return
+            return True
 
         # Resolve hvac_mode to a supported mode (handles auto-only devices)
         if service == "set_hvac_mode" and state:
@@ -2092,7 +2104,7 @@ class MPCController:
                         eid,
                         data["hvac_mode"],
                     )
-                    return
+                    return False
             if resolved != data["hvac_mode"]:
                 _LOGGER.debug(
                     "Area '%s': device '%s' resolved '%s' -> '%s'",
@@ -2269,7 +2281,7 @@ class MPCController:
         if skip:
             if eid and activates:
                 self.commanded_on.add(eid)
-            return
+            return True
 
         try:
             await self.hass.services.async_call(
@@ -2287,6 +2299,7 @@ class MPCController:
                     _proportional_sent.pop(eid, None)
                 if activates:
                     self.commanded_on.add(eid)
+            return True
         except Exception:
             self.commanded_on.discard(eid)
             _LOGGER.warning(
@@ -2296,3 +2309,4 @@ class MPCController:
                 data.get("entity_id"),
                 exc_info=True,
             )
+            return False
