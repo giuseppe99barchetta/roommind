@@ -102,6 +102,7 @@ AC_BOOST_DELTA_MIN = 1.0  # °C at comfort_weight=0 (full efficiency)
 AC_BOOST_DELTA_MAX = 3.0  # °C from the default comfort_weight upward
 PROPORTIONAL_DEADBAND_C = 0.5  # Minimum proportional setpoint change (°C) to resend, in the gentle regime
 PROPORTIONAL_DEADBAND_NEAR_TARGET_C = 0.2  # Finer proportional deadband (°C) within 1°C of target
+PROPORTIONAL_SETPOINT_DWELL_SECONDS = 300  # Minimum time a proportional setpoint stays on the device before a recomputed one replaces it (one MPC block, #317)
 
 # Update interval in seconds
 UPDATE_INTERVAL = 30
