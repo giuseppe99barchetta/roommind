@@ -886,5 +886,7 @@
   "settings.power_budget.max_power": "Maximale Hauslast (W)",
   "settings.power_budget.reserve": "Sicherheitsreserve (W)",
   "presence.not_configured_hint": "Die Anwesenheitserkennung ist noch nicht eingerichtet. Füge die zu verfolgenden Personen in den RoomMind-Einstellungen hinzu, um sie in diesem Raum zu nutzen.",
-  "presence.open_settings": "Personen in den Einstellungen konfigurieren"
+  "presence.open_settings": "Personen in den Einstellungen konfigurieren",
+  "settings.load_failed": "Einstellungen konnten nicht geladen werden. Es wurde nichts geändert.",
+  "settings.retry": "Erneut versuchen"
 }

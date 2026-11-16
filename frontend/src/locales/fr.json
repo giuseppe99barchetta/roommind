@@ -886,5 +886,7 @@
   "settings.power_budget.max_power": "Charge maximale du logement (W)",
   "settings.power_budget.reserve": "Réserve de sécurité (W)",
   "presence.not_configured_hint": "La détection de présence n'est pas encore configurée. Ajoutez les personnes à suivre dans les paramètres de RoomMind pour l'utiliser dans cette pièce.",
-  "presence.open_settings": "Configurer les personnes dans les paramètres"
+  "presence.open_settings": "Configurer les personnes dans les paramètres",
+  "settings.load_failed": "Impossible de charger les paramètres. Rien n'a été modifié.",
+  "settings.retry": "Réessayer"
 }

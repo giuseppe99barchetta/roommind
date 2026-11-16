@@ -34,6 +34,7 @@ import "./settings/rs-settings-learning";
 import "./settings/rs-settings-reset";
 import "./settings/rs-settings-heating-system";
 import "./settings/rs-settings-preview";
+import { changedSettings, snapshotSettings } from "../utils/settings-diff";
 
 @customElement("rs-settings")
 export class RsSettings extends LitElement {
@@ -98,6 +99,11 @@ export class RsSettings extends LitElement {
   @state() private _unavailableBehavior: "boiler" | "allow" = "boiler";
   @state() private _energyPricePerKwh = 0;
   @state() private _loaded = false;
+  // Load failed: the fields hold defaults, so nothing may be saved (it would reset settings).
+  @state() private _loadFailed = false;
+  // Last payload known to the backend, per key (JSON); a save sends only keys that differ,
+  // so a page left open does not undo changes made elsewhere.
+  private _savedPayload: Record<string, string> | null = null;
   @state() private _category: "overview" | "system" | "protection" | "advanced" = "overview";
 
   private _saveDebounce?: ReturnType<typeof setTimeout>;
@@ -117,6 +123,7 @@ export class RsSettings extends LitElement {
   }
 
   private async _loadSettings() {
+    this._loadFailed = false;
     try {
       const result = await this.hass.callWS<{ settings: GlobalSettings }>({
         type: "roommind/settings/get",
@@ -186,9 +193,12 @@ export class RsSettings extends LitElement {
       this._reserve = s.power_budget_reserve_watts ?? 200;
       this._unavailableBehavior = s.power_budget_unavailable_behavior ?? "boiler";
       this._energyPricePerKwh = s.energy_price_per_kwh ?? 0;
+      this._savedPayload = snapshotSettings(this._buildPayload());
     } catch (err) {
       // eslint-disable-next-line no-console
       console.debug("[RoomMind] loadSettings:", err);
+      this._loadFailed = true;
+      this._savedPayload = null;
     } finally {
       this._loaded = true;
     }
@@ -197,6 +207,14 @@ export class RsSettings extends LitElement {
   protected render() {
     if (!this._loaded) {
       return html`<div class="loading">${localize("panel.loading", this.hass.language)}</div>`;
+    }
+    if (this._loadFailed) {
+      return html`<div class="loading">
+        <p>${localize("settings.load_failed", this.hass.language)}</p>
+        <ha-button @click=${() => this._loadSettings()}
+          >${localize("settings.retry", this.hass.language)}</ha-button
+        >
+      </div>`;
     }
 
     const l = this.hass.language;
@@ -496,100 +514,94 @@ export class RsSettings extends LitElement {
     }, 500);
   }
 
+  private _buildPayload() {
+    // This is the final untrusted UI boundary. Do not rely on picker event
+    // shapes here: Home Assistant components differ across releases.
+    const { hydraulicBypassEntities, powerSensorMode } = normalizeHeatingSettingsForWebsocket(
+      this._bypassEntities,
+      this._powerMode,
+    );
+    return {
+      group_by_floor: this._groupByFloor,
+      climate_control_active: this._climateControlActive,
+      temperature_rounding_mode: this._temperatureRoundingMode,
+      learning_disabled_rooms: this._learningDisabledRooms,
+      outdoor_temp_sensor: this._outdoorTempSensor,
+      outdoor_humidity_sensor: this._outdoorHumiditySensor,
+      outdoor_cooling_min: this._outdoorCoolingMin,
+      outdoor_heating_max: this._outdoorHeatingMax,
+      comfort_weight: this._comfortWeight,
+      weather_entity: this._weatherEntity,
+      outdoor_unavailable_notify: this._outdoorUnavailableNotify,
+      prediction_enabled: this._predictionEnabled,
+      vacation_temp: this._vacationTemp,
+      vacation_until: this._vacationActive
+        ? this._vacationUntil
+          ? new Date(this._vacationUntil).getTime() / 1000
+          : VACATION_SENTINEL
+        : null,
+      presence_enabled: this._presenceEnabled,
+      presence_persons: this._presencePersons.filter((p) => p),
+      presence_away_action: this._presenceAwayAction,
+      presence_clears_override: this._presenceClearsOverride,
+      schedule_off_action: this._scheduleOffAction,
+      valve_protection_enabled: this._valveProtectionEnabled,
+      valve_protection_interval_days: this._valveProtectionInterval,
+      compressor_groups: this._compressorGroups.filter((g) => g.members.length > 0),
+      boiler_entity: this._boilerEntity,
+      boiler_control_type: this._boilerControlType,
+      boiler_startup_delay_seconds: this._startupDelay,
+      boiler_shutdown_delay_seconds: this._shutdownDelay,
+      hydraulic_bypass_entities: hydraulicBypassEntities,
+      hydraulic_bypass_open_temperature: this._bypassTemperature,
+      hydraulic_bypass_child_lock: this._bypassChildLock,
+      boiler_min_demand_rooms: this._minDemandRooms,
+      boiler_demand_unit: this._demandUnit,
+      boiler_min_run_minutes: this._minRunMinutes,
+      boiler_min_off_minutes: this._minOffMinutes,
+      boiler_fault_retry_minutes: this._faultRetryMinutes,
+      boiler_max_wait_minutes: this._maxWaitMinutes,
+      power_budget_enabled: this._budgetEnabled,
+      power_sensor: this._powerSensor,
+      power_sensor_mode: powerSensorMode,
+      power_budget_max_watts: this._maxPower,
+      power_budget_reserve_watts: this._reserve,
+      power_budget_unavailable_behavior: this._unavailableBehavior,
+      energy_price_per_kwh: this._energyPricePerKwh,
+      mold_detection_enabled: this._moldDetectionEnabled,
+      mold_humidity_threshold: this._moldHumidityThreshold,
+      mold_sustained_minutes: this._moldSustainedMinutes,
+      mold_notification_cooldown: this._moldNotificationCooldown,
+      mold_notifications_enabled: this._moldNotificationsEnabled,
+      mold_notification_targets: this._moldNotificationTargets.filter((t) => t.entity_id),
+      mold_prevention_enabled: this._moldPreventionEnabled,
+      mold_prevention_sustained_minutes: this._moldPreventionSustainedMinutes,
+      mold_prevention_dehumidification_enabled: this._moldPreventionDehumidificationEnabled,
+      mold_prevention_dry_min_temperature: this._moldPreventionDryMinTemperature,
+      mold_prevention_notify_enabled: this._moldPreventionNotify,
+      mold_prevention_notify_targets: this._moldPreventionNotify
+        ? this._moldNotificationTargets.filter((t) => t.entity_id)
+        : [],
+      window_open_notification_minutes: this._windowOpenNotificationMinutes,
+    };
+  }
+
   private async _doSave() {
+    // Never save after a failed load: the fields hold defaults and would reset everything.
+    if (this._loadFailed || !this._savedPayload) return;
     fireSaveStatus(this, "saving");
 
     try {
-      // This is the final untrusted UI boundary. Do not rely on picker event
-      // shapes here: Home Assistant components differ across releases.
-      const rawBypass = this._bypassEntities;
-      const rawPowerSensorMode = this._powerMode;
-      const { hydraulicBypassEntities, powerSensorMode } = normalizeHeatingSettingsForWebsocket(
-        rawBypass,
-        rawPowerSensorMode,
-      );
-      const payload = {
-        type: "roommind/settings/save",
-        group_by_floor: this._groupByFloor,
-        climate_control_active: this._climateControlActive,
-        temperature_rounding_mode: this._temperatureRoundingMode,
-        learning_disabled_rooms: this._learningDisabledRooms,
-        outdoor_temp_sensor: this._outdoorTempSensor,
-        outdoor_humidity_sensor: this._outdoorHumiditySensor,
-        outdoor_cooling_min: this._outdoorCoolingMin,
-        outdoor_heating_max: this._outdoorHeatingMax,
-        comfort_weight: this._comfortWeight,
-        weather_entity: this._weatherEntity,
-        outdoor_unavailable_notify: this._outdoorUnavailableNotify,
-        prediction_enabled: this._predictionEnabled,
-        vacation_temp: this._vacationTemp,
-        vacation_until: this._vacationActive
-          ? this._vacationUntil
-            ? new Date(this._vacationUntil).getTime() / 1000
-            : VACATION_SENTINEL
-          : null,
-        presence_enabled: this._presenceEnabled,
-        presence_persons: this._presencePersons.filter((p) => p),
-        presence_away_action: this._presenceAwayAction,
-        presence_clears_override: this._presenceClearsOverride,
-        schedule_off_action: this._scheduleOffAction,
-        valve_protection_enabled: this._valveProtectionEnabled,
-        valve_protection_interval_days: this._valveProtectionInterval,
-        compressor_groups: this._compressorGroups.filter((g) => g.members.length > 0),
-        boiler_entity: this._boilerEntity,
-        boiler_control_type: this._boilerControlType,
-        boiler_startup_delay_seconds: this._startupDelay,
-        boiler_shutdown_delay_seconds: this._shutdownDelay,
-        hydraulic_bypass_entities: hydraulicBypassEntities,
-        hydraulic_bypass_open_temperature: this._bypassTemperature,
-        hydraulic_bypass_child_lock: this._bypassChildLock,
-        boiler_min_demand_rooms: this._minDemandRooms,
-        boiler_demand_unit: this._demandUnit,
-        boiler_min_run_minutes: this._minRunMinutes,
-        boiler_min_off_minutes: this._minOffMinutes,
-        boiler_fault_retry_minutes: this._faultRetryMinutes,
-        boiler_max_wait_minutes: this._maxWaitMinutes,
-        power_budget_enabled: this._budgetEnabled,
-        power_sensor: this._powerSensor,
-        power_sensor_mode: powerSensorMode,
-        power_budget_max_watts: this._maxPower,
-        power_budget_reserve_watts: this._reserve,
-        power_budget_unavailable_behavior: this._unavailableBehavior,
-        energy_price_per_kwh: this._energyPricePerKwh,
-        mold_detection_enabled: this._moldDetectionEnabled,
-        mold_humidity_threshold: this._moldHumidityThreshold,
-        mold_sustained_minutes: this._moldSustainedMinutes,
-        mold_notification_cooldown: this._moldNotificationCooldown,
-        mold_notifications_enabled: this._moldNotificationsEnabled,
-        mold_notification_targets: this._moldNotificationTargets.filter((t) => t.entity_id),
-        mold_prevention_enabled: this._moldPreventionEnabled,
-        mold_prevention_sustained_minutes: this._moldPreventionSustainedMinutes,
-        mold_prevention_dehumidification_enabled: this._moldPreventionDehumidificationEnabled,
-        mold_prevention_dry_min_temperature: this._moldPreventionDryMinTemperature,
-        mold_prevention_notify_enabled: this._moldPreventionNotify,
-        mold_prevention_notify_targets: this._moldPreventionNotify
-          ? this._moldNotificationTargets.filter((t) => t.entity_id)
-          : [],
-        window_open_notification_minutes: this._windowOpenNotificationMinutes,
-      };
-      // eslint-disable-next-line no-console
-      console.debug("RoomMind heating settings save payload", payload);
-      // eslint-disable-next-line no-console
-      console.debug(
-        "RoomMind heating settings save values",
-        typeof payload.hydraulic_bypass_entities,
-        payload.hydraulic_bypass_entities,
-        payload.power_sensor_mode,
-      );
-      // eslint-disable-next-line no-console
-      console.error("[RoomMind DEBUG FINAL PAYLOAD]", {
-        hydraulic_bypass_entities: payload.hydraulic_bypass_entities,
-        bypassIsArray: Array.isArray(payload.hydraulic_bypass_entities),
-        power_sensor_mode: payload.power_sensor_mode,
-        fullPayload: payload,
-      });
-      await this.hass.callWS(payload);
-      if (this._powerMode === powerSensorMode) {
+      const full = this._buildPayload();
+      const saved = this._savedPayload;
+      const changed = changedSettings(full, saved);
+      if (Object.keys(changed).length) {
+        // eslint-disable-next-line no-console
+        console.debug("RoomMind settings save payload", changed);
+        await this.hass.callWS({ type: "roommind/settings/save", ...changed });
+        Object.assign(saved, snapshotSettings(changed));
+      }
+      if (this._powerMode === full.power_sensor_mode) {
         this._powerModeDirty = false;
       }
       fireSaveStatus(this, "saved");

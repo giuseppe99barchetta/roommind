@@ -886,5 +886,7 @@
   "settings.power_budget.max_power": "Carico massimo della casa (W)",
   "settings.power_budget.reserve": "Riserva di sicurezza (W)",
   "presence.not_configured_hint": "Il rilevamento della presenza non è ancora configurato. Aggiungi le persone da monitorare nelle Impostazioni di RoomMind per usarlo in questa stanza.",
-  "presence.open_settings": "Configura le persone nelle Impostazioni"
+  "presence.open_settings": "Configura le persone nelle Impostazioni",
+  "settings.load_failed": "Impossibile caricare le impostazioni. Non è stato modificato nulla.",
+  "settings.retry": "Riprova"
 }
