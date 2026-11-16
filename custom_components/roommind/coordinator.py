@@ -1357,17 +1357,8 @@ class RoomMindCoordinator(DataUpdateCoordinator):
             afterglow=afterglow,
         )
         mode, power_fraction = await controller.async_evaluate(current_temp, targets)
-        if afterglow is not None:
-            if mode == MODE_HEATING:
-                self._afterglow_reading.clear(area_id)
-            elif (
-                self._previous_modes.get(area_id, MODE_IDLE) == MODE_HEATING
-                and controller.last_plan is not None
-                and current_temp is not None
-            ):
-                self._afterglow_reading.note_stop(
-                    area_id, current_temp, controller.last_plan.temperatures, controller.last_plan.dt_minutes
-                )
+        # The sensor-lag correction follows the final mode (see _observe_and_train), not this decision
+        afterglow_plan = controller.last_plan if afterglow is not None else None
 
         # Compute effective single target_temp for display/history (mode + climate_mode aware)
         climate_mode = room.get("climate_mode", "auto")
@@ -2111,6 +2102,7 @@ class RoomMindCoordinator(DataUpdateCoordinator):
             boiler_wait=boiler_wait,
             track_mode=apply_control,
             compressor_forced_on=bool(compressor_forced_on),
+            afterglow_plan=afterglow_plan,
         )
 
         room_state = self._build_room_state_dict(
@@ -2255,6 +2247,7 @@ class RoomMindCoordinator(DataUpdateCoordinator):
         boiler_wait: bool = False,
         track_mode: bool = True,
         compressor_forced_on: bool = False,
+        afterglow_plan: Any | None = None,
     ) -> tuple[str, float]:
         """Observe device state, train EKF, compute display mode.
 
@@ -2398,6 +2391,18 @@ class RoomMindCoordinator(DataUpdateCoordinator):
             )
         else:
             self._ekf_training.clear(area_id)
+
+        # Sensor lag after a stop on stored heat (afterglow control): the actual transition of the
+        # final mode, after windows, holds and the boiler gate changed what the controller chose
+        if track_mode and afterglow_plan is not None:
+            if mode == MODE_HEATING:
+                self._afterglow_reading.clear(area_id)
+            elif self._previous_modes.get(area_id, MODE_IDLE) == MODE_HEATING and current_temp_raw is not None:
+                self._afterglow_reading.note_stop(
+                    area_id, current_temp_raw, afterglow_plan.temperatures, afterglow_plan.dt_minutes
+                )
+        elif afterglow_plan is None:
+            self._afterglow_reading.clear(area_id)
 
         # Update mode-start tracking for min-run enforcement in the next cycle.
         # A cycle superseded by a manual command applied nothing: keep tracking.
@@ -3368,37 +3373,20 @@ class RoomMindCoordinator(DataUpdateCoordinator):
             elif not room.get(REST_SWITCHED_OFF) and self._room_rest_shutdown_wanted(room):
                 pending.queue(area_id, list(room.get("devices", [])), now)
         for eid, open_entry in pending.open_entries():
-            # Serialized with the commands of every room waiting for it (in a fixed order): a
-            # cycle holding a lock finishes first, one waiting carries a stale generation.
-            async with AsyncExitStack() as locks:
-                for lock_area in sorted(open_entry["areas"]):
-                    await locks.enter_async_context(self._room_command_locks.setdefault(lock_area, asyncio.Lock()))
-                if not self._live_climate_control_active():
-                    break
-                # Re-read after the wait: a resume or another pass may have settled or dropped it
-                entry = pending.get(eid)
-                if entry is None or not entry["areas"] or entry["outcome"] is not None:
-                    continue
-                # The boiler manager owns the hydraulic bypass TRVs: it opens and releases them
-                if eid in self._running_devices() or eid in bypass_entities(store.get_settings()):
-                    pending.resolve(eid, "driven")
-                    continue
-                state = self.hass.states.get(eid)
-                if state is None or state.state not in ("unavailable", "unknown"):
-                    try:
-                        await async_turn_off_climate(self.hass, eid, area_id=entry["areas"][0])
-                    except Exception:  # noqa: BLE001
-                        _LOGGER.warning("Room '%s': could not switch '%s' off", entry["areas"][0], eid, exc_info=True)
-                    # A valve-protection cycle of it would otherwise command it again when it ends
-                    self._valve_manager.forget_cycle(eid)
-                    await self._async_release_valves(entry["areas"][0], [entry["device"]], hand_back=False)
-                if self._is_switched_off(eid):
-                    pending.resolve(eid, "off")
-                elif pending.expired(eid, now):
-                    _LOGGER.warning(
-                        "Room '%s': '%s' did not switch off within a day, giving up", entry["areas"][0], eid
-                    )
-                    pending.resolve(eid, "expired")
+            areas = sorted(open_entry["areas"])
+            for _attempt in range(5):
+                # Serialized with the commands of every room waiting for it (in a fixed order): a
+                # cycle holding a lock finishes first, one waiting carries a stale generation.
+                async with AsyncExitStack() as locks:
+                    for lock_area in areas:
+                        await locks.enter_async_context(self._room_command_locks.setdefault(lock_area, asyncio.Lock()))
+                    entry = pending.get(eid)
+                    if entry is not None and not set(entry["areas"]) <= set(areas):
+                        # A room started waiting meanwhile: its lock is needed too
+                        areas = sorted(set(areas) | set(entry["areas"]))
+                        continue
+                    await self._async_shut_pending_device(eid, entry, now)
+                break
         stored = store.get_rooms()
         for area_id, room in stored.items():
             if has_area(self.hass, area_id) or room.get(REST_SWITCHED_OFF):
@@ -3411,6 +3399,35 @@ class RoomMindCoordinator(DataUpdateCoordinator):
         stored = store.get_rooms()
         pending.cleanup({a for a, r in stored.items() if not has_area(self.hass, a) and not r.get(REST_SWITCHED_OFF)})
         await self.async_save_pending_shutdowns()
+
+    async def _async_shut_pending_device(self, eid: str, entry: dict | None, now: float) -> None:
+        """Switch one pending device off, its waiting rooms' locks held; records its outcome."""
+        store = self.hass.data[DOMAIN]["store"]
+        pending = self._pending_shutdowns
+        if not self._live_climate_control_active():
+            return
+        # Re-read after the wait: a resume or another pass may have settled or dropped it
+        if entry is None or not entry["areas"] or entry["outcome"] is not None:
+            return
+        # The boiler manager owns the hydraulic bypass TRVs: it opens and releases them
+        if eid in self._running_devices() or eid in bypass_entities(store.get_settings()):
+            pending.resolve(eid, "driven")
+            return
+        area_id = entry["areas"][0]
+        state = self.hass.states.get(eid)
+        if state is None or state.state not in ("unavailable", "unknown"):
+            try:
+                await async_turn_off_climate(self.hass, eid, area_id=area_id)
+            except Exception:  # noqa: BLE001
+                _LOGGER.warning("Room '%s': could not switch '%s' off", area_id, eid, exc_info=True)
+            # A valve-protection cycle of it would otherwise command it again when it ends
+            self._valve_manager.forget_cycle(eid)
+            await self._async_release_valves(area_id, [entry["device"]], hand_back=False)
+        if self._is_switched_off(eid):
+            pending.resolve(eid, "off")
+        elif pending.expired(eid, now):
+            _LOGGER.warning("Room '%s': '%s' did not switch off within a day, giving up", area_id, eid)
+            pending.resolve(eid, "expired")
 
     def _room_rest_shutdown_wanted(self, room: dict) -> bool:
         """A resting room's devices are switched off only where RoomMind drove them."""

@@ -488,3 +488,35 @@ async def test_area_back_during_setup_brings_the_entities_back(hass, mock_config
         await coordinator._async_process_pending_shutdowns()
     added.assert_awaited_once()
     assert store.rooms["bed"][REST_SWITCHED_OFF] is False
+
+
+@pytest.mark.asyncio
+async def test_a_room_that_starts_waiting_during_the_lock_wait_is_locked_too(hass, mock_config_entry):
+    """C2-04: a second waiting room's in-flight command finishes before the shared device goes off."""
+    import asyncio
+
+    # office is not queued by the pass itself: it starts waiting only during the wait (e.g. deleted then)
+    store = FakeStore(
+        {
+            "bed": _room("bed", "climate.shared_ac"),
+            "office": _room("office", "climate.shared_ac", climate_control_enabled=False),
+        }
+    )
+    _states(hass, {"climate.shared_ac": "heat"})
+    coordinator = _coord(hass, mock_config_entry, store)
+    coordinator._pending_shutdowns.queue("bed", store.rooms["bed"]["devices"], 1.0)
+    bed = coordinator._room_command_locks.setdefault("bed", asyncio.Lock())
+    office = coordinator._room_command_locks.setdefault("office", asyncio.Lock())
+    with areas_missing("bed", "office"), patch(TURN_OFF, new=AsyncMock()) as turn_off:
+        await bed.acquire()
+        await office.acquire()  # office has a command in flight
+        task = asyncio.ensure_future(coordinator._async_process_pending_shutdowns())
+        await asyncio.sleep(0)
+        coordinator._pending_shutdowns.queue("office", store.rooms["office"]["devices"], 2.0)  # office starts waiting
+        bed.release()
+        for _ in range(5):
+            await asyncio.sleep(0)
+        turn_off.assert_not_awaited()
+        office.release()
+        await task
+    assert _sent(turn_off) == ["climate.shared_ac"]

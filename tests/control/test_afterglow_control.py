@@ -214,3 +214,18 @@ def test_kept_run_plan_matches_the_command():
     assert plan.actions[0] == MODE_HEATING
     expected = ROOM.predict(20.0, 5.0, plan.power_fractions[0] * ROOM.Q_heat, 5.0)
     assert plan.temperatures[1] == pytest.approx(expected, abs=0.01)
+
+
+def test_a_run_that_spans_a_pause_teaches_nothing_after_it():
+    """C2-02: a run with cycles during a paused learning gives no observation once learning is back."""
+    learner = ResidualHeatLearner()
+    kw = dict(model=ROOM, system_type="radiator", T_outdoor=5.0, dt_minutes=0.5, q_solar=0.0, q_occupancy=0.0)
+    with patch("custom_components.roommind.managers.residual_heat_tracker.time") as clock:
+        for t, learning in ((0.0, False), (30.0, True), (60.0, True)):
+            clock.time.return_value = t
+            learner.step(
+                "r", mode=MODE_HEATING, delivered_power=1.0, current_temp=20.0, disturbed=False, learning=learning, **kw
+            )
+        clock.time.return_value = 90.0
+        learner.step("r", mode=MODE_IDLE, delivered_power=None, current_temp=20.0, disturbed=False, **kw)
+    assert learner._obs == {}

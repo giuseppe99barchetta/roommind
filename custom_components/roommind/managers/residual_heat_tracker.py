@@ -84,6 +84,8 @@ class _Run:
     last: float  # last heating cycle seen
     power_sum: float = 0.0
     cycles: int = 0
+    # False once a cycle of it ran while learning was paused: control still reads it, learning not
+    learnable: bool = True
 
     @property
     def power(self) -> float:
@@ -224,12 +226,15 @@ class ResidualHeatLearner:
             run.last = now
             run.power_sum += delivered_power
             run.cycles += 1
+            if not learning:
+                run.learnable = False
             return sample
         if mode not in (MODE_IDLE, MODE_HEATING):
             self.remove_room(area_id)
             return None
         ended = self._runs.pop(area_id, None)
-        if not learning:
+        if not learning or (ended is not None and not ended.learnable):
+            # Nothing measured during a pause is learned, also not after it
             return None
         if ended is not None and (now - ended.last) / 60.0 > 2 * dt_minutes:
             # Cycles went unseen before the stop: when the heat really ended is unknown

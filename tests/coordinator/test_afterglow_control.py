@@ -120,3 +120,33 @@ async def test_switch_off_sends_todays_controller_inputs(hass, mock_config_entry
     assert on_kwargs["q_residual"] > off_kwargs["q_residual"]  # learned scale 4 > profile
     # The EKF keeps the profile's residual heat either way (no feedback on the learned scale)
     assert on_ekf == off_ekf
+
+
+@pytest.mark.asyncio
+async def test_sensor_lag_follows_the_final_mode(hass, mock_config_entry):
+    """C2-03: the stop is recorded from the mode the cycle ended with, not the controller's choice."""
+    room = _room(True)
+    coordinator, aid = _coord(hass, mock_config_entry, room)
+    _learned(coordinator, aid)  # afterglow control needs a learned room
+    plan = MagicMock(temperatures=[20.2, 20.4], dt_minutes=5.0)
+    common = dict(
+        area_id=aid,
+        room=room,
+        settings={},
+        current_temp_raw=20.2,
+        power_fraction=0.0,
+        window_open=False,
+        raw_open=False,
+        q_residual=0.0,
+        shading_factor=1.0,
+        q_occupancy=0.0,
+        has_external_sensor=True,
+        heat_source_plan=None,
+        climate_active=True,
+        afterglow_plan=plan,
+    )
+    coordinator._previous_modes[aid] = MODE_HEATING
+    await coordinator._observe_and_train(mode=MODE_IDLE, **common)  # e.g. a window turned the heating off
+    assert aid in coordinator._afterglow_reading._stops
+    await coordinator._observe_and_train(mode=MODE_HEATING, **common)
+    assert aid not in coordinator._afterglow_reading._stops
