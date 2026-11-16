@@ -86,6 +86,18 @@ RoomMind starts controlling immediately. If MPC is enabled (default), the therma
 
 Select a room and time range (24h / 7d / 30d / 90d / custom) to view temperature history, heating/cooling power, solar irradiance, and model predictions. Export the displayed data as CSV.
 
+## Dashboard card
+
+RoomMind loads a room card on every dashboard; no resource needs to be added. In the dashboard editor choose **Add card → RoomMind room**, then pick the room. In YAML:
+
+```yaml
+type: custom:roommind-room-card
+area_id: living_room   # the room's Home Assistant area id
+name: Living           # optional
+```
+
+The card shows the room's temperature, humidity, state and target, and offers its climate mode, the room's climate control switch and a temporary Comfort / Eco / Custom override for 1, 2 or 4 hours. Changing the climate mode or the switch needs an administrator account, like in the panel.
+
 ## How It Works
 
 ### Target Temperature Priority

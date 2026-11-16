@@ -926,5 +926,13 @@
   "devices.valve_closing_mode": "Second valve value",
   "devices.valve_closing_degree": "Closing degree (SONOFF TRVZB)",
   "devices.valve_idle_opening": "Opening while idle (SONOFF TRV-ZBT)",
-  "devices.valve_closing_mode_info": "TRVZB: the valve sits at X with opening X and closing 100 - X. TRV-ZBT: the second value is the opening while the TRV does not heat, both are set to X."
+  "devices.valve_closing_mode_info": "TRVZB: the valve sits at X with opening X and closing 100 - X. TRV-ZBT: the second value is the opening while the TRV does not heat, both are set to X.",
+  "roomcard.name": "RoomMind room",
+  "roomcard.description": "One RoomMind room: temperature, target, climate mode and a quick override.",
+  "roomcard.select_room": "Choose a room in the card settings.",
+  "roomcard.room_not_found": "This room is not a RoomMind room (anymore).",
+  "roomcard.clear": "End override",
+  "roomcard.error_save": "Could not save the room",
+  "roomcard.editor_room": "Room",
+  "roomcard.editor_name": "Name (optional)"
 }

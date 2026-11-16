@@ -8,6 +8,7 @@ import logging
 from pathlib import Path
 
 from homeassistant.components.frontend import (
+    add_extra_js_url,
     async_register_built_in_panel,
     async_remove_panel,
 )
@@ -28,6 +29,8 @@ from .websocket_api import async_register_websocket_commands
 _LOGGER = logging.getLogger(__name__)
 
 CONFIG_SCHEMA = cv.config_entry_only_config_schema(DOMAIN)
+
+CARD_URL = "/roommind/roommind-card.js"
 
 
 async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
@@ -60,6 +63,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     coordinator.cleanup_orphaned_entities()
 
     await _async_register_panel(hass)
+    await _async_register_card(hass)
     await _async_check_version_mismatch(hass)
 
     return True
@@ -157,6 +161,31 @@ async def _async_check_version_mismatch(hass: HomeAssistant) -> None:
         )
     else:
         ir.async_delete_issue(hass, DOMAIN, "restart_required")
+
+
+async def _async_register_card(hass: HomeAssistant) -> None:
+    """Load the dashboard card on every frontend page, so it needs no manual resource (#346).
+
+    The content digest in the query makes browsers fetch the new card after an update,
+    as for the panel.
+    """
+    if hass.data[DOMAIN].get("card_registered"):
+        return
+
+    card_js = Path(__file__).parent / "frontend" / "roommind-card.js"
+    if not card_js.exists():
+        _LOGGER.warning("RoomMind card JS not found at %s – dashboard card not available", card_js)
+        return
+
+    card_digest = await hass.async_add_executor_job(lambda: hashlib.sha256(card_js.read_bytes()).hexdigest()[:12])
+
+    try:
+        await hass.http.async_register_static_paths([StaticPathConfig(CARD_URL, str(card_js), False)])
+    except RuntimeError:
+        _LOGGER.debug("RoomMind card static path already registered")
+
+    add_extra_js_url(hass, f"{CARD_URL}?v={card_digest}")
+    hass.data[DOMAIN]["card_registered"] = True
 
 
 async def _async_register_panel(hass: HomeAssistant) -> None:

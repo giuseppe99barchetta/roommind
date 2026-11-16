@@ -926,5 +926,13 @@
   "devices.valve_closing_mode": "Zweiter Ventilwert",
   "devices.valve_closing_degree": "Schließgrad (SONOFF TRVZB)",
   "devices.valve_idle_opening": "Öffnung im Leerlauf (SONOFF TRV-ZBT)",
-  "devices.valve_closing_mode_info": "TRVZB: das Ventil steht auf X mit Öffnung X und Schließgrad 100 - X. TRV-ZBT: der zweite Wert ist die Öffnung, wenn das Thermostat nicht heizt; beide auf X."
+  "devices.valve_closing_mode_info": "TRVZB: das Ventil steht auf X mit Öffnung X und Schließgrad 100 - X. TRV-ZBT: der zweite Wert ist die Öffnung, wenn das Thermostat nicht heizt; beide auf X.",
+  "roomcard.name": "RoomMind-Raum",
+  "roomcard.description": "Ein RoomMind-Raum: Temperatur, Ziel, Klimamodus und schnelle Übersteuerung.",
+  "roomcard.select_room": "Wähle in den Karteneinstellungen einen Raum.",
+  "roomcard.room_not_found": "Dieser Raum ist (nicht mehr) ein RoomMind-Raum.",
+  "roomcard.clear": "Übersteuerung beenden",
+  "roomcard.error_save": "Raum konnte nicht gespeichert werden",
+  "roomcard.editor_room": "Raum",
+  "roomcard.editor_name": "Name (optional)"
 }

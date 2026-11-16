@@ -926,5 +926,13 @@
   "devices.valve_closing_mode": "Seconde valeur de la vanne",
   "devices.valve_closing_degree": "Degré de fermeture (SONOFF TRVZB)",
   "devices.valve_idle_opening": "Ouverture au repos (SONOFF TRV-ZBT)",
-  "devices.valve_closing_mode_info": "TRVZB : la vanne est à X avec ouverture X et fermeture 100 - X. TRV-ZBT : la seconde valeur est l'ouverture quand la tête ne chauffe pas, les deux à X."
+  "devices.valve_closing_mode_info": "TRVZB : la vanne est à X avec ouverture X et fermeture 100 - X. TRV-ZBT : la seconde valeur est l'ouverture quand la tête ne chauffe pas, les deux à X.",
+  "roomcard.name": "Pièce RoomMind",
+  "roomcard.description": "Une pièce RoomMind : température, consigne, mode climat et dérogation rapide.",
+  "roomcard.select_room": "Choisissez une pièce dans les réglages de la carte.",
+  "roomcard.room_not_found": "Cette pièce n'est pas (plus) une pièce RoomMind.",
+  "roomcard.clear": "Terminer la dérogation",
+  "roomcard.error_save": "Impossible d'enregistrer la pièce",
+  "roomcard.editor_room": "Pièce",
+  "roomcard.editor_name": "Nom (facultatif)"
 }
