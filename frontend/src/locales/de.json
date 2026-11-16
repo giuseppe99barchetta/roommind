@@ -934,5 +934,13 @@
   "roomcard.clear": "Übersteuerung beenden",
   "roomcard.error_save": "Raum konnte nicht gespeichert werden",
   "roomcard.editor_room": "Raum",
-  "roomcard.editor_name": "Name (optional)"
+  "roomcard.editor_name": "Name (optional)",
+  "head_offset.title": "Sensorversatz Klimaanlage",
+  "head_offset.hint": "Korrigiert den Sollwert jeder Klimaanlage um die Abweichung ihres eigenen Sensors vom Raumsensor, damit sie nicht zu früh abschaltet, wenn ihr Sensor warm misst. Gelernt wird immer; die Korrektur gilt nur, wenn dies aktiv ist.",
+  "head_offset.learned": "Gelernter Versatz (Messungen)",
+  "head_offset.none": "Noch nichts gelernt. Klimaanlagen ohne hvac_action brauchen einen Leistungssensor in ihren Geräteeinstellungen.",
+  "head_offset.heat": "Heizen",
+  "head_offset.cool": "Kühlen",
+  "head_offset.idle": "Ruhe",
+  "settings.intro.head_offset": "Eine Klimaanlage regelt auf den Sensor ihres Innengeräts. RoomMind lernt, wie weit er beim Heizen, Kühlen und in Ruhe vom Raum abweicht, aus hvac_action oder, wenn die Anlage keines meldet, aus ihrem Leistungssensor."
 }

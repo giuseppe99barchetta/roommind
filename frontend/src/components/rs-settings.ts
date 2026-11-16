@@ -27,6 +27,8 @@ import "./settings/rs-settings-control";
 import "./settings/rs-settings-presence";
 import "./settings/rs-settings-vacation";
 import "./settings/rs-settings-valve";
+import "./settings/rs-settings-head-offset";
+import type { HeadOffsets } from "./settings/rs-settings-head-offset";
 import "./settings/rs-settings-compressor";
 import "./settings/rs-settings-mold";
 import "./settings/rs-settings-notifications";
@@ -63,6 +65,8 @@ export class RsSettings extends LitElement {
   @state() private _presenceClearsOverride = false;
   @state() private _scheduleOffAction: "eco" | "off" = "eco";
   @state() private _valveProtectionEnabled = false;
+  @state() private _acHeadOffsetEnabled = false;
+  @state() private _acHeadOffsets: HeadOffsets = {};
   @state() private _valveProtectionInterval = 7;
   @state() private _moldDetectionEnabled = false;
   @state() private _moldHumidityThreshold = 70;
@@ -160,6 +164,8 @@ export class RsSettings extends LitElement {
       this._presenceClearsOverride = s.presence_clears_override ?? false;
       this._scheduleOffAction = s.schedule_off_action ?? "eco";
       this._valveProtectionEnabled = s.valve_protection_enabled ?? false;
+      this._acHeadOffsetEnabled = s.ac_head_offset_enabled ?? false;
+      this._acHeadOffsets = (s.ac_head_offsets ?? {}) as HeadOffsets;
       this._valveProtectionInterval = s.valve_protection_interval_days ?? 7;
       this._moldDetectionEnabled = s.mold_detection_enabled ?? false;
       this._moldHumidityThreshold = s.mold_humidity_threshold ?? 70;
@@ -416,6 +422,20 @@ export class RsSettings extends LitElement {
           </rs-settings-panel>
 
           <rs-settings-panel
+            ?hidden=${this._category !== "system"}
+            icon="mdi:thermometer-lines"
+            .heading=${localize("head_offset.title", l)}
+            .intro=${localize("settings.intro.head_offset", l)}
+          >
+            <rs-settings-head-offset
+              .hass=${this.hass}
+              .acHeadOffsetEnabled=${this._acHeadOffsetEnabled}
+              .acHeadOffsets=${this._acHeadOffsets}
+              @setting-changed=${this._onSettingChanged}
+            ></rs-settings-head-offset>
+          </rs-settings-panel>
+
+          <rs-settings-panel
             ?hidden=${this._category !== "protection"}
             icon="mdi:water-alert"
             .heading=${localize("mold.title", l)}
@@ -551,6 +571,7 @@ export class RsSettings extends LitElement {
       presence_clears_override: this._presenceClearsOverride,
       schedule_off_action: this._scheduleOffAction,
       valve_protection_enabled: this._valveProtectionEnabled,
+      ac_head_offset_enabled: this._acHeadOffsetEnabled,
       valve_protection_interval_days: this._valveProtectionInterval,
       compressor_groups: this._compressorGroups.filter((g) => g.members.length > 0),
       boiler_entity: this._boilerEntity,

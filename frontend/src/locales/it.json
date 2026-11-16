@@ -934,5 +934,13 @@
   "roomcard.clear": "Termina override",
   "roomcard.error_save": "Impossibile salvare la stanza",
   "roomcard.editor_room": "Stanza",
-  "roomcard.editor_name": "Nome (facoltativo)"
+  "roomcard.editor_name": "Nome (facoltativo)",
+  "head_offset.title": "Offset sensore AC",
+  "head_offset.hint": "Corregge il setpoint di ogni condizionatore di quanto il suo sensore legge diverso da quello della stanza, così non si ferma prima quando il suo sensore legge caldo. L'apprendimento è sempre attivo; la correzione si applica solo con questa opzione accesa.",
+  "head_offset.learned": "Offset appreso (letture)",
+  "head_offset.none": "Ancora niente di appreso. I condizionatori senza hvac_action hanno bisogno di un sensore di potenza nelle impostazioni del dispositivo.",
+  "head_offset.heat": "Riscaldamento",
+  "head_offset.cool": "Raffrescamento",
+  "head_offset.idle": "Fermo",
+  "settings.intro.head_offset": "Un condizionatore regola sul sensore della sua unità interna. RoomMind impara quanto legge diverso dalla stanza mentre scalda, raffresca o è fermo, da hvac_action oppure, se il condizionatore non lo riporta, dal suo sensore di potenza."
 }

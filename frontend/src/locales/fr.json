@@ -934,5 +934,13 @@
   "roomcard.clear": "Terminer la dérogation",
   "roomcard.error_save": "Impossible d'enregistrer la pièce",
   "roomcard.editor_room": "Pièce",
-  "roomcard.editor_name": "Nom (facultatif)"
+  "roomcard.editor_name": "Nom (facultatif)",
+  "head_offset.title": "Décalage du capteur de la clim",
+  "head_offset.hint": "Corrige la consigne de chaque climatiseur de l'écart entre son propre capteur et celui de la pièce, pour qu'il ne s'arrête pas trop tôt quand son capteur mesure chaud. L'apprentissage tourne toujours ; la correction ne s'applique que si cette option est activée.",
+  "head_offset.learned": "Décalage appris (mesures)",
+  "head_offset.none": "Rien d'appris pour l'instant. Les climatiseurs sans hvac_action ont besoin d'un capteur de puissance dans leurs réglages d'appareil.",
+  "head_offset.heat": "Chauffage",
+  "head_offset.cool": "Refroidissement",
+  "head_offset.idle": "Arrêt",
+  "settings.intro.head_offset": "Un climatiseur régule sur le capteur de son unité intérieure. RoomMind apprend son écart avec la pièce en chauffage, en refroidissement et à l'arrêt, d'après hvac_action ou, si le climatiseur n'en fournit pas, d'après son capteur de puissance."
 }

@@ -934,5 +934,13 @@
   "roomcard.clear": "End override",
   "roomcard.error_save": "Could not save the room",
   "roomcard.editor_room": "Room",
-  "roomcard.editor_name": "Name (optional)"
+  "roomcard.editor_name": "Name (optional)",
+  "head_offset.title": "AC sensor offset",
+  "head_offset.hint": "Corrects each AC's setpoint by how far its own sensor reads from the room sensor, so it does not stop early when its sensor reads warm. Learning always runs; the correction applies only when this is on.",
+  "head_offset.learned": "Learned offset (readings)",
+  "head_offset.none": "Nothing learned yet. ACs without hvac_action need a power sensor in their device settings.",
+  "head_offset.heat": "Heating",
+  "head_offset.cool": "Cooling",
+  "head_offset.idle": "Idle",
+  "settings.intro.head_offset": "An AC regulates on the sensor in its indoor unit. RoomMind learns how far it reads from the room while heating, cooling and idle, from hvac_action or, when the AC reports none, from its power sensor."
 }

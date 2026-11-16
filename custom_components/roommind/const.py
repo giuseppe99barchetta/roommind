@@ -209,6 +209,17 @@ HEATING_SYSTEM_PROFILES: dict[str, dict[str, float]] = {
 }
 RESIDUAL_HEAT_CUTOFF = 0.02  # below this q_residual is treated as zero
 
+# AC head offset (upstream #461): learned T_device - T_room per AC for heat / cool / idle
+HEAD_OFFSET_SETTLE_S = 240  # Running time before readings count: the offset builds up with the airflow after a start
+HEAD_OFFSET_ALPHA = 0.05  # EMA weight per reading (one per 30 s cycle: ~10 min of running to follow a change)
+HEAD_OFFSET_MIN_SAMPLES = 10  # Readings before the offset is applied to setpoints
+HEAD_OFFSET_MAX_K = 4.0  # Larger differences are a misplaced or broken sensor, not a bias to correct
+HEAD_OFFSET_GRID_K = 0.5  # Applied offsets are multiples of this; below a quarter of a degree nothing changes
+HEAD_OFFSET_HYSTERESIS_K = 0.375  # The applied offset moves only once the learned one is this far from it
+# Without hvac_action the compressor counts as running above this draw (Hisense: 0-22 W stopped,
+# 570-720 W running); standby electronics and the fan stay well below it
+HEAD_OFFSET_RUNNING_W = 100.0
+
 # Learned radiator afterglow (upstream #493/#495), learning only: the learned scale and decay
 # time are shown in analytics and diagnostics but not used by control yet.
 HEATING_SYSTEM_RADIATOR = "radiator"

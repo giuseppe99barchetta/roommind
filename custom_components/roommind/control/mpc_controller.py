@@ -436,8 +436,12 @@ async def async_idle_device(
     window_open: bool = False,
     preserve_fan_only: bool = False,
     fan_only_conditions_met: bool = True,
+    head_offset: float = 0.0,
 ) -> None:
     """Idle a climate device per its configured idle_action.
+
+    ``head_offset``: learned offset of an AC's own sensor while idle (K), added to a setback
+    so the unit restarts at the same room temperature (0 unless enabled, #461).
 
     "off"      -> async_turn_off_climate() (existing behavior)
     "fan_only" -> hvac_mode=fan_only + set_fan_mode(idle_fan_mode)
@@ -531,6 +535,7 @@ async def async_idle_device(
             await async_turn_off_climate(hass, entity_id, area_id=area_id, fallback_setpoint=fallback_temp)
             return
 
+        setback_temp += head_offset
         # Convert to HA units FIRST, then clamp to device min/max
         # (device attributes min_temp/max_temp are in HA units, not Celsius)
         ha_t = celsius_to_ha_temp(hass, setback_temp)
@@ -876,8 +881,11 @@ class MPCController:
         mode_on_since: float | None = None,
         shading_factor: float = 1.0,
         q_occupancy: float = 0.0,
+        head_offsets: Callable[[str, str], float] | None = None,
     ) -> None:
         self.hass = hass
+        # Learned AC head offsets (#461), None while the setting is off
+        self._head_offsets = head_offsets
         self.room_config = room_config
         self.thermostats: list[str] = get_trv_eids(room_config.get("devices", []))
         self.acs: list[str] = get_ac_eids(room_config.get("devices", []))
@@ -1451,6 +1459,18 @@ class MPCController:
         if await self._call("set_temperature", {"entity_id": eid, "temperature": round(level, 2)}, temp_intent=hvac):
             _hold_modulated.add(eid)
 
+    def _head_shift(self, eid: str, intent: str) -> float:
+        """Learned offset of an AC's own sensor for *intent* (K); 0 unless enabled, proportional, Full Control."""
+        if self._head_offsets is None or not self.has_external_sensor or eid not in self.acs:
+            return 0.0
+        if eid in self._direct_eids:
+            return 0.0
+        return self._head_offsets(eid, intent)
+
+    async def _idle_device(self, hass: HomeAssistant, entity_id: str, devices: list[dict], **kwargs: Any) -> None:
+        """``async_idle_device`` with the AC's learned idle head offset for a setback."""
+        await async_idle_device(hass, entity_id, devices, head_offset=self._head_shift(entity_id, "idle"), **kwargs)
+
     def direct_target(self, mode: str, target: float) -> float:
         """Room target a heating/cooling run works towards while *mode* is active.
 
@@ -1832,7 +1852,7 @@ class MPCController:
                     _active_targets[eid] = (targets.heat, targets.cool)
             for eid in thermostats:
                 if eid in _forced_off:
-                    await async_idle_device(self.hass, eid, self._devices, area_id=self._area_id, targets=targets)
+                    await self._idle_device(self.hass, eid, self._devices, area_id=self._area_id, targets=targets)
                     continue
                 if can_heat and ha_heat_target is not None:
                     await self._call("set_hvac_mode", {"entity_id": eid, "hvac_mode": "heat"})
@@ -1845,7 +1865,7 @@ class MPCController:
                     await self._call("set_hvac_mode", {"entity_id": eid, "hvac_mode": "off"})
             for eid in [e for e in self.acs if e not in _exclude]:
                 if eid in _forced_off:
-                    await async_idle_device(self.hass, eid, self._devices, area_id=self._area_id, targets=targets)
+                    await self._idle_device(self.hass, eid, self._devices, area_id=self._area_id, targets=targets)
                     continue
                 ac_state = self.hass.states.get(eid)
                 ac_modes = _effective_ac_modes(ac_state)
@@ -1940,7 +1960,7 @@ class MPCController:
                     )
                     continue
                 if cmd.entity_id in _forced_off and cmd.active:
-                    await async_idle_device(
+                    await self._idle_device(
                         self.hass, cmd.entity_id, self._devices, area_id=self._area_id, targets=targets
                     )
                     continue
@@ -1973,6 +1993,7 @@ class MPCController:
                             )
                             t = max(effective_target, t)
                             t = min(ac_heat_boost, effective_target + self._ac_boost_delta, t)
+                            t = min(ac_heat_boost, t + self._head_shift(cmd.entity_id, "heat"))
                         else:
                             t = effective_target
                         t_final = effective_target if cmd.entity_id in self._direct_eids else t
@@ -2006,7 +2027,7 @@ class MPCController:
                         # (e.g. 19.3 -> 19.5) could nudge the valve open on
                         # sensor fluctuation, causing a mechanical twitch
                         # and unnecessary heat demand. (#168)
-                        await async_idle_device(
+                        await self._idle_device(
                             self.hass,
                             cmd.entity_id,
                             self._devices,
@@ -2040,7 +2061,7 @@ class MPCController:
             ha_trv_direct = celsius_to_ha_temp(self.hass, effective_target)
             for eid in thermostats:
                 if eid in _forced_off:
-                    await async_idle_device(self.hass, eid, self._devices, area_id=self._area_id, targets=targets)
+                    await self._idle_device(self.hass, eid, self._devices, area_id=self._area_id, targets=targets)
                     continue
                 ha_t = ha_trv_direct if eid in self._direct_eids else ha_trv
                 await self._call("set_hvac_mode", {"entity_id": eid, "hvac_mode": "heat"})
@@ -2064,9 +2085,12 @@ class MPCController:
             ha_ac_direct = celsius_to_ha_temp(self.hass, effective_target)
             for eid in [e for e in self.acs if e not in _exclude]:
                 if eid in _forced_off:
-                    await async_idle_device(self.hass, eid, self._devices, area_id=self._area_id, targets=targets)
+                    await self._idle_device(self.hass, eid, self._devices, area_id=self._area_id, targets=targets)
                     continue
                 ha_t = ha_ac_direct if eid in self._direct_eids else ha_ac_target
+                shift = self._head_shift(eid, "heat")
+                if shift:
+                    ha_t = celsius_to_ha_temp(self.hass, min(ac_heat_boost, ac_heat_target + shift))
                 ac_state = self.hass.states.get(eid)
                 ac_modes = _effective_ac_modes(ac_state)
                 if "heat" in ac_modes:
@@ -2101,9 +2125,12 @@ class MPCController:
             ha_cool_direct = celsius_to_ha_temp(self.hass, effective_target)
             for eid in [e for e in self.acs if e not in _exclude]:
                 if eid in _forced_off:
-                    await async_idle_device(self.hass, eid, self._devices, area_id=self._area_id, targets=targets)
+                    await self._idle_device(self.hass, eid, self._devices, area_id=self._area_id, targets=targets)
                     continue
                 ha_t = ha_cool_direct if eid in self._direct_eids else ha_target
+                shift = self._head_shift(eid, "cool")
+                if shift:
+                    ha_t = celsius_to_ha_temp(self.hass, max(ac_cool_boost, ac_cool_target + shift))
                 await self._call("set_hvac_mode", {"entity_id": eid, "hvac_mode": "cool"})
                 await self._call(
                     "set_temperature",
@@ -2113,7 +2140,7 @@ class MPCController:
                 )
             for eid in thermostats:
                 if eid in _forced_off:
-                    await async_idle_device(self.hass, eid, self._devices, area_id=self._area_id, targets=targets)
+                    await self._idle_device(self.hass, eid, self._devices, area_id=self._area_id, targets=targets)
                     continue
                 await self._call("set_hvac_mode", {"entity_id": eid, "hvac_mode": "off"})
         elif mode == MODE_IDLE:
@@ -2138,7 +2165,7 @@ class MPCController:
                 preserve_physical_fan_only = (
                     fan_only_conditions_met and not force_off and (not window_open or keep_fan_on_window_open)
                 )
-                await async_idle_device(
+                await self._idle_device(
                     self.hass,
                     eid,
                     self._devices,
@@ -2214,7 +2241,7 @@ class MPCController:
         # Delegate "turn off" to fallback-aware helper (handles heat-only TRVs)
         if service == "set_hvac_mode" and data.get("hvac_mode") == "off" and eid:
             self.commanded_on.discard(eid)
-            await async_idle_device(
+            await self._idle_device(
                 self.hass,
                 eid,
                 self._devices,

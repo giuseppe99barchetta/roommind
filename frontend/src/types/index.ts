@@ -347,6 +347,8 @@ export interface GlobalSettings {
   presence_clears_override?: boolean;
   schedule_off_action?: "eco" | "off";
   valve_protection_enabled?: boolean;
+  ac_head_offset_enabled?: boolean;
+  ac_head_offsets?: Record<string, Record<string, [number, number]>>;
   valve_protection_interval_days?: number;
   mold_detection_enabled?: boolean;
   mold_humidity_threshold?: number;
