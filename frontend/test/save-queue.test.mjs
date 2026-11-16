@@ -89,3 +89,35 @@ test("settings page: nothing is saved after a failed load", async () => {
     ["roommind/settings/get"],
   );
 });
+
+test("room page: a save queued behind an in-flight one is dropped when the room is deleted", async () => {
+  const writes = [];
+  const ws = deferredFirst(writes);
+  const detail = new RoomDetail();
+  detail.hass = { language: "en", callWS: ws.callWS };
+  detail.area = { area_id: "bed" };
+  detail.config = { area_id: "bed", devices: [], display_name: "A" };
+  detail.dispatchEvent = () => true;
+  detail._initFromConfig();
+
+  detail._displayName = "B";
+  const first = detail._doSave(); // in flight
+  detail._displayName = "C";
+  detail._autoSave(); // a real edit: dirty, newer revision
+  const queued = detail._doSave(); // waits behind it
+  detail.beginDelete(); // the delete goes out and succeeds meanwhile
+  ws.release();
+  await Promise.all([first, queued]);
+  assert.deepEqual(
+    writes.map((w) => w.display_name),
+    ["B"],
+  );
+  assert.equal(detail._dirty, true);
+  // A rejected delete saves the kept edit after all.
+  detail.deleteFailed("boom");
+  await detail._saveQueue;
+  assert.deepEqual(
+    writes.map((w) => w.display_name),
+    ["B", "C"],
+  );
+});

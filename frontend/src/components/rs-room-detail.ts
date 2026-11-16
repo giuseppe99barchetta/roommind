@@ -1605,6 +1605,9 @@ export class RsRoomDetail extends LitElement {
     capturedSnapshot: Record<string, string> | null,
     savedRevision: number,
   ) {
+    // A delete began while this save waited in the queue: rooms/save would recreate the
+    // room. The edits stay dirty; a rejected delete saves them again (deleteFailed).
+    if (this._deleting) return;
     try {
       // A new room's first save may have stored it meanwhile: compare against that.
       const snapshot =
