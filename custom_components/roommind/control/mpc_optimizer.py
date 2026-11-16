@@ -16,6 +16,9 @@ LOOKAHEAD_BASE_BLOCKS = 6
 # 1.0 so UFH lookahead (24 blocks = 120 min) matches the outer horizon minimum,
 # avoiding silent clamping. See issue #131.
 LOOKAHEAD_HORIZON_SCALE = 1.0
+# Predictions are clamped to [temp_min, temp_max], but never closer than this to where the
+# room starts: a room already past a bound must still see which action moves it back (#462).
+CLAMP_HEADROOM_K = 5.0
 
 
 @dataclass
@@ -124,6 +127,7 @@ class MPCOptimizer:
         q_occupancy = occupancy_series or [0.0] * n_blocks
 
         actions: list[str] = []
+        temp_lo, temp_hi = self._temp_bounds(T_room)
         temperatures: list[float] = [T_room]
         power_fractions: list[float] = []
         current_temp = T_room
@@ -209,7 +213,7 @@ class MPCOptimizer:
                 q_residual=qr if Q == 0.0 else 0.0,
                 q_occupancy=qo,
             )
-            next_temp = max(self.temp_min, min(next_temp, self.temp_max))
+            next_temp = max(temp_lo, min(next_temp, temp_hi))
 
             actions.append(best_action)
             temperatures.append(round(next_temp, 2))
@@ -260,6 +264,7 @@ class MPCOptimizer:
         Q = self._action_to_Q(action)
         total_cost = 0.0
         T = T_room
+        temp_lo, temp_hi = self._temp_bounds(T_room)
         solar = future_solar or []
         residual = future_residual or []
         occupancy = future_occupancy or []
@@ -302,7 +307,7 @@ class MPCOptimizer:
             )
             # Clamp temperature in lookahead to prevent cost explosion
             # from implausible model predictions
-            T = max(self.temp_min, min(self.temp_max, T))
+            T = max(temp_lo, min(temp_hi, T))
             h_tgt = future_heat_targets[j] if j < len(future_heat_targets) else heat_target
             c_tgt = future_cool_targets[j] if j < len(future_cool_targets) else cool_target
             # Dead-band-aware comfort cost: zero inside the band
@@ -316,6 +321,16 @@ class MPCOptimizer:
                 total_cost += self.w_energy * abs(Q) / 1000.0
 
         return total_cost
+
+    def _temp_bounds(self, T_start: float) -> tuple[float, float]:
+        """Clamp range for predictions that start at *T_start*.
+
+        A fixed 30 °C ceiling made a room above it invisible to the cost: every
+        hypothesis that could not bring it below 30 within the lookahead clamped to
+        the same value at every block, idle won the tie, and a weak AC stayed off
+        while the room heated further.
+        """
+        return min(self.temp_min, T_start - CLAMP_HEADROOM_K), max(self.temp_max, T_start + CLAMP_HEADROOM_K)
 
     def _action_to_Q(self, action: str) -> float:
         if action == MODE_HEATING:
