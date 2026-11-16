@@ -772,7 +772,7 @@ async def test_diagnostics_v2_location_rounded_and_entities_without_occupancy_ti
         "room_a": {
             "temperature_sensor": "sensor.t",
             "occupancy_sensors": ["binary_sensor.motion"],
-            "window_sensors": ["binary_sensor.missing"],
+            "window_sensors": ["binary_sensor.missing", "binary_sensor.pir"],
         }
     }
     hass.data[DOMAIN] = {"store": store}
@@ -786,6 +786,9 @@ async def test_diagnostics_v2_location_rounded_and_entities_without_occupancy_ti
         if eid == "binary_sensor.motion":
             # an occupancy sensor without device_class (e.g. an input_boolean) must not leak either
             return MagicMock(state="on", attributes={}, last_changed=changed)
+        if eid == "binary_sensor.pir":
+            # a motion sensor referenced as something else is redacted by its device_class
+            return MagicMock(state="on", attributes={"device_class": "motion"}, last_changed=changed)
         return None
 
     hass.states.get = MagicMock(side_effect=_state)
@@ -797,6 +800,7 @@ async def test_diagnostics_v2_location_rounded_and_entities_without_occupancy_ti
     assert entities["sensor.t"]["state"] == "20.5" and "age_s" in entities["sensor.t"]
     assert entities["binary_sensor.motion"] == {"state": "redacted"}
     assert entities["binary_sensor.missing"] == {"state": "not_found"}
+    assert entities["binary_sensor.pir"] == {"state": "redacted"}
 
 
 def test_history_48h_leaves_occupancy_out():

@@ -85,6 +85,7 @@ export class RsRoomDetail extends LitElement {
   @state() private _windowOpenDelay = 0;
   @state() private _windowCloseDelay = 0;
   @state() private _keepFanOnlyOnWindowOpen = true;
+  @state() private _preconditioningEnabled = true;
   @state() private _moldFRsi = 0.8;
   @state() private _climateMode: ClimateMode = "auto";
   @state() private _schedules: ScheduleEntry[] = [];
@@ -469,6 +470,7 @@ export class RsRoomDetail extends LitElement {
       this._windowOpenDelay = this.config.window_open_delay ?? 0;
       this._windowCloseDelay = this.config.window_close_delay ?? 0;
       this._keepFanOnlyOnWindowOpen = this.config.keep_fan_only_on_window_open ?? true;
+      this._preconditioningEnabled = this.config.preconditioning_enabled ?? true;
       this._moldFRsi = this.config.mold_f_rsi ?? 0.8;
       this._climateMode = this.config.climate_mode;
       this._schedules = this.config.schedules ?? [];
@@ -525,6 +527,7 @@ export class RsRoomDetail extends LitElement {
       this._windowOpenDelay = 0;
       this._windowCloseDelay = 0;
       this._keepFanOnlyOnWindowOpen = true;
+      this._preconditioningEnabled = true;
       this._moldFRsi = 0.8;
       this._climateMode = "auto";
       this._schedules = [];
@@ -1046,6 +1049,12 @@ export class RsRoomDetail extends LitElement {
             @eco-heat-changed=${this._onEcoHeatChanged}
             @eco-cool-changed=${this._onEcoCoolChanged}
           ></rs-schedule-settings>
+          <rs-toggle-row
+            .label=${localize("schedule.preconditioning_toggle", lang)}
+            .hint=${localize("schedule.preconditioning_hint", lang)}
+            .checked=${this._preconditioningEnabled}
+            @toggle-changed=${this._onPreconditioningToggle}
+          ></rs-toggle-row>
         </rs-edit-dialog>`;
       case "dehumidifier":
         return html`<rs-edit-dialog
@@ -1503,6 +1512,11 @@ export class RsRoomDetail extends LitElement {
     this._autoSave();
   }
 
+  private _onPreconditioningToggle(e: CustomEvent<boolean>) {
+    this._preconditioningEnabled = e.detail;
+    this._autoSave();
+  }
+
   private _onOutdoorToggle(e: CustomEvent<boolean>) {
     this._isOutdoor = e.detail;
     this._autoSave();
@@ -1579,6 +1593,7 @@ export class RsRoomDetail extends LitElement {
       covers: [...this._selectedCovers],
       climate_control_enabled: this._climateControlEnabled,
       keep_fan_only_on_window_open: this._keepFanOnlyOnWindowOpen,
+      preconditioning_enabled: this._preconditioningEnabled,
       mold_f_rsi: this._moldFRsi,
       covers_auto_enabled: this._coversAutoEnabled,
       covers_deploy_threshold: this._coversDeployThreshold,

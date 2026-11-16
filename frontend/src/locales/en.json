@@ -909,5 +909,10 @@
   "air_quality.ventilation_entity": "Ventilation / air purifier",
   "air_quality.ventilation_hint": "Switched on while the air is bad and off again once it is fresh (at least 15 minutes). RoomMind only switches off what it switched on.",
   "hero.air_quality_bad": "Stale air: {value}",
-  "hero.air_quality_venting": "Stale air ({value}), ventilating"
+  "hero.air_quality_venting": "Stale air ({value}), ventilating",
+  "schedule.preconditioning_toggle": "Pre-heat / pre-cool before schedule blocks",
+  "schedule.preconditioning_hint": "Starts early enough that the next scheduled temperature is reached when its block begins. The Priority slider limits how far ahead.",
+  "insights.comfort.factor.air_quality.elevated": "Walls approaching mold risk",
+  "insights.comfort.factor.air_quality.stale_co2": "Stale air (CO₂ over threshold)",
+  "insights.comfort.factor.air_quality.stale_voc": "Stale air (VOC over threshold)"
 }

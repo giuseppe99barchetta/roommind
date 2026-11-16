@@ -59,6 +59,7 @@ async def test_co2_above_threshold_is_bad_and_switches_the_fan_on(hass, mock_con
     assert room["co2"] == 1200.0
     assert room["air_quality_bad"] is True
     assert room["air_quality_reason"] == "co2"
+    assert room["comfort_score"]["breakdown"]["air_quality"]["status"] == "stale_co2"
     assert room["air_ventilation_active"] is True
     assert _fan_calls(calls) == [("fan", "turn_on", FAN)]
     store.async_save_settings.assert_any_await(

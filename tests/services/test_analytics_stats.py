@@ -57,6 +57,17 @@ def test_a_gap_in_the_history_is_not_running_time():
     assert stats["heating_hours"] == pytest.approx(2 * MAX_SAMPLE_GAP_S / 3600, abs=0.01)
 
 
+def test_the_last_sample_does_not_count_past_the_end_of_the_range():
+    last = T0 + 10 * 3600
+    points = [{**_point(0, mode="heating")}, {**_point(0, mode="heating"), "ts": last}]
+    # A custom range ending at the last sample: only the capped gap counts
+    stats = compute_period_stats(points, "auto", end_ts=last)
+    assert stats["heating_hours"] == pytest.approx(MAX_SAMPLE_GAP_S / 3600, abs=0.01)
+    # Live range: the last sample stands for the time up to now (capped)
+    stats = compute_period_stats(points, "auto", end_ts=last + 120)
+    assert stats["heating_hours"] == pytest.approx((MAX_SAMPLE_GAP_S + 120) / 3600, abs=0.01)
+
+
 def test_a_run_already_going_at_the_start_of_the_range_is_no_start():
     stats = compute_period_stats(_modes("heating", "idle", "heating", "cooling", "idle", "heating"), "auto")
     assert stats["heating_starts"] == 2

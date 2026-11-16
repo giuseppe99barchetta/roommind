@@ -23,12 +23,18 @@ OVERSHOOT_WINDOW_S = 3600
 PREHEAT_LOOKAHEAD_S = 12 * 3600
 
 
-def _weighted(points: list[dict]) -> Iterator[tuple[dict, float]]:
-    """Yield each sample with the seconds it stands for."""
+def _weighted(points: list[dict], end_ts: float | None = None) -> Iterator[tuple[dict, float]]:
+    """Yield each sample with the seconds it stands for.
+
+    With *end_ts* the last sample stands for the time up to the end of the range (capped),
+    not for the interval before it: after an outage that counted time outside the range.
+    """
     last_weight = 0.0
     for i, point in enumerate(points):
         if i + 1 < len(points):
             last_weight = min(points[i + 1]["ts"] - point["ts"], MAX_SAMPLE_GAP_S)
+        elif end_ts is not None:
+            last_weight = min(max(0.0, end_ts - point["ts"]), MAX_SAMPLE_GAP_S)
         yield point, last_weight
 
 
@@ -177,7 +183,7 @@ def _run_overshoot(points: list[dict], mode: str, target_key: str, sign: int) ->
     }
 
 
-def compute_period_stats(points: list[dict], climate_mode: str) -> dict:
+def compute_period_stats(points: list[dict], climate_mode: str, end_ts: float | None = None) -> dict:
     """Sum up a time-sorted list of history points."""
     seconds = {"total": 0.0, "heating": 0.0, "cooling": 0.0, "window": 0.0}
     starts = {MODE_HEATING: 0, MODE_COOLING: 0}
@@ -188,7 +194,7 @@ def compute_period_stats(points: list[dict], climate_mode: str) -> dict:
     deviation_sum = 0.0
     miss_sum = 0.0
     previous_mode = None
-    for (point, weight), deviation in zip(_weighted(points), _deviations(points, climate_mode), strict=True):
+    for (point, weight), deviation in zip(_weighted(points, end_ts), _deviations(points, climate_mode), strict=True):
         mode = point.get("mode")
         seconds["total"] += weight
         if mode in starts:

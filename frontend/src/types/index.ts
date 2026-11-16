@@ -255,6 +255,7 @@ export interface RoomConfig {
   window_open_delay: number;
   window_close_delay: number;
   keep_fan_only_on_window_open?: boolean;
+  preconditioning_enabled?: boolean;
   climate_mode: ClimateMode;
   schedules: ScheduleEntry[];
   schedule_selector_entity: string;

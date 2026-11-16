@@ -1039,16 +1039,17 @@ class RoomMindCoordinator(DataUpdateCoordinator):
         if command_generation is None:
             command_generation = self._manual_command_generations.get(area_id, 0)
         lock = self._room_command_locks.setdefault(area_id, asyncio.Lock())
+        # Before the room: its comfort score counts stale air
+        air = self._evaluate_air_quality(area_id, room) if has_air_quality_sensor(room) else _NO_AIR_QUALITY
         async with lock:
             room_state = await self._async_process_room_locked(
                 room,
                 settings,
                 outdoor_forecast,
                 command_generation=command_generation,
+                air_bad_reason=air["air_quality_reason"],
             )
-        room_state.update(
-            self._evaluate_air_quality(area_id, room) if has_air_quality_sensor(room) else _NO_AIR_QUALITY
-        )
+        room_state.update(air)
         return room_state
 
     async def _async_process_room_locked(
@@ -1058,6 +1059,7 @@ class RoomMindCoordinator(DataUpdateCoordinator):
         outdoor_forecast: list[dict],
         *,
         command_generation: int,
+        air_bad_reason: str | None = None,
     ) -> dict:
         """Process a single room: read sensor, evaluate schedule, apply control."""
         area_id = room.get("area_id", "unknown")
@@ -2139,6 +2141,7 @@ class RoomMindCoordinator(DataUpdateCoordinator):
             mold_risk_level=mold_risk_level,
             anomalies=anomalies,
             mold_surface_rh=mold_surface_rh,
+            air_bad_reason=air_bad_reason,
         )
         return room_state
 

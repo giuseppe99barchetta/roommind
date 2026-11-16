@@ -909,5 +909,10 @@
   "air_quality.ventilation_entity": "Ventilation / purificateur",
   "air_quality.ventilation_hint": "Allumée tant que l'air est mauvais, éteinte quand il est frais (au moins 15 minutes). RoomMind n'éteint que ce qu'il a allumé.",
   "hero.air_quality_bad": "Air vicié : {value}",
-  "hero.air_quality_venting": "Air vicié ({value}), ventilation en marche"
+  "hero.air_quality_venting": "Air vicié ({value}), ventilation en marche",
+  "schedule.preconditioning_toggle": "Préchauffer / prérefroidir avant les plages",
+  "schedule.preconditioning_hint": "Démarre assez tôt pour que la prochaine température programmée soit atteinte au début de sa plage. Le curseur Priorité limite l'anticipation.",
+  "insights.comfort.factor.air_quality.elevated": "Murs proches du risque de moisissure",
+  "insights.comfort.factor.air_quality.stale_co2": "Air vicié (CO₂ au-dessus du seuil)",
+  "insights.comfort.factor.air_quality.stale_voc": "Air vicié (COV au-dessus du seuil)"
 }

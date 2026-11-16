@@ -909,5 +909,10 @@
   "air_quality.ventilation_entity": "Lüftung / Luftreiniger",
   "air_quality.ventilation_hint": "An, solange die Luft schlecht ist, aus, sobald sie frisch ist (mindestens 15 Minuten). RoomMind schaltet nur aus, was es eingeschaltet hat.",
   "hero.air_quality_bad": "Verbrauchte Luft: {value}",
-  "hero.air_quality_venting": "Verbrauchte Luft ({value}), Lüftung läuft"
+  "hero.air_quality_venting": "Verbrauchte Luft ({value}), Lüftung läuft",
+  "schedule.preconditioning_toggle": "Vorheizen / Vorkühlen vor Zeitplanblöcken",
+  "schedule.preconditioning_hint": "Startet so früh, dass die nächste geplante Temperatur zu Beginn ihres Blocks erreicht ist. Der Prioritäts-Regler begrenzt, wie weit im Voraus.",
+  "insights.comfort.factor.air_quality.elevated": "Wände nähern sich dem Schimmelrisiko",
+  "insights.comfort.factor.air_quality.stale_co2": "Verbrauchte Luft (CO₂ über Schwelle)",
+  "insights.comfort.factor.air_quality.stale_voc": "Verbrauchte Luft (VOC über Schwelle)"
 }

@@ -909,5 +909,10 @@
   "air_quality.ventilation_entity": "Ventilazione / purificatore",
   "air_quality.ventilation_hint": "Acceso finché l'aria è scarsa e spento quando torna buona (almeno 15 minuti). RoomMind spegne solo ciò che ha acceso.",
   "hero.air_quality_bad": "Aria viziata: {value}",
-  "hero.air_quality_venting": "Aria viziata ({value}), ventilazione attiva"
+  "hero.air_quality_venting": "Aria viziata ({value}), ventilazione attiva",
+  "schedule.preconditioning_toggle": "Pre-riscalda / pre-raffresca prima dei blocchi",
+  "schedule.preconditioning_hint": "Parte in anticipo quanto serve perché la prossima temperatura programmata sia raggiunta all'inizio del blocco. Lo slider Priorità limita quanto in anticipo.",
+  "insights.comfort.factor.air_quality.elevated": "Pareti vicine al rischio muffa",
+  "insights.comfort.factor.air_quality.stale_co2": "Aria viziata (CO₂ oltre soglia)",
+  "insights.comfort.factor.air_quality.stale_voc": "Aria viziata (VOC oltre soglia)"
 }

@@ -48,6 +48,22 @@ def test_comfort_score_penalises_damp_air_without_target_and_elevated_walls() ->
     assert dry["score"] == 100
 
 
+def test_comfort_score_counts_stale_air() -> None:
+    kwargs = dict(
+        current_temp=21.0, heat_target=21.0, cool_target=25.0, humidity=None, humidity_target=None, window_open=False
+    )
+    fresh = calculate_comfort_score(mold_risk_level="ok", **kwargs)
+    assert fresh["breakdown"]["air_quality"] == {"penalty": 0, "status": "ok"}
+
+    stale = calculate_comfort_score(mold_risk_level="ok", air_bad_reason="co2", **kwargs)
+    assert stale["breakdown"]["air_quality"] == {"penalty": 10, "status": "stale_co2"}
+    assert stale["score"] == fresh["score"] - 10
+
+    # A mold risk keeps its status, the stale air adds to the penalty
+    both = calculate_comfort_score(mold_risk_level="warning", air_bad_reason="voc", **kwargs)
+    assert both["breakdown"]["air_quality"] == {"penalty": 20, "status": "warning"}
+
+
 def test_energy_suggestions_are_based_on_available_data() -> None:
     suggestions = energy_suggestions(
         heating_minutes=500,

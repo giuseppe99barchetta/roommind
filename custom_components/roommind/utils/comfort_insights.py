@@ -44,6 +44,10 @@ def profile_targets(room: dict) -> dict[str, dict[str, float]]:
     }
 
 
+# Penalty while CO2/VOC is over the room's threshold (#267)
+STALE_AIR_PENALTY = 10
+
+
 def calculate_comfort_score(
     *,
     current_temp: float | None,
@@ -55,6 +59,7 @@ def calculate_comfort_score(
     mold_risk_level: str | None,
     anomalies: list[dict[str, str]] | None = None,
     mold_surface_rh: float | None = None,
+    air_bad_reason: str | None = None,
 ) -> dict[str, Any]:
     """Score a room from 0 to 100 using only available measurements."""
     score = 100.0
@@ -106,6 +111,11 @@ def calculate_comfort_score(
     status = mold_risk_level or "ok"
     if not risk_penalty and mold_surface_rh is not None and mold_surface_rh >= MOLD_SURFACE_RH_EARLY:
         risk_penalty, status = 5, "elevated"  # walls approaching warning, before the level flips
+    if air_bad_reason:
+        # Stale air (CO2/VOC over threshold) on top of a mold risk; the mold status stays shown
+        if not risk_penalty:
+            status = f"stale_{air_bad_reason}"
+        risk_penalty += STALE_AIR_PENALTY
     score -= risk_penalty
     if risk_penalty:
         factors["air_quality"] = 100 - risk_penalty

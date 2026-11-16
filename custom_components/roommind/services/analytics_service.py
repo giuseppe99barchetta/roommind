@@ -370,6 +370,7 @@ async def build_analytics_data(
     stats = compute_period_stats(
         sorted(history + detail, key=lambda p: p["ts"]),
         (store.get_room(area_id) or {}).get("climate_mode", "auto"),
+        end_ts=custom_end if custom_start is not None and custom_end is not None else time.time(),
     )
 
     # Model info (only if estimator exists -- avoid auto-creating for unknown rooms)

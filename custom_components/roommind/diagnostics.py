@@ -135,18 +135,17 @@ def _build_entity_states(hass: HomeAssistant, config: dict) -> dict[str, dict[st
         if state is None:
             result[eid] = {"state": "not_found"}
             continue
-        if eid in occupancy or eid.split(".", 1)[0] in _PRIVATE_DOMAINS:
+        device_class = state.attributes.get("device_class")
+        # Also a motion sensor referenced elsewhere (e.g. as a window sensor) tells who is home
+        if eid in occupancy or eid.split(".", 1)[0] in _PRIVATE_DOMAINS or device_class in _PRIVATE_DEVICE_CLASSES:
             result[eid] = {"state": "redacted"}
             continue
-        device_class = state.attributes.get("device_class")
-        entry = {
+        result[eid] = {
             "state": state.state,
             "unit": state.attributes.get("unit_of_measurement"),
             "device_class": device_class,
+            "age_s": round(now - state.last_changed.timestamp()),
         }
-        if device_class not in _PRIVATE_DEVICE_CLASSES:
-            entry["age_s"] = round(now - state.last_changed.timestamp())
-        result[eid] = entry
     return result
 
 

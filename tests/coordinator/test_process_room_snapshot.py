@@ -196,7 +196,7 @@ class TestProcessRoomSnapshot:
 
         hass.services.async_call = AsyncMock(side_effect=apply_service)
 
-        async def apply_stale_decision(_room, _settings, _forecast, *, command_generation):
+        async def apply_stale_decision(_room, _settings, _forecast, *, command_generation, air_bad_reason=None):
             apply_control = command_generation == coordinator._manual_command_generations.get(area_id, 0)
             if apply_control:
                 await hass.services.async_call(
@@ -239,7 +239,7 @@ class TestProcessRoomSnapshot:
             {"living_room_abc12345": SAMPLE_ROOM},
         )
 
-        async def apply_current_decision(_room, _settings, _forecast, *, command_generation):
+        async def apply_current_decision(_room, _settings, _forecast, *, command_generation, air_bad_reason=None):
             return {
                 "apply_control": command_generation
                 == coordinator._manual_command_generations.get("living_room_abc12345", 0)
