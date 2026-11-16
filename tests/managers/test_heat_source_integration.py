@@ -326,8 +326,9 @@ class TestHeatSourceIntegration:
             reason="small gap",
         )
 
-        # Expected mean pf = (0.0 + 0.8) / 2 = 0.4
-        expected_ekf_pf = 0.4
+        # Only the AC heats and reports it: its delivered share (1.0, not the commanded
+        # 0.8), not the mean with the parked TRV
+        expected_ekf_pf = 1.0
 
         # Observed state reflects the plan: AC actually heating, TRV idle.
         # With the #150 ghost-heating guard in place, mode=heating flows
