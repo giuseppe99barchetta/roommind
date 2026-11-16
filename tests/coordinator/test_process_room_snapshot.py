@@ -521,3 +521,28 @@ class TestProcessRoomSnapshot:
 
         assert coordinator._previous_modes[area_id] == "heating"
         assert coordinator._mode_on_since.get(area_id) == on_since
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(("enabled", "looks_ahead"), [(True, True), (False, False)])
+async def test_preconditioning_switch_decides_the_schedule_lookahead(
+    hass, mock_config_entry, monkeypatch, enabled, looks_ahead
+):
+    """The room's pre-heat/pre-cool switch: off plans against the current target only (no deadline)."""
+    from custom_components.roommind import coordinator as coordinator_module
+
+    real = coordinator_module.MPCController
+    resolvers = []
+
+    def _spy(*args, **kwargs):
+        resolvers.append(kwargs.get("target_resolver"))
+        return real(*args, **kwargs)
+
+    monkeypatch.setattr(coordinator_module, "MPCController", _spy)
+    room = {**SAMPLE_ROOM, "preconditioning_enabled": enabled}
+    coordinator, store = _setup_coordinator(hass, mock_config_entry, {room["area_id"]: room})
+    hass.states.get = MagicMock(side_effect=make_mock_states_get(temp="18.0", humidity="55.0"))
+
+    await coordinator._async_process_room(room, store.get_settings(), [])
+
+    assert resolvers and all((r is not None) is looks_ahead for r in resolvers)
