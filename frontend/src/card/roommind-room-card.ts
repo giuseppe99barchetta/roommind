@@ -115,7 +115,12 @@ export class RoomMindRoomCard extends LitElement {
   private _setMode(mode: ClimateMode): void {
     if (this._room?.climate_mode === mode) return;
     void this._call(
-      { type: "roommind/rooms/save", area_id: this._config.area_id, climate_mode: mode },
+      {
+        type: "roommind/rooms/save",
+        area_id: this._config.area_id,
+        update_only: true,
+        climate_mode: mode,
+      },
       "roomcard.error_save",
     );
   }
@@ -123,7 +128,12 @@ export class RoomMindRoomCard extends LitElement {
   private _toggleControl(): void {
     const enabled = this._room?.climate_control_enabled !== false;
     void this._call(
-      { type: "roommind/rooms/save", area_id: this._config.area_id, climate_control_enabled: !enabled },
+      {
+        type: "roommind/rooms/save",
+        area_id: this._config.area_id,
+        update_only: true,
+        climate_control_enabled: !enabled,
+      },
       "roomcard.error_save",
     );
   }

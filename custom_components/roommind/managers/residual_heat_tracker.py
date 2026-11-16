@@ -73,6 +73,7 @@ class _Run:
     """A heating run the learner follows: start and the radiators' delivered power per cycle."""
 
     start: float
+    last: float  # last heating cycle seen
     power_sum: float = 0.0
     cycles: int = 0
 
@@ -200,7 +201,11 @@ class ResidualHeatLearner:
             ):
                 # Restarted: what was seen so far still counts when it was long enough
                 sample = self._sample(obs, tau_minutes)
-            run = self._runs.setdefault(area_id, _Run(start=now))
+            run = self._runs.get(area_id)
+            if run is None or (now - run.last) / 60.0 > 2 * dt_minutes:
+                # New run, or cycles went unseen: the unseen part may not have heated
+                run = self._runs[area_id] = _Run(start=now, last=now)
+            run.last = now
             run.power_sum += delivered_power
             run.cycles += 1
             return sample
@@ -208,6 +213,10 @@ class ResidualHeatLearner:
             self.remove_room(area_id)
             return None
         ended = self._runs.pop(area_id, None)
+        if ended is not None and (now - ended.last) / 60.0 > 2 * dt_minutes:
+            # Cycles went unseen before the stop: when the heat really ended is unknown
+            self._obs.pop(area_id, None)
+            return None
         if ended is not None:
             # The stop: watch the afterglow from this reading on
             self._obs[area_id] = _Observation(

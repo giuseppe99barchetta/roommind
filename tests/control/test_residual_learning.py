@@ -290,6 +290,29 @@ def test_restart_after_min_minutes_still_counts():
     assert sample == pytest.approx(2.0, rel=0.1)
 
 
+def test_unseen_cycles_during_a_run_restart_it():
+    """Cycles missing mid-run: the run counts from where heating was seen again."""
+    learner = ResidualHeatLearner()
+    kwargs = dict(model=ROOM, system_type="radiator", T_outdoor=5.0, dt_minutes=DT, q_solar=0.0, q_occupancy=0.0)
+    with patch(TIME) as clock:
+        for t in (0.0, 30.0, 60.0, 1260.0, 1290.0):  # 20 minutes unseen after the third cycle
+            clock.time.return_value = t
+            learner.step("r", mode=MODE_HEATING, delivered_power=1.0, current_temp=20.0, disturbed=False, **kwargs)
+    assert learner._runs["r"].start == 1260.0
+
+
+def test_unseen_cycles_right_before_the_stop_give_no_observation():
+    learner = ResidualHeatLearner()
+    kwargs = dict(model=ROOM, system_type="radiator", T_outdoor=5.0, dt_minutes=DT, q_solar=0.0, q_occupancy=0.0)
+    with patch(TIME) as clock:
+        for t in (0.0, 30.0, 60.0):
+            clock.time.return_value = t
+            learner.step("r", mode=MODE_HEATING, delivered_power=1.0, current_temp=20.0, disturbed=False, **kwargs)
+        clock.time.return_value = 600.0  # the stop seen 9 minutes after the last heating cycle
+        learner.step("r", mode=MODE_IDLE, delivered_power=None, current_temp=20.0, disturbed=False, **kwargs)
+    assert learner._runs == {} and learner._obs == {}
+
+
 def test_restart_after_a_gap_gives_no_sample():
     """Updates stopped for minutes, then heating restarted: the unseen gap may hide heat."""
     gap = tuple(round(DT * k, 6) for k in range(30, 41))  # 15-20 min after the stop missing

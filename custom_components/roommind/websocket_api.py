@@ -543,6 +543,8 @@ async def websocket_list_rooms(
     {
         vol.Required("type"): "roommind/rooms/save",
         vol.Required("area_id"): str,
+        # Dashboard card: change an existing room only, never create one (it may be deleted)
+        vol.Optional("update_only", default=False): bool,
         vol.Optional("thermostats"): [_CLIMATE_ENTITY],
         vol.Optional("acs"): [_CLIMATE_ENTITY],
         vol.Optional("devices"): [
@@ -767,6 +769,11 @@ async def websocket_save_room(
                 _LOGGER.exception("Failed to release dehumidifier before saving room '%s'", area_id)
                 connection.send_error(msg["id"], "device_error", "Could not stop the previous dehumidifier")
                 return
+        # Checked right before the save, with no await in between: a room deleted meanwhile
+        # is not created again from a card's stale view
+        if msg.get("update_only") and store.get_room(area_id) is None:
+            connection.send_error(msg["id"], "not_found", f"Room '{area_id}' not found")
+            return
         old_valves = get_valve_entities((store.get_room(area_id) or {}).get("devices", []))
         room = await store.async_save_room(area_id, config)
         await _async_release_dropped_valves(hass, area_id, old_valves, get_valve_entities(room.get("devices", [])))

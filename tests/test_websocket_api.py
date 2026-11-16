@@ -132,6 +132,43 @@ async def test_list_rooms_empty(ws_hass, store, connection):
 
 
 @pytest.mark.asyncio
+async def test_update_only_save_does_not_recreate_a_deleted_room(ws_hass, store, connection):
+    """The dashboard card changes existing rooms only: a room deleted since its last poll stays deleted."""
+    await store.async_load()
+    msg = {
+        "id": 2,
+        "type": "roommind/rooms/save",
+        "area_id": "gone",
+        "update_only": True,
+        "climate_mode": "heat_only",
+    }
+    await _save_room(ws_hass, connection, msg)
+
+    connection.send_error.assert_called_once()
+    assert connection.send_error.call_args[0][1] == "not_found"
+    connection.send_result.assert_not_called()
+    assert store.get_room("gone") is None
+
+
+@pytest.mark.asyncio
+async def test_update_only_save_changes_an_existing_room(ws_hass, store, connection):
+    await store.async_load()
+    await store.async_save_room("office", {"thermostats": ["climate.office_trv"]})
+    msg = {
+        "id": 3,
+        "type": "roommind/rooms/save",
+        "area_id": "office",
+        "update_only": True,
+        "climate_mode": "cool_only",
+    }
+    await _save_room(ws_hass, connection, msg)
+
+    connection.send_result.assert_called_once()
+    assert store.get_room("office")["climate_mode"] == "cool_only"
+    assert "update_only" not in store.get_room("office")
+
+
+@pytest.mark.asyncio
 async def test_save_room_creates_new(ws_hass, store, connection):
     """Saving a room with a new area_id creates the room with defaults."""
     await store.async_load()
