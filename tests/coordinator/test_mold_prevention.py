@@ -206,6 +206,8 @@ class TestMoldRiskDetection:
 
         # No notification service call should have been made for mold
         # (only climate control calls may have been made)
+        for task in hass._bg_tasks:
+            await task
         mold_calls = [c for c in hass.services.async_call.call_args_list if c[0][0] == "notify"]
         assert len(mold_calls) == 0
 
@@ -243,6 +245,8 @@ class TestMoldRiskDetection:
         ):
             await coordinator._async_update_data()
 
+        for task in hass._bg_tasks:
+            await task
         mold_calls = [c for c in hass.services.async_call.call_args_list if c[0][0] == "notify"]
         assert len(mold_calls) >= 1
 

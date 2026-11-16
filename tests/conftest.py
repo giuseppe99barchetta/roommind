@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import os
 import sys
 from unittest.mock import AsyncMock, MagicMock
@@ -186,6 +187,15 @@ def hass(tmp_path):
     hass.config_entries.async_forward_entry_setups = AsyncMock()
     hass.config_entries.async_unload_platforms = AsyncMock(return_value=True)
     hass.async_add_executor_job = AsyncMock(side_effect=lambda fn, *args: fn(*args))
+    # Background tasks really run; tests drain them via hass._bg_tasks.
+    hass._bg_tasks = []
+
+    def _create_background_task(coro, name=None, **kwargs):
+        task = asyncio.ensure_future(coro)
+        hass._bg_tasks.append(task)
+        return task
+
+    hass.async_create_background_task = MagicMock(side_effect=_create_background_task)
     return hass
 
 
