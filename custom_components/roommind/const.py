@@ -159,7 +159,6 @@ DEFAULT_MOLD_COOLDOWN_MINUTES = 60  # minutes between repeated notifications per
 DEFAULT_MOLD_PREVENTION_DRY_MIN_TEMPERATURE = 22.0  # °C — minimum temperature to START dry
 MOLD_PREVENTION_DRY_STOP_TEMPERATURE = 21.0  # °C — hard stop using room sensor
 MOLD_HYSTERESIS = 5.0  # surface RH must drop this much below warning to clear
-MIN_MOLD_GROWTH_TEMP = 5.0  # °C — below this surface temp, mold risk negligible
 # Wall temperature factor f_Rsi per room (DIN 4108-2): 0.80 plain wall,
 # ~0.70 corners / north walls, ~0.60 lintels, beams, roller-shutter boxes.
 # Calibrate on the moldy spot: f = (T_surface - T_out) / (T_room - T_out).

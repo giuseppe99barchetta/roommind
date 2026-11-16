@@ -19,7 +19,6 @@ from ..const import (
     AIRING_MIN_INDOOR_RH,
     DEFAULT_MOLD_F_RSI,
     DEFAULT_MOLD_PREVENTION_DRY_MIN_TEMPERATURE,
-    MIN_MOLD_GROWTH_TEMP,
     MOLD_OUTDOOR_TAU_SECONDS,
     MOLD_RISK_CRITICAL,
     MOLD_RISK_OK,
@@ -133,12 +132,9 @@ def calculate_mold_risk(
         risk_level is one of MOLD_RISK_OK / MOLD_RISK_WARNING / MOLD_RISK_CRITICAL.
     """
     if t_outdoor is not None:
+        # No lower temperature cut-off: a wall below 5 °C grows mold slowly, but it is
+        # where condensate forms first, and the mold grows once the wall warms up again
         t_surface = estimate_surface_temp(t_room, t_outdoor, f_rsi)
-
-        # Below MIN_MOLD_GROWTH_TEMP mold growth is negligible
-        if t_surface < MIN_MOLD_GROWTH_TEMP:
-            return MOLD_RISK_OK, 0.0
-
         t_dew = dew_point(t_room, rh_room)
         srh = surface_rh(t_dew, t_surface)
     else:
