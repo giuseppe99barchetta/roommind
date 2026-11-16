@@ -76,6 +76,8 @@ _setpoint_override_warned: set[str] = set()
 # Resolved (heat, cool) targets at each device's last active command, so the compressor
 # hold can tell a deliberate target change from a room that merely reached its target.
 _active_targets: dict[str, tuple[float | None, float | None]] = {}
+# Devices the hold already throttled to minimum (room past its target): one send per hold.
+_hold_modulated: set[str] = set()
 # Last proportional setpoint send per device: (monotonic send time, (heat, cool) targets it was
 # computed for, the command cache entry it left). Any later command to the device replaces that
 # cache entry and so ends the dwell (#317).
@@ -147,6 +149,7 @@ def clear_command_cache() -> None:
     _setpoint_override_warned.clear()
     _active_targets.clear()
     _proportional_sent.clear()
+    _hold_modulated.clear()
 
 
 def _resolve_idle_setpoint(
@@ -1318,6 +1321,7 @@ class MPCController:
             limit = targets.heat if targets.cool is None else min(targets.heat, targets.cool - HOLD_OVERSHOOT_MARGIN)
             cool_overshoot = current_temp is not None and current_temp <= limit
         if not (heat_moved or cool_moved or heat_overshoot or cool_overshoot):
+            await self._async_hold_modulate(eid, state, targets, current_temp)
             return
         # Recorded only once the device took the value: a failed or not yet sendable
         # retarget stays pending and is tried again next cycle.
@@ -1359,6 +1363,78 @@ class MPCController:
                     )
         if delivered:
             _active_targets[eid] = (targets.heat, targets.cool)
+            # The plain target is below any throttle level: no throttle on top of it this hold
+            _hold_modulated.add(eid)
+
+    async def _async_hold_modulate(
+        self, eid: str, state: Any, targets: TargetTemps, current_temp: float | None
+    ) -> None:
+        """Throttle a held unit to minimum once the room is ``HOLD_OVERSHOOT_MARGIN`` past its target.
+
+        The hold keeps the last active setpoint so the unit does not stop (#436). Within
+        the min run nothing else ends the boost, so a strong unit carried the room past
+        the target, in a wide auto band up to the far side. The unit gets the value its
+        own sensor reads, rounded up (heating) or down (cooling) to its step: an inverter
+        there modulates to minimum and keeps running, where the plain room target would
+        stop a unit whose sensor reads warm. Never past the room target, only ever
+        lowering (raising for cooling) the held value, and once per hold, so the setpoint
+        does not follow the room up and down. Unlike upstream (c56cb2d9) this also applies
+        in auto rooms (fork decision: the band rule alone let a held AC heat up to the
+        cooling target).
+        """
+        hvac = state.state
+        if current_temp is None or eid in _hold_modulated or hvac not in ("heat", "cool"):
+            return
+        heating = hvac == "heat"
+        target = targets.heat if heating else targets.cool
+        if target is None:
+            return
+        past = (
+            current_temp >= target + HOLD_OVERSHOOT_MARGIN
+            if heating
+            else current_temp <= target - HOLD_OVERSHOOT_MARGIN
+        )
+        if not past:
+            return
+        attrs = state.attributes
+        held = attrs.get("temperature")
+        if held is None:
+            cached = _last_commands.get(eid)
+            held = cached.get("temperature") if cached and cached.get("service") == "set_temperature" else None
+        reading = attrs.get("current_temperature")
+        try:
+            held_f = float(held) if held is not None else None
+            reading_f = float(reading) if reading is not None else celsius_to_ha_temp(self.hass, current_temp)
+        except (TypeError, ValueError):
+            return
+        if held_f is None:
+            return
+        raw_step = attrs.get("target_temp_step")
+        try:
+            step = float(raw_step) if raw_step else (1.0 if eid in self.acs else 0.5)
+        except (TypeError, ValueError):
+            step = 1.0 if eid in self.acs else 0.5
+        bound = celsius_to_ha_temp(self.hass, target)
+        tolerance = celsius_delta_to_ha(self.hass, COMPRESSOR_HOLD_RETARGET_TOLERANCE)
+        if heating:
+            level = max(bound, math.ceil(reading_f / step - 1e-6) * step)
+            if level >= held_f - tolerance:
+                return
+        else:
+            level = min(bound, math.floor(reading_f / step + 1e-6) * step)
+            if level <= held_f + tolerance:
+                return
+        _LOGGER.debug(
+            "Area '%s': throttling held '%s' from %s to %s (room %.1f, target %.1f)",
+            self._area_id,
+            eid,
+            held_f,
+            level,
+            current_temp,
+            target,
+        )
+        if await self._call("set_temperature", {"entity_id": eid, "temperature": round(level, 2)}, temp_intent=hvac):
+            _hold_modulated.add(eid)
 
     def _evaluate_bangbang(
         self,
@@ -1607,6 +1683,9 @@ class MPCController:
         """
         _forced_on = compressor_forced_on or set()
         _forced_off = compressor_forced_off or set()
+        for eid in self.thermostats + self.acs:
+            if eid not in _forced_on:
+                _hold_modulated.discard(eid)  # a new hold may throttle again
 
         # Backward compat: accept legacy keyword
         if target_temp is not _SENTINEL:

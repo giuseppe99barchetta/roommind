@@ -90,10 +90,10 @@ class TestHoldKeepsSetpoint:
         boost = _calls(hass, "set_temperature")[-1][0][2]["temperature"]
         assert boost > 21.0
 
-        # Device now reports heat at the boost setpoint, room is above target
+        # Device now reports heat at the boost setpoint, room has reached the target
         ac["state"] = _ac_state("heat", boost)
         hass.services.async_call.reset_mock()
-        _wire_states(hass, ac, temp="22.5")
+        _wire_states(hass, ac, temp="21.3")
         _age_mode(coordinator)
         data = await coordinator._async_update_data()
 
@@ -116,7 +116,7 @@ class TestHoldKeepsSetpoint:
             hass.services.async_call.reset_mock()
 
         modes = []
-        for temp in ("18.0", "22.5", "20.5", "22.5", "20.5"):
+        for temp in ("18.0", "21.3", "20.5", "21.3", "20.5"):
             _wire_states(hass, ac, temp=temp)
             _age_mode(coordinator)
             data = await coordinator._async_update_data()
@@ -298,10 +298,10 @@ class TestHoldPastTheBand:
         ac["state"] = _ac_state("heat", boost)
 
         hass.services.async_call.reset_mock()
-        _wire_states(hass, ac, temp="21.8")
+        _wire_states(hass, ac, temp="21.4")
         _age_mode(coordinator)
         await coordinator._async_update_data()
-        assert _calls(hass, "set_temperature") == []  # inside the band: boost held
+        assert _calls(hass, "set_temperature") == []  # within the margin: boost held
 
         _wire_states(hass, ac, temp="22.6")
         data = await coordinator._async_update_data()
