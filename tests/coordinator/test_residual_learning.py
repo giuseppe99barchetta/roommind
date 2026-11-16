@@ -64,6 +64,7 @@ def _step(coordinator, room, settings, **overrides):
         compressor_forced_on=False,
     )
     kwargs.update(overrides)
+    coordinator._model_manager.get_estimator(room["area_id"])  # a room the EKF already learns
     with patch.object(coordinator._residual_learner, "step", return_value=None) as step:
         coordinator._step_residual_learner(**kwargs)
     return step.call_args.kwargs if step.called else None
@@ -208,6 +209,33 @@ def test_disturbances_of_the_room(hass, mock_config_entry):
         assert _step(coordinator, room, settings, **overrides)["disturbed"] is True, overrides
     settings["learning_disabled_rooms"] = [room["area_id"]]
     assert _step(coordinator, room, settings)["disturbed"] is True
+
+
+def test_room_without_a_learned_model_gets_no_estimator(hass, mock_config_entry):
+    """A radiator room the EKF never trains (no sensor, learning off) must not get one from the learner."""
+    coordinator, room, settings = _setup(hass, mock_config_entry, devices=[_trv()], states={TRV: _st("heat")})
+    coordinator._residual_learner._runs[room["area_id"]] = MagicMock()
+    with patch.object(coordinator._residual_learner, "step") as step:
+        coordinator._step_residual_learner(
+            area_id=room["area_id"],
+            room=room,
+            settings=settings,
+            mode=MODE_HEATING,
+            power_fraction=0.6,
+            current_temp_raw=20.0,
+            window_open=False,
+            raw_open=False,
+            shading_factor=1.0,
+            q_occupancy=0.0,
+            has_external_sensor=False,
+            heat_source_plan=None,
+            climate_active=True,
+            boiler_wait=False,
+            compressor_forced_on=False,
+        )
+    step.assert_not_called()
+    assert coordinator._model_manager._estimators == {}
+    assert coordinator._residual_learner._runs == {}
 
 
 def test_non_radiator_room_is_not_fed(hass, mock_config_entry):

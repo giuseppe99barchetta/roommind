@@ -2342,6 +2342,17 @@ class RoomMindCoordinator(DataUpdateCoordinator):
         else:
             self._ekf_training.clear(area_id)
 
+        # Update mode-start tracking for min-run enforcement in the next cycle.
+        # A cycle superseded by a manual command applied nothing: keep tracking.
+        if track_mode:
+            _prev_mode = self._previous_modes.get(area_id, MODE_IDLE)
+            if mode != MODE_IDLE and _prev_mode != mode:
+                self._mode_on_since[area_id] = time.time()
+            elif mode == MODE_IDLE:
+                self._mode_on_since.pop(area_id, None)
+            self._previous_modes[area_id] = mode
+
+        # After the mode tracking: learning code never stands between a cycle and its bookkeeping
         if track_mode:
             self._step_residual_learner(
                 area_id=area_id,
@@ -2360,16 +2371,6 @@ class RoomMindCoordinator(DataUpdateCoordinator):
                 boiler_wait=boiler_wait,
                 compressor_forced_on=compressor_forced_on,
             )
-
-        # Update mode-start tracking for min-run enforcement in the next cycle.
-        # A cycle superseded by a manual command applied nothing: keep tracking.
-        if track_mode:
-            _prev_mode = self._previous_modes.get(area_id, MODE_IDLE)
-            if mode != MODE_IDLE and _prev_mode != mode:
-                self._mode_on_since[area_id] = time.time()
-            elif mode == MODE_IDLE:
-                self._mode_on_since.pop(area_id, None)
-            self._previous_modes[area_id] = mode
 
         # Compute display mode: show actual device state when RoomMind doesn't
         # directly control the device, without affecting internal tracking
@@ -2847,6 +2848,11 @@ class RoomMindCoordinator(DataUpdateCoordinator):
     ) -> None:
         """Feed one cycle to the afterglow learner of a radiator room (learning only, #493)."""
         if room.get("heating_system_type", "") != HEATING_SYSTEM_RADIATOR:
+            return
+        if area_id not in self._model_manager._estimators:
+            # Only a room the EKF already learns: get_model() would create (and persist) a
+            # default estimator for a room that never trains (no sensor, learning disabled)
+            self._residual_learner.remove_room(area_id)
             return
         devices = room.get("devices", [])
         bypass = bypass_entities(settings)
