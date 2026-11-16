@@ -6,6 +6,7 @@ import { modeStyles } from "../styles/shared-mode-styles";
 import { localize } from "../utils/localize";
 import { formatTemp, tempUnit } from "../utils/temperature";
 import "./shared/rs-info-icon";
+import { serverNow } from "../utils/server-clock";
 
 const PENCIL_PATH =
   "M20.71,7.04C21.1,6.65 21.1,6 20.71,5.63L18.37,3.29C18,2.9 17.35,2.9 16.96,3.29L15.12,5.12L18.87,8.87M3,17.25V21H6.75L17.81,9.93L14.06,6.18L3,17.25Z";
@@ -365,7 +366,7 @@ export class RsHeroStatus extends LitElement {
         this._clearCountdownTimer();
         return;
       }
-      const remaining = u - Date.now() / 1000;
+      const remaining = u - serverNow() / 1000;
       if (remaining <= 0) {
         this._countdown = "";
         this._clearCountdownTimer();
@@ -681,7 +682,7 @@ export class RsHeroStatus extends LitElement {
                     ${localize("hero.preconditioning_active", this.hass?.language ?? "en")}
                   </div>`
                 : live.preconditioning_planned_at &&
-                    live.preconditioning_planned_at > Date.now() / 1000
+                    live.preconditioning_planned_at > serverNow() / 1000
                   ? html`<div class="hero-metric info">
                       <ha-icon icon="mdi:calendar-clock"></ha-icon>
                       ${localize("hero.preconditioning_planned", this.hass?.language ?? "en", {

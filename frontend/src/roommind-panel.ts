@@ -7,6 +7,7 @@ import { localize } from "./utils/localize";
 import { mdiEyeOff } from "./utils/icons";
 import "./components/rs-settings";
 import "./components/rs-analytics";
+import { noteServerTime } from "./utils/server-clock";
 
 const BACK_PATH = "M20,11V13H8L13.5,18.5L12.08,19.92L4.16,12L12.08,4.08L13.5,5.5L8,11H20Z";
 
@@ -889,6 +890,7 @@ export class RoomMindPanel extends LitElement {
       const result = await this.hass.callWS<{
         rooms: Record<string, RoomConfig>;
         vacation_active: boolean;
+        server_time?: number;
         vacation_temp: number | null;
         vacation_until: number | null;
         hidden_rooms: string[];
@@ -905,6 +907,7 @@ export class RoomMindPanel extends LitElement {
       }>({
         type: "roommind/rooms/list",
       });
+      noteServerTime(result.server_time);
       this._rooms = result.rooms;
       this._vacationActive = result.vacation_active ?? false;
       this._vacationTemp = result.vacation_temp ?? null;

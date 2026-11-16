@@ -4,7 +4,8 @@ from __future__ import annotations
 
 import asyncio
 import inspect
-from unittest.mock import AsyncMock, MagicMock, patch
+import time
+from unittest.mock import ANY, AsyncMock, MagicMock, patch
 
 import pytest
 
@@ -107,6 +108,7 @@ async def test_list_rooms_empty(ws_hass, store, connection):
         1,
         {
             "rooms": {},
+            "server_time": ANY,
             "outdoor_temp": None,
             "outdoor_humidity": None,
             "vacation_active": False,
@@ -396,6 +398,8 @@ async def test_list_rooms_outdoor_temp_uses_effective(ws_hass, store, connection
 
     payload = connection.send_result.call_args[0][1]
     assert payload["outdoor_temp"] == 8.5
+    # The browser's countdowns run on the server clock, not the device's
+    assert abs(payload["server_time"] - time.time()) < 5
 
 
 @pytest.mark.asyncio

@@ -4,6 +4,7 @@ import type { HomeAssistant, RoomConfig, ClimateMode, OverrideType } from "../ty
 import { localize } from "../utils/localize";
 import { inputStyles } from "../styles/input-styles";
 import { tempUnit, toDisplay, toCelsius, tempStep, tempRange } from "../utils/temperature";
+import { serverNow } from "../utils/server-clock";
 
 @customElement("rs-override-section")
 export class RsOverrideSection extends LitElement {
@@ -378,7 +379,7 @@ export class RsOverrideSection extends LitElement {
       type: pendingType,
       heat,
       cool,
-      until: Date.now() / 1000 + hours * 3600,
+      until: serverNow() / 1000 + hours * 3600,
     };
     this._optimisticClear = false;
     this._overridePending = null;

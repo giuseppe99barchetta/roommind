@@ -440,6 +440,8 @@ async def websocket_list_rooms(
         msg["id"],
         {
             "rooms": result,
+            # Countdowns in the browser compare against this, not against the device's own clock
+            "server_time": time.time(),
             "outdoor_temp": coordinator.outdoor_temp_effective if coordinator else None,
             "outdoor_humidity": coordinator.outdoor_humidity if coordinator else None,
             "vacation_active": vacation_active,

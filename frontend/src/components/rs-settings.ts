@@ -35,6 +35,7 @@ import "./settings/rs-settings-reset";
 import "./settings/rs-settings-heating-system";
 import "./settings/rs-settings-preview";
 import { changedSettings, snapshotSettings } from "../utils/settings-diff";
+import { serverNow } from "../utils/server-clock";
 
 @customElement("rs-settings")
 export class RsSettings extends LitElement {
@@ -142,9 +143,9 @@ export class RsSettings extends LitElement {
       this._outdoorUnavailableNotify = s.outdoor_unavailable_notify ?? true;
       this._predictionEnabled = s.prediction_enabled ?? true;
       const vUntil = s.vacation_until;
-      this._vacationActive = !!(vUntil && vUntil > Date.now() / 1000);
+      this._vacationActive = !!(vUntil && vUntil > serverNow() / 1000);
       this._vacationTemp = s.vacation_temp ?? 15;
-      if (vUntil && vUntil > Date.now() / 1000 && vUntil < VACATION_SENTINEL) {
+      if (vUntil && vUntil > serverNow() / 1000 && vUntil < VACATION_SENTINEL) {
         this._vacationUntil = this._tsToDatetimeLocal(vUntil);
       } else {
         this._vacationUntil = "";
