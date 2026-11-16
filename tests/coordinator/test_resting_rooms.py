@@ -356,3 +356,33 @@ async def test_valve_protection_skips_a_resting_room(hass, mock_config_entry):
     store = FakeStore({"bed": _room("bed", "climate.bed_trv"), "living": _room("living", "climate.living_trv")})
     with areas_missing("bed"):
         assert set(rooms_with_area(hass, store.get_rooms())) == {"living"}
+
+
+@pytest.mark.asyncio
+async def test_room_paused_while_it_is_processed_is_not_published(hass, mock_config_entry):
+    """B-REV-01: the state of a room that rested during its processing is dropped, not used."""
+    from .conftest import SAMPLE_ROOM, _make_store_mock, make_mock_states_get
+
+    room = {**SAMPLE_ROOM}
+    aid = room["area_id"]
+    store = _make_store_mock({aid: room})
+    store.get_room = MagicMock(side_effect=lambda a: room if a == aid else None)
+    hass.data = {"roommind": {"store": store}}
+    hass.services.async_call = AsyncMock()
+    hass.states.get = make_mock_states_get()
+    coordinator = _create_coordinator(hass, mock_config_entry)
+    missing: set[str] = set()
+
+    async def _process(room, *args, **kwargs):
+        missing.add(aid)  # the area is deleted while this room is processed
+        coordinator._previous_modes[aid] = "heating"
+        return {"mode": "heating"}
+
+    with (
+        patch("custom_components.roommind.utils.area_utils.has_area", side_effect=lambda h, a: a not in missing),
+        patch(f"{COORD}.has_area", side_effect=lambda h, a: a not in missing),
+        patch.object(coordinator, "_async_process_room", side_effect=_process),
+    ):
+        result = await coordinator._async_update_data()
+    assert aid not in result["rooms"]
+    assert aid not in coordinator._previous_modes

@@ -744,3 +744,18 @@ async def test_a_failed_adjustment_keeps_the_previous_hold_on_record():
     await async_set_valve(hass, TRV, OPEN, CLOSE, 80, area_id="a", urgent=True)
 
     assert direct_valve.held_opening(TRV) == 0.3
+
+
+@pytest.mark.asyncio
+async def test_a_resting_rooms_orphaned_valve_goes_back_without_a_target():
+    """#494: the orphan pass must not restore a resting room's old target (it would heat again)."""
+    from unittest.mock import AsyncMock, MagicMock, patch
+
+    from custom_components.roommind.control import direct_valve
+
+    direct_valve._valve_sent["climate.rest"] = direct_valve._Held(0.0, 30, 21.0, "number.ro", "number.rc")
+    direct_valve._valve_sent["climate.other"] = direct_valve._Held(0.0, 30, 21.0, "number.oo", "number.oc")
+    with patch.object(direct_valve, "async_release_valve", new=AsyncMock()) as release:
+        await direct_valve.async_release_orphaned_valves(MagicMock(), {}, hand_back=True, no_hand_back={"climate.rest"})
+    hand_back = {c.args[1]: c.kwargs["hand_back"] for c in release.await_args_list}
+    assert hand_back == {"climate.rest": False, "climate.other": True}

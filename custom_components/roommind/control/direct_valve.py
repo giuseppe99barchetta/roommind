@@ -237,8 +237,12 @@ async def async_release_orphaned_valves(
     *,
     hand_back: bool = True,
     skip: frozenset[str] | set[str] = frozenset(),
+    no_hand_back: frozenset[str] | set[str] = frozenset(),
 ) -> None:
     """Release valves RoomMind still holds but no longer has in its config.
+
+    ``no_hand_back``: TRVs released without a setpoint whatever ``hand_back`` says (a resting
+    room's: its old target must not restart heating, #494).
 
     ``hand_back`` False (climate control off) puts back only the degrees RoomMind set, no
     setpoint. ``skip``: devices someone else owns now (boiler bypass).
@@ -258,7 +262,7 @@ async def async_release_orphaned_valves(
                 held.opening_eid,
                 held.closing_eid,
                 area_id="unconfigured",
-                hand_back=hand_back,
+                hand_back=hand_back and climate_eid not in no_hand_back,
                 idle_opening=held.idle_opening,
             )
 

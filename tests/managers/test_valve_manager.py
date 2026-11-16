@@ -453,3 +453,29 @@ class TestPublicAPI:
         assert vm.is_entity_cycling("climate.test") is False
         vm._cycling["climate.test"] = 123.0
         assert vm.is_entity_cycling("climate.test") is True
+
+
+@pytest.mark.asyncio
+async def test_a_valve_whose_room_rests_during_the_cycle_start_gets_no_boost(vm):
+    """#494: the room snapshot is stale once a command is awaited; ownership is checked live."""
+    rooms = {"bed": {"devices": [{"entity_id": "climate.trv1", "type": "trv", "role": "auto"}]}}
+    settings = {"valve_protection_enabled": True, "valve_protection_interval_days": 0}
+    state = MagicMock()
+    state.attributes = {"hvac_modes": ["heat", "off"]}
+    vm.hass.states.get = MagicMock(return_value=state)
+    owned = {"climate.trv1"}
+    calls: list[str] = []
+
+    async def _call(domain, service, data, **kwargs):
+        calls.append(service)
+        owned.clear()  # the room rests while the first command is awaited
+
+    vm.hass.services.async_call = AsyncMock(side_effect=_call)
+    with patch("custom_components.roommind.managers.valve_manager.celsius_to_ha_temp", return_value=30.0):
+        await vm.async_check_and_cycle(rooms, settings, still_owned=lambda eid: eid in owned)
+    assert calls == ["set_hvac_mode"]
+    assert "climate.trv1" not in vm.cycling_eids
+    calls.clear()
+    with patch("custom_components.roommind.managers.valve_manager.celsius_to_ha_temp", return_value=30.0):
+        await vm.async_check_and_cycle(rooms, settings, still_owned=lambda eid: False)
+    assert calls == []

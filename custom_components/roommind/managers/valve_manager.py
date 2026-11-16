@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import logging
 import time
+from collections.abc import Callable
 
 from homeassistant.core import HomeAssistant
 
@@ -142,8 +143,14 @@ class ValveManager:
             self._actuation_dirty = True
             _LOGGER.info("Valve protection: cycle complete for '%s'", eid)
 
-    async def async_check_and_cycle(self, rooms: dict, settings: dict) -> None:
-        """Scan for TRV valves that have been idle too long and start cycling them."""
+    async def async_check_and_cycle(
+        self, rooms: dict, settings: dict, *, still_owned: Callable[[str], bool] | None = None
+    ) -> None:
+        """Scan for TRV valves that have been idle too long and start cycling them.
+
+        ``still_owned`` is checked again before each command: the rooms are a snapshot, and a
+        room can rest or be deleted while a command is awaited (#494).
+        """
         if not settings.get("climate_control_active", True):
             return
         if not settings.get("valve_protection_enabled", False):
@@ -176,6 +183,8 @@ class ValveManager:
         for eid in all_trvs:
             if eid in self._cycling:
                 continue
+            if still_owned is not None and not still_owned(eid):
+                continue
             last = self._last_actuation.get(eid, 0)
             if now - last >= threshold:
                 try:
@@ -195,6 +204,9 @@ class ValveManager:
                         blocking=True,
                         context=make_roommind_context(),
                     )
+                    if still_owned is not None and not still_owned(eid):
+                        # Its room rested meanwhile: the shutdown of that room switches it off
+                        continue
                     boost_temp = celsius_to_ha_temp(self.hass, HEATING_BOOST_TARGET)
                     if eid_state:
                         dev_max = eid_state.attributes.get("max_temp")
@@ -222,6 +234,8 @@ class ValveManager:
                             blocking=True,
                             context=make_roommind_context(),
                         )
+                    if still_owned is not None and not still_owned(eid):
+                        continue
                     self._cycling[eid] = now
                     idle_days = int((now - last) / 86400) if last else 0
                     _LOGGER.info(

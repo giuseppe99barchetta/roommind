@@ -603,6 +603,12 @@ class RoomMindCoordinator(DataUpdateCoordinator):
                     outdoor_forecast,
                     command_generation=command_generations.get(area_id, 0),
                 )
+                if not self._room_still_runs(area_id):
+                    # Paused or deleted while it was processed: its state is not used, and what
+                    # the processing recorded again is forgotten
+                    if store.get_room(area_id) is not None:
+                        self._forget_room(area_id)
+                    continue
                 room_state["coordination_priority"] = _coordination_priority(self.rooms.get(area_id, {}))
                 room_state["coordination_rank"] = rank
                 room_states[area_id] = room_state
@@ -617,11 +623,22 @@ class RoomMindCoordinator(DataUpdateCoordinator):
         try:
             # Control off: only the degrees RoomMind set go back, no setpoint; bypass TRVs are the boiler's
             live_settings = store.get_settings()
+            live_rooms = store.get_rooms()
+            running_rooms = rooms_with_area(self.hass, live_rooms)
+            running = {e for r in running_rooms.values() for e in get_all_entity_ids(r.get("devices", []))}
             await async_release_orphaned_valves(
                 self.hass,
-                configured_valves(rooms_with_area(self.hass, store.get_rooms())),
+                configured_valves(running_rooms),
                 hand_back=self._live_climate_control_active(),
                 skip=set(bypass_entities(live_settings)),
+                # A resting room's valve goes back without its old target (#494)
+                no_hand_back={
+                    e
+                    for area_id, r in live_rooms.items()
+                    if area_id not in running_rooms
+                    for e in get_all_entity_ids(r.get("devices", []))
+                }
+                - running,
             )
         except Exception:  # noqa: BLE001
             _LOGGER.warning("Releasing unconfigured valves failed", exc_info=True)
@@ -779,7 +796,10 @@ class RoomMindCoordinator(DataUpdateCoordinator):
             # Live running rooms only: a room deleted or resting since the cycle began is not cycled
             live_rooms = rooms_with_area(self.hass, store.get_rooms())
             await self._valve_manager.async_check_and_cycle(
-                {area_id: room for area_id, room in rooms.items() if area_id in live_rooms}, settings
+                {area_id: room for area_id, room in rooms.items() if area_id in live_rooms},
+                settings,
+                # Re-checked before each command: a room resting or deleted meanwhile (#494)
+                still_owned=lambda eid: eid in self._running_devices(),
             )
 
         # Persist learned AC head offsets (piggyback on thermal save cycle)
