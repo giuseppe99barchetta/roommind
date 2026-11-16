@@ -942,5 +942,12 @@
   "head_offset.heat": "Heizen",
   "head_offset.cool": "Kühlen",
   "head_offset.idle": "Ruhe",
-  "settings.intro.head_offset": "Eine Klimaanlage regelt auf den Sensor ihres Innengeräts. RoomMind lernt, wie weit er beim Heizen, Kühlen und in Ruhe vom Raum abweicht, aus hvac_action oder, wenn die Anlage keines meldet, aus ihrem Leistungssensor."
+  "settings.intro.head_offset": "Eine Klimaanlage regelt auf den Sensor ihres Innengeräts. RoomMind lernt, wie weit er beim Heizen, Kühlen und in Ruhe vom Raum abweicht, aus hvac_action oder, wenn die Anlage keines meldet, aus ihrem Leistungssensor.",
+  "orphans.title": "Räume ohne Bereich",
+  "orphans.hint": "Sein Home-Assistant-Bereich wurde gelöscht: Der Raum ruht, seine Geräte sind aus. Er läuft wieder, sobald der Bereich zurück ist.",
+  "orphans.delete": "Löschen",
+  "orphans.confirm_delete": "Den Raum \"{name}\" und seine gelernten Daten löschen?",
+  "orphans.none": "Jeder Raum hat seinen Bereich.",
+  "settings.intro.orphans": "Räume, deren Home-Assistant-Bereich gelöscht wurde, behalten Einstellungen und gelerntes Modell, steuern aber nichts.",
+  "roomcard.room_resting": "Dieser Raum ruht: Sein Home-Assistant-Bereich wurde gelöscht."
 }

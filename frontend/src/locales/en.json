@@ -942,5 +942,12 @@
   "head_offset.heat": "Heating",
   "head_offset.cool": "Cooling",
   "head_offset.idle": "Idle",
-  "settings.intro.head_offset": "An AC regulates on the sensor in its indoor unit. RoomMind learns how far it reads from the room while heating, cooling and idle, from hvac_action or, when the AC reports none, from its power sensor."
+  "settings.intro.head_offset": "An AC regulates on the sensor in its indoor unit. RoomMind learns how far it reads from the room while heating, cooling and idle, from hvac_action or, when the AC reports none, from its power sensor.",
+  "orphans.title": "Rooms without area",
+  "orphans.hint": "Its Home Assistant area was deleted: the room rests, its devices are switched off. It runs again once the area is back.",
+  "orphans.delete": "Delete",
+  "orphans.confirm_delete": "Delete the room \"{name}\" and its learned data?",
+  "orphans.none": "Every room has its area.",
+  "settings.intro.orphans": "Rooms whose Home Assistant area was deleted keep their settings and learned model but control nothing.",
+  "roomcard.room_resting": "This room rests: its Home Assistant area was deleted."
 }

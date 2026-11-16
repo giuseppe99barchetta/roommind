@@ -39,6 +39,7 @@ from .managers.room_climate import (
     fan_mode_to_physical,
     room_capabilities,
 )
+from .utils.area_utils import rooms_with_area
 from .utils.device_utils import get_ac_eids, get_all_entity_ids, get_trv_eids
 from .utils.night_mode import apply_night_targets
 from .utils.temp_utils import celsius_to_ha_temp, quantize_temperature_for_entity
@@ -63,7 +64,7 @@ async def async_setup_entry(
     coordinator: RoomMindCoordinator = hass.data[DOMAIN][entry.entry_id]
     store = hass.data[DOMAIN]["store"]
     coordinator.async_add_climate_entities = async_add_entities
-    rooms = store.get_rooms()
+    rooms = rooms_with_area(hass, store.get_rooms())
     entities: list[ClimateEntity] = []
     for area_id, room in rooms.items():
         if room.get("is_outdoor", False):
@@ -249,7 +250,7 @@ class RoomMindOverrideClimate(CoordinatorEntity, ClimateEntity):
             return
 
         running_loads: dict[str, float] = {}
-        for area_id, other in store.get_rooms().items():
+        for area_id, other in rooms_with_area(self.hass, store.get_rooms()).items():
             other_acs = get_ac_eids(other.get("devices", []))
             if any(
                 (state := hass.states.get(entity_id))

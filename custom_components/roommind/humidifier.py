@@ -15,6 +15,7 @@ from .climate import RoomMindClimate
 from .const import DOMAIN
 from .coordinator import RoomMindCoordinator, _get_room_display_name
 from .managers.room_climate import room_capabilities
+from .utils.area_utils import rooms_with_area
 from .utils.device_utils import ac_is_in_mode, get_ac_eids
 
 
@@ -39,7 +40,7 @@ async def async_setup_entry(
     coordinator.async_add_humidifier_entities = async_add_entities
 
     entities: list[HumidifierEntity] = []
-    for area_id, room in store.get_rooms().items():
+    for area_id, room in rooms_with_area(hass, store.get_rooms()).items():
         if _room_has_ac(room) and _is_humidifier_representation(room):
             entities.append(RoomMindDryDehumidifier(coordinator, area_id))
             coordinator._dry_humidifier_entity_areas.add(area_id)

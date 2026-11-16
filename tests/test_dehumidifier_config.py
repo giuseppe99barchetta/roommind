@@ -137,6 +137,7 @@ def attach_coordinator(hass, *, owned=False):
         async_room_added=AsyncMock(),
         async_room_removed=AsyncMock(),
         note_room_deleted=MagicMock(return_value=True),
+        async_save_pending_shutdowns=AsyncMock(),
     )
     hass.data[DOMAIN]["coordinator"] = coordinator
     if owned:

@@ -10,6 +10,7 @@ from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from .const import DOMAIN
 from .coordinator import RoomMindCoordinator, _get_room_display_name
+from .utils.area_utils import rooms_with_area
 from .utils.device_utils import get_ac_eids
 
 
@@ -24,7 +25,7 @@ async def async_setup_entry(
     coordinator.async_add_select_entities = async_add_entities
 
     entities: list[SelectEntity] = []
-    for area_id, room in store.get_rooms().items():
+    for area_id, room in rooms_with_area(hass, store.get_rooms()).items():
         if get_ac_eids(room.get("devices", [])):
             entities.append(RoomMindDryEntityTypeSelect(coordinator, area_id))
             coordinator._dry_entity_type_select_areas.add(area_id)

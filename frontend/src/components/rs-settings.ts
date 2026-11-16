@@ -9,6 +9,7 @@ import type {
   HomeAssistant,
   GlobalSettings,
   RoomConfig,
+  RoomWithoutArea,
   NotificationTarget,
   CompressorGroup,
 } from "../types";
@@ -28,6 +29,7 @@ import "./settings/rs-settings-presence";
 import "./settings/rs-settings-vacation";
 import "./settings/rs-settings-valve";
 import "./settings/rs-settings-head-offset";
+import "./settings/rs-settings-orphans";
 import type { HeadOffsets } from "./settings/rs-settings-head-offset";
 import "./settings/rs-settings-compressor";
 import "./settings/rs-settings-mold";
@@ -43,6 +45,7 @@ import { serverNow } from "../utils/server-clock";
 export class RsSettings extends LitElement {
   @property({ attribute: false }) public hass!: HomeAssistant;
   @property({ attribute: false }) public rooms: Record<string, RoomConfig> = {};
+  @property({ attribute: false }) public roomsWithoutArea: RoomWithoutArea[] = [];
 
   @state() private _groupByFloor = false;
   @state() private _climateControlActive = true;
@@ -419,6 +422,18 @@ export class RsSettings extends LitElement {
               .compressorGroups=${this._compressorGroups}
               @setting-changed=${this._onSettingChanged}
             ></rs-settings-compressor>
+          </rs-settings-panel>
+
+          <rs-settings-panel
+            ?hidden=${this._category !== "system" || !this.roomsWithoutArea.length}
+            icon="mdi:home-off-outline"
+            .heading=${localize("orphans.title", l)}
+            .intro=${localize("settings.intro.orphans", l)}
+          >
+            <rs-settings-orphans
+              .hass=${this.hass}
+              .rooms=${this.roomsWithoutArea}
+            ></rs-settings-orphans>
           </rs-settings-panel>
 
           <rs-settings-panel

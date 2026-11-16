@@ -40,6 +40,7 @@ from .services.analytics_service import (
     build_analytics_data,
     build_comparison_data,
 )
+from .utils.area_utils import rooms_with_area, rooms_without_area
 from .utils.comfort_insights import profile_targets
 from .utils.device_utils import (
     VALID_DEVICE_TYPES,
@@ -398,7 +399,13 @@ async def websocket_list_rooms(
 ) -> None:
     """Return all rooms with current state."""
     store = hass.data[DOMAIN]["store"]
-    rooms = store.get_rooms()
+    stored = store.get_rooms()
+    # A room whose area was deleted rests (#494): listed apart, so it can be deleted
+    rooms = rooms_with_area(hass, stored)
+    rooms_resting = [
+        {"area_id": area_id, "display_name": room.get("display_name") or area_id}
+        for area_id, room in rooms_without_area(hass, stored).items()
+    ]
 
     # Merge live state from coordinator
     coordinator = _get_coordinator(hass)
@@ -510,6 +517,7 @@ async def websocket_list_rooms(
         msg["id"],
         {
             "rooms": result,
+            "rooms_without_area": rooms_resting,
             # Countdowns in the browser compare against this, not against the device's own clock
             "server_time": time.time(),
             "outdoor_temp": coordinator.outdoor_temp_effective if coordinator else None,
@@ -829,6 +837,8 @@ async def websocket_delete_room(
             # The next cycle switches the room's climate devices off (not now: a cycle in
             # flight could still send the room's last command after it).
             coordinator.note_room_deleted(area_id, existing)
+            # Kept across a restart before the next cycle switches the devices off
+            await coordinator.async_save_pending_shutdowns()
         try:
             await store.async_delete_room(area_id)
         except KeyError:

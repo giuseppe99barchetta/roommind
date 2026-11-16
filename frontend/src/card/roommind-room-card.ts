@@ -210,11 +210,16 @@ export class RoomMindRoomCard extends LitElement {
     }
     const room = this._room;
     if (!room) {
+      const resting = this._feed?.rooms_without_area.some(
+        (r) => r.area_id === this._config.area_id,
+      );
       const text = this._feedError
         ? this._feedError
-        : this._feed
-          ? localize("roomcard.room_not_found", l)
-          : localize("hero.waiting", l);
+        : resting
+          ? localize("roomcard.room_resting", l)
+          : this._feed
+            ? localize("roomcard.room_not_found", l)
+            : localize("hero.waiting", l);
       return html`<ha-card><div class="msg">${text}</div></ha-card>`;
     }
     const live = room.live;

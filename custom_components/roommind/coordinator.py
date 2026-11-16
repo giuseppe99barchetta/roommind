@@ -102,6 +102,7 @@ from .managers.heat_source_orchestrator import (
     evaluate_native_heat_sources,
 )
 from .managers.mold_manager import MoldManager
+from .managers.pending_shutdowns import PendingShutdowns
 from .managers.power_budget_manager import PowerBudgetManager
 from .managers.residual_heat_tracker import ResidualHeatLearner, ResidualHeatTracker
 from .managers.room_climate import async_apply_ac_auxiliary_mode
@@ -109,6 +110,7 @@ from .managers.valve_manager import ValveManager
 from .managers.weather_manager import WeatherManager
 from .managers.window_impact_manager import WindowImpactManager
 from .managers.window_manager import WindowManager
+from .utils.area_utils import REST_SHUTDOWN_EXPIRED, REST_SWITCHED_OFF, has_area, rooms_with_area
 from .utils.comfort_insights import active_profile, calculate_comfort_score
 from .utils.device_utils import (
     ac_is_in_mode,
@@ -134,8 +136,6 @@ from .utils.sensor_utils import read_sensor_value
 from .utils.temp_utils import celsius_delta_to_ha, ha_temp_to_celsius, ha_temp_unit_str
 
 _LOGGER = logging.getLogger(__name__)
-# Cycles a deleted room's device is retried when it does not report off after the command
-DELETED_ROOM_SWITCH_OFF_ATTEMPTS = 10
 
 
 def _get_area_name(hass: HomeAssistant, area_id: str) -> str:
@@ -373,10 +373,8 @@ class RoomMindCoordinator(DataUpdateCoordinator):
         # Out-of-range schedule block temps already warned about (#395), keyed by
         # (area_id, field, raw value) so the 30 s cycle does not flood the log.
         self._block_temp_warned: set[tuple[str, str, str]] = set()
-        # Rooms deleted in the panel: their devices, switched off by the next cycle
-        self._deleted_rooms_to_switch_off: dict[str, list[dict]] = {}
-        # Failed switch-off attempts per (deleted room, device), retried on the next cycles
-        self._deleted_switch_attempts: dict[tuple[str, str], int] = {}
+        # Devices of deleted or resting rooms still to switch off (store-backed, #494)
+        self._pending_shutdowns = PendingShutdowns()
         self._switch_entity_areas: set[str] = set()
         self._climate_control_switch_areas: set[str] = set()
         self._dry_switch_entity_areas: set[str] = set()
@@ -416,7 +414,8 @@ class RoomMindCoordinator(DataUpdateCoordinator):
         5. Returns state dict consumed by sensor entities
         """
         store = self.hass.data[DOMAIN]["store"]
-        rooms = store.get_rooms()
+        # Running rooms only: a room whose area was deleted rests (#494)
+        rooms = rooms_with_area(self.hass, store.get_rooms())
         command_generations = self._manual_command_generations.copy()
 
         # Read outdoor sensors from global settings
@@ -451,6 +450,12 @@ class RoomMindCoordinator(DataUpdateCoordinator):
             self._ventilation.load_state(settings.get("ventilation_state", {}))
             self._dehumidifier_manager.load_learned(store.get_dehumidifier_data())
             self._head_offsets.load_state(settings.get("ac_head_offsets", {}))
+            # Merged, not replaced: a room deleted before the first cycle is already queued
+            loaded = PendingShutdowns(settings.get("pending_shutdowns", {}))
+            for _eid, entry in self._pending_shutdowns.open_entries():
+                for area_id in entry["areas"]:
+                    loaded.queue(area_id, [entry["device"]], entry["since"])
+            self._pending_shutdowns = loaded
             self._model_loaded = True
 
         # Initialize history store (once)
@@ -555,7 +560,7 @@ class RoomMindCoordinator(DataUpdateCoordinator):
         )
 
         async with self._dehumidifier_manager.lock:
-            rooms = store.get_rooms()
+            rooms = rooms_with_area(self.hass, store.get_rooms())
             if any(room.get("dehumidifier") for room in rooms.values()):
                 self._humidity_sensor_snapshot = {
                     area_id: self._read_room_sensors(room, area_id) for area_id, room in rooms.items()
@@ -580,7 +585,7 @@ class RoomMindCoordinator(DataUpdateCoordinator):
             else:
                 self._dehumidifier_manager.prepare({}, settings, {}, {})
 
-        await self._async_switch_deleted_rooms_off(settings)
+        await self._async_process_pending_shutdowns()
 
         room_order = sorted(
             rooms,
@@ -588,8 +593,8 @@ class RoomMindCoordinator(DataUpdateCoordinator):
         )
         for rank, area_id in enumerate(room_order, start=1):
             room = rooms[area_id]
-            # Live, not this cycle's snapshot: a room deleted while the cycle awaited another room
-            if store.get_room(area_id) is None:
+            # Live, not this cycle's snapshot: a room deleted or resting since the cycle began
+            if not self._room_still_runs(area_id):
                 continue
             try:
                 room_state = await self._async_process_room(
@@ -614,7 +619,7 @@ class RoomMindCoordinator(DataUpdateCoordinator):
             live_settings = store.get_settings()
             await async_release_orphaned_valves(
                 self.hass,
-                configured_valves(store.get_rooms()),
+                configured_valves(rooms_with_area(self.hass, store.get_rooms())),
                 hand_back=self._live_climate_control_active(),
                 skip=set(bypass_entities(live_settings)),
             )
@@ -771,8 +776,8 @@ class RoomMindCoordinator(DataUpdateCoordinator):
 
         # Valve protection: check for stale valves (throttled)
         if self._valve_manager.should_run_cycle_check():
-            # Live rooms only: a room deleted during this cycle must not get its valves cycled
-            live_rooms = store.get_rooms()
+            # Live running rooms only: a room deleted or resting since the cycle began is not cycled
+            live_rooms = rooms_with_area(self.hass, store.get_rooms())
             await self._valve_manager.async_check_and_cycle(
                 {area_id: room for area_id, room in rooms.items() if area_id in live_rooms}, settings
             )
@@ -3175,7 +3180,7 @@ class RoomMindCoordinator(DataUpdateCoordinator):
         once). One entity in several rooms runs while any of them needs it.
         """
         store = self.hass.data[DOMAIN]["store"]
-        rooms = store.get_rooms()
+        rooms = rooms_with_area(self.hass, store.get_rooms())
         wanted: dict[str, bool] = {}
         # Live, not the cycle's snapshot: the global switch may have gone off while rooms ran
         if store.get_settings().get("climate_control_active", True):
@@ -3218,66 +3223,147 @@ class RoomMindCoordinator(DataUpdateCoordinator):
         for eid in get_all_entity_ids(room.get("devices", [])):
             if eid not in others:
                 self._valve_manager.forget_cycle(eid)
+        # A resting room whose shutdown is complete: everything was sent already
+        if room.get(REST_SWITCHED_OFF):
+            return False
         if room.get("is_outdoor") or not room.get("climate_control_enabled", True):
             return False
         if not self._live_climate_control_active():
             return False
-        self._deleted_rooms_to_switch_off[area_id] = list(room.get("devices", []))
+        self._pending_shutdowns.queue(area_id, list(room.get("devices", [])), time.time())
         return True
+
+    async def async_save_pending_shutdowns(self) -> None:
+        """Persist the pending shutdown list when it changed (it must survive a restart)."""
+        if self._pending_shutdowns.dirty:
+            self._pending_shutdowns.dirty = False
+            await self.hass.data[DOMAIN]["store"].async_save_settings(
+                {"pending_shutdowns": self._pending_shutdowns.to_dict()}
+            )
+
+    def _room_still_runs(self, area_id: str) -> bool:
+        """Live check after an await: the room is still stored and its area still exists."""
+        return self.hass.data[DOMAIN]["store"].get_room(area_id) is not None and has_area(self.hass, area_id)
 
     def _live_climate_control_active(self) -> bool:
         """Global climate control as stored now (not a cycle's copy of the settings)."""
         return bool(self.hass.data[DOMAIN]["store"].get_settings().get("climate_control_active", True))
 
-    async def _async_switch_deleted_rooms_off(self, settings: dict) -> None:
-        """Switch off the climate devices of rooms deleted since the last cycle.
+    def _running_devices(self) -> set[str]:
+        """Devices a running room (stored, with area) drives, live."""
+        rooms = rooms_with_area(self.hass, self.hass.data[DOMAIN]["store"].get_rooms())
+        return {e for room in rooms.values() for e in get_all_entity_ids(room.get("devices", []))}
 
-        Global climate control off drops them unsent: a device someone runs by hand while
-        RoomMind is off must stay on. A room created again meanwhile keeps its devices, and a
-        device another stored room still drives is left to that room. Checked against the
-        live store, not a cycle snapshot.
+    async def _async_process_pending_shutdowns(self) -> None:
+        """Switch off the devices of deleted and resting rooms (#494, W1.6); store-backed.
+
+        Global climate control off drops a deleted room's work unsent (a device someone runs
+        by hand while RoomMind is off must stay on); a resting room waits for control to come
+        back. A device a running room drives, or a boiler bypass TRV, is left to its owner.
+        Checked against the live store before each command, under the waiting room's command
+        lock. An unavailable device gets no command until it is back or its entry expires.
         """
-        if not self._deleted_rooms_to_switch_off:
-            return
-        pending, self._deleted_rooms_to_switch_off = self._deleted_rooms_to_switch_off, {}
         store = self.hass.data[DOMAIN]["store"]
-        for area_id, devices in pending.items():
+        pending = self._pending_shutdowns
+        now = time.time()
+        stored = store.get_rooms()
+        if not self._live_climate_control_active():
+            for area_id in {a for _, e in pending.open_entries() for a in e["areas"]} - set(stored):
+                pending.forget_area(area_id)
+            await self.async_save_pending_shutdowns()
+            return
+        for area_id, room in stored.items():
+            if has_area(self.hass, area_id):
+                # Running again (area back, also without an event): no longer waiting
+                if room.get(REST_SWITCHED_OFF):
+                    await store.async_update_room(area_id, {REST_SWITCHED_OFF: False, REST_SHUTDOWN_EXPIRED: False})
+                pending.forget_area(area_id)
+            elif not room.get(REST_SWITCHED_OFF) and self._room_rest_shutdown_wanted(room):
+                pending.queue(area_id, list(room.get("devices", [])), now)
+        for eid, entry in pending.open_entries():
             # Serialized with the room's commands: a cycle holding the lock finishes first,
             # and one waiting for it carries a stale generation and sends nothing.
-            async with self._room_command_locks.setdefault(area_id, asyncio.Lock()):
-                for eid in get_all_entity_ids(devices):
-                    # All checked live before each command: control switched off, the room
-                    # created again or the device taken over by another room meanwhile.
-                    if not self._live_climate_control_active():
-                        return
-                    stored = store.get_rooms()
-                    if area_id in stored:
-                        break
-                    driven = {e for other in stored.values() for e in get_all_entity_ids(other.get("devices", []))}
-                    # The boiler manager owns the hydraulic bypass TRVs: it opens and releases them
-                    if eid in driven or eid in bypass_entities(store.get_settings()):
-                        continue
+            async with self._room_command_locks.setdefault(entry["areas"][0], asyncio.Lock()):
+                if not self._live_climate_control_active():
+                    break
+                # The boiler manager owns the hydraulic bypass TRVs: it opens and releases them
+                if eid in self._running_devices() or eid in bypass_entities(store.get_settings()):
+                    pending.resolve(eid, "driven")
+                    continue
+                state = self.hass.states.get(eid)
+                if state is None or state.state not in ("unavailable", "unknown"):
                     try:
-                        await async_turn_off_climate(self.hass, eid, area_id=area_id)
+                        await async_turn_off_climate(self.hass, eid, area_id=entry["areas"][0])
                     except Exception:  # noqa: BLE001
-                        _LOGGER.warning("Deleted room '%s': could not switch '%s' off", area_id, eid, exc_info=True)
+                        _LOGGER.warning("Room '%s': could not switch '%s' off", entry["areas"][0], eid, exc_info=True)
                     # A valve-protection cycle of it would otherwise command it again when it ends
                     self._valve_manager.forget_cycle(eid)
-                    await self._async_release_valves(
-                        area_id, [d for d in devices if d.get("entity_id") == eid], hand_back=False
+                    await self._async_release_valves(entry["areas"][0], [entry["device"]], hand_back=False)
+                if self._is_switched_off(eid):
+                    pending.resolve(eid, "off")
+                elif pending.expired(eid, now):
+                    _LOGGER.warning(
+                        "Room '%s': '%s' did not switch off within a day, giving up", entry["areas"][0], eid
                     )
-                    # The helper logs a failed call itself: retry a device that is not off yet
-                    # (unavailable, lost command) on the next cycles, a bounded number of times.
-                    if not self._is_switched_off(eid):
-                        key = (area_id, eid)
-                        attempts = self._deleted_switch_attempts.get(key, 0) + 1
-                        if attempts < DELETED_ROOM_SWITCH_OFF_ATTEMPTS:
-                            self._deleted_switch_attempts[key] = attempts
-                            retry = self._deleted_rooms_to_switch_off.setdefault(area_id, [])
-                            retry.extend(d for d in devices if d.get("entity_id") == eid)
-                            continue
-                        _LOGGER.warning("Deleted room '%s': '%s' did not switch off, giving up", area_id, eid)
-                    self._deleted_switch_attempts.pop((area_id, eid), None)
+                    pending.resolve(eid, "expired")
+        stored = store.get_rooms()
+        for area_id, room in stored.items():
+            if has_area(self.hass, area_id) or room.get(REST_SWITCHED_OFF):
+                continue
+            if not self._room_rest_shutdown_wanted(room):
+                continue
+            done, expired = pending.room_done(area_id)
+            if done:
+                await store.async_update_room(area_id, {REST_SWITCHED_OFF: True, REST_SHUTDOWN_EXPIRED: expired})
+        stored = store.get_rooms()
+        pending.cleanup({a for a, r in stored.items() if not has_area(self.hass, a) and not r.get(REST_SWITCHED_OFF)})
+        await self.async_save_pending_shutdowns()
+
+    def _room_rest_shutdown_wanted(self, room: dict) -> bool:
+        """A resting room's devices are switched off only where RoomMind drove them."""
+        return not room.get("is_outdoor") and room.get("climate_control_enabled", True)
+
+    async def async_room_paused(self, area_id: str) -> None:
+        """The room's area was deleted: the room rests (#494).
+
+        Its entities go, its run state is forgotten (learned model and history stay), a
+        dehumidifier RoomMind runs is released, and the next cycles switch its devices off.
+        """
+        store = self.hass.data[DOMAIN]["store"]
+        room = store.get_room(area_id)
+        if room is None:
+            return
+        # A cycle that already took this room's snapshot must not apply it any more
+        self._manual_command_generations[area_id] = self._manual_command_generations.get(area_id, 0) + 1
+        running = self._running_devices()
+        for eid in get_all_entity_ids(room.get("devices", [])):
+            if eid not in running:
+                self._valve_manager.forget_cycle(eid)
+        device = room.get("dehumidifier")
+        if device:
+            async with self._dehumidifier_manager.lock:
+                try:
+                    await self._dehumidifier_manager.release(
+                        device,
+                        None,
+                        self._live_climate_control_active() and room.get("climate_control_enabled", True),
+                    )
+                except Exception:  # noqa: BLE001
+                    _LOGGER.warning("Room '%s' rests: could not release its dehumidifier", area_id, exc_info=True)
+        self._forget_room(area_id)
+        await self.async_request_refresh()
+
+    async def async_room_resumed(self, area_id: str) -> None:
+        """The room's area is back: the room runs again with its entities."""
+        store = self.hass.data[DOMAIN]["store"]
+        room = store.get_room(area_id)
+        if room is None:
+            return
+        if room.get(REST_SWITCHED_OFF) or room.get(REST_SHUTDOWN_EXPIRED):
+            room = await store.async_update_room(area_id, {REST_SWITCHED_OFF: False, REST_SHUTDOWN_EXPIRED: False})
+        self._pending_shutdowns.forget_area(area_id)
+        await self.async_save_pending_shutdowns()
+        await self.async_room_added(room)
 
     async def _async_release_valves(self, area_id: str, devices: list[dict], *, hand_back: bool = True) -> None:
         """Hand every valve RoomMind pins in this room back to its TRV (#413)."""
@@ -3611,6 +3697,9 @@ class RoomMindCoordinator(DataUpdateCoordinator):
     async def async_room_added(self, room: dict) -> None:
         """Create entity platform entities for a newly added/updated room and refresh data."""
         area_id = room["area_id"]
+        if not has_area(self.hass, area_id):
+            # Resting (#494): the config is saved, entities come back with the area
+            return
         has_covers = bool(room.get("covers"))
 
         has_energy_entities = _room_has_power_sensor(room)
@@ -3759,6 +3848,15 @@ class RoomMindCoordinator(DataUpdateCoordinator):
 
     async def async_room_removed(self, area_id: str) -> None:
         """Remove sensor entities for a deleted room and refresh data."""
+        self._forget_room(area_id)
+        self._model_manager.remove_room(area_id)
+        if self._history_store:
+            await self.hass.async_add_executor_job(self._history_store.remove_room, area_id)
+
+        await self.async_request_refresh()
+
+    def _forget_room(self, area_id: str) -> None:
+        """Remove a room's entities and its run state; its learned model and history stay."""
         from homeassistant.helpers import entity_registry as er
 
         registry = er.async_get(self.hass)
@@ -3805,7 +3903,6 @@ class RoomMindCoordinator(DataUpdateCoordinator):
         self._binary_sensor_entity_areas.discard(area_id)
         self._climate_entity_areas.discard(area_id)
         self._fan_entity_areas.discard(area_id)
-        self._model_manager.remove_room(area_id)
         self._energy_manager.remove_room(area_id)
         self._mold_active_strategies.pop(area_id, None)
         self._mold_restore_modes.pop(area_id, None)
@@ -3815,10 +3912,6 @@ class RoomMindCoordinator(DataUpdateCoordinator):
         self._mold_exposure.pop(area_id, None)
         self._mold_exposure_at.pop(area_id, None)
         self._heat_source_states.pop(area_id, None)
-        if self._history_store:
-            await self.hass.async_add_executor_job(self._history_store.remove_room, area_id)
-
-        await self.async_request_refresh()
 
     def cleanup_orphaned_entities(self) -> None:
         """Remove entities that no longer match any registered entity type.
@@ -3828,7 +3921,8 @@ class RoomMindCoordinator(DataUpdateCoordinator):
         from homeassistant.helpers import entity_registry as er
 
         store = self.hass.data[DOMAIN]["store"]
-        rooms = store.get_rooms()
+        # A resting room (area deleted, also while HA was stopped) owns no entity (#494)
+        rooms = rooms_with_area(self.hass, store.get_rooms())
         registry = er.async_get(self.hass)
 
         to_remove: list[str] = []

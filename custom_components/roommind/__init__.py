@@ -5,6 +5,7 @@ from __future__ import annotations
 import hashlib
 import json
 import logging
+from collections.abc import Callable
 from pathlib import Path
 
 from homeassistant.components.frontend import (
@@ -14,7 +15,8 @@ from homeassistant.components.frontend import (
 )
 from homeassistant.components.http import StaticPathConfig
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.core import HomeAssistant
+from homeassistant.core import Event, HomeAssistant
+from homeassistant.helpers import area_registry as ar
 from homeassistant.helpers import config_validation as cv
 from homeassistant.helpers import issue_registry as ir
 from homeassistant.helpers.typing import ConfigType
@@ -59,14 +61,35 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
 
-    # Clean up orphaned entities (e.g. cover entities for rooms without covers)
+    # Clean up orphaned entities (e.g. cover entities for rooms without covers, resting rooms)
     coordinator.cleanup_orphaned_entities()
+    entry.async_on_unload(async_track_area_changes(hass))
 
     await _async_register_panel(hass)
     await _async_register_card(hass)
     await _async_check_version_mismatch(hass)
 
     return True
+
+
+def async_track_area_changes(hass: HomeAssistant) -> Callable[[], None]:
+    """A room rests while its Home Assistant area is deleted and runs again once it is back (#494)."""
+
+    async def _async_area_updated(event: Event[ar.EventAreaRegistryUpdatedData]) -> None:
+        area_id = event.data["area_id"]
+        data = hass.data.get(DOMAIN, {})
+        store, coordinator = data.get("store"), data.get("coordinator")
+        if store is None or coordinator is None or store.get_room(area_id) is None:
+            return
+        if event.data["action"] == "remove":
+            _LOGGER.info("Area '%s' was deleted, its room rests until the area is back or it is deleted", area_id)
+            await coordinator.async_room_paused(area_id)
+        elif event.data["action"] == "create":
+            _LOGGER.info("Area '%s' is back, its room runs again", area_id)
+            await coordinator.async_room_resumed(area_id)
+
+    unsub: Callable[[], None] = hass.bus.async_listen(ar.EVENT_AREA_REGISTRY_UPDATED, _async_area_updated)
+    return unsub
 
 
 async def _async_migrate_storage(hass: HomeAssistant) -> None:

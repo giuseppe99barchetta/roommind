@@ -236,6 +236,12 @@ export interface CompressorGroup {
 export type Season = "winter" | "spring" | "summer" | "autumn";
 export type SeasonHumidityTargets = Partial<Record<Season, number | null>>;
 
+/** A stored room whose Home Assistant area was deleted: it rests (#494). */
+export interface RoomWithoutArea {
+  area_id: string;
+  display_name: string;
+}
+
 export interface RoomConfig {
   dehumidifier?: DehumidifierConfig | null;
   humidity_comfort_enabled?: boolean;

@@ -108,6 +108,7 @@ async def test_list_rooms_empty(ws_hass, store, connection):
         1,
         {
             "rooms": {},
+            "rooms_without_area": [],
             "server_time": ANY,
             "outdoor_temp": None,
             "outdoor_humidity": None,
@@ -233,6 +234,21 @@ async def test_save_room_updates_existing(ws_hass, store, connection):
     # Fields not in update_msg should be preserved
     assert room["temperature_sensor"] == "sensor.office_temp"
     assert room["climate_mode"] == "heat_only"
+
+
+@pytest.mark.asyncio
+async def test_rooms_list_lists_resting_rooms_apart(ws_hass, store, connection):
+    """A room whose area was deleted rests (#494): not in rooms, listed for deletion."""
+    await store.async_load()
+    await store.async_save_room("living", {"thermostats": ["climate.living"]})
+    await store.async_save_room("gone", {"thermostats": ["climate.gone"], "display_name": "Old office"})
+    with patch(
+        "custom_components.roommind.utils.area_utils.has_area", side_effect=lambda hass, area_id: area_id != "gone"
+    ):
+        await _list_rooms(ws_hass, connection, {"id": 1, "type": "roommind/rooms/list"})
+    result = connection.send_result.call_args[0][1]
+    assert set(result["rooms"]) == {"living"}
+    assert result["rooms_without_area"] == [{"area_id": "gone", "display_name": "Old office"}]
 
 
 @pytest.mark.asyncio
@@ -647,6 +663,7 @@ async def test_delete_room_notifies_coordinator(ws_hass, store, connection):
 
     mock_coordinator = MagicMock()
     mock_coordinator.async_room_removed = AsyncMock()
+    mock_coordinator.async_save_pending_shutdowns = AsyncMock()
     ws_hass.data[DOMAIN]["coordinator"] = mock_coordinator
 
     delete_msg = {

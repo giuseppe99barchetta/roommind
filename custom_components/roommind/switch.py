@@ -16,6 +16,7 @@ from .climate import RoomMindClimate
 from .const import DOMAIN, VACATION_SENTINEL_UNTIL
 from .coordinator import RoomMindCoordinator, _get_room_display_name
 from .managers.room_climate import room_capabilities
+from .utils.area_utils import rooms_with_area
 from .utils.device_utils import get_ac_eids
 
 
@@ -61,7 +62,7 @@ async def async_setup_entry(
         RoomMindGlobalClimateControlSwitch(coordinator),
     ]
 
-    rooms = store.get_rooms()
+    rooms = rooms_with_area(hass, store.get_rooms())
     for area_id, room in rooms.items():
         entities.append(RoomMindClimateControlSwitch(coordinator, area_id))
         coordinator._climate_control_switch_areas.add(area_id)

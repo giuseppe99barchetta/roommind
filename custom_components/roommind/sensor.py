@@ -15,6 +15,7 @@ from homeassistant.util import dt as dt_util
 
 from .const import DOMAIN
 from .coordinator import RoomMindCoordinator, _get_room_display_name, _room_has_power_sensor
+from .utils.area_utils import rooms_with_area
 
 
 def _create_room_energy_entities(coordinator: RoomMindCoordinator, area_id: str) -> list[SensorEntity]:
@@ -65,7 +66,7 @@ async def async_setup_entry(
     coordinator.async_add_entities = async_add_entities
 
     # Create entities for rooms that already exist in the store
-    rooms = store.get_rooms()
+    rooms = rooms_with_area(hass, store.get_rooms())
     entities: list[SensorEntity] = []
     for area_id, room in rooms.items():
         entities.extend(_create_room_entities(coordinator, area_id, room))

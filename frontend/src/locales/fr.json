@@ -942,5 +942,12 @@
   "head_offset.heat": "Chauffage",
   "head_offset.cool": "Refroidissement",
   "head_offset.idle": "Arrêt",
-  "settings.intro.head_offset": "Un climatiseur régule sur le capteur de son unité intérieure. RoomMind apprend son écart avec la pièce en chauffage, en refroidissement et à l'arrêt, d'après hvac_action ou, si le climatiseur n'en fournit pas, d'après son capteur de puissance."
+  "settings.intro.head_offset": "Un climatiseur régule sur le capteur de son unité intérieure. RoomMind apprend son écart avec la pièce en chauffage, en refroidissement et à l'arrêt, d'après hvac_action ou, si le climatiseur n'en fournit pas, d'après son capteur de puissance.",
+  "orphans.title": "Pièces sans zone",
+  "orphans.hint": "Sa zone Home Assistant a été supprimée : la pièce est au repos, ses appareils sont éteints. Elle reprend quand la zone revient.",
+  "orphans.delete": "Supprimer",
+  "orphans.confirm_delete": "Supprimer la pièce « {name} » et ses données apprises ?",
+  "orphans.none": "Chaque pièce a sa zone.",
+  "settings.intro.orphans": "Les pièces dont la zone Home Assistant a été supprimée gardent leurs réglages et leur modèle appris, mais ne pilotent rien.",
+  "roomcard.room_resting": "Cette pièce est au repos : sa zone Home Assistant a été supprimée."
 }

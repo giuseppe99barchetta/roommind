@@ -2,12 +2,13 @@
  * One `roommind/rooms/list` poll for every RoomMind card on the page, paused while
  * the page is hidden and stopped when no card is shown.
  */
-import type { HomeAssistant, RoomConfig } from "../types";
+import type { HomeAssistant, RoomConfig, RoomWithoutArea } from "../types";
 import { noteServerTime } from "../utils/server-clock";
 
 export interface RoomsFeed {
   rooms: Record<string, RoomConfig>;
   climate_control_active: boolean;
+  rooms_without_area: RoomWithoutArea[];
 }
 
 type Listener = (feed: RoomsFeed | null, error: string) => void;
@@ -52,6 +53,7 @@ export function refreshRooms(fresh = false): Promise<void> {
       last = {
         rooms: result.rooms ?? {},
         climate_control_active: result.climate_control_active ?? true,
+        rooms_without_area: result.rooms_without_area ?? [],
       };
       lastError = "";
     })

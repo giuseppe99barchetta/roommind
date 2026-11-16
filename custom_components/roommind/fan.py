@@ -16,6 +16,7 @@ from .climate import RoomMindClimate
 from .const import DOMAIN
 from .coordinator import RoomMindCoordinator, _get_room_display_name
 from .managers.room_climate import room_capabilities
+from .utils.area_utils import rooms_with_area
 from .utils.device_utils import get_ac_eids
 
 
@@ -29,7 +30,7 @@ async def async_setup_entry(
     coordinator.async_add_fan_entities = async_add_entities
     entities = [
         RoomMindFan(coordinator, area_id)
-        for area_id, room in hass.data[DOMAIN]["store"].get_rooms().items()
+        for area_id, room in rooms_with_area(hass, hass.data[DOMAIN]["store"].get_rooms()).items()
         if not room.get("is_outdoor", False) and get_ac_eids(room.get("devices", []))
     ]
     coordinator._fan_entity_areas.update(entity._area_id for entity in entities)

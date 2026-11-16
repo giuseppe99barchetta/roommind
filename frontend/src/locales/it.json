@@ -942,5 +942,12 @@
   "head_offset.heat": "Riscaldamento",
   "head_offset.cool": "Raffrescamento",
   "head_offset.idle": "Fermo",
-  "settings.intro.head_offset": "Un condizionatore regola sul sensore della sua unità interna. RoomMind impara quanto legge diverso dalla stanza mentre scalda, raffresca o è fermo, da hvac_action oppure, se il condizionatore non lo riporta, dal suo sensore di potenza."
+  "settings.intro.head_offset": "Un condizionatore regola sul sensore della sua unità interna. RoomMind impara quanto legge diverso dalla stanza mentre scalda, raffresca o è fermo, da hvac_action oppure, se il condizionatore non lo riporta, dal suo sensore di potenza.",
+  "orphans.title": "Stanze senza area",
+  "orphans.hint": "La sua area di Home Assistant è stata eliminata: la stanza è a riposo e i suoi dispositivi sono spenti. Riparte quando l'area torna.",
+  "orphans.delete": "Elimina",
+  "orphans.confirm_delete": "Eliminare la stanza \"{name}\" e i suoi dati appresi?",
+  "orphans.none": "Ogni stanza ha la sua area.",
+  "settings.intro.orphans": "Le stanze la cui area di Home Assistant è stata eliminata mantengono impostazioni e modello appreso, ma non controllano nulla.",
+  "roomcard.room_resting": "Questa stanza è a riposo: la sua area di Home Assistant è stata eliminata."
 }
