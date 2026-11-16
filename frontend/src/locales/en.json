@@ -891,5 +891,12 @@
   "settings.retry": "Retry",
   "vacation.end_day": "End date",
   "vacation.end_time": "Time",
-  "schedule.block_temp_rejected": "Values outside the valid range {min}–{max}{unit}: {values}. The comfort target is used instead — check the schedule helper for a typo."
+  "schedule.block_temp_rejected": "Values outside the valid range {min}–{max}{unit}: {values}. The comfort target is used instead — check the schedule helper for a typo.",
+  "analytics.summary.title": "In this period",
+  "analytics.summary.on_target": "On target",
+  "analytics.summary.too_cold": "Too cold",
+  "analytics.summary.too_warm": "Too warm",
+  "analytics.summary.heating": "Heating",
+  "analytics.summary.cooling": "Cooling",
+  "analytics.summary.runs": "{n} runs"
 }

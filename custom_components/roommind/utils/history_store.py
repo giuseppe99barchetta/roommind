@@ -43,7 +43,17 @@ DETAIL_FIELDS = [
     "dehumidifier_on",
     "dehumidifier_fan",
     "dehumidifier_power_w",
+    # Analytics summary (upstream analytics_stats): targets in force, runs starting at this
+    # row (summed per history bucket, which keeps only its first mode) and the extremes of a
+    # history bucket (a short run peaks inside it, the bucket mean hides the peak)
+    "heat_target",
+    "cool_target",
+    "heat_starts",
+    "cool_starts",
+    "room_temp_max",
+    "room_temp_min",
 ]
+START_FIELDS = {"heating": "heat_starts", "cooling": "cool_starts"}
 DETAIL_MAX_AGE = 48 * 3600  # 48 hours
 HISTORY_MAX_AGE = 90 * 24 * 3600  # 90 days
 
@@ -152,6 +162,8 @@ class HistoryStore:
                     else int(bool(data["dehumidifier_on"])),
                     "dehumidifier_fan": _blank(data.get("dehumidifier_fan")),
                     "dehumidifier_power_w": _blank(data.get("dehumidifier_power_w")),
+                    "heat_target": _blank(data.get("heat_target")),
+                    "cool_target": _blank(data.get("cool_target")),
                 }
             )
 
@@ -237,7 +249,8 @@ class HistoryStore:
         # Downsample archive to 5-min buckets and append to history
         if archive:
             downsampled = self._downsample(archive, bucket_seconds=300)
-            self._append_history(area_id, downsampled)
+            if not self._append_history(area_id, downsampled):
+                return  # keep the archive rows in the detail file for the next rotation
 
         # Rewrite detail with only recent rows
         self._rewrite_csv(self._detail_path(area_id), keep)
@@ -260,10 +273,14 @@ class HistoryStore:
         if not rows:
             return []
         buckets: dict[int, list[dict]] = {}
-        for row in rows:
+        starts: dict[int, dict[str, int]] = {}
+        for i, row in enumerate(rows):
             ts = float(row["timestamp"])
             bucket_key = int(ts // bucket_seconds)
             buckets.setdefault(bucket_key, []).append(row)
+            counts = starts.setdefault(bucket_key, dict.fromkeys(START_FIELDS.values(), 0))
+            for run, key in START_FIELDS.items():
+                counts[key] += self._row_starts(row, rows[i - 1] if i else None, run, key)
 
         result = []
         for bucket_key in sorted(buckets):
@@ -297,6 +314,8 @@ class HistoryStore:
                 "dehumidifier_on",
                 "dehumidifier_fan",
                 "dehumidifier_power_w",
+                "heat_target",
+                "cool_target",
             ):
                 vals = []
                 for r in bucket:
@@ -309,8 +328,29 @@ class HistoryStore:
                 avg_row[field] = round(sum(vals) / len(vals), 2) if vals else ""
             avg_row["energy_prediction_confidence"] = bucket[-1].get("energy_prediction_confidence", "")
             avg_row["ac_efficiency_status"] = bucket[-1].get("ac_efficiency_status", "")
+            temps = [t for r in bucket if (t := self._float(r.get("room_temp", ""))) is not None]
+            avg_row["room_temp_max"] = max(temps) if temps else ""
+            avg_row["room_temp_min"] = min(temps) if temps else ""
+            avg_row.update(starts[bucket_key])
             result.append(avg_row)
         return result
+
+    @staticmethod
+    def _float(value: str) -> float | None:
+        if value == "":
+            return None
+        try:
+            return float(value)
+        except (ValueError, TypeError):
+            return None
+
+    @staticmethod
+    def _row_starts(row: dict, previous: dict | None, run: str, key: str) -> int:
+        """Runs of ``run`` starting at ``row``; rows from before the column compare to the row before."""
+        try:
+            return int(row.get(key, ""))
+        except (ValueError, TypeError):
+            return int(row.get("mode") == run and previous is not None and previous.get("mode") != run)
 
     @staticmethod
     def _safe_ts(row: dict) -> float:
@@ -320,15 +360,20 @@ class HistoryStore:
         except (ValueError, TypeError, KeyError):
             return 0.0
 
-    def _append_history(self, area_id: str, rows: list[dict]) -> None:
+    def _append_history(self, area_id: str, rows: list[dict]) -> bool:
+        """Append downsampled rows; False when the file could not be brought to the current header."""
         self._ensure_dir()
         path = self._history_path(area_id)
+        # An older history file gets the new columns first, else its rows would be misread
+        if not self._migrate_header(path):
+            return False
         file_exists = os.path.isfile(path)
         with open(path, "a", newline="") as f:
             writer = csv.DictWriter(f, fieldnames=DETAIL_FIELDS, extrasaction="ignore")
             if not file_exists:
                 writer.writeheader()
             writer.writerows(rows)
+        return True
 
     def _rewrite_csv(self, path: str, rows: list[dict]) -> None:
         self._ensure_dir()

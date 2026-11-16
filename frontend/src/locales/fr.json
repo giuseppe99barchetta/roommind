@@ -891,5 +891,12 @@
   "settings.retry": "Réessayer",
   "vacation.end_day": "Date de fin",
   "vacation.end_time": "Heure",
-  "schedule.block_temp_rejected": "Valeurs hors de la plage valide {min}–{max}{unit} : {values}. La température de confort est utilisée à la place — vérifiez l'assistant de planning pour une faute de frappe."
+  "schedule.block_temp_rejected": "Valeurs hors de la plage valide {min}–{max}{unit} : {values}. La température de confort est utilisée à la place — vérifiez l'assistant de planning pour une faute de frappe.",
+  "analytics.summary.title": "Sur la période",
+  "analytics.summary.on_target": "Dans la cible",
+  "analytics.summary.too_cold": "Trop froid",
+  "analytics.summary.too_warm": "Trop chaud",
+  "analytics.summary.heating": "Chauffage",
+  "analytics.summary.cooling": "Climatisation",
+  "analytics.summary.runs": "{n} démarrages"
 }

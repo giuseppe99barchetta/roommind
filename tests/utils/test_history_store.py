@@ -2,12 +2,13 @@
 
 from __future__ import annotations
 
+import csv
 import os
 import time
 
 import pytest
 
-from custom_components.roommind.utils.history_store import HistoryStore
+from custom_components.roommind.utils.history_store import DETAIL_FIELDS, HistoryStore
 
 
 @pytest.fixture
@@ -707,3 +708,49 @@ def test_old_history_files_gain_dehumidifier_columns(history_dir):
     store.record("bath", {"room_temp": 21.0, "mode": "idle", "dehumidifier_on": True}, timestamp=1_000_060.0)
     rows = store.read_detail("bath")
     assert rows[0]["dehumidifier_on"] == "" and rows[1]["dehumidifier_on"] == "1"
+
+
+def test_downsample_sums_the_starts_a_bucket_keeps_only_the_first_mode_of(history_dir):
+    store = HistoryStore(history_dir)
+    # Two short runs inside 5-min buckets that start idle: the bucket mode hides both
+    for i, mode in enumerate(["idle", "heating", "idle", "idle", "cooling", "idle"]):
+        store.record("room_a", {"mode": mode}, 600 + i * 100)
+    buckets = store._downsample(store.read_detail("room_a"), bucket_seconds=300)
+    assert [b["mode"] for b in buckets] == ["idle", "idle"]
+    assert [(b["heat_starts"], b["cool_starts"]) for b in buckets] == [(1, 0), (0, 1)]
+
+
+def test_downsample_keeps_the_extremes_of_the_room_temperature(history_dir):
+    store = HistoryStore(history_dir)
+    # A short run peaks inside the bucket, its mean hides the peak
+    for i, temp in enumerate([21.0, 21.8, 21.3, 20.6, 20.9]):
+        store.record("room_a", {"mode": "idle", "room_temp": temp}, 600 + i * 60)
+    rows = store.read_detail("room_a")
+    assert rows[0]["room_temp_max"] == ""
+    (bucket,) = store._downsample(rows, bucket_seconds=300)
+    assert bucket["room_temp"] == 21.12
+    assert (bucket["room_temp_max"], bucket["room_temp_min"]) == (21.8, 20.6)
+
+
+def test_downsample_without_room_temperature_has_no_extremes(history_dir):
+    store = HistoryStore(history_dir)
+    (bucket,) = store._downsample([{"timestamp": "600", "mode": "idle", "room_temp": ""}], bucket_seconds=300)
+    assert (bucket["room_temp_max"], bucket["room_temp_min"]) == ("", "")
+
+
+def test_rotate_keeps_the_starts_in_an_old_history_file(history_dir):
+    store = HistoryStore(history_dir)
+    os.makedirs(history_dir, exist_ok=True)
+    old_fields = DETAIL_FIELDS[: DETAIL_FIELDS.index("heat_starts")]
+    now = time.time()
+    with open(os.path.join(history_dir, "room_a_history.csv"), "w", newline="") as f:
+        writer = csv.DictWriter(f, fieldnames=old_fields)
+        writer.writeheader()
+        writer.writerow({"timestamp": now - 5 * 86400, "mode": "heating"})
+    base = (now - 3 * 86400) // 300 * 300
+    for i, mode in enumerate(["idle", "heating", "idle", "heating"]):
+        store.record("room_a", {"mode": mode}, base + i * 100)
+    store.rotate("room_a")
+    rows = store.read_history("room_a")
+    assert rows[0]["heat_starts"] == ""
+    assert sum(int(r["heat_starts"]) for r in rows[1:]) == 2

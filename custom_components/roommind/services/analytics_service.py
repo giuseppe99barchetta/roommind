@@ -23,6 +23,7 @@ from ..control.mpc_controller import (
 )
 from ..utils.comfort_insights import energy_suggestions
 from ..utils.device_utils import is_ac_type, room_has_power_sensor
+from .analytics_stats import compute_period_stats
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -225,6 +226,12 @@ def _csv_to_points(rows: list[dict]) -> list[dict]:
                 "window_open_minutes": _safe_int(row.get("window_open_minutes", "")),
                 "window_impact_c": _safe_float(row.get("window_impact_c", "")),
                 "ac_efficiency_status": row.get("ac_efficiency_status") or None,
+                "heat_target": _safe_float(row.get("heat_target", "")),
+                "cool_target": _safe_float(row.get("cool_target", "")),
+                "heat_starts": _safe_int(row.get("heat_starts", "")),
+                "cool_starts": _safe_int(row.get("cool_starts", "")),
+                "room_temp_max": _safe_float(row.get("room_temp_max", "")),
+                "room_temp_min": _safe_float(row.get("room_temp_min", "")),
             }
         )
     return result
@@ -358,6 +365,12 @@ async def build_analytics_data(
             max_age = max_age_map.get(range_key, 43200)
             detail = _csv_to_points(await hass.async_add_executor_job(history_store.read_detail, area_id, max_age))
             history = _csv_to_points(await hass.async_add_executor_job(history_store.read_history, area_id, max_age))
+
+    # Time on target / too cold / too warm, heating and cooling hours, runs (upstream analytics_stats)
+    stats = compute_period_stats(
+        sorted(history + detail, key=lambda p: p["ts"]),
+        (store.get_room(area_id) or {}).get("climate_mode", "auto"),
+    )
 
     # Model info (only if estimator exists -- avoid auto-creating for unknown rooms)
     model_info: dict = {}
@@ -643,4 +656,5 @@ async def build_analytics_data(
         "energy_cost": energy_cost,
         "operation_summary": operation_summary,
         "energy_insights": energy_insights,
+        "stats": stats,
     }

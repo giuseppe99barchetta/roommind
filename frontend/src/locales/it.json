@@ -891,5 +891,12 @@
   "settings.retry": "Riprova",
   "vacation.end_day": "Data di fine",
   "vacation.end_time": "Ora",
-  "schedule.block_temp_rejected": "Valori fuori dall'intervallo valido {min}–{max}{unit}: {values}. Viene usata la temperatura comfort: controlla l'helper della programmazione per un errore di battitura."
+  "schedule.block_temp_rejected": "Valori fuori dall'intervallo valido {min}–{max}{unit}: {values}. Viene usata la temperatura comfort: controlla l'helper della programmazione per un errore di battitura.",
+  "analytics.summary.title": "Nel periodo",
+  "analytics.summary.on_target": "In target",
+  "analytics.summary.too_cold": "Troppo freddo",
+  "analytics.summary.too_warm": "Troppo caldo",
+  "analytics.summary.heating": "Riscaldamento",
+  "analytics.summary.cooling": "Raffrescamento",
+  "analytics.summary.runs": "{n} avvii"
 }

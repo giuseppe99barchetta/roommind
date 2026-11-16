@@ -446,7 +446,25 @@ export interface AnalyticsDataPoint {
   predicted_energy_1h_kwh?: number | null;
 }
 
+/** Range summary from the history (backend analytics_stats.compute_period_stats). */
+export interface AnalyticsStats {
+  hours: number;
+  heating_hours: number;
+  cooling_hours: number;
+  window_hours: number;
+  heating_starts: number;
+  cooling_starts: number;
+  comfort: {
+    below_pct: number;
+    within_pct: number;
+    above_pct: number;
+    mean_deviation: number;
+    miss_deviation: number | null;
+  } | null;
+}
+
 export interface AnalyticsData {
+  stats?: AnalyticsStats;
   detail: AnalyticsDataPoint[];
   history: AnalyticsDataPoint[];
   forecast?: AnalyticsDataPoint[];

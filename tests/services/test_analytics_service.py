@@ -273,6 +273,8 @@ class TestBuildAnalyticsData:
         ):
             result = await build_analytics_data(hass, "living_room", "12h", store, coordinator)
         assert result["forecast"] == []
+        # The range summary is always part of the answer (upstream analytics_stats)
+        assert set(result["stats"]) >= {"hours", "heating_hours", "cooling_starts", "comfort"}
 
     @pytest.mark.asyncio
     async def test_current_temp_from_reversed_points(self):

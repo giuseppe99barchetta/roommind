@@ -891,5 +891,12 @@
   "settings.retry": "Erneut versuchen",
   "vacation.end_day": "Enddatum",
   "vacation.end_time": "Uhrzeit",
-  "schedule.block_temp_rejected": "Werte außerhalb des gültigen Bereichs {min}–{max}{unit}: {values}. Stattdessen wird die Komforttemperatur verwendet – prüfe den Zeitplan-Helfer auf einen Tippfehler."
+  "schedule.block_temp_rejected": "Werte außerhalb des gültigen Bereichs {min}–{max}{unit}: {values}. Stattdessen wird die Komforttemperatur verwendet – prüfe den Zeitplan-Helfer auf einen Tippfehler.",
+  "analytics.summary.title": "Im Zeitraum",
+  "analytics.summary.on_target": "Im Ziel",
+  "analytics.summary.too_cold": "Zu kalt",
+  "analytics.summary.too_warm": "Zu warm",
+  "analytics.summary.heating": "Heizen",
+  "analytics.summary.cooling": "Kühlen",
+  "analytics.summary.runs": "{n} Starts"
 }

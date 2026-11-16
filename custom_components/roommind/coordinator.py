@@ -645,6 +645,8 @@ class RoomMindCoordinator(DataUpdateCoordinator):
                             "window_impact_c": rs.get("window_impact_c"),
                             "ac_efficiency_status": rs.get("ac_efficiency_status"),
                             "ac_efficiency_reason": rs.get("ac_efficiency_reason"),
+                            "heat_target": rs.get("heat_target"),
+                            "cool_target": rs.get("cool_target"),
                             **self._dehumidifier_manager.history_sample(area_id),
                         },
                     )

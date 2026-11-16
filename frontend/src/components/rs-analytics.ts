@@ -10,6 +10,7 @@ import "./analytics/rs-analytics-toolbar";
 import "./analytics/rs-analytics-chart";
 import "./analytics/rs-energy-analytics-chart";
 import "./analytics/rs-analytics-model";
+import "./analytics/rs-analytics-summary";
 
 type ComparisonRoom = Record<string, string | number | null | string[]>;
 
@@ -107,6 +108,14 @@ export class RsAnalytics extends LitElement {
         ? this._loading
           ? html`<div class="loading">${localize("panel.loading", l)}</div>`
           : html`
+              ${!this.rooms[this._selectedRoom]?.is_outdoor
+                ? html`<rs-analytics-summary
+                    .stats=${this._data?.stats ?? null}
+                    .canHeat=${this._roomCanHeat()}
+                    .canCool=${this._roomCanCool()}
+                    .language=${l}
+                  ></rs-analytics-summary>`
+                : nothing}
               <rs-analytics-chart
                 .hass=${this.hass}
                 .data=${this._data}
@@ -207,6 +216,19 @@ export class RsAnalytics extends LitElement {
             </div>
           `}
     `;
+  }
+
+  /** Sides the selected room acts on: one-sided rooms are only judged on their own side. */
+  private _roomCanHeat(): boolean {
+    const room = this._selectedRoom ? this.rooms[this._selectedRoom] : undefined;
+    if (!room || room.climate_mode === "cool_only") return false;
+    return (room.thermostats?.length ?? 0) > 0 || (room.acs?.length ?? 0) > 0;
+  }
+
+  private _roomCanCool(): boolean {
+    const room = this._selectedRoom ? this.rooms[this._selectedRoom] : undefined;
+    if (!room || room.climate_mode === "heat_only") return false;
+    return (room.acs?.length ?? 0) > 0;
   }
 
   private _onRoomSelected(e: CustomEvent) {
