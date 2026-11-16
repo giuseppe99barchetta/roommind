@@ -662,3 +662,41 @@ class TestOrchestratedPreheat:
         else:
             assert sources != "none"
             assert any(t > 21.0 for t in setpoints)
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize("denied", [False, True])
+    async def test_native_sources_follow_the_lead_target(self, hass, mock_config_entry, denied):
+        """Native routing picks its sources against the lead target too, also after a denied budget."""
+        from dataclasses import replace
+
+        from custom_components.roommind import coordinator as coordinator_module
+        from custom_components.roommind.control.mpc_controller import MPCController
+
+        room = {**TestHeatSourceOrchestration.ROOM_WITH_BOTH, "native_heat_source": True}
+        store = _make_store_mock({"living_room_abc12345": room})
+        hass.data = {"roommind": {"store": store}}
+        hass.states.get = MagicMock(side_effect=make_mock_states_get(temp="19.0", schedule_state="off"))
+        hass.services.async_call = AsyncMock()
+
+        real = coordinator_module.evaluate_native_heat_sources
+        targets = []
+
+        def _spy(*args, **kwargs):
+            targets.append(args[4])
+            plan = real(*args, **kwargs)
+            # The first pass asks for the heat pump so the denied budget retries without it
+            if denied and len(targets) == 1 and plan is not None:
+                plan = replace(plan, active_sources="heat_pump")
+            return plan
+
+        with (
+            patch.object(MPCController, "async_evaluate", _evaluate_heating_with_lead(21.0)),
+            patch.object(coordinator_module, "evaluate_native_heat_sources", _spy),
+        ):
+            coordinator = _create_coordinator(hass, mock_config_entry)
+            if denied:
+                coordinator._power_budget_manager.request_heat_pump = MagicMock(return_value=False)
+            await coordinator._async_update_data()
+
+        assert len(targets) == (2 if denied else 1)
+        assert targets == [21.0] * len(targets)

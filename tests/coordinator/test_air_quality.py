@@ -125,6 +125,22 @@ async def test_global_control_off_switches_an_owned_fan_off_once(hass, mock_conf
 
 
 @pytest.mark.asyncio
+async def test_global_control_off_during_the_cycle_starts_no_fan(hass, mock_config_entry):
+    """The global switch goes off while the rooms are processed: the fan stays off."""
+    coordinator, store, _, calls = _setup(hass, mock_config_entry, AQ_ROOM)
+    process = coordinator._async_process_room
+
+    async def _process_then_switch_off(*args, **kwargs):
+        result = await process(*args, **kwargs)
+        store.get_settings.return_value = {**store.get_settings.return_value, "climate_control_active": False}
+        return result
+
+    coordinator._async_process_room = _process_then_switch_off
+    await coordinator._async_update_data()
+    assert _fan_calls(calls) == []
+
+
+@pytest.mark.asyncio
 async def test_a_fan_someone_switched_on_stays_on(hass, mock_config_entry):
     coordinator, _, extra, calls = _setup(hass, mock_config_entry, AQ_ROOM, co2="600", fan="on")
     for co2 in ("1200", "600"):

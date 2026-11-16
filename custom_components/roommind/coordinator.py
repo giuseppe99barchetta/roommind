@@ -595,7 +595,7 @@ class RoomMindCoordinator(DataUpdateCoordinator):
         self._humidity_sensor_snapshot = {}
         self._humidity_mold_snapshot = {}
 
-        await self._async_reconcile_ventilation(settings, room_states)
+        await self._async_reconcile_ventilation(room_states)
 
         # Attach measured AC power, daily integrated energy and learned
         # consumption forecasts to each room before entities/history consume it.
@@ -1428,6 +1428,8 @@ class RoomMindCoordinator(DataUpdateCoordinator):
             )
         ):
             previous_source = self._heat_source_states.get(area_id, "inactive")
+            # A pre-heat runs towards the coming block's target, not the eco target still in force
+            source_target = controller.direct_target(mode, targets.heat) if targets.heat is not None else None
             if room.get("native_heat_source", False):
                 heat_pump_denied = False
                 heat_source_plan = evaluate_native_heat_sources(
@@ -1435,7 +1437,7 @@ class RoomMindCoordinator(DataUpdateCoordinator):
                     mode,
                     power_fraction,
                     current_temp,
-                    targets.heat,
+                    source_target,
                     self.outdoor_temp_effective,
                     previous_source,
                     self.hass,
@@ -1461,7 +1463,7 @@ class RoomMindCoordinator(DataUpdateCoordinator):
                             mode,
                             power_fraction,
                             current_temp,
-                            targets.heat,
+                            source_target,
                             self.outdoor_temp_effective,
                             previous_source,
                             self.hass,
@@ -1514,7 +1516,7 @@ class RoomMindCoordinator(DataUpdateCoordinator):
                     power_fraction=power_fraction,
                     current_temp=current_temp,
                     # A pre-heat works towards the upcoming target: pick the sources for that one
-                    target_temp=controller.direct_target(mode, targets.heat) if targets.heat is not None else None,
+                    target_temp=source_target,
                     outdoor_temp=self.outdoor_temp_effective,
                     previous_active_sources=previous_source,
                     hass=self.hass,
@@ -2884,7 +2886,7 @@ class RoomMindCoordinator(DataUpdateCoordinator):
         result["air_quality_reason"] = bad[0] if bad else None
         return result
 
-    async def _async_reconcile_ventilation(self, settings: dict, room_states: dict[str, dict]) -> None:
+    async def _async_reconcile_ventilation(self, room_states: dict[str, dict]) -> None:
         """Run each room's ventilation entity while its air is bad (#267).
 
         Against the live store: a room deleted or an entity removed during the cycle no longer
@@ -2892,9 +2894,11 @@ class RoomMindCoordinator(DataUpdateCoordinator):
         control off claim nothing either (nothing switched on; a unit RoomMind runs goes off
         once). One entity in several rooms runs while any of them needs it.
         """
-        rooms = self.hass.data[DOMAIN]["store"].get_rooms()
+        store = self.hass.data[DOMAIN]["store"]
+        rooms = store.get_rooms()
         wanted: dict[str, bool] = {}
-        if settings.get("climate_control_active", True):
+        # Live, not the cycle's snapshot: the global switch may have gone off while rooms ran
+        if store.get_settings().get("climate_control_active", True):
             for area_id, room in rooms.items():
                 entity_id = room.get("ventilation_entity")
                 if not entity_id or not has_air_quality_sensor(room) or not room.get("climate_control_enabled", True):
