@@ -60,18 +60,20 @@
       ${this._pending&&!n?T`
             ${this._pending===`custom`?T`<div class="row custom">
                   <button class="chip" @click=${()=>this._stepCustom(-.5)}>−</button>
-                  <span class="custom-temp">${this._customTemp.toFixed(1)}${B(this.hass)}</span>
+                  <span class="custom-temp"
+                    >${this._customTemp.toFixed(1)}${B(this.hass)}</span
+                  >
                   <button class="chip" @click=${()=>this._stepCustom(.5)}>+</button>
                 </div>`:D}
             <div class="row">
               <span class="label">${R(`override.activate_for`,i)}</span>
               ${et.map(e=>T`<button
-                  class="chip"
-                  ?disabled=${this._busy}
-                  @click=${()=>this._activate(e)}
-                >
-                  ${e}h
-                </button>`)}
+                    class="chip"
+                    ?disabled=${this._busy}
+                    @click=${()=>this._activate(e)}
+                  >
+                    ${e}h
+                  </button>`)}
             </div>
           `:D}
     `}static{this.styles=o`
@@ -170,7 +172,9 @@
           @change=${e=>this._changed({area_id:e.target.value})}
         >
           <option value="">—</option>
-          ${t.map(e=>T`<option value=${e.id} ?selected=${e.id===this._config.area_id}>${e.name}</option>`)}
+          ${t.map(e=>T`<option value=${e.id} ?selected=${e.id===this._config.area_id}>
+                ${e.name}
+              </option>`)}
         </select>
       </label>
       <label>

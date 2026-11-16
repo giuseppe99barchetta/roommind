@@ -198,7 +198,8 @@ export class RoomMindRoomCard extends LitElement {
     if (heat != null && cool != null && room.climate_mode === "auto") {
       return `${formatTemp(heat, this.hass)} – ${formatTemp(cool, this.hass)}${unit}`;
     }
-    const single = room.climate_mode === "cool_only" ? (cool ?? live.target_temp) : (heat ?? live.target_temp);
+    const single =
+      room.climate_mode === "cool_only" ? (cool ?? live.target_temp) : (heat ?? live.target_temp);
     return single != null ? `${formatTemp(single, this.hass)}${unit}` : "--";
   }
 
@@ -315,20 +316,23 @@ export class RoomMindRoomCard extends LitElement {
             ${this._pending === "custom"
               ? html`<div class="row custom">
                   <button class="chip" @click=${() => this._stepCustom(-0.5)}>−</button>
-                  <span class="custom-temp">${this._customTemp.toFixed(1)}${tempUnit(this.hass)}</span>
+                  <span class="custom-temp"
+                    >${this._customTemp.toFixed(1)}${tempUnit(this.hass)}</span
+                  >
                   <button class="chip" @click=${() => this._stepCustom(0.5)}>+</button>
                 </div>`
               : nothing}
             <div class="row">
               <span class="label">${localize("override.activate_for", l)}</span>
               ${DURATIONS_H.map(
-                (h) => html`<button
-                  class="chip"
-                  ?disabled=${this._busy}
-                  @click=${() => this._activate(h)}
-                >
-                  ${h}h
-                </button>`,
+                (h) =>
+                  html`<button
+                    class="chip"
+                    ?disabled=${this._busy}
+                    @click=${() => this._activate(h)}
+                  >
+                    ${h}h
+                  </button>`,
               )}
             </div>
           `
@@ -457,7 +461,9 @@ export class RoomMindRoomCardEditor extends LitElement {
     const config = { ...this._config, ...patch };
     if (!config.name) delete config.name;
     this._config = config;
-    this.dispatchEvent(new CustomEvent("config-changed", { detail: { config }, bubbles: true, composed: true }));
+    this.dispatchEvent(
+      new CustomEvent("config-changed", { detail: { config }, bubbles: true, composed: true }),
+    );
   }
 
   protected render() {
@@ -475,7 +481,9 @@ export class RoomMindRoomCardEditor extends LitElement {
           <option value="">—</option>
           ${rooms.map(
             (r) =>
-              html`<option value=${r.id} ?selected=${r.id === this._config.area_id}>${r.name}</option>`,
+              html`<option value=${r.id} ?selected=${r.id === this._config.area_id}>
+                ${r.name}
+              </option>`,
           )}
         </select>
       </label>
