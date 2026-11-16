@@ -3,14 +3,32 @@
 from __future__ import annotations
 
 import time
+from datetime import time as dt_time
 from typing import Any
 
 from homeassistant.components.diagnostics import async_redact_data
 from homeassistant.config_entries import ConfigEntry
+from homeassistant.const import __version__ as HA_VERSION
 from homeassistant.core import HomeAssistant
 
 from .const import DOMAIN, VERSION
-from .control.mpc_controller import _last_commands
+from .control.mpc_controller import _active_targets, _last_commands
+from .utils.history_store import DETAIL_FIELDS
+
+# v2 adds what reproducing a setup needs (device capabilities, referenced entity states,
+# 48 h history, rounded location)
+DIAGNOSTICS_SCHEMA_VERSION = 2
+HISTORY_48H_MAX_ROWS = 1000
+_ROOM_ENTITY_KEYS = (
+    "temperature_sensor",
+    "humidity_sensor",
+    "schedule_selector_entity",
+    "cover_schedule_selector_entity",
+)
+# Exports end up in shared reports: no person entities, no timing of occupancy.
+_ROOM_ENTITY_LIST_KEYS = ("window_sensors", "occupancy_sensors", "covers")
+_PRIVATE_DEVICE_CLASSES = ("occupancy", "presence", "motion")
+HISTORY_48H_FIELDS = [f for f in DETAIL_FIELDS if f != "occupancy"]
 
 # People, their whereabouts and their phones must not end up in shared reports.
 TO_REDACT = {
@@ -69,12 +87,59 @@ def _build_device_states(hass: HomeAssistant, devices: list[dict]) -> list[dict[
             entry["target_temp_high"] = attrs.get("target_temp_high")
             entry["fan_mode"] = attrs.get("fan_mode")
             entry["fan_modes"] = attrs.get("fan_modes", [])
+            entry["target_temp_step"] = attrs.get("target_temp_step")
+            entry["supported_features"] = attrs.get("supported_features")
+            entry["hvac_action"] = attrs.get("hvac_action")
+            entry["preset_mode"] = attrs.get("preset_mode")
+            entry["preset_modes"] = attrs.get("preset_modes")
+            entry["assumed_state"] = attrs.get("assumed_state", False)
         else:
             entry["ha_state"] = "not_found"
         last_cmd = _last_commands.get(eid)
         if last_cmd:
             entry["last_command"] = dict(last_cmd)
+        if eid in _active_targets:
+            entry["active_target"] = list(_active_targets[eid])
         result.append(entry)
+    return result
+
+
+def _plain(value: Any) -> Any:
+    """Schedule blocks hold datetime.time objects; export them as "HH:MM:SS" strings."""
+    if isinstance(value, dict):
+        return {k: _plain(v) for k, v in value.items()}
+    if isinstance(value, list):
+        return [_plain(v) for v in value]
+    if isinstance(value, dt_time):
+        return value.isoformat()
+    return value
+
+
+def _build_entity_states(hass: HomeAssistant, config: dict) -> dict[str, dict[str, Any]]:
+    """State of every entity a room refers to (sensors, windows, schedules, ...)."""
+    ids: list[str] = [config.get(k, "") for k in _ROOM_ENTITY_KEYS]
+    for key in _ROOM_ENTITY_LIST_KEYS:
+        ids.extend(config.get(key) or [])
+    for key in ("schedules", "cover_schedules"):
+        ids.extend(s.get("entity_id", "") for s in config.get(key) or [])
+    now = time.time()
+    result: dict[str, dict[str, Any]] = {}
+    for eid in ids:
+        if not eid or eid in result:
+            continue
+        state = hass.states.get(eid)
+        if state is None:
+            result[eid] = {"state": "not_found"}
+            continue
+        device_class = state.attributes.get("device_class")
+        entry = {
+            "state": state.state,
+            "unit": state.attributes.get("unit_of_measurement"),
+            "device_class": device_class,
+        }
+        if device_class not in _PRIVATE_DEVICE_CLASSES:
+            entry["age_s"] = round(now - state.last_changed.timestamp())
+        result[eid] = entry
     return result
 
 
@@ -249,6 +314,8 @@ async def async_get_config_entry_diagnostics(hass: HomeAssistant, config_entry: 
         if devices:
             room_diag["device_states"] = _build_device_states(hass, devices)
 
+        room_diag["entities"] = _build_entity_states(hass, config)
+
         # Model info from EKF estimator
         if coordinator:
             mgr = coordinator._model_manager
@@ -302,6 +369,17 @@ async def async_get_config_entry_diagnostics(hass: HomeAssistant, config_entry: 
             except Exception:
                 recent_history[area_id] = []
 
+    history_48h: dict[str, list] = {}
+    if coordinator and coordinator._history_store:
+        for area_id in rooms_config:
+            try:
+                rows = await hass.async_add_executor_job(coordinator._history_store.read_detail, area_id, 48 * 3600)
+                history_48h[area_id] = [
+                    {field: row.get(field, "") for field in HISTORY_48H_FIELDS} for row in rows[-HISTORY_48H_MAX_ROWS:]
+                ]
+            except Exception:  # noqa: BLE001
+                history_48h[area_id] = []
+
     # Compressor group state
     compressor: dict[str, Any] = {}
     if coordinator:
@@ -313,15 +391,22 @@ async def async_get_config_entry_diagnostics(hass: HomeAssistant, config_entry: 
         valve = _build_valve_state(coordinator)
 
     diagnostics = {
+        "schema_version": DIAGNOSTICS_SCHEMA_VERSION,
         "integration": {
             "version": VERSION,
             "domain": DOMAIN,
+            "ha_version": HA_VERSION,
             "ha_temp_unit": hass.config.units.temperature_unit,
+            "time_zone": hass.config.time_zone,
+            # Whole degrees: enough for the sun position, not a home address (exports get shared).
+            "latitude": round(hass.config.latitude),
+            "longitude": round(hass.config.longitude),
         },
         "settings": dict(settings),
-        "rooms": rooms_diag,
+        "rooms": _plain(rooms_diag),
         "outdoor": outdoor,
         "recent_history": recent_history,
+        "history_48h": history_48h,
         "compressor_groups": compressor,
         "valve_protection": valve,
         "presence": {

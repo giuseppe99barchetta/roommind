@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import time
+from datetime import UTC
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -758,3 +759,47 @@ async def test_diagnostics_exposes_outdoor_temp_source(hass, mock_config_entry):
     result = await async_get_config_entry_diagnostics(hass, mock_config_entry)
 
     assert result["outdoor"]["temp_source"] == "weather"
+
+
+@pytest.mark.asyncio
+async def test_diagnostics_v2_location_rounded_and_entities_without_occupancy_timing(hass, mock_config_entry):
+    """v2: whole-degree location, referenced entity states, no timing of occupancy sensors."""
+    from datetime import datetime
+
+    store = MagicMock()
+    store.get_settings.return_value = {"presence_enabled": False}
+    store.get_rooms.return_value = {
+        "room_a": {
+            "temperature_sensor": "sensor.t",
+            "occupancy_sensors": ["binary_sensor.motion"],
+            "window_sensors": ["binary_sensor.missing"],
+        }
+    }
+    hass.data[DOMAIN] = {"store": store}
+    hass.config.latitude = 45.4642
+    hass.config.longitude = 9.19
+    changed = datetime.now(UTC)
+
+    def _state(eid):
+        if eid == "sensor.t":
+            return MagicMock(state="20.5", attributes={"unit_of_measurement": "°C"}, last_changed=changed)
+        if eid == "binary_sensor.motion":
+            return MagicMock(state="on", attributes={"device_class": "motion"}, last_changed=changed)
+        return None
+
+    hass.states.get = MagicMock(side_effect=_state)
+    result = await async_get_config_entry_diagnostics(hass, mock_config_entry)
+
+    assert result["schema_version"] == 2
+    assert (result["integration"]["latitude"], result["integration"]["longitude"]) == (45, 9)
+    entities = result["rooms"]["room_a"]["entities"]
+    assert entities["sensor.t"]["state"] == "20.5" and "age_s" in entities["sensor.t"]
+    assert "age_s" not in entities["binary_sensor.motion"]
+    assert entities["binary_sensor.missing"] == {"state": "not_found"}
+
+
+def test_history_48h_leaves_occupancy_out():
+    from custom_components.roommind.diagnostics import HISTORY_48H_FIELDS
+
+    assert "occupancy" not in HISTORY_48H_FIELDS
+    assert "room_temp" in HISTORY_48H_FIELDS
