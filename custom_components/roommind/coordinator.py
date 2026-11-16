@@ -3141,7 +3141,9 @@ class RoomMindCoordinator(DataUpdateCoordinator):
         entries_to_remove = [
             entity_entry.entity_id
             for entity_entry in registry.entities.values()
-            if isinstance(entity_entry.unique_id, str) and entity_entry.unique_id in owned_uids
+            if entity_entry.platform == DOMAIN
+            and isinstance(entity_entry.unique_id, str)
+            and entity_entry.unique_id in owned_uids
         ]
 
         for entity_id in entries_to_remove:
@@ -3198,6 +3200,9 @@ class RoomMindCoordinator(DataUpdateCoordinator):
 
         to_remove: list[str] = []
         for entity_entry in registry.entities.values():
+            # Foreign platforms (e.g. input_boolean helpers) can share the roommind_ prefix (#433).
+            if entity_entry.platform != DOMAIN:
+                continue
             uid = entity_entry.unique_id
             if not isinstance(uid, str) or not uid.startswith(f"{DOMAIN}_"):
                 continue

@@ -27,34 +27,41 @@ class TestCoverageGaps:
         # Simulate entity registry entries
         entry_valid_temp = MagicMock()
         entry_valid_temp.unique_id = f"{DOMAIN}_living_room_target_temp"
+        entry_valid_temp.platform = "roommind"
         entry_valid_temp.entity_id = "sensor.roommind_living_room_target_temp"
 
         entry_valid_mode = MagicMock()
         entry_valid_mode.unique_id = f"{DOMAIN}_living_room_mode"
+        entry_valid_mode.platform = "roommind"
         entry_valid_mode.entity_id = "sensor.roommind_living_room_mode"
 
         entry_valid_cover_auto = MagicMock()
         entry_valid_cover_auto.unique_id = f"{DOMAIN}_living_room_cover_auto"
+        entry_valid_cover_auto.platform = "roommind"
         entry_valid_cover_auto.entity_id = "switch.roommind_living_room_cover_auto"
 
         entry_valid_cover_paused = MagicMock()
         entry_valid_cover_paused.unique_id = f"{DOMAIN}_living_room_cover_paused"
+        entry_valid_cover_paused.platform = "roommind"
         entry_valid_cover_paused.entity_id = "binary_sensor.roommind_living_room_cover_paused"
 
         # Orphaned: room no longer exists
         entry_orphaned_room = MagicMock()
         entry_orphaned_room.unique_id = f"{DOMAIN}_deleted_room_target_temp"
+        entry_orphaned_room.platform = "roommind"
         entry_orphaned_room.entity_id = "sensor.roommind_deleted_room_target_temp"
 
         # Non-roommind entity -- should be ignored
         entry_other = MagicMock()
         entry_other.unique_id = "other_integration_something"
+        entry_other.platform = "other_integration"
         entry_other.entity_id = "sensor.other_thing"
 
         mock_registry = MagicMock()
         # Global entity (not per-room) -- should be kept
         entry_vacation = MagicMock()
         entry_vacation.unique_id = f"{DOMAIN}_vacation"
+        entry_vacation.platform = "roommind"
         entry_vacation.entity_id = "switch.roommind_vacation"
 
         mock_registry.entities.values.return_value = [
@@ -89,14 +96,17 @@ class TestCoverageGaps:
 
         entry_cover_auto = MagicMock()
         entry_cover_auto.unique_id = f"{DOMAIN}_living_room_cover_auto"
+        entry_cover_auto.platform = "roommind"
         entry_cover_auto.entity_id = "switch.roommind_living_room_cover_auto"
 
         entry_cover_paused = MagicMock()
         entry_cover_paused.unique_id = f"{DOMAIN}_living_room_cover_paused"
+        entry_cover_paused.platform = "roommind"
         entry_cover_paused.entity_id = "binary_sensor.roommind_living_room_cover_paused"
 
         entry_valid = MagicMock()
         entry_valid.unique_id = f"{DOMAIN}_living_room_target_temp"
+        entry_valid.platform = "roommind"
         entry_valid.entity_id = "sensor.roommind_living_room_target_temp"
 
         mock_registry = MagicMock()
@@ -130,6 +140,7 @@ class TestCoverageGaps:
 
         entry_valid = MagicMock()
         entry_valid.unique_id = f"{DOMAIN}_living_room_target_temp"
+        entry_valid.platform = "roommind"
         entry_valid.entity_id = "sensor.roommind_living_room_target_temp"
 
         mock_registry = MagicMock()
@@ -174,6 +185,7 @@ class TestCoverageGaps:
         ):
             entry = MagicMock()
             entry.unique_id = unique_id
+            entry.platform = "roommind"
             entry.entity_id = entity_id
             entries.append(entry)
 
@@ -209,6 +221,7 @@ class TestCoverageGaps:
         ):
             entry = MagicMock()
             entry.unique_id = unique_id
+            entry.platform = "roommind"
             entry.entity_id = entity_id
             entries.append(entry)
 
@@ -238,10 +251,12 @@ class TestCoverageGaps:
 
         entry_int_uid = MagicMock()
         entry_int_uid.unique_id = 12345
+        entry_int_uid.platform = "roommind"
         entry_int_uid.entity_id = "sensor.some_other_integration"
 
         entry_none_uid = MagicMock()
         entry_none_uid.unique_id = None
+        entry_none_uid.platform = "roommind"
         entry_none_uid.entity_id = "sensor.no_uid"
 
         mock_registry = MagicMock()
@@ -300,6 +315,7 @@ class TestCoverageGaps:
             ):
                 e = MagicMock()
                 e.unique_id = f"{DOMAIN}_{area}_{suffix}"
+                e.platform = "roommind"
                 e.entity_id = f"{domain}.{DOMAIN}_{area}_{suffix}"
                 entries.append(e)
 
@@ -326,18 +342,22 @@ class TestCoverageGaps:
 
         entry_bedroom = MagicMock()
         entry_bedroom.unique_id = f"{DOMAIN}_bedroom"
+        entry_bedroom.platform = "roommind"
         entry_bedroom.entity_id = "climate.roommind_bedroom"
 
         entry_bedroom_heat_source = MagicMock()
         entry_bedroom_heat_source.unique_id = f"{DOMAIN}_bedroom_heat_source"
+        entry_bedroom_heat_source.platform = "roommind"
         entry_bedroom_heat_source.entity_id = "sensor.roommind_bedroom_heat_source"
 
         entry_bedroom_heat_source_reason = MagicMock()
         entry_bedroom_heat_source_reason.unique_id = f"{DOMAIN}_bedroom_heat_source_reason"
+        entry_bedroom_heat_source_reason.platform = "roommind"
         entry_bedroom_heat_source_reason.entity_id = "sensor.roommind_bedroom_heat_source_reason"
 
         entry_sibling = MagicMock()
         entry_sibling.unique_id = f"{DOMAIN}_bedroom_2_l"
+        entry_sibling.platform = "roommind"
         entry_sibling.entity_id = "climate.roommind_bedroom_2_l"
 
         mock_registry = MagicMock()
@@ -371,6 +391,7 @@ def test_cleanup_removes_canonical_climate_for_outdoor_room(hass, mock_config_en
 
     entry = MagicMock()
     entry.unique_id = f"{DOMAIN}_terrace"
+    entry.platform = "roommind"
     entry.entity_id = "climate.roommind_terrace"
     mock_registry = MagicMock()
     mock_registry.entities.values.return_value = [entry]
@@ -418,6 +439,7 @@ def test_cleanup_never_removes_entities_the_platforms_create(hass, mock_config_e
     for entity in created:
         entry = MagicMock()
         entry.unique_id = entity.unique_id
+        entry.platform = "roommind"
         entry.entity_id = entity.entity_id
         entries.append(entry)
     mock_registry = MagicMock()
@@ -427,3 +449,53 @@ def test_cleanup_never_removes_entities_the_platforms_create(hass, mock_config_e
         coordinator.cleanup_orphaned_entities()
 
     mock_registry.async_remove.assert_not_called()
+
+
+def test_cleanup_ignores_foreign_platform_with_roommind_prefix(hass, mock_config_entry):
+    """Startup cleanup never removes another platform's roommind_-prefixed entity (#433)."""
+    from custom_components.roommind.const import DOMAIN
+
+    coordinator = _create_coordinator(hass, mock_config_entry)
+    store = MagicMock()
+    store.get_rooms.return_value = {"living_room": {}}
+    hass.data = {DOMAIN: {"store": store}}
+
+    foreign = MagicMock()
+    foreign.platform = "input_boolean"
+    foreign.unique_id = f"{DOMAIN}_summer_mode"
+    foreign.entity_id = "input_boolean.roommind_summer_mode"
+
+    mock_registry = MagicMock()
+    mock_registry.entities.values.return_value = [foreign]
+    with patch("homeassistant.helpers.entity_registry.async_get", return_value=mock_registry):
+        coordinator.cleanup_orphaned_entities()
+
+    mock_registry.async_remove.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_room_removed_ignores_foreign_platform_with_owned_unique_id(hass, mock_config_entry):
+    """Deleting a room never removes another platform's entity sharing a generated unique ID."""
+    from custom_components.roommind.const import DOMAIN
+
+    coordinator = _create_coordinator(hass, mock_config_entry)
+    coordinator.async_request_refresh = AsyncMock()
+    room_id = "living_room"
+
+    own = MagicMock()
+    own.platform = DOMAIN
+    own.unique_id = f"{DOMAIN}_{room_id}_target_temp"
+    own.entity_id = f"sensor.roommind_{room_id}_target_temp"
+
+    foreign = MagicMock()
+    foreign.platform = "template"
+    foreign.unique_id = f"{DOMAIN}_{room_id}_target_temp"
+    foreign.entity_id = f"sensor.template_{room_id}_target_temp"
+
+    mock_registry = MagicMock()
+    mock_registry.entities.values.return_value = [own, foreign]
+    with patch("homeassistant.helpers.entity_registry.async_get", return_value=mock_registry):
+        await coordinator.async_room_removed(room_id)
+
+    removed = [c.args[0] for c in mock_registry.async_remove.call_args_list]
+    assert removed == [own.entity_id]
