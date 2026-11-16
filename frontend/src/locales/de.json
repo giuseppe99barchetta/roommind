@@ -898,5 +898,16 @@
   "analytics.summary.too_warm": "Zu warm",
   "analytics.summary.heating": "Heizen",
   "analytics.summary.cooling": "Kühlen",
-  "analytics.summary.runs": "{n} Starts"
+  "analytics.summary.runs": "{n} Starts",
+  "air_quality.title": "Luftqualität",
+  "air_quality.hint": "Mit einem CO₂- oder VOC-Sensor zeigt RoomMind, wenn die Luft verbraucht ist, und bietet einen Binärsensor für Automationen. Ein Lüfter (fan, switch) läuft, bis die Luft wieder frisch ist.",
+  "air_quality.co2_sensor": "CO₂-Sensor",
+  "air_quality.co2_threshold": "CO₂-Schwelle",
+  "air_quality.voc_sensor": "VOC-Sensor",
+  "air_quality.voc_threshold": "VOC-Schwelle",
+  "air_quality.voc_threshold_hint": "In der Einheit des Sensors (Index, ppb, µg/m³). Leer: der Wert wird angezeigt, nicht bewertet.",
+  "air_quality.ventilation_entity": "Lüftung / Luftreiniger",
+  "air_quality.ventilation_hint": "An, solange die Luft schlecht ist, aus, sobald sie frisch ist (mindestens 15 Minuten). RoomMind schaltet nur aus, was es eingeschaltet hat.",
+  "hero.air_quality_bad": "Verbrauchte Luft: {value}",
+  "hero.air_quality_venting": "Verbrauchte Luft ({value}), Lüftung läuft"
 }

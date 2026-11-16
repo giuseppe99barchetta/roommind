@@ -25,6 +25,7 @@ from .const import (
     CLIMATE_MODE_COOL_ONLY,
     CLIMATE_MODE_HEAT_ONLY,
     COMPRESSOR_STATE_SETTLE_SECONDS,
+    DEFAULT_CO2_THRESHOLD,
     DEFAULT_COMFORT_COOL,
     DEFAULT_COMFORT_HEAT,
     DEFAULT_ECO_COOL,
@@ -78,6 +79,7 @@ from .control.mpc_controller import (
 )
 from .control.solar import compute_q_solar_norm
 from .control.thermal_model import RoomModelManager
+from .managers.air_quality_manager import AirQualityTracker, VentilationController
 from .managers.boiler_manager import BoilerManager, bypass_entities
 from .managers.compressor_group_manager import (
     CompressorGroupConfig,
@@ -194,7 +196,26 @@ ROOM_ENTITY_SUFFIXES = (
     "_mold_surface_humidity",
     "_mold_exposure_7d",
     "_dehumidifier_status",
+    "_air_quality",
 )
+# Suffixes only valid when the room has a CO2 or VOC sensor (#267).
+AIR_QUALITY_ENTITY_SUFFIXES = ("_air_quality",)
+
+
+def has_air_quality_sensor(room: dict) -> bool:
+    """Whether a room judges its air (CO2 or VOC sensor, not outdoor) and gets the air quality entity."""
+    return bool(room.get("co2_sensor") or room.get("voc_sensor")) and not room.get("is_outdoor", False)
+
+
+# Room-state fields of the air quality (#267). The ventilation key is ``air_ventilation_active``:
+# the fork's ``ventilation_active`` already means its smart ventilation (AC fan after cooling).
+_NO_AIR_QUALITY: dict[str, Any] = {
+    "co2": None,
+    "voc": None,
+    "air_quality_bad": False,
+    "air_quality_reason": None,
+    "air_ventilation_active": False,
+}
 # Suffixes only valid when the room has covers configured.
 COVER_ENTITY_SUFFIXES = ("_cover_auto", "_cover_paused")
 # Energy entities exist only when an indoor room has an AC power sensor configured.
@@ -351,6 +372,10 @@ class RoomMindCoordinator(DataUpdateCoordinator):
         self._dry_humidifier_entity_areas: set[str] = set()
         self._dry_entity_type_select_areas: set[str] = set()
         self._binary_sensor_entity_areas: set[str] = set()
+        self._air_quality_entity_areas: set[str] = set()
+        # Air quality per room (CO2/VOC with hysteresis) and the ventilation RoomMind runs for it (#267)
+        self._air_quality = AirQualityTracker()
+        self._ventilation = VentilationController(hass)
         self._climate_entity_areas: set[str] = set()
         self._fan_entity_areas: set[str] = set()
         # Serialize physical climate commands per room.  The generation lets a
@@ -412,6 +437,7 @@ class RoomMindCoordinator(DataUpdateCoordinator):
                 self._ekf_training._model_manager = self._model_manager
                 self._cover_orchestrator._model_manager = self._model_manager
             self._valve_manager.load_actuation_data(settings.get("valve_last_actuation", {}))
+            self._ventilation.load_state(settings.get("ventilation_state", {}))
             self._dehumidifier_manager.load_learned(store.get_dehumidifier_data())
             self._model_loaded = True
 
@@ -568,6 +594,8 @@ class RoomMindCoordinator(DataUpdateCoordinator):
 
         self._humidity_sensor_snapshot = {}
         self._humidity_mold_snapshot = {}
+
+        await self._async_reconcile_ventilation(settings, room_states)
 
         # Attach measured AC power, daily integrated energy and learned
         # consumption forecasts to each room before entities/history consume it.
@@ -1012,12 +1040,16 @@ class RoomMindCoordinator(DataUpdateCoordinator):
             command_generation = self._manual_command_generations.get(area_id, 0)
         lock = self._room_command_locks.setdefault(area_id, asyncio.Lock())
         async with lock:
-            return await self._async_process_room_locked(
+            room_state = await self._async_process_room_locked(
                 room,
                 settings,
                 outdoor_forecast,
                 command_generation=command_generation,
             )
+        room_state.update(
+            self._evaluate_air_quality(area_id, room) if has_air_quality_sensor(room) else _NO_AIR_QUALITY
+        )
+        return room_state
 
     async def _async_process_room_locked(
         self,
@@ -2822,6 +2854,62 @@ class RoomMindCoordinator(DataUpdateCoordinator):
                 continue
         return MODE_IDLE
 
+    def _evaluate_air_quality(self, area_id: str, room: dict) -> dict[str, Any]:
+        """CO2/VOC readings and whether the air is bad, with hysteresis (#267).
+
+        Judged whatever climate control does: the binary sensor and the hint are a measurement,
+        like the mold risk. Without a VOC threshold the VOC reading is shown, not judged.
+        """
+        now = time.time()
+        result = dict(_NO_AIR_QUALITY)
+        bad: list[str] = []
+        # A run RoomMind started before a restart or reload: its air was bad then
+        venting = self._ventilation.is_running(room.get("ventilation_entity") or "")
+        for kind, threshold in (
+            ("co2", room.get("co2_threshold") or DEFAULT_CO2_THRESHOLD),
+            ("voc", room.get("voc_threshold")),
+        ):
+            sensor = room.get(f"{kind}_sensor")
+            if not sensor:
+                continue
+            value = read_sensor_value(self.hass, sensor, area_id, kind.upper())
+            result[kind] = value
+            if self._air_quality.evaluate(area_id, kind, value, threshold, now, assume_bad=venting):
+                bad.append(kind)
+        result["air_quality_bad"] = bool(bad)
+        result["air_quality_reason"] = bad[0] if bad else None
+        return result
+
+    async def _async_reconcile_ventilation(self, settings: dict, room_states: dict[str, dict]) -> None:
+        """Run each room's ventilation entity while its air is bad (#267).
+
+        Against the live store: a room deleted or an entity removed during the cycle no longer
+        claims its unit, which then goes off if RoomMind switched it on. Rooms under climate
+        control off claim nothing either (nothing switched on; a unit RoomMind runs goes off
+        once). One entity in several rooms runs while any of them needs it.
+        """
+        rooms = self.hass.data[DOMAIN]["store"].get_rooms()
+        wanted: dict[str, bool] = {}
+        if settings.get("climate_control_active", True):
+            for area_id, room in rooms.items():
+                entity_id = room.get("ventilation_entity")
+                if not entity_id or not has_air_quality_sensor(room) or not room.get("climate_control_enabled", True):
+                    continue
+                bad = bool((room_states.get(area_id) or {}).get("air_quality_bad"))
+                wanted[entity_id] = wanted.get(entity_id, False) or bad
+        try:
+            await self._ventilation.async_reconcile(wanted, time.time())
+        except Exception:  # noqa: BLE001
+            _LOGGER.warning("Ventilation control failed", exc_info=True)
+        for area_id, rs in room_states.items():
+            entity_id = (rooms.get(area_id) or {}).get("ventilation_entity")
+            rs["air_ventilation_active"] = bool(entity_id and self._ventilation.is_running(entity_id))
+        if self._ventilation.dirty:
+            await self.hass.data[DOMAIN]["store"].async_save_settings(
+                {"ventilation_state": self._ventilation.get_state()}
+            )
+            self._ventilation.dirty = False
+
     def note_room_deleted(self, area_id: str, room: dict) -> bool:
         """Remember a room deleted in the panel, so the next cycle switches its devices off.
 
@@ -3322,6 +3410,16 @@ class RoomMindCoordinator(DataUpdateCoordinator):
 
                 self.async_add_binary_sensor_entities(_create_room_binary_sensors(self, area_id))
                 self._binary_sensor_entity_areas.add(area_id)
+        # Not removed on save either, like the cover entities
+        if (
+            has_air_quality_sensor(room)
+            and area_id not in self._air_quality_entity_areas
+            and self.async_add_binary_sensor_entities
+        ):
+            from .binary_sensor import RoomMindAirQualitySensor
+
+            self.async_add_binary_sensor_entities([RoomMindAirQualitySensor(self, area_id)])
+            self._air_quality_entity_areas.add(area_id)
 
         await self.async_request_refresh()
 
@@ -3381,6 +3479,8 @@ class RoomMindCoordinator(DataUpdateCoordinator):
         self._had_valid_temp.discard(area_id)
         self._startup_guard_warned.discard(area_id)
         self._block_temp_warned = {k for k in self._block_temp_warned if k[0] != area_id}
+        self._air_quality_entity_areas.discard(area_id)
+        self._air_quality.remove_room(area_id)
         self._ekf_training.remove_room(area_id)
         self._pending_predictions.pop(area_id, None)
         self._preconditioning_started_at.pop(area_id, None)
@@ -3446,6 +3546,9 @@ class RoomMindCoordinator(DataUpdateCoordinator):
             area_id, suffix = match
             if suffix == "" and rooms[area_id].get("is_outdoor", False):
                 # Canonical climate is invalid for outdoor areas.
+                to_remove.append(entity_entry.entity_id)
+                continue
+            if suffix in AIR_QUALITY_ENTITY_SUFFIXES and not has_air_quality_sensor(rooms[area_id]):
                 to_remove.append(entity_entry.entity_id)
                 continue
             if suffix in COVER_ENTITY_SUFFIXES and not rooms[area_id].get("covers"):

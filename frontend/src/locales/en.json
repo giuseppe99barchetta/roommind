@@ -898,5 +898,16 @@
   "analytics.summary.too_warm": "Too warm",
   "analytics.summary.heating": "Heating",
   "analytics.summary.cooling": "Cooling",
-  "analytics.summary.runs": "{n} runs"
+  "analytics.summary.runs": "{n} runs",
+  "air_quality.title": "Air quality",
+  "air_quality.hint": "With a CO₂ or VOC sensor RoomMind shows when the air gets stale and offers a binary sensor for automations. A ventilation unit (fan, switch) is switched on until the air is fresh again.",
+  "air_quality.co2_sensor": "CO₂ sensor",
+  "air_quality.co2_threshold": "CO₂ threshold",
+  "air_quality.voc_sensor": "VOC sensor",
+  "air_quality.voc_threshold": "VOC threshold",
+  "air_quality.voc_threshold_hint": "In the sensor's own unit (index, ppb, µg/m³). Empty: the reading is shown but not judged.",
+  "air_quality.ventilation_entity": "Ventilation / air purifier",
+  "air_quality.ventilation_hint": "Switched on while the air is bad and off again once it is fresh (at least 15 minutes). RoomMind only switches off what it switched on.",
+  "hero.air_quality_bad": "Stale air: {value}",
+  "hero.air_quality_venting": "Stale air ({value}), ventilating"
 }

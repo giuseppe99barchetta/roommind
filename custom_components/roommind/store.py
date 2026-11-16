@@ -9,6 +9,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.storage import Store
 
 from .const import (
+    DEFAULT_CO2_THRESHOLD,
     DEFAULT_COMFORT_COOL,
     DEFAULT_COMFORT_HEAT,
     DEFAULT_ECO_COOL,
@@ -290,6 +291,12 @@ class RoomMindStore:
             "temperature_sensor": config.get("temperature_sensor", ""),
             "humidity_sensor": config.get("humidity_sensor", ""),
             "dehumidifier": config.get("dehumidifier"),
+            # Air quality (#267): CO2/VOC sensors and the ventilation unit run while the air is bad
+            "co2_sensor": config.get("co2_sensor", ""),
+            "co2_threshold": config.get("co2_threshold", DEFAULT_CO2_THRESHOLD),
+            "voc_sensor": config.get("voc_sensor", ""),
+            "voc_threshold": config.get("voc_threshold"),
+            "ventilation_entity": config.get("ventilation_entity", ""),
             "dry_entity_type": config.get("dry_entity_type", "humidifier"),
             "occupancy_sensors": config.get("occupancy_sensors", []),
             "climate_mode": config.get("climate_mode", "auto"),

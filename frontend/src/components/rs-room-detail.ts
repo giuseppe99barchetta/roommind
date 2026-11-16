@@ -32,6 +32,8 @@ import "../components/shared/rs-edit-dialog";
 import "../components/shared/rs-info-icon";
 import { localize } from "../utils/localize";
 import { fireSaveStatus } from "../utils/events";
+import type { AirQualityConfig } from "./rs-air-quality-section";
+import "./rs-air-quality-section";
 import { changedSettings, snapshotSettings } from "../utils/settings-diff";
 import { resolveHeatingSystemType } from "../utils/device-utils";
 import type { RsOverrideSection } from "./rs-override-section";
@@ -71,6 +73,13 @@ export class RsRoomDetail extends LitElement {
   @state() private _devices: DeviceConfig[] = [];
   @state() private _selectedTempSensor = "";
   @state() private _selectedHumiditySensor = "";
+  @state() private _airQuality: AirQualityConfig = {
+    co2_sensor: "",
+    co2_threshold: 1000,
+    voc_sensor: "",
+    voc_threshold: null,
+    ventilation_entity: "",
+  };
   @state() private _selectedOccupancySensors: Set<string> = new Set();
   @state() private _selectedWindowSensors: Set<string> = new Set();
   @state() private _windowOpenDelay = 0;
@@ -415,6 +424,13 @@ export class RsRoomDetail extends LitElement {
   }
 
   private _initFromConfig() {
+    this._airQuality = {
+      co2_sensor: this.config?.co2_sensor ?? "",
+      co2_threshold: this.config?.co2_threshold ?? 1000,
+      voc_sensor: this.config?.voc_sensor ?? "",
+      voc_threshold: this.config?.voc_threshold ?? null,
+      ventilation_entity: this.config?.ventilation_entity ?? "",
+    };
     this._dehumidifier = this.config?.dehumidifier
       ? {
           ...this.config.dehumidifier,
@@ -1100,6 +1116,13 @@ export class RsRoomDetail extends LitElement {
             .language=${this.hass.language}
             @sensor-changed=${this._onSensorChanged}
           ></rs-sensor-section>
+          ${this.config?.is_outdoor
+            ? nothing
+            : html`<rs-air-quality-section
+                .hass=${this.hass}
+                .config=${this._airQuality}
+                @air-quality-changed=${this._onAirQualityChanged}
+              ></rs-air-quality-section>`}
         </rs-edit-dialog>`;
       case "presence":
         return html`<rs-edit-dialog
@@ -1314,6 +1337,11 @@ export class RsRoomDetail extends LitElement {
       }
     }
 
+    this._autoSave();
+  }
+
+  private _onAirQualityChanged(e: CustomEvent<{ key: keyof AirQualityConfig; value: unknown }>) {
+    this._airQuality = { ...this._airQuality, [e.detail.key]: e.detail.value };
     this._autoSave();
   }
 
@@ -1578,6 +1606,7 @@ export class RsRoomDetail extends LitElement {
       heat_source_heat_pump_outdoor_threshold: this._heatSourceHeatPumpOutdoorThreshold,
       heat_source_hybrid_delta: this._heatSourceHybridDelta,
       heat_pump_power_watts: this._heatPumpPowerWatts,
+      ...this._airQuality,
     };
   }
 

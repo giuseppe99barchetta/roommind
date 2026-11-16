@@ -54,6 +54,12 @@ export interface RoomLiveData {
   mpc_active: boolean;
   presence_away: boolean;
   mold_risk_level: "ok" | "warning" | "critical";
+  // Air quality (#267): readings and whether the air is bad (hysteresis in the backend)
+  co2?: number | null;
+  voc?: number | null;
+  air_quality_bad?: boolean;
+  air_quality_reason?: "co2" | "voc" | null;
+  air_ventilation_active?: boolean;
   mold_surface_rh: number | null;
   mold_prevention_active: boolean;
   mold_prevention_strategy?: "dry" | "dehumidifier" | null;
@@ -239,6 +245,11 @@ export interface RoomConfig {
   devices?: DeviceConfig[];
   temperature_sensor: string;
   humidity_sensor: string;
+  co2_sensor?: string;
+  co2_threshold?: number;
+  voc_sensor?: string;
+  voc_threshold?: number | null;
+  ventilation_entity?: string;
   occupancy_sensors?: string[];
   window_sensors: string[];
   window_open_delay: number;

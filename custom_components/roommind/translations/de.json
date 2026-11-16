@@ -69,6 +69,11 @@
       "dry_dehumidifier": {
         "name": "{room} Entfeuchter"
       }
+    },
+    "binary_sensor": {
+      "air_quality": {
+        "name": "{room} Luftqualität schlecht"
+      }
     }
   }
 }

@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, patch
 
 import pytest
 
@@ -141,3 +141,67 @@ def test_airing_recommended_sensor(mock_coordinator):
     attrs = sensor.extra_state_attributes
     assert attrs["outdoor_abs_humidity"] == 6.1
     assert len(attrs["rooms"]) == 1 and list(attrs["indoor_abs_humidity"].values()) == [13.7]
+
+
+def _aq_coordinator(live):
+    coordinator = MagicMock()
+    coordinator.data = {"rooms": {"bed": live}}
+    return coordinator
+
+
+def test_air_quality_sensor_reads_the_live_state():
+    from custom_components.roommind.binary_sensor import RoomMindAirQualitySensor
+
+    live = {
+        "co2": 1250.0,
+        "voc": None,
+        "air_quality_bad": True,
+        "air_quality_reason": "co2",
+        "air_ventilation_active": True,
+    }
+    with patch("custom_components.roommind.binary_sensor._get_room_display_name", return_value="Camera"):
+        sensor = RoomMindAirQualitySensor(_aq_coordinator(live), "bed")
+    assert sensor.unique_id == "roommind_bed_air_quality"
+    assert sensor.entity_id == "binary_sensor.roommind_bed_air_quality"
+    assert sensor.translation_placeholders == {"room": "Camera"}
+    assert sensor.is_on is True
+    assert sensor.available is True
+    assert sensor.extra_state_attributes == {"co2": 1250.0, "voc": None, "reason": "co2", "ventilation_active": True}
+
+
+def test_air_quality_sensor_unavailable_without_a_reading():
+    from custom_components.roommind.binary_sensor import RoomMindAirQualitySensor
+
+    coordinator = _aq_coordinator({"co2": None, "voc": None, "air_quality_bad": False})
+    with patch("custom_components.roommind.binary_sensor._get_room_display_name", return_value="Camera"):
+        sensor = RoomMindAirQualitySensor(coordinator, "bed")
+    assert sensor.available is False
+    assert sensor.is_on is False
+    coordinator.data = None
+    assert sensor.is_on is False
+
+
+@pytest.mark.asyncio
+async def test_async_setup_entry_creates_the_air_quality_sensor_for_indoor_rooms_only():
+    from custom_components.roommind.binary_sensor import RoomMindAirQualitySensor
+
+    coordinator = MagicMock()
+    coordinator._binary_sensor_entity_areas = set()
+    coordinator._air_quality_entity_areas = set()
+    store = MagicMock()
+    store.get_rooms.return_value = {
+        "living_room": {"co2_sensor": "sensor.co2"},
+        "garden": {"co2_sensor": "sensor.garden_co2", "is_outdoor": True},
+        "hall": {},
+    }
+    entry = MagicMock()
+    entry.entry_id = "test_entry"
+    hass = MagicMock()
+    hass.data = {DOMAIN: {entry.entry_id: coordinator, "store": store}}
+    coordinator.hass = hass
+    add = MagicMock()
+    with patch("custom_components.roommind.binary_sensor._get_room_display_name", return_value="Room"):
+        await async_setup_entry(hass, entry, add)
+    aq = [e for e in add.call_args[0][0] if isinstance(e, RoomMindAirQualitySensor)]
+    assert [e.unique_id for e in aq] == ["roommind_living_room_air_quality"]
+    assert coordinator._air_quality_entity_areas == {"living_room"}

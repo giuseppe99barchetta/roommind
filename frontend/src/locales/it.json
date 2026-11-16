@@ -898,5 +898,16 @@
   "analytics.summary.too_warm": "Troppo caldo",
   "analytics.summary.heating": "Riscaldamento",
   "analytics.summary.cooling": "Raffrescamento",
-  "analytics.summary.runs": "{n} avvii"
+  "analytics.summary.runs": "{n} avvii",
+  "air_quality.title": "Qualità dell'aria",
+  "air_quality.hint": "Con un sensore di CO₂ o VOC RoomMind segnala quando l'aria diventa viziata e offre un binary sensor per le automazioni. Un'unità di ventilazione (fan, switch) viene accesa finché l'aria non torna buona.",
+  "air_quality.co2_sensor": "Sensore CO₂",
+  "air_quality.co2_threshold": "Soglia CO₂",
+  "air_quality.voc_sensor": "Sensore VOC",
+  "air_quality.voc_threshold": "Soglia VOC",
+  "air_quality.voc_threshold_hint": "Nell'unità del sensore (indice, ppb, µg/m³). Vuoto: il valore è mostrato ma non valutato.",
+  "air_quality.ventilation_entity": "Ventilazione / purificatore",
+  "air_quality.ventilation_hint": "Acceso finché l'aria è scarsa e spento quando torna buona (almeno 15 minuti). RoomMind spegne solo ciò che ha acceso.",
+  "hero.air_quality_bad": "Aria viziata: {value}",
+  "hero.air_quality_venting": "Aria viziata ({value}), ventilazione attiva"
 }

@@ -110,6 +110,14 @@ UPDATE_INTERVAL = 30
 # Sensor dropout: keep using cached temperature for this many seconds
 # before falling back to idle (~10 coordinator cycles at 30s).
 MAX_SENSOR_STALENESS = 300
+# Air quality (#267). CO2: UBA rates < 1000 ppm harmless, 1000-2000 ppm ventilate more
+DEFAULT_CO2_THRESHOLD = 1000
+MIN_CO2_THRESHOLD = 800
+MAX_CO2_THRESHOLD = 5000
+# Good again below 80 % of the threshold (1000 -> 800 ppm); own hysteresis choice, not a UBA value
+AIR_QUALITY_CLEAR_FACTOR = 0.8
+VENTILATION_DOMAINS = ("fan", "switch", "input_boolean")
+VENTILATION_MIN_RUN_MINUTES = 15
 
 # Repairs should tolerate the normal reporting cadence of battery-powered
 # temperature sensors.  This is deliberately independent from the short

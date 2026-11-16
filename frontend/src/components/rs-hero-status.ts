@@ -597,6 +597,23 @@ export class RsHeroStatus extends LitElement {
           : nothing}
         ${live
           ? html`
+              ${live.air_quality_bad && !this.isOutdoor
+                ? html`<div class="hero-metric warning">
+                    <ha-icon icon="mdi:molecule-co2"></ha-icon>
+                    ${localize(
+                      live.air_ventilation_active
+                        ? "hero.air_quality_venting"
+                        : "hero.air_quality_bad",
+                      this.hass?.language ?? "en",
+                      {
+                        value:
+                          live.air_quality_reason === "voc"
+                            ? `VOC ${live.voc ?? ""}`
+                            : `CO₂ ${live.co2 != null ? Math.round(live.co2) : ""} ppm`,
+                      },
+                    )}
+                  </div>`
+                : nothing}
               ${live.window_open && !this.isOutdoor
                 ? html`<div class="hero-window-open">
                     <ha-icon icon="mdi:window-open-variant"></ha-icon>

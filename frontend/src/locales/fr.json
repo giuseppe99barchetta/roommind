@@ -898,5 +898,16 @@
   "analytics.summary.too_warm": "Trop chaud",
   "analytics.summary.heating": "Chauffage",
   "analytics.summary.cooling": "Climatisation",
-  "analytics.summary.runs": "{n} démarrages"
+  "analytics.summary.runs": "{n} démarrages",
+  "air_quality.title": "Qualité de l'air",
+  "air_quality.hint": "Avec un capteur de CO₂ ou de COV, RoomMind indique quand l'air devient vicié et propose un capteur binaire pour les automatisations. Une ventilation (fan, switch) est allumée jusqu'à ce que l'air soit de nouveau frais.",
+  "air_quality.co2_sensor": "Capteur CO₂",
+  "air_quality.co2_threshold": "Seuil CO₂",
+  "air_quality.voc_sensor": "Capteur COV",
+  "air_quality.voc_threshold": "Seuil COV",
+  "air_quality.voc_threshold_hint": "Dans l'unité du capteur (indice, ppb, µg/m³). Vide : la valeur est affichée, pas évaluée.",
+  "air_quality.ventilation_entity": "Ventilation / purificateur",
+  "air_quality.ventilation_hint": "Allumée tant que l'air est mauvais, éteinte quand il est frais (au moins 15 minutes). RoomMind n'éteint que ce qu'il a allumé.",
+  "hero.air_quality_bad": "Air vicié : {value}",
+  "hero.air_quality_venting": "Air vicié ({value}), ventilation en marche"
 }
