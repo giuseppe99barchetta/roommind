@@ -426,3 +426,33 @@ def test_has_enough_data_enough_idle_but_not_cooling():
         has_external_sensor=True,
     )
     assert ctrl._has_enough_data(can_heat=False, can_cool=True) is False
+
+
+def test_cool_only_room_in_winter_without_cooling_data_is_not_ready():
+    """Outdoor limits close both sides: the room's own sides still need their samples."""
+    from custom_components.roommind.control.mpc_controller import is_mpc_active
+
+    model_mgr = RoomModelManager()
+    model_mgr.update("office", 20.0, 5.0, "idle", 5.0)
+    model_mgr.get_prediction_std = MagicMock(return_value=0.1)
+    model_mgr.get_mode_counts = MagicMock(return_value=(900, 0, 0))
+    assert is_mpc_active(model_mgr, "office", False, False, 20.0, 5.0, room_sides=(False, True)) is False
+
+def test_trained_heat_only_room_in_summer_stays_ready():
+    from custom_components.roommind.control.mpc_controller import is_mpc_active
+
+    model_mgr = RoomModelManager()
+    model_mgr.update("bedroom", 24.0, 25.0, "idle", 5.0)
+    model_mgr.get_prediction_std = MagicMock(return_value=0.1)
+    model_mgr.get_mode_counts = MagicMock(return_value=(900, 300, 0))
+    assert is_mpc_active(model_mgr, "bedroom", False, False, 24.0, 25.0, room_sides=(True, False)) is True
+
+def test_room_sides_only_count_when_the_outdoor_limits_close_both():
+    """A hybrid room in winter heats on MPC before its AC ever cooled."""
+    from custom_components.roommind.control.mpc_controller import is_mpc_active
+
+    model_mgr = RoomModelManager()
+    model_mgr.update("living_room", 20.0, 5.0, "idle", 5.0)
+    model_mgr.get_prediction_std = MagicMock(return_value=0.1)
+    model_mgr.get_mode_counts = MagicMock(return_value=(900, 300, 0))
+    assert is_mpc_active(model_mgr, "living_room", True, False, 20.0, 5.0, room_sides=(True, True)) is True

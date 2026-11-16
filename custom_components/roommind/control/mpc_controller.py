@@ -746,11 +746,16 @@ def is_mpc_active(
     can_cool: bool,
     current_temp: float,
     outdoor_temp: float,
+    *,
+    room_sides: tuple[bool, bool] | None = None,
 ) -> bool:
     """Check if MPC control is active for a room.
 
     Single source of truth for MPC activation — used by coordinator
-    and analytics.
+    and analytics. ``room_sides`` = (can_heat, can_cool) without the outdoor
+    limits: when those limits close both sides, the sample gates judge the sides
+    the room has. Without it a cool-only room in winter that never cooled read
+    as ready (only the idle gate was left).
     """
     model = model_manager.get_model(area_id)
     Q_check = model.Q_heat if can_heat else (-model.Q_cool if can_cool else 0.0)
@@ -758,6 +763,8 @@ def is_mpc_active(
     if pred_std >= MPC_MAX_PREDICTION_STD:
         return False
 
+    if not can_heat and not can_cool and room_sides is not None:
+        can_heat, can_cool = room_sides
     n_idle, n_heating, n_cooling = model_manager.get_mode_counts(area_id)
     if n_idle < MIN_IDLE_UPDATES:
         return False
