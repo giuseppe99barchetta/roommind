@@ -14,7 +14,7 @@ from typing import Any
 from homeassistant.components.persistent_notification import async_create as async_create_notification
 from homeassistant.components.persistent_notification import async_dismiss as async_dismiss_notification
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.core import CoreState, HomeAssistant
+from homeassistant.core import HomeAssistant
 from homeassistant.helpers import area_registry as ar
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 from homeassistant.util import dt as dt_util
@@ -1268,9 +1268,9 @@ class RoomMindCoordinator(DataUpdateCoordinator):
 
         # Pause climate control when any window/door is open (with configurable delays)
         window_states = self._read_window_states(room)
-        raw_state = self._window_manager.resolve_raw(
-            area_id, window_states, self._missing_window_sensors(window_states)
-        )
+        # A sensor without a state waits out the grace period like an unavailable one:
+        # a missing registry entry does not prove deletion (YAML entities have none).
+        raw_state = self._window_manager.resolve_raw(area_id, window_states)
         # Pending: sensors unavailable and no state known yet (typically right after
         # a restart). Keep the current pause state and send no commands; update()
         # is skipped so the first real reading still counts as the first observation (#437).
@@ -2811,27 +2811,14 @@ class RoomMindCoordinator(DataUpdateCoordinator):
             states[entity_id] = state.state if state else None
         return states
 
-    def _missing_window_sensors(self, states: dict[str, str | None]) -> frozenset[str]:
-        """Return sensors without a state that HA also does not know in the entity registry.
-
-        Only once HA is fully running: while it is still starting, entities may
-        not be loaded yet, so a missing state means "not yet", not "gone".
-        """
-        stateless = [entity_id for entity_id, state in states.items() if state is None]
-        if not stateless or self.hass.state is not CoreState.running:
-            return frozenset()
-        from homeassistant.helpers import entity_registry as er
-
-        registry = er.async_get(self.hass)
-        return frozenset(entity_id for entity_id in stateless if registry.async_get(entity_id) is None)
-
     def _is_window_open(self, room: dict) -> bool:
-        """Return True if any configured window/door sensor reports 'on' (open)."""
-        for entity_id in room.get("window_sensors", []):
-            state = self.hass.states.get(entity_id)
-            if state and state.state == "on":
-                return True
-        return False
+        """Return True if a window/door is open, or its state is still unresolved.
+
+        Raw contact state for the dehumidifier and mold DRY protections (no open/close
+        delays); a sensor that dropped out keeps its last reading, and one never seen
+        since startup counts as open until it reports or the grace period ends (#437).
+        """
+        return self._window_manager.peek_open(room.get("area_id", "unknown"), self._read_window_states(room))
 
     @staticmethod
     def _lookahead_resolver(

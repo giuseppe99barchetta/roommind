@@ -432,3 +432,35 @@ def test_resolve_raw_missing_sensor_warns_again_after_it_returned(caplog):
         mgr.resolve_raw("room", {SENSOR: "off"})
         mgr.resolve_raw("room", {SENSOR: None}, frozenset({SENSOR}))
     assert sum("does not exist" in r.getMessage() for r in caplog.records) == 2
+
+
+def test_peek_open_follows_held_and_unresolved_states():
+    """Dehumidifier/mold protections see a dropped-out open window as open, and an unknown one too (#437)."""
+    mgr = WindowManager()
+    assert mgr.peek_open("room", {SENSOR: "off"}) is False
+    assert mgr.peek_open("room", {SENSOR: "on"}) is True
+    # never seen since startup: unresolved counts as open
+    assert mgr.peek_open("room", {SENSOR: "unavailable"}) is True
+    assert mgr.peek_open("room", {SENSOR: None}) is True
+    # known closed, then drops out: stays closed
+    mgr.resolve_raw("room", {SENSOR: "off"})
+    assert mgr.peek_open("room", {SENSOR: "unavailable"}) is False
+    # known open, then drops out: stays open
+    mgr.resolve_raw("room", {SENSOR: "on"})
+    assert mgr.peek_open("room", {SENSOR: "unavailable"}) is True
+
+
+def test_peek_open_does_not_change_tracking():
+    mgr = WindowManager()
+    mgr.peek_open("room", {SENSOR: "on"})
+    assert mgr.resolve_raw("room", {SENSOR: "unavailable"}) is None
+
+
+def test_peek_open_expires_with_the_cap():
+    mgr = WindowManager()
+    with patch("custom_components.roommind.managers.window_manager.time") as mock_time:
+        mock_time.time.return_value = 1000.0
+        mgr.resolve_raw("room", {SENSOR: "on"})
+        mgr.resolve_raw("room", {SENSOR: "unavailable"})
+        mock_time.time.return_value = 1000.0 + MAX_SENSOR_STALENESS + 1
+        assert mgr.peek_open("room", {SENSOR: "unavailable"}) is False

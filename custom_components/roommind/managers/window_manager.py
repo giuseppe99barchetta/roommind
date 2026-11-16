@@ -37,6 +37,27 @@ class WindowManager:
         """Return True while the window state is unresolved (sensors unavailable, no known state yet)."""
         return area_id in self._pending
 
+    def peek_open(self, area_id: str, sensor_states: dict[str, str | None]) -> bool:
+        """Read-only view of the window state for other consumers (dehumidifier, mold DRY).
+
+        Like ``resolve_raw`` but without updating the tracking, and an unresolved
+        state (unavailable, nothing known yet, within the grace period) counts as
+        open: protections that pause for an open window stay paused until it is known.
+        """
+        now = time.time()
+        last = self._last_known.get(area_id, {})
+        since = self._unavailable_since.get(area_id, {})
+        for entity_id, state in sensor_states.items():
+            if state not in _UNAVAILABLE_STATES:
+                if state == "on":
+                    return True
+                continue
+            if now - since.get(entity_id, now) >= MAX_SENSOR_STALENESS:
+                continue
+            if last.get(entity_id, True):
+                return True
+        return False
+
     def resolve_raw(
         self,
         area_id: str,
