@@ -37,6 +37,7 @@ from .const import (
     DEFAULT_OUTDOOR_HEATING_MAX,
     DOMAIN,
     HEATING_BOOST_TARGET,
+    HEATING_SYSTEM_RADIATOR,
     HISTORY_ROTATE_CYCLES,
     HISTORY_WRITE_CYCLES,
     MAX_PREDICTION_DELTA,
@@ -78,6 +79,7 @@ from .control.mpc_controller import (
     get_can_heat_cool,
     is_mpc_active,
 )
+from .control.residual_heat import residual_tau
 from .control.solar import compute_q_solar_norm
 from .control.thermal_model import RoomModelManager
 from .managers.air_quality_manager import AirQualityTracker, VentilationController
@@ -99,7 +101,7 @@ from .managers.heat_source_orchestrator import (
 )
 from .managers.mold_manager import MoldManager
 from .managers.power_budget_manager import PowerBudgetManager
-from .managers.residual_heat_tracker import ResidualHeatTracker
+from .managers.residual_heat_tracker import ResidualHeatLearner, ResidualHeatTracker
 from .managers.room_climate import async_apply_ac_auxiliary_mode
 from .managers.valve_manager import ValveManager
 from .managers.weather_manager import WeatherManager
@@ -333,6 +335,8 @@ class RoomMindCoordinator(DataUpdateCoordinator):
         self._night_fan_modes: dict[str, str] = {}
         # Residual heat tracking (heating → idle transition)
         self._residual_tracker = ResidualHeatTracker()
+        # Learns each radiator room's afterglow (learning only: nothing in control reads it)
+        self._residual_learner = ResidualHeatLearner()
         # EKF training accumulation
         self._ekf_training = EkfTrainingManager(self._model_manager)
         # Cover/blind automatic control
@@ -2049,6 +2053,7 @@ class RoomMindCoordinator(DataUpdateCoordinator):
             climate_active=climate_active,
             boiler_wait=boiler_wait,
             track_mode=apply_control,
+            compressor_forced_on=bool(compressor_forced_on),
         )
 
         room_state = self._build_room_state_dict(
@@ -2192,6 +2197,7 @@ class RoomMindCoordinator(DataUpdateCoordinator):
         climate_active: bool,
         boiler_wait: bool = False,
         track_mode: bool = True,
+        compressor_forced_on: bool = False,
     ) -> tuple[str, float]:
         """Observe device state, train EKF, compute display mode.
 
@@ -2335,6 +2341,25 @@ class RoomMindCoordinator(DataUpdateCoordinator):
             )
         else:
             self._ekf_training.clear(area_id)
+
+        if track_mode:
+            self._step_residual_learner(
+                area_id=area_id,
+                room=room,
+                settings=settings,
+                mode=mode,
+                power_fraction=power_fraction,
+                current_temp_raw=current_temp_raw,
+                window_open=window_open,
+                raw_open=raw_open,
+                shading_factor=shading_factor,
+                q_occupancy=q_occupancy,
+                has_external_sensor=has_external_sensor,
+                heat_source_plan=heat_source_plan,
+                climate_active=climate_active,
+                boiler_wait=boiler_wait,
+                compressor_forced_on=compressor_forced_on,
+            )
 
         # Update mode-start tracking for min-run enforcement in the next cycle.
         # A cycle superseded by a manual command applied nothing: keep tracking.
@@ -2801,15 +2826,128 @@ class RoomMindCoordinator(DataUpdateCoordinator):
         pf = 1.0 if dominated in ("heating", "cooling") else 0.0
         return (dominated, pf)
 
+    def _step_residual_learner(
+        self,
+        *,
+        area_id: str,
+        room: dict,
+        settings: dict,
+        mode: str,
+        power_fraction: float,
+        current_temp_raw: float | None,
+        window_open: bool,
+        raw_open: bool,
+        shading_factor: float | None,
+        q_occupancy: float,
+        has_external_sensor: bool,
+        heat_source_plan: Any | None,
+        climate_active: bool,
+        boiler_wait: bool,
+        compressor_forced_on: bool,
+    ) -> None:
+        """Feed one cycle to the afterglow learner of a radiator room (learning only, #493)."""
+        if room.get("heating_system_type", "") != HEATING_SYSTEM_RADIATOR:
+            return
+        devices = room.get("devices", [])
+        bypass = bypass_entities(settings)
+        room_trvs = set(get_trv_eids(devices))
+        plan_cmds = heat_source_plan.commands if heat_source_plan is not None and heat_source_plan.commands else []
+
+        def _on(eid: str) -> bool:
+            state = self.hass.states.get(eid)
+            return state is not None and state.state not in ("unavailable", "unknown", "off")
+
+        # Delivered power of the room's own radiators only (a pinned valve counts its opening)
+        delivered: float | None = None
+        if mode == MODE_HEATING and not boiler_wait:
+            radiators = room_trvs - bypass
+            if plan_cmds:
+                radiators &= {c.entity_id for c in plan_cmds if c.active}
+            driven = {eid for eid in radiators if _on(eid)}
+            if driven:
+                delivered = self._delivered_training_power(
+                    room, MODE_HEATING, power_fraction, heat_source_plan, entity_ids=driven
+                )
+
+        # An AC disturbs only while it heats: its hvac_action when it reports one, else its
+        # mode or the plan (the Midea units report no hvac_action)
+        plan_acs = {c.entity_id for c in plan_cmds if c.active and c.device_type == "ac"}
+        ac_heating = compressor_forced_on
+        for eid in get_ac_eids(devices):
+            state = self.hass.states.get(eid)
+            if state is None:
+                continue
+            action = state.attributes.get("hvac_action")
+            if action is not None:
+                ac_heating = ac_heating or action in ("heating", "preheating")
+            else:
+                ac_heating = (
+                    ac_heating or state.state in ("heat", "heat_cool") or (mode == MODE_HEATING and eid in plan_acs)
+                )
+        # The boiler manager opens a bypass radiator on its own; its heat is not modelled
+        bypass_heating = bool(room_trvs & bypass) and self._boiler_manager.heat_available
+        valve_open_idle = mode != MODE_HEATING and any(
+            (held_opening(eid) or 0.0) > 0.0 for eid in get_valve_entities(devices)
+        )
+        system_type = room.get("heating_system_type", "")
+        learned_tau = self._model_manager.get_residual_tau(area_id)
+        sample = self._residual_learner.step(
+            area_id,
+            model=self._model_manager.get_model(area_id),
+            system_type=system_type,
+            mode=mode,
+            delivered_power=delivered,
+            current_temp=current_temp_raw,
+            T_outdoor=self.outdoor_temp_effective,
+            dt_minutes=UPDATE_INTERVAL / 60.0,
+            q_solar=self._current_q_solar * (shading_factor if shading_factor is not None else 1.0),
+            q_occupancy=q_occupancy,
+            disturbed=(
+                window_open
+                or raw_open
+                or not climate_active
+                or not has_external_sensor
+                or bool(room.get("is_outdoor", False))
+                or area_id in settings.get("learning_disabled_rooms", [])
+                or boiler_wait
+                or ac_heating
+                or bypass_heating
+                or valve_open_idle
+            ),
+            tau_minutes=learned_tau,
+        )
+        if sample is None:
+            return
+        # The scale sample is measured against the current decay time; a new decay time then
+        # rescales it so the learned total heat stays (update_residual_tau)
+        self._model_manager.update_residual_scale(area_id, sample)
+        tau_sample = self._residual_learner.take_tau_sample(area_id)
+        if tau_sample is not None:
+            self._model_manager.update_residual_tau(area_id, tau_sample, residual_tau(system_type))
+        _LOGGER.debug(
+            "Room '%s': residual heat sample %.2f (decay %s min), learned scale %.2f, decay %.1f min",
+            area_id,
+            sample,
+            tau_sample,
+            self._model_manager.get_residual_scale(area_id),
+            residual_tau(system_type, self._model_manager.get_residual_tau(area_id)),
+        )
+
     def _delivered_training_power(
-        self, room: dict, mode: str, commanded_pf: float, heat_source_plan: Any | None
+        self,
+        room: dict,
+        mode: str,
+        commanded_pf: float,
+        heat_source_plan: Any | None,
+        entity_ids: set[str] | None = None,
     ) -> float:
         """Share of the driven devices that report running in ``mode`` (EKF training label).
 
         Driven devices: the plan's active commands with orchestration, else every device
         that is not off. A parked device still running (compressor hold) delivers, so it
         counts as well. Devices without a usable ``hvac_action`` keep their commanded pf;
-        no observable device at all keeps ``commanded_pf``.
+        no observable device at all keeps ``commanded_pf``. ``entity_ids`` limits the driven
+        and parked devices to these (the afterglow learner's radiators).
         """
         running_actions = ("heating", "preheating") if mode == MODE_HEATING else ("cooling",)
         if heat_source_plan is not None and heat_source_plan.commands:
@@ -2818,6 +2956,9 @@ class RoomMindCoordinator(DataUpdateCoordinator):
         else:
             driven = dict.fromkeys(get_all_entity_ids(room.get("devices", [])), commanded_pf)
             parked = []
+        if entity_ids is not None:
+            driven = {eid: pf for eid, pf in driven.items() if eid in entity_ids}
+            parked = [eid for eid in parked if eid in entity_ids]
         valve_eids = get_valve_entities(room.get("devices", []))
         labels: list[float] = []
         for eid, pf in driven.items():
@@ -3547,6 +3688,7 @@ class RoomMindCoordinator(DataUpdateCoordinator):
         self._pending_predictions.pop(area_id, None)
         self._preconditioning_started_at.pop(area_id, None)
         self._residual_tracker.remove_room(area_id)
+        self._residual_learner.remove_room(area_id)
         self._cover_orchestrator.remove_room(area_id)
         self._entity_areas.discard(area_id)
         self._energy_entity_areas.discard(area_id)
@@ -3646,6 +3788,7 @@ class RoomMindCoordinator(DataUpdateCoordinator):
         self._model_manager.remove_room(area_id)
         self._ekf_training.last_temps.pop(area_id, None)
         self._residual_tracker.clear_room(area_id)
+        self._residual_learner.remove_room(area_id)
 
     def reset_thermal_all(self) -> list[str]:
         """Reset all thermal models. Returns list of affected room IDs."""
@@ -3655,6 +3798,7 @@ class RoomMindCoordinator(DataUpdateCoordinator):
         self._cover_orchestrator.set_model_manager(self._model_manager)
         self._ekf_training.last_temps.clear()
         self._residual_tracker.clear_all()
+        self._residual_learner.clear_all()
         return room_ids
 
     def boost_learning(self, area_id: str) -> int:

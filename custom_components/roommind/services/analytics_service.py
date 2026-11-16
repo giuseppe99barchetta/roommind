@@ -14,6 +14,7 @@ from homeassistant.util import dt as dt_util
 from ..const import (
     CLIMATE_MODE_COOL_ONLY,
     CLIMATE_MODE_HEAT_ONLY,
+    HEATING_SYSTEM_RADIATOR,
 )
 from ..control.mpc_controller import (
     DEFAULT_OUTDOOR_TEMP_FALLBACK,
@@ -21,6 +22,7 @@ from ..control.mpc_controller import (
     get_can_heat_cool,
     is_mpc_active,
 )
+from ..control.residual_heat import learned_afterglow_info
 from ..utils.comfort_insights import energy_suggestions
 from ..utils.device_utils import is_ac_type, room_has_power_sensor
 from .analytics_stats import compute_period_stats
@@ -416,6 +418,8 @@ async def build_analytics_data(
                 "prediction_std_heating": round(pred_std_heat, 4),
                 "has_occupancy_sensors": has_occupancy_sensors,
             }
+            if room_config.get("heating_system_type", "") == HEATING_SYSTEM_RADIATOR:
+                model_info.update(learned_afterglow_info(est))
 
     # Build merged forecast: same format as history points, on a shared 5-min grid
     room_config = store.get_room(area_id) or {}

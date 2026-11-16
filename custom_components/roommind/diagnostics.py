@@ -11,9 +11,10 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import __version__ as HA_VERSION
 from homeassistant.core import HomeAssistant
 
-from .const import DOMAIN, VERSION
+from .const import DOMAIN, HEATING_SYSTEM_RADIATOR, VERSION
 from .control.direct_valve import held_opening
 from .control.mpc_controller import _active_targets, _last_commands
+from .control.residual_heat import learned_afterglow_info
 from .utils.history_store import DETAIL_FIELDS
 
 # v2 adds what reproducing a setup needs (device capabilities, referenced entity states,
@@ -331,6 +332,8 @@ async def async_get_config_entry_diagnostics(hass: HomeAssistant, config_entry: 
             mgr = coordinator._model_manager
             if area_id in mgr._estimators:
                 room_diag["model"] = _build_model_info(mgr._estimators[area_id])
+                if config.get("heating_system_type", "") == HEATING_SYSTEM_RADIATOR:
+                    room_diag["model"].update(learned_afterglow_info(mgr._estimators[area_id]))
 
         # Window manager state
         if coordinator:

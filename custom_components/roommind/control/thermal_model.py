@@ -21,6 +21,15 @@ from __future__ import annotations
 import logging
 import math
 
+from ..const import (
+    RESIDUAL_SCALE_EMA_ALPHA,
+    RESIDUAL_SCALE_MAX,
+    RESIDUAL_SCALE_MIN,
+    RESIDUAL_SCALE_PRIOR_WEIGHT,
+    RESIDUAL_TAU_MAX,
+    RESIDUAL_TAU_MIN,
+)
+
 _LOGGER = logging.getLogger(__name__)
 
 
@@ -321,6 +330,12 @@ class ThermalEKF:
         self._initialized: bool = False
         self._k_window: float = self._K_WINDOW_DEFAULT
         self._k_window_n: int = 0
+        # Learned radiator afterglow (ResidualHeatLearner): scale on the profile's heat and
+        # decay time (None = profile's). Learning only, control does not read them yet.
+        self._residual_scale: float = 1.0
+        self._residual_scale_n: int = 0
+        self._residual_tau: float | None = None
+        self._residual_tau_n: int = 0
         # Which states the last predict step could observe (F[0][i] != 0).
         self._excited: list[bool] = [True] * self._N
 
@@ -851,6 +866,51 @@ class ThermalEKF:
 
     # -- serialization -------------------------------------------------------
 
+    @property
+    def residual_scale(self) -> float:
+        """Learned multiplier on the heating system's residual heat profile (1.0 = profile)."""
+        return self._residual_scale
+
+    @property
+    def residual_scale_n(self) -> int:
+        """Number of residual heat samples folded into the learned scale."""
+        return self._residual_scale_n
+
+    @property
+    def residual_tau(self) -> float | None:
+        """Learned afterglow decay time in minutes, None while the profile's applies."""
+        return self._residual_tau
+
+    def update_residual_scale(self, sample: float) -> None:
+        """Fold one observed residual scale (``ResidualHeatLearner``) into the learned one.
+
+        The profile counts as ``RESIDUAL_SCALE_PRIOR_WEIGHT`` earlier samples, so the first
+        samples move the scale by their share of the evidence, then by the EMA alpha.
+        """
+        if not math.isfinite(sample):
+            return
+        sample = max(RESIDUAL_SCALE_MIN, min(RESIDUAL_SCALE_MAX, sample))
+        alpha = max(RESIDUAL_SCALE_EMA_ALPHA, 1.0 / (RESIDUAL_SCALE_PRIOR_WEIGHT + self._residual_scale_n + 1))
+        self._residual_scale += alpha * (sample - self._residual_scale)
+        self._residual_scale_n += 1
+
+    def update_residual_tau(self, sample: float, profile_tau: float) -> None:
+        """Fold one fitted decay time into the learned one (log space, profile as prior).
+
+        The scale is rescaled so the total heat of the afterglow (scale x tau) stays what was
+        learned: the scale samples measured that total, the decay time only spreads it.
+        """
+        if not (math.isfinite(sample) and sample > 0 and profile_tau > 0):
+            return
+        sample = max(RESIDUAL_TAU_MIN, min(RESIDUAL_TAU_MAX, sample))
+        old = self._residual_tau if self._residual_tau is not None else profile_tau
+        alpha = max(RESIDUAL_SCALE_EMA_ALPHA, 1.0 / (RESIDUAL_SCALE_PRIOR_WEIGHT + self._residual_tau_n + 1))
+        new = math.exp(math.log(old) + alpha * (math.log(sample) - math.log(old)))
+        new = max(RESIDUAL_TAU_MIN, min(RESIDUAL_TAU_MAX, new))
+        self._residual_scale = max(RESIDUAL_SCALE_MIN, min(RESIDUAL_SCALE_MAX, self._residual_scale * old / new))
+        self._residual_tau = new
+        self._residual_tau_n += 1
+
     def to_dict(self) -> dict:
         """Serialize EKF state for persistence."""
         return {
@@ -866,6 +926,10 @@ class ThermalEKF:
             "initialized": self._initialized,
             "k_window": self._k_window,
             "k_window_n": self._k_window_n,
+            "residual_scale": self._residual_scale,
+            "residual_scale_n": self._residual_scale_n,
+            "residual_tau": self._residual_tau,
+            "residual_tau_n": self._residual_tau_n,
         }
 
     def boost_covariance(self, factor: float = 2.5, floor_frac: float = 0.3) -> None:
@@ -919,6 +983,11 @@ class ThermalEKF:
         ekf._initialized = data.get("initialized", ekf._n_updates > 0)
         ekf._k_window = data.get("k_window", cls._K_WINDOW_DEFAULT)
         ekf._k_window_n = data.get("k_window_n", 0)
+        ekf._residual_scale = float(data.get("residual_scale", 1.0))
+        ekf._residual_scale_n = int(data.get("residual_scale_n", 0))
+        tau = data.get("residual_tau")
+        ekf._residual_tau = float(tau) if tau is not None else None
+        ekf._residual_tau_n = int(data.get("residual_tau_n", 0))
         # Recovery migrations for models with alpha pegged at the upper bound.
         # Such models cannot escape on their own: 4-sigma anomaly detection
         # soft-rejects the large innovations and cross-covariance pulls alpha
@@ -1134,6 +1203,29 @@ class RoomModelManager:
             return 0
         est.boost_covariance()
         return est._n_updates
+
+    def get_residual_scale(self, area_id: str) -> float:
+        """Learned residual heat scale of *area_id* (1.0 = profile)."""
+        est = self._estimators.get(area_id)
+        return est.residual_scale if est is not None else 1.0
+
+    def get_residual_samples(self, area_id: str) -> int:
+        """Number of residual heat samples learned for *area_id*."""
+        est = self._estimators.get(area_id)
+        return est.residual_scale_n if est is not None else 0
+
+    def get_residual_tau(self, area_id: str) -> float | None:
+        """Learned afterglow decay time of *area_id* in minutes, None while the profile's applies."""
+        est = self._estimators.get(area_id)
+        return est.residual_tau if est is not None else None
+
+    def update_residual_scale(self, area_id: str, sample: float) -> None:
+        """Fold one observed residual scale into *area_id*'s learned one."""
+        self.get_estimator(area_id).update_residual_scale(sample)
+
+    def update_residual_tau(self, area_id: str, sample: float, profile_tau: float) -> None:
+        """Fold one fitted afterglow decay time into *area_id*'s learned one."""
+        self.get_estimator(area_id).update_residual_tau(sample, profile_tau)
 
     def remove_room(self, area_id: str) -> None:
         """Discard learned data for *area_id*."""

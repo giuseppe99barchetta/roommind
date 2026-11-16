@@ -10,8 +10,9 @@ gain or insulation effects.
 from __future__ import annotations
 
 import math
+from typing import Any
 
-from ..const import HEATING_SYSTEM_PROFILES, RESIDUAL_HEAT_CUTOFF
+from ..const import HEATING_SYSTEM_PROFILES, HEATING_SYSTEM_RADIATOR, RESIDUAL_HEAT_CUTOFF
 
 
 def compute_residual_heat(
@@ -19,6 +20,8 @@ def compute_residual_heat(
     system_type: str,
     last_power_fraction: float = 1.0,
     heating_duration_minutes: float = 0.0,
+    scale: float = 1.0,
+    tau_minutes: float | None = None,
 ) -> float:
     """Compute normalised residual heat fraction after heating stopped.
 
@@ -34,18 +37,22 @@ def compute_residual_heat(
         system_type: Key into ``HEATING_SYSTEM_PROFILES`` (e.g. "underfloor").
         last_power_fraction: Power fraction that was active before stopping.
         heating_duration_minutes: How long heating was active before stopping.
+        scale: Learned per-room multiplier on the profile's ``initial_fraction``
+            (``ResidualHeatLearner``); 1.0 is the profile as is.
+        tau_minutes: Learned per-room decay time; None uses the profile's. The charge
+            time stays the profile's.
 
     Returns:
-        Residual heat fraction in [0, 1].  Returns 0.0 for unknown or empty
+        Residual heat fraction in [0, initial_fraction * scale].  Returns 0.0 for unknown or empty
         system types (backwards-compatible default).
     """
     profile = HEATING_SYSTEM_PROFILES.get(system_type)
     if not profile or elapsed_minutes < 0:
         return 0.0
 
-    tau = profile["tau_minutes"]
     initial = profile["initial_fraction"]
-    tau_charge = profile.get("tau_charge_minutes", tau)
+    tau_charge = profile.get("tau_charge_minutes", profile["tau_minutes"])
+    tau = profile["tau_minutes"] if tau_minutes is None else tau_minutes
 
     if tau <= 0:
         return 0.0
@@ -56,7 +63,7 @@ def compute_residual_heat(
     else:
         charge_fraction = 1.0  # assume fully charged if duration unknown
 
-    q = initial * charge_fraction * math.exp(-elapsed_minutes / tau) * last_power_fraction
+    q = initial * scale * charge_fraction * math.exp(-elapsed_minutes / tau) * last_power_fraction
     return q if q >= RESIDUAL_HEAT_CUTOFF else 0.0
 
 
@@ -67,6 +74,8 @@ def build_residual_series(
     dt_minutes: float = 5.0,
     last_power_fraction: float = 1.0,
     heating_duration_minutes: float = 0.0,
+    scale: float = 1.0,
+    tau_minutes: float | None = None,
 ) -> list[float]:
     """Build a decaying residual heat series for MPC lookahead.
 
@@ -82,9 +91,28 @@ def build_residual_series(
             system_type,
             last_power_fraction,
             heating_duration_minutes,
+            scale,
+            tau_minutes,
         )
         for i in range(n_blocks)
     ]
+
+
+def residual_tau(system_type: str, learned: float | None = None) -> float:
+    """Decay time of *system_type*'s afterglow: the learned one, else the profile's (0.0 without one)."""
+    if learned is not None:
+        return learned
+    profile = HEATING_SYSTEM_PROFILES.get(system_type)
+    return float(profile["tau_minutes"]) if profile else 0.0
+
+
+def learned_afterglow_info(estimator: Any) -> dict[str, Any]:
+    """Learned afterglow of a radiator room for analytics and diagnostics (learning only)."""
+    return {
+        "residual_scale": round(estimator.residual_scale, 3),
+        "residual_samples": estimator.residual_scale_n,
+        "residual_decay_minutes": round(residual_tau(HEATING_SYSTEM_RADIATOR, estimator.residual_tau), 1),
+    }
 
 
 def get_min_run_blocks(system_type: str, dt_minutes: float = 5.0) -> int:

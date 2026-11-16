@@ -3,9 +3,19 @@
 from __future__ import annotations
 
 import time
+from dataclasses import dataclass, field
 
-from ..const import MODE_HEATING
+from ..const import (
+    MODE_HEATING,
+    MODE_IDLE,
+    RESIDUAL_LEARN_MIN_EXPECTED_K,
+    RESIDUAL_LEARN_MIN_MINUTES,
+    RESIDUAL_LEARN_WINDOW_MINUTES,
+    RESIDUAL_TAU_GRID,
+    RESIDUAL_TAU_MIN_RISE_K,
+)
 from ..control.residual_heat import compute_residual_heat
+from ..control.thermal_model import RCModel
 
 
 class ResidualHeatTracker:
@@ -56,3 +66,188 @@ class ResidualHeatTracker:
         self._off_since.clear()
         self._off_power.clear()
         self._on_since.clear()
+
+
+@dataclass
+class _Run:
+    """A heating run the learner follows: start and the radiators' delivered power per cycle."""
+
+    start: float
+    power_sum: float = 0.0
+    cycles: int = 0
+
+    @property
+    def power(self) -> float:
+        return self.power_sum / self.cycles if self.cycles else 0.0
+
+
+@dataclass
+class _Observation:
+    """One afterglow under observation (see ResidualHeatLearner)."""
+
+    stop: float
+    T_prev: float
+    system_type: str
+    run_minutes: float
+    run_power: float
+    measured_excess: float = 0.0  # K the room rose beyond the model's idle drift
+    # Per step: (minutes after the stop at its middle, K one unit of residual heat adds
+    # over the step, K measured beyond the idle drift). The model is linear in the
+    # residual heat, so any decay time's expected rise follows from these.
+    steps: list[tuple[float, float, float]] = field(default_factory=list)
+
+    def expected(self, tau: float | None) -> list[float]:
+        """Cumulative rise (K) the afterglow at scale 1 and decay time *tau* predicts per step."""
+        total, out = 0.0, []
+        for mid, gain, _ in self.steps:
+            total += gain * compute_residual_heat(mid, self.system_type, self.run_power, self.run_minutes, 1.0, tau)
+            out.append(total)
+        return out
+
+    def fit_tau(self) -> float | None:
+        """Decay time whose afterglow shape best matches the measured rise, None without a clear signal.
+
+        The cumulative measured rise is fitted with each candidate's cumulative rise
+        (least squares over the scale); the candidate with the smallest residual wins.
+        """
+        if self.measured_excess < RESIDUAL_TAU_MIN_RISE_K or len(self.steps) < 4:
+            return None
+        measured, total = [], 0.0
+        for _, _, excess in self.steps:
+            total += excess
+            measured.append(total)
+        best: tuple[float, float] | None = None
+        for tau in RESIDUAL_TAU_GRID:
+            unit = self.expected(tau)
+            denom = sum(u * u for u in unit)
+            if denom <= 0:
+                continue
+            scale = sum(m * u for m, u in zip(measured, unit, strict=True)) / denom
+            if scale <= 0:
+                continue
+            sse = sum((m - scale * u) ** 2 for m, u in zip(measured, unit, strict=True))
+            if best is None or sse < best[1]:
+                best = (tau, sse)
+        return best[0] if best is not None else None
+
+
+class ResidualHeatLearner:
+    """Learns how much heat a room's radiators really release after a run (upstream #493/#495).
+
+    After each heating run the room is watched: every idle cycle the measured change is
+    compared with the learned model's idle prediction without residual heat, and with the
+    change the profile at scale 1 predicts. The ratio of the two sums is one sample of the
+    room's residual scale; a full window also fits the decay time (``take_tau_sample``).
+
+    Keeps its own run bookkeeping, apart from ``ResidualHeatTracker``: the run power is the
+    mean power the radiators delivered (a pinned valve's held opening), and nothing here
+    changes the residual heat control and the EKF work with.
+
+    A disturbance (window, AC heating, bypass radiator, boiler wait, ...), a cooling run or a
+    missing reading drops the run and the observation; a run that restarts after
+    ``RESIDUAL_LEARN_MIN_MINUTES`` still gives a sample.
+    """
+
+    def __init__(self) -> None:
+        self._runs: dict[str, _Run] = {}
+        self._obs: dict[str, _Observation] = {}
+        self._tau_samples: dict[str, float] = {}
+
+    def step(
+        self,
+        area_id: str,
+        *,
+        model: RCModel,
+        system_type: str,
+        mode: str,
+        delivered_power: float | None,
+        current_temp: float | None,
+        T_outdoor: float | None,
+        dt_minutes: float,
+        q_solar: float,
+        q_occupancy: float,
+        disturbed: bool,
+        tau_minutes: float | None = None,
+    ) -> float | None:
+        """Advance one cycle. Returns a residual scale sample when an observation completes.
+
+        *delivered_power*: the radiators' delivered power this cycle while heating (None or 0
+        when no radiator delivers heat).
+        """
+        if not system_type or disturbed or current_temp is None or T_outdoor is None:
+            self.remove_room(area_id)
+            return None
+        now = time.time()
+        if mode == MODE_HEATING:
+            obs = self._obs.pop(area_id, None)
+            sample = None
+            if obs is not None and (now - obs.stop) / 60.0 >= RESIDUAL_LEARN_MIN_MINUTES:
+                # Restarted: what was seen so far still counts when it was long enough
+                sample = self._sample(obs, tau_minutes)
+            if delivered_power is not None and delivered_power > 0:
+                run = self._runs.setdefault(area_id, _Run(start=now))
+                run.power_sum += delivered_power
+                run.cycles += 1
+            return sample
+        if mode != MODE_IDLE:
+            self.remove_room(area_id)
+            return None
+        ended = self._runs.pop(area_id, None)
+        if ended is not None:
+            # The stop: watch the afterglow from this reading on
+            self._obs[area_id] = _Observation(
+                stop=now,
+                T_prev=current_temp,
+                system_type=system_type,
+                run_minutes=(now - ended.start) / 60.0,
+                run_power=ended.power,
+            )
+            return None
+        obs = self._obs.get(area_id)
+        if obs is None:
+            return None
+        minutes = (now - obs.stop) / 60.0
+        if minutes > RESIDUAL_LEARN_WINDOW_MINUTES + dt_minutes:
+            self._obs.pop(area_id, None)
+            return None
+        mid = max(0.0, minutes - dt_minutes / 2)
+        base = model.predict(obs.T_prev, T_outdoor, 0.0, dt_minutes, q_solar=q_solar, q_occupancy=q_occupancy)
+        with_unit = model.predict(
+            obs.T_prev, T_outdoor, 0.0, dt_minutes, q_solar=q_solar, q_occupancy=q_occupancy, q_residual=1.0
+        )
+        excess = current_temp - base
+        obs.measured_excess += excess
+        obs.steps.append((mid, with_unit - base, excess))
+        obs.T_prev = current_temp
+        if minutes < RESIDUAL_LEARN_WINDOW_MINUTES:
+            return None
+        self._obs.pop(area_id, None)
+        sample = self._sample(obs, tau_minutes)
+        # The shape only counts where the size does: a short run's rise is mostly not its own heat
+        tau = obs.fit_tau() if sample is not None else None
+        if tau is not None:
+            self._tau_samples[area_id] = tau
+        return sample
+
+    def take_tau_sample(self, area_id: str) -> float | None:
+        """The decay time the last full window fitted for *area_id*, once (None without one)."""
+        return self._tau_samples.pop(area_id, None)
+
+    @staticmethod
+    def _sample(obs: _Observation, tau_minutes: float | None) -> float | None:
+        expected = obs.expected(tau_minutes)
+        if not expected or expected[-1] < RESIDUAL_LEARN_MIN_EXPECTED_K:
+            return None
+        return obs.measured_excess / expected[-1]
+
+    def remove_room(self, area_id: str) -> None:
+        """Drop the run and observation of a room (removed, reset or disturbed)."""
+        self._runs.pop(area_id, None)
+        self._obs.pop(area_id, None)
+        self._tau_samples.pop(area_id, None)
+
+    def clear_all(self) -> None:
+        """Drop all runs and observations."""
+        self._runs.clear()
+        self._obs.clear()
+        self._tau_samples.clear()

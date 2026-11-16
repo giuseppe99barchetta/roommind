@@ -1772,6 +1772,34 @@ async def test_analytics_no_estimator(ws_hass, store, connection):
 
 
 @pytest.mark.asyncio
+@pytest.mark.parametrize("system", ["radiator", ""])
+async def test_analytics_reports_learned_afterglow_for_radiator_rooms(ws_hass, store, connection, system):
+    """Radiator rooms show the learned afterglow; other rooms do not (learning only, #493)."""
+    await store.async_load()
+    await store.async_save_room(
+        "room_a",
+        {"thermostats": ["climate.trv1"], "temperature_sensor": "sensor.temp", "heating_system_type": system},
+    )
+    est = _make_mock_estimator()
+    est.residual_scale = 3.21
+    est.residual_scale_n = 2
+    est.residual_tau = None
+    coordinator = _make_analytics_coordinator(history_rows=[], estimator=est)
+    ws_hass.data[DOMAIN]["coordinator"] = coordinator
+
+    msg = {"id": 64, "type": "roommind/analytics/get", "area_id": "room_a"}
+    await _get_analytics(ws_hass, connection, msg)
+
+    model = connection.send_result.call_args[0][1]["model"]
+    if system == "radiator":
+        assert model["residual_scale"] == 3.21
+        assert model["residual_samples"] == 2
+        assert model["residual_decay_minutes"] == 10.0  # profile's while none is learned
+    else:
+        assert "residual_scale" not in model
+
+
+@pytest.mark.asyncio
 async def test_analytics_with_estimator(ws_hass, store, connection):
     """Analytics includes model info when estimator exists."""
     await store.async_load()

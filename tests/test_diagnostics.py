@@ -176,6 +176,31 @@ async def test_diagnostics_with_coordinator_and_model(hass, mock_config_entry):
 
 
 @pytest.mark.asyncio
+@pytest.mark.parametrize("system", ["radiator", "underfloor"])
+async def test_diagnostics_learned_afterglow_for_radiator_rooms(hass, mock_config_entry, system):
+    """Radiator rooms export the learned afterglow (learning only, #493)."""
+    store = MagicMock()
+    store.get_settings.return_value = {}
+    store.get_rooms.return_value = {"room_a": {"heating_system_type": system}}
+    est = _make_estimator()
+    est.residual_scale = 2.345678
+    est.residual_scale_n = 4
+    est.residual_tau = 27.06
+    coordinator = _make_coordinator(rooms={}, estimators={"room_a": est})
+    hass.states.get = MagicMock(return_value=None)
+    hass.data[DOMAIN] = {"store": store, "coordinator": coordinator}
+
+    model = (await async_get_config_entry_diagnostics(hass, mock_config_entry))["rooms"]["room_a"]["model"]
+
+    if system == "radiator":
+        assert model["residual_scale"] == 2.346
+        assert model["residual_samples"] == 4
+        assert model["residual_decay_minutes"] == 27.1
+    else:
+        assert "residual_scale" not in model
+
+
+@pytest.mark.asyncio
 async def test_diagnostics_room_without_estimator(hass, mock_config_entry):
     """Room without EKF estimator has no model key."""
     store = MagicMock()

@@ -510,5 +510,9 @@ export interface AnalyticsData {
     prediction_std_idle: number;
     prediction_std_heating: number;
     has_occupancy_sensors: boolean;
+    // Learned radiator afterglow (radiator rooms only, learning only)
+    residual_scale?: number;
+    residual_samples?: number;
+    residual_decay_minutes?: number;
   };
 }

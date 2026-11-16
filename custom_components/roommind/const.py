@@ -209,6 +209,29 @@ HEATING_SYSTEM_PROFILES: dict[str, dict[str, float]] = {
 }
 RESIDUAL_HEAT_CUTOFF = 0.02  # below this q_residual is treated as zero
 
+# Learned radiator afterglow (upstream #493/#495), learning only: the learned scale and decay
+# time are shown in analytics and diagnostics but not used by control yet.
+HEATING_SYSTEM_RADIATOR = "radiator"
+# After each run the room is watched for RESIDUAL_LEARN_WINDOW_MINUTES; the rise beyond the
+# model's idle drift, divided by the rise the profile predicts, is one sample of the room's
+# residual scale (multiplier on the profile's initial_fraction). A run that restarts earlier
+# still counts after RESIDUAL_LEARN_MIN_MINUTES.
+RESIDUAL_LEARN_WINDOW_MINUTES = 60.0
+RESIDUAL_LEARN_MIN_MINUTES = 15.0
+RESIDUAL_LEARN_MIN_EXPECTED_K = 0.03  # profile-predicted rise below this carries no signal
+RESIDUAL_SCALE_MIN = 0.0
+RESIDUAL_SCALE_MAX = 15.0
+RESIDUAL_SCALE_EMA_ALPHA = 0.2
+# The profile (scale 1) counts as this many earlier samples, so one disturbed run cannot set
+# the scale on its own.
+RESIDUAL_SCALE_PRIOR_WEIGHT = 2.0
+# Learned decay time: after a full window the measured rise is fitted against these decay
+# times (same total heat); the best one is one sample, weighed like the scale.
+RESIDUAL_TAU_GRID = (5.0, 7.5, 10.0, 15.0, 20.0, 25.0, 30.0, 40.0, 50.0, 60.0)
+RESIDUAL_TAU_MIN = 5.0
+RESIDUAL_TAU_MAX = 60.0
+RESIDUAL_TAU_MIN_RISE_K = 0.3  # the shape of a smaller rise is lost in the sensor's 0.1-0.2 K steps
+
 # Blind/cover control
 COVER_SOLAR_MIN: float = 0.15
 COVER_HYSTERESIS: float = 1.0

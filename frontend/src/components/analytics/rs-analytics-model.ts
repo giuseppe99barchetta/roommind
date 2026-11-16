@@ -172,6 +172,19 @@ export class RsAnalyticsModel extends LitElement {
                   "analytics.info.occupancy_gain",
                 )
               : nothing}
+            ${m?.residual_samples && m.residual_scale != null && m.residual_decay_minutes != null
+              ? stat(
+                  "residual_afterglow",
+                  "\u00D7" +
+                    m.residual_scale.toFixed(1) +
+                    " \u00B7 " +
+                    m.residual_decay_minutes.toFixed(0) +
+                    " min",
+                  "analytics.residual_afterglow",
+                  localize("analytics.residual_samples", l, { n: m.residual_samples }),
+                  "analytics.info.residual_afterglow",
+                )
+              : nothing}
             ${stat(
               "accuracy_idle",
               hasIdleData && predStdIdle != null
