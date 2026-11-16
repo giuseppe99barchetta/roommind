@@ -388,3 +388,19 @@ async def test_band_wider_than_the_margin_still_ends_at_the_cool_target():
     hass.services.async_call.reset_mock()
     await ctrl.async_apply(MODE_IDLE, band, current_temp=22.5, compressor_forced_on=HELD)
     assert [c["temperature"] for c in _sent(hass)] == [21.0]
+
+
+@pytest.mark.asyncio
+async def test_hold_never_commands_an_ac_the_power_budget_blocked():
+    """W1.2 acceptance: a budget-blocked AC is excluded before the hold, even with a retarget pending."""
+    hass, ctrl = _setup(_state("heat", temperature=29.5))
+    await ctrl.async_apply("heating", TargetTemps(heat=21.0, cool=24.0), power_fraction=1.0, current_temp=19.0)
+    hass.services.async_call.reset_mock()
+    await ctrl.async_apply(
+        MODE_IDLE,
+        TargetTemps(heat=17.0, cool=24.0),
+        current_temp=20.5,
+        compressor_forced_on=HELD,
+        exclude_eids={AC},
+    )
+    assert hass.services.async_call.call_args_list == []
