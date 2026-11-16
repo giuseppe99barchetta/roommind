@@ -71,6 +71,7 @@ from .control.mpc_controller import (
     MPCController,
     ac_boost_delta,
     async_idle_device,
+    async_turn_off_climate,
     check_acs_can_heat,
     get_can_heat_cool,
     is_mpc_active,
@@ -337,6 +338,8 @@ class RoomMindCoordinator(DataUpdateCoordinator):
         # Out-of-range schedule block temps already warned about (#395), keyed by
         # (area_id, field, raw value) so the 30 s cycle does not flood the log.
         self._block_temp_warned: set[tuple[str, str, str]] = set()
+        # Rooms deleted in the panel: their devices, switched off by the next cycle
+        self._deleted_rooms_to_switch_off: dict[str, list[dict]] = {}
         self._switch_entity_areas: set[str] = set()
         self._climate_control_switch_areas: set[str] = set()
         self._dry_switch_entity_areas: set[str] = set()
@@ -534,12 +537,17 @@ class RoomMindCoordinator(DataUpdateCoordinator):
             else:
                 self._dehumidifier_manager.prepare({}, settings, {}, {})
 
+        await self._async_switch_deleted_rooms_off(settings)
+
         room_order = sorted(
             rooms,
             key=lambda area_id: (-_coordination_priority(self.rooms.get(area_id, {})), area_id),
         )
         for rank, area_id in enumerate(room_order, start=1):
             room = rooms[area_id]
+            # Live, not this cycle's snapshot: a room deleted while the cycle awaited another room
+            if store.get_room(area_id) is None:
+                continue
             try:
                 room_state = await self._async_process_room(
                     room,
@@ -2802,6 +2810,44 @@ class RoomMindCoordinator(DataUpdateCoordinator):
                     return MODE_HEATING
                 continue
         return MODE_IDLE
+
+    def note_room_deleted(self, area_id: str, room: dict) -> bool:
+        """Remember a room deleted in the panel, so the next cycle switches its devices off.
+
+        Returns False when RoomMind did not drive them (room control off, outdoor area):
+        then nothing is sent. Not now: a cycle running at the same time could still send
+        the room's last command after it.
+        """
+        if room.get("is_outdoor") or not room.get("climate_control_enabled", True):
+            return False
+        self._deleted_rooms_to_switch_off[area_id] = list(room.get("devices", []))
+        return True
+
+    async def _async_switch_deleted_rooms_off(self, settings: dict) -> None:
+        """Switch off the climate devices of rooms deleted since the last cycle.
+
+        Global climate control off drops them unsent: a device someone runs by hand while
+        RoomMind is off must stay on. A room created again meanwhile keeps its devices, and a
+        device another stored room still drives is left to that room. Checked against the
+        live store, not a cycle snapshot.
+        """
+        if not self._deleted_rooms_to_switch_off:
+            return
+        pending, self._deleted_rooms_to_switch_off = self._deleted_rooms_to_switch_off, {}
+        if not settings.get("climate_control_active", True):
+            return
+        stored = self.hass.data[DOMAIN]["store"].get_rooms()
+        driven = {eid for other in stored.values() for eid in get_all_entity_ids(other.get("devices", []))}
+        for area_id, devices in pending.items():
+            if area_id in stored:
+                continue
+            for eid in get_all_entity_ids(devices):
+                if eid in driven:
+                    continue
+                try:
+                    await async_turn_off_climate(self.hass, eid, area_id=area_id)
+                except Exception:  # noqa: BLE001
+                    _LOGGER.warning("Deleted room '%s': could not switch '%s' off", area_id, eid, exc_info=True)
 
     def _warn_block_temp_rejected(self, area_id: str, field: str, raw: Any) -> None:
         """Log a rejected schedule block temperature once per distinct value."""

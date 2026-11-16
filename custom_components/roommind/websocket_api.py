@@ -731,6 +731,10 @@ async def websocket_delete_room(
                 _LOGGER.exception("Failed to release dehumidifier before deleting room '%s'", area_id)
                 connection.send_error(msg["id"], "device_error", "Could not stop the dehumidifier")
                 return
+        if existing and coordinator:
+            # The next cycle switches the room's climate devices off (not now: a cycle in
+            # flight could still send the room's last command after it).
+            coordinator.note_room_deleted(area_id, existing)
         try:
             await store.async_delete_room(area_id)
         except KeyError:

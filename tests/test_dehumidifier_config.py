@@ -133,7 +133,10 @@ async def test_non_finite_setting_rejected(registration):
 
 def attach_coordinator(hass, *, owned=False):
     coordinator = SimpleNamespace(
-        _dehumidifier_manager=DehumidifierManager(hass), async_room_added=AsyncMock(), async_room_removed=AsyncMock()
+        _dehumidifier_manager=DehumidifierManager(hass),
+        async_room_added=AsyncMock(),
+        async_room_removed=AsyncMock(),
+        note_room_deleted=MagicMock(return_value=True),
     )
     hass.data[DOMAIN]["coordinator"] = coordinator
     if owned:

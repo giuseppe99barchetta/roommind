@@ -620,6 +620,10 @@ async def test_delete_room_notifies_coordinator(ws_hass, store, connection):
     await _delete_room(ws_hass, connection, delete_msg)
 
     mock_coordinator.async_room_removed.assert_called_once_with("cellar")
+    # Recorded while the room still existed, so the next cycle switches its devices off (W1.6)
+    mock_coordinator.note_room_deleted.assert_called_once()
+    assert mock_coordinator.note_room_deleted.call_args.args[0] == "cellar"
+    assert mock_coordinator.note_room_deleted.call_args.args[1]["area_id"] == "cellar"
 
 
 @pytest.mark.asyncio
