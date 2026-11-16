@@ -6,7 +6,7 @@ import asyncio
 import logging
 import time
 from collections.abc import AsyncIterator, Callable
-from contextlib import asynccontextmanager
+from contextlib import AsyncExitStack, asynccontextmanager
 from datetime import timedelta
 from functools import partial
 from typing import Any
@@ -3300,12 +3300,18 @@ class RoomMindCoordinator(DataUpdateCoordinator):
                 pending.forget_area(area_id)
             elif not room.get(REST_SWITCHED_OFF) and self._room_rest_shutdown_wanted(room):
                 pending.queue(area_id, list(room.get("devices", [])), now)
-        for eid, entry in pending.open_entries():
-            # Serialized with the room's commands: a cycle holding the lock finishes first,
-            # and one waiting for it carries a stale generation and sends nothing.
-            async with self._room_command_locks.setdefault(entry["areas"][0], asyncio.Lock()):
+        for eid, open_entry in pending.open_entries():
+            # Serialized with the commands of every room waiting for it (in a fixed order): a
+            # cycle holding a lock finishes first, one waiting carries a stale generation.
+            async with AsyncExitStack() as locks:
+                for lock_area in sorted(open_entry["areas"]):
+                    await locks.enter_async_context(self._room_command_locks.setdefault(lock_area, asyncio.Lock()))
                 if not self._live_climate_control_active():
                     break
+                # Re-read after the wait: a resume or another pass may have settled or dropped it
+                entry = pending.get(eid)
+                if entry is None or not entry["areas"] or entry["outcome"] is not None:
+                    continue
                 # The boiler manager owns the hydraulic bypass TRVs: it opens and releases them
                 if eid in self._running_devices() or eid in bypass_entities(store.get_settings()):
                     pending.resolve(eid, "driven")
@@ -3367,6 +3373,7 @@ class RoomMindCoordinator(DataUpdateCoordinator):
                         device,
                         None,
                         self._live_climate_control_active() and room.get("climate_control_enabled", True),
+                        keep_learned=True,
                     )
                 except Exception:  # noqa: BLE001
                     _LOGGER.warning("Room '%s' rests: could not release its dehumidifier", area_id, exc_info=True)

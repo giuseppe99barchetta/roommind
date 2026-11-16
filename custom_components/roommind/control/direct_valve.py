@@ -267,8 +267,16 @@ async def async_release_orphaned_valves(
             )
 
 
-async def async_release_all_valves(hass: HomeAssistant, configured: dict[str, ValveEntities]) -> None:
-    """Unload: stop pinning and hand every configured or still held valve back."""
+async def async_release_all_valves(
+    hass: HomeAssistant,
+    configured: dict[str, ValveEntities],
+    *,
+    no_hand_back: frozenset[str] | set[str] = frozenset(),
+) -> None:
+    """Unload: stop pinning and hand every configured or still held valve back.
+
+    ``no_hand_back``: TRVs released without a setpoint (a resting room's, #494).
+    """
     global _stopped  # noqa: PLW0603
     _stopped = True
     valves = {eid: held.valve for eid, held in _valve_sent.items()} | configured
@@ -280,7 +288,7 @@ async def async_release_all_valves(hass: HomeAssistant, configured: dict[str, Va
                 valve.opening,
                 valve.closing,
                 area_id="unload",
-                hand_back=True,
+                hand_back=climate_eid not in no_hand_back,
                 idle_opening=valve.idle_opening,
             )
         except Exception:  # noqa: BLE001

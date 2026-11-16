@@ -386,3 +386,93 @@ async def test_room_paused_while_it_is_processed_is_not_published(hass, mock_con
         result = await coordinator._async_update_data()
     assert aid not in result["rooms"]
     assert aid not in coordinator._previous_modes
+
+
+@pytest.mark.asyncio
+async def test_shared_device_shutdown_waits_for_every_waiting_rooms_command(hass, mock_config_entry):
+    """B2-01: a command of the second room in flight finishes before the shutdown."""
+    import asyncio
+
+    store = FakeStore({"bed": _room("bed", "climate.shared_ac"), "office": _room("office", "climate.shared_ac")})
+    _states(hass, {"climate.shared_ac": "heat"})
+    coordinator = _coord(hass, mock_config_entry, store)
+    office_lock = coordinator._room_command_locks.setdefault("office", asyncio.Lock())
+    with areas_missing("bed", "office"), patch(TURN_OFF, new=AsyncMock()) as turn_off:
+        await office_lock.acquire()
+        task = asyncio.ensure_future(coordinator._async_process_pending_shutdowns())
+        await asyncio.sleep(0)
+        await asyncio.sleep(0)
+        turn_off.assert_not_awaited()
+        office_lock.release()
+        await task
+    assert _sent(turn_off) == ["climate.shared_ac"]
+
+
+@pytest.mark.asyncio
+async def test_resume_while_the_shutdown_waits_for_the_lock_sends_nothing(hass, mock_config_entry):
+    """B2-02: the entry is re-read after the wait; a resumed room's device is left alone."""
+    import asyncio
+
+    store = FakeStore({"bed": _room("bed", "climate.bed_ac")})
+    _states(hass, {"climate.bed_ac": "heat"})
+    coordinator = _coord(hass, mock_config_entry, store)
+    lock = coordinator._room_command_locks.setdefault("bed", asyncio.Lock())
+    with areas_missing("bed"), patch(TURN_OFF, new=AsyncMock()) as turn_off:
+        await lock.acquire()
+        task = asyncio.ensure_future(coordinator._async_process_pending_shutdowns())
+        await asyncio.sleep(0)
+        coordinator._pending_shutdowns.forget_area("bed")  # what a resume does
+        lock.release()
+        await task
+    turn_off.assert_not_awaited()
+
+
+@pytest.mark.asyncio
+async def test_pause_keeps_the_dehumidifiers_learned_drying_rate(hass):
+    """B2-03: a resting room keeps what was learned; only a deletion forgets it."""
+    from custom_components.roommind.managers.dehumidifier_manager import DehumidifierManager
+
+    manager = DehumidifierManager(hass)
+    device = {"entity_id": "switch.dryer", "mode": "auto"}
+    manager.learned["switch.dryer"] = MagicMock()
+    await manager.release(device, None, True, keep_learned=True)
+    assert "switch.dryer" in manager.learned
+    await manager.release(device, None, True)
+    assert "switch.dryer" not in manager.learned
+
+
+@pytest.mark.asyncio
+async def test_unload_releases_a_resting_rooms_valve_without_its_target(hass):
+    """B2-04: unload right after an area removal must not hand the old target back."""
+    from custom_components.roommind import _async_release_all_valves
+    from custom_components.roommind.const import DOMAIN
+
+    def _valve_room(area_id, eid):
+        return {
+            "area_id": area_id,
+            "devices": [
+                {
+                    "entity_id": eid,
+                    "type": "trv",
+                    "role": "auto",
+                    "valve_opening_entity": f"number.{area_id}_open",
+                    "valve_closing_entity": f"number.{area_id}_close",
+                }
+            ],
+        }
+
+    store = FakeStore(
+        {"bed": _valve_room("bed", "climate.bed_trv"), "living": _valve_room("living", "climate.living_trv")}
+    )
+    hass.data = {DOMAIN: {"store": store}}
+    with (
+        areas_missing("bed"),
+        patch(
+            "custom_components.roommind.__init__.rooms_with_area",
+            side_effect=lambda h, rooms: {a: r for a, r in rooms.items() if a != "bed"},
+        ),
+        patch("custom_components.roommind.control.direct_valve.async_release_valve", new=AsyncMock()) as release,
+    ):
+        await _async_release_all_valves(hass)
+    hand_back = {c.args[1]: c.kwargs["hand_back"] for c in release.await_args_list}
+    assert hand_back == {"climate.bed_trv": False, "climate.living_trv": True}

@@ -25,7 +25,8 @@ from .const import DOMAIN, PLATFORMS, VERSION
 from .control.direct_valve import async_release_all_valves, clear_valve_cache
 from .coordinator import RoomMindCoordinator
 from .store import RoomMindStore
-from .utils.device_utils import configured_valves
+from .utils.area_utils import rooms_with_area
+from .utils.device_utils import configured_valves, get_all_entity_ids
 from .websocket_api import async_register_websocket_commands
 
 _LOGGER = logging.getLogger(__name__)
@@ -265,4 +266,14 @@ async def _async_release_all_valves(hass: HomeAssistant) -> None:
     A reload pins them again on the next cycle.
     """
     store = hass.data.get(DOMAIN, {}).get("store")
-    await async_release_all_valves(hass, configured_valves(store.get_rooms()) if store is not None else {})
+    if store is None:
+        await async_release_all_valves(hass, {})
+        return
+    rooms = store.get_rooms()
+    running = rooms_with_area(hass, rooms)
+    running_eids = {e for r in running.values() for e in get_all_entity_ids(r.get("devices", []))}
+    # A resting room's valve goes back without its old target (#494)
+    resting_eids = {
+        e for a, r in rooms.items() if a not in running for e in get_all_entity_ids(r.get("devices", []))
+    } - running_eids
+    await async_release_all_valves(hass, configured_valves(rooms), no_hand_back=resting_eids)

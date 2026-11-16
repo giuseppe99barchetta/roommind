@@ -66,6 +66,10 @@ class PendingShutdowns:
         """Entries still without an outcome, in queue order."""
         return [(eid, e) for eid, e in self._entries.items() if e["outcome"] is None]
 
+    def get(self, entity_id: str) -> dict[str, Any] | None:
+        """The live entry of *entity_id* (None once dropped)."""
+        return self._entries.get(entity_id)
+
     def resolve(self, entity_id: str, outcome: str) -> None:
         entry = self._entries.get(entity_id)
         if entry is not None and entry["outcome"] != outcome:

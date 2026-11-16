@@ -709,8 +709,12 @@ class DehumidifierManager:
             "assigned_entity_id": self.assignments.get(area_id),
         }
 
-    async def release(self, old: dict | None, new: dict | None, enabled: bool) -> None:
-        """Stop only our own run before a registration is removed/replaced."""
+    async def release(self, old: dict | None, new: dict | None, enabled: bool, *, keep_learned: bool = False) -> None:
+        """Stop only our own run before a registration is removed/replaced.
+
+        ``keep_learned``: the registration stays (its room rests, #494): the learned drying
+        rate is kept for when the room runs again.
+        """
         if old and new and old["entity_id"] == new["entity_id"] and new.get("mode", "auto") == "manual":
             self.runtime.pop(old["entity_id"], None)
         if (
@@ -732,4 +736,5 @@ class DehumidifierManager:
                 eid.split(".")[0], "turn_off", {"entity_id": eid}, blocking=True, context=make_roommind_context()
             )
         self.runtime.pop(eid, None)
-        self.learned.pop(eid, None)
+        if not keep_learned:
+            self.learned.pop(eid, None)
