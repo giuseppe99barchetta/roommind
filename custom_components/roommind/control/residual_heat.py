@@ -22,6 +22,7 @@ def compute_residual_heat(
     heating_duration_minutes: float = 0.0,
     scale: float = 1.0,
     tau_minutes: float | None = None,
+    cutoff: bool = True,
 ) -> float:
     """Compute normalised residual heat fraction after heating stopped.
 
@@ -41,6 +42,8 @@ def compute_residual_heat(
             (``ResidualHeatLearner``); 1.0 is the profile as is.
         tau_minutes: Learned per-room decay time; None uses the profile's. The charge
             time stays the profile's.
+        cutoff: Treat values below ``RESIDUAL_HEAT_CUTOFF`` as zero (control). The
+            afterglow learner compares against the uncut decay: a real radiator has no cutoff.
 
     Returns:
         Residual heat fraction in [0, initial_fraction * scale].  Returns 0.0 for unknown or empty
@@ -64,7 +67,7 @@ def compute_residual_heat(
         charge_fraction = 1.0  # assume fully charged if duration unknown
 
     q = initial * scale * charge_fraction * math.exp(-elapsed_minutes / tau) * last_power_fraction
-    return q if q >= RESIDUAL_HEAT_CUTOFF else 0.0
+    return q if q >= RESIDUAL_HEAT_CUTOFF or not cutoff else 0.0
 
 
 def build_residual_series(

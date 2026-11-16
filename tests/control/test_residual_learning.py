@@ -161,11 +161,18 @@ def _replay(
     restart_at: float | None = None,
     cool_at: float | None = None,
     missing_at: float | None = None,
+    commanded_heating: bool = False,
+    extra: tuple[float, ...] = (),
+    skip: tuple[float, ...] = (),
 ) -> float | None:
     """Heat for *run_minutes* at *delivered* power, then replay the room cooling after the stop,
-    warmed by *true_scale* x the radiator profile (decay *true_tau*, power *true_power*)."""
+    warmed by *true_scale* x a continuously decaying radiator afterglow (decay *true_tau*,
+    power *true_power*). *commanded_heating*: heating stays commanded while the radiators deliver
+    nothing. *extra* / *skip*: refreshes (minutes after the stop) added to or missing from the
+    30 s grid."""
     delivered = true_power if delivered is None else delivered
     kwargs = dict(model=ROOM, system_type="radiator", T_outdoor=5.0, dt_minutes=DT, q_solar=0.0, q_occupancy=0.0)
+    after_mode, after_power = (MODE_HEATING, 0.0) if commanded_heating else (MODE_IDLE, None)
     t, T = 1000.0, 21.0
     with patch(TIME) as clock:
         for _ in range(int(run_minutes / DT)):
@@ -179,46 +186,78 @@ def _replay(
             t += DT * 60
         clock.time.return_value = t  # the stop
         assert (
-            learner.step("r", mode=MODE_IDLE, delivered_power=None, current_temp=T, disturbed=False, **kwargs) is None
+            learner.step("r", mode=after_mode, delivered_power=after_power, current_temp=T, disturbed=False, **kwargs)
+            is None
         )
         stop = t
-        elapsed = DT
-        while elapsed <= window + 1e-9:
-            t = stop + elapsed * 60
-            clock.time.return_value = t
-            mode = MODE_IDLE
+        grid = [round(DT * k, 6) for k in range(1, int(window / DT) + 1)]
+        times = sorted({e for e in grid if all(abs(e - x) > 1e-9 for x in skip)} | set(extra))
+        last = 0.0
+        for elapsed in times:
+            clock.time.return_value = stop + elapsed * 60
+            mode, power = after_mode, after_power
             if restart_at is not None and elapsed >= restart_at:
-                mode = MODE_HEATING
+                mode, power = MODE_HEATING, delivered
             if cool_at is not None and elapsed >= cool_at:
-                mode = MODE_COOLING
-            if mode == MODE_IDLE:
-                q = compute_residual_heat(elapsed - DT / 2, "radiator", true_power, run_minutes, true_scale, true_tau)
-                T = ROOM.predict(T, 5.0, 0.0, DT, q_residual=q)
+                mode, power = MODE_COOLING, None
+            if power is None or power == 0.0:
+                step = elapsed - last
+                q = compute_residual_heat(
+                    elapsed - step / 2, "radiator", true_power, run_minutes, true_scale, true_tau, cutoff=False
+                )
+                T = ROOM.predict(T, 5.0, 0.0, step, q_residual=q)
+            last = elapsed
             reading = None if missing_at is not None and elapsed >= missing_at else T
             sample = learner.step(
                 "r",
                 mode=mode,
-                delivered_power=delivered if mode == MODE_HEATING else None,
+                delivered_power=power,
                 current_temp=reading,
                 disturbed=disturb_at is not None and elapsed >= disturb_at,
                 **kwargs,
             )
-            if sample is not None or mode != MODE_IDLE or reading is None:
+            if sample is not None or (power or 0.0) > 0 or mode == MODE_COOLING or reading is None:
                 return sample
-            elapsed += DT
     return None
 
 
 @pytest.mark.parametrize("true_scale", [0.5, 1.0, 3.0])
 def test_learner_recovers_the_true_scale(true_scale):
-    assert _replay(ResidualHeatLearner(), true_scale=true_scale) == pytest.approx(true_scale, rel=0.1)
+    # Tight: the learner compares against the uncut decay, as the physical afterglow is
+    assert _replay(ResidualHeatLearner(), true_scale=true_scale) == pytest.approx(true_scale, rel=0.02)
+
+
+@pytest.mark.parametrize("true_scale", [0.5, 3.0])
+@pytest.mark.parametrize("true_power", [0.4, 1.0])
+def test_learner_is_unbiased_by_the_control_cutoff(true_scale, true_power):
+    """The control cutoff no longer cuts the reference tail: the tail at any scale and opening reads true."""
+    sample = _replay(ResidualHeatLearner(), true_scale=true_scale, true_power=true_power)
+    assert sample == pytest.approx(true_scale, rel=0.02)
+    assert compute_residual_heat(50.0, "radiator", 0.4, 60.0) == 0.0  # control keeps its cutoff
+    assert compute_residual_heat(50.0, "radiator", 0.4, 60.0, cutoff=False) > 0.0
+
+
+def test_radiator_that_stops_delivering_ends_the_run_while_heating_is_commanded():
+    """A TRV that closed on its own: the stop is when its heat ended, not the next idle cycle."""
+    learner = ResidualHeatLearner()
+    assert _replay(learner, true_scale=2.0, commanded_heating=True) == pytest.approx(2.0, rel=0.02)
+
+
+def test_early_refreshes_are_measured_over_their_real_interval():
+    extra = tuple(DT * k + DT / 3 for k in range(0, 100, 3))
+    assert _replay(ResidualHeatLearner(), true_scale=2.0, extra=extra) == pytest.approx(2.0, rel=0.02)
+
+
+def test_a_missed_cycle_drops_the_observation():
+    learner = ResidualHeatLearner()
+    assert _replay(learner, true_scale=2.0, skip=(10.0, 10.5, 11.0)) is None
+    assert learner._obs == {}
 
 
 def test_held_opening_is_the_run_power():
     """A pinned valve at 40 % charges the radiator at 40 %: the learner weighs the run at 0.4."""
-    # Looser than at full power: the replayed afterglow hits RESIDUAL_HEAT_CUTOFF sooner at 40 %
     right = _replay(ResidualHeatLearner(), true_scale=2.0, true_power=0.4)
-    assert right == pytest.approx(2.0, rel=0.15)
+    assert right == pytest.approx(2.0, rel=0.02)
     # Weighed at full power, the same afterglow would read as a much smaller radiator
     wrong = _replay(ResidualHeatLearner(), true_scale=2.0, true_power=0.4, delivered=1.0)
     assert wrong is not None and wrong < 0.5 * right
@@ -267,6 +306,10 @@ def test_heating_without_delivered_heat_starts_no_run():
     for power in (None, 0.0):
         learner.step("r", mode=MODE_HEATING, delivered_power=power, current_temp=20.0, disturbed=False, **kwargs)
     assert learner._runs == {}
+    # No radiator in a known state while heating: the run in progress is dropped
+    learner.step("r", mode=MODE_HEATING, delivered_power=1.0, current_temp=20.0, disturbed=False, **kwargs)
+    learner.step("r", mode=MODE_HEATING, delivered_power=None, current_temp=20.0, disturbed=False, **kwargs)
+    assert learner._runs == {} and learner._obs == {}
     learner.step("r", mode=MODE_IDLE, delivered_power=None, current_temp=20.0, disturbed=False, **kwargs)
     assert learner._obs == {}
 

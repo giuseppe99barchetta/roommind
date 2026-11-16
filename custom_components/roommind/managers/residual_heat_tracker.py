@@ -87,6 +87,7 @@ class _Observation:
 
     stop: float
     T_prev: float
+    t_prev: float  # when T_prev was read
     system_type: str
     run_minutes: float
     run_power: float
@@ -100,7 +101,9 @@ class _Observation:
         """Cumulative rise (K) the afterglow at scale 1 and decay time *tau* predicts per step."""
         total, out = 0.0, []
         for mid, gain, _ in self.steps:
-            total += gain * compute_residual_heat(mid, self.system_type, self.run_power, self.run_minutes, 1.0, tau)
+            total += gain * compute_residual_heat(
+                mid, self.system_type, self.run_power, self.run_minutes, 1.0, tau, cutoff=False
+            )
             out.append(total)
         return out
 
@@ -171,25 +174,32 @@ class ResidualHeatLearner:
     ) -> float | None:
         """Advance one cycle. Returns a residual scale sample when an observation completes.
 
-        *delivered_power*: the radiators' delivered power this cycle while heating (None or 0
-        when no radiator delivers heat).
+        *delivered_power*: the radiators' delivered power this cycle while heating: 0 when the
+        driven radiators deliver nothing (a TRV that closed on its own), None when no radiator
+        is driven in a known state. A heating cycle delivering nothing counts as idle: the
+        run stopped there, even though heating is still commanded.
         """
-        if not system_type or disturbed or current_temp is None or T_outdoor is None:
+        if (
+            not system_type
+            or disturbed
+            or current_temp is None
+            or T_outdoor is None
+            or (mode == MODE_HEATING and delivered_power is None)
+        ):
             self.remove_room(area_id)
             return None
         now = time.time()
-        if mode == MODE_HEATING:
+        if mode == MODE_HEATING and delivered_power is not None and delivered_power > 0:
             obs = self._obs.pop(area_id, None)
             sample = None
             if obs is not None and (now - obs.stop) / 60.0 >= RESIDUAL_LEARN_MIN_MINUTES:
                 # Restarted: what was seen so far still counts when it was long enough
                 sample = self._sample(obs, tau_minutes)
-            if delivered_power is not None and delivered_power > 0:
-                run = self._runs.setdefault(area_id, _Run(start=now))
-                run.power_sum += delivered_power
-                run.cycles += 1
+            run = self._runs.setdefault(area_id, _Run(start=now))
+            run.power_sum += delivered_power
+            run.cycles += 1
             return sample
-        if mode != MODE_IDLE:
+        if mode not in (MODE_IDLE, MODE_HEATING):
             self.remove_room(area_id)
             return None
         ended = self._runs.pop(area_id, None)
@@ -198,6 +208,7 @@ class ResidualHeatLearner:
             self._obs[area_id] = _Observation(
                 stop=now,
                 T_prev=current_temp,
+                t_prev=now,
                 system_type=system_type,
                 run_minutes=(now - ended.start) / 60.0,
                 run_power=ended.power,
@@ -206,19 +217,25 @@ class ResidualHeatLearner:
         obs = self._obs.get(area_id)
         if obs is None:
             return None
+        # The step is the real time since the last reading: refreshes come early or late
+        step_minutes = (now - obs.t_prev) / 60.0
+        if step_minutes <= 0:
+            return None
         minutes = (now - obs.stop) / 60.0
-        if minutes > RESIDUAL_LEARN_WINDOW_MINUTES + dt_minutes:
+        if step_minutes > 2 * dt_minutes or minutes > RESIDUAL_LEARN_WINDOW_MINUTES + dt_minutes:
+            # A missed cycle leaves a step whose inputs (outdoor, sun) were not seen
             self._obs.pop(area_id, None)
             return None
-        mid = max(0.0, minutes - dt_minutes / 2)
-        base = model.predict(obs.T_prev, T_outdoor, 0.0, dt_minutes, q_solar=q_solar, q_occupancy=q_occupancy)
+        mid = max(0.0, minutes - step_minutes / 2)
+        base = model.predict(obs.T_prev, T_outdoor, 0.0, step_minutes, q_solar=q_solar, q_occupancy=q_occupancy)
         with_unit = model.predict(
-            obs.T_prev, T_outdoor, 0.0, dt_minutes, q_solar=q_solar, q_occupancy=q_occupancy, q_residual=1.0
+            obs.T_prev, T_outdoor, 0.0, step_minutes, q_solar=q_solar, q_occupancy=q_occupancy, q_residual=1.0
         )
         excess = current_temp - base
         obs.measured_excess += excess
         obs.steps.append((mid, with_unit - base, excess))
         obs.T_prev = current_temp
+        obs.t_prev = now
         if minutes < RESIDUAL_LEARN_WINDOW_MINUTES:
             return None
         self._obs.pop(area_id, None)
