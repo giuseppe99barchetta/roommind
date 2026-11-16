@@ -86,6 +86,11 @@ def _now() -> float:
     return time.monotonic()
 
 
+def _carries_setpoint(data: dict) -> bool:
+    """A set_temperature payload with a single setpoint or a low/high range."""
+    return "temperature" in data or "target_temp_low" in data
+
+
 # A resolved target that moved by more than this since the last active command is a
 # deliberate change (°C)
 COMPRESSOR_HOLD_RETARGET_TOLERANCE = 0.05
@@ -2018,7 +2023,7 @@ class MPCController:
         change, idle, hold), a changed room target, a device that is not running in
         the commanded mode, and devices without usable state.
         """
-        if service != "set_temperature" or deadband is None or "temperature" not in data:
+        if service != "set_temperature" or deadband is None or not _carries_setpoint(data):
             return False
         if state is None or _should_use_cache(state):
             return False
@@ -2276,7 +2281,7 @@ class MPCController:
             )
             if eid:
                 _last_commands[eid] = _cache_entry(service, data)
-                if deadband is not None and service == "set_temperature" and "temperature" in data:
+                if deadband is not None and service == "set_temperature" and _carries_setpoint(data):
                     _proportional_sent[eid] = (_now(), self._current_target_pair(), _last_commands[eid])
                 else:
                     _proportional_sent.pop(eid, None)
