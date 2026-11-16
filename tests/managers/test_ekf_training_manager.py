@@ -20,7 +20,10 @@ def model_manager():
 
 @pytest.fixture
 def mgr(model_manager):
-    return EkfTrainingManager(model_manager)
+    m = EkfTrainingManager(model_manager)
+    m._synced.update({"r1", "room1"})
+    m._current.update({"r1", "room1"})
+    return m
 
 
 class TestFlush:
@@ -293,3 +296,76 @@ class TestClearAndRemove:
 
     def test_remove_nonexistent_room_no_error(self, mgr):
         mgr.remove_room("nonexistent")
+
+
+class TestResyncAfterGap:
+    """A stale model temperature (restart, skipped cycles) must not be learned as a jump (#478)."""
+
+    COMMON = dict(
+        T_outdoor=10.0,
+        ekf_mode="idle",
+        ekf_pf=0.0,
+        window_open=False,
+        raw_open=False,
+        q_residual=0.0,
+        shading_factor=1.0,
+        q_solar=0.0,
+        can_heat=True,
+        can_cool=False,
+        dt_minutes=0.5,
+    )
+
+    def test_first_cycle_after_start_syncs_instead_of_learning(self, model_manager):
+        mgr = EkfTrainingManager(model_manager)
+        mgr.process("r1", current_temp=20.2, **self.COMMON)
+        model_manager.sync_temperature.assert_called_once_with("r1", 20.2)
+        model_manager.update.assert_not_called()
+        assert "r1" not in mgr._accumulated_dt
+
+    def test_learning_resumes_after_the_sync(self, model_manager):
+        mgr = EkfTrainingManager(model_manager)
+        for _ in range(int(EKF_UPDATE_MIN_DT / 0.5) + 1):
+            mgr.process("r1", current_temp=20.2, **self.COMMON)
+        model_manager.sync_temperature.assert_called_once()
+        model_manager.update.assert_called_once()
+        assert model_manager.update.call_args.args[4] == pytest.approx(EKF_UPDATE_MIN_DT)
+
+    def test_skipped_cycles_resync(self, mgr, model_manager):
+        """Training paused (sensor gone, learning off): the next cycle syncs again."""
+        mgr.clear("r1")
+        mgr.process("r1", current_temp=18.0, **self.COMMON)
+        model_manager.sync_temperature.assert_called_once_with("r1", 18.0)
+
+    def test_skipped_training_without_resync_keeps_learning(self, mgr, model_manager):
+        """A compressor hold resumes without a resync, as before #478."""
+        mgr.clear("r1", resync=False)
+        mgr.process("r1", current_temp=18.0, **self.COMMON)
+        model_manager.sync_temperature.assert_not_called()
+        assert mgr._accumulated_dt["r1"] == pytest.approx(0.5)
+
+    def test_unobservable_mode_resyncs_afterwards(self, mgr, model_manager):
+        mgr.process("r1", current_temp=20.0, **{**self.COMMON, "ekf_mode": None})
+        mgr.process("r1", current_temp=19.0, **self.COMMON)
+        model_manager.sync_temperature.assert_called_once_with("r1", 19.0)
+
+    def test_window_after_gap_tracks_temperature_without_learning_k_window(self, model_manager):
+        mgr = EkfTrainingManager(model_manager)
+        mgr.process("r1", current_temp=18.0, **{**self.COMMON, "window_open": True})
+        assert model_manager.update_window_open.call_args.kwargs["learn_k_window"] is False
+        mgr.process("r1", current_temp=17.8, **{**self.COMMON, "window_open": True})
+        assert model_manager.update_window_open.call_args.kwargs["learn_k_window"] is True
+
+    def test_window_after_a_pause_without_resync_does_not_learn_k_window(self, mgr, model_manager):
+        mgr.clear("r1", resync=False)
+        mgr.process("r1", current_temp=18.0, **{**self.COMMON, "window_open": True})
+        assert model_manager.update_window_open.call_args.kwargs["learn_k_window"] is False
+
+    def test_window_keeps_the_room_synced(self, mgr, model_manager):
+        mgr.process("r1", current_temp=18.0, **{**self.COMMON, "window_open": True})
+        mgr.process("r1", current_temp=18.5, **self.COMMON)
+        model_manager.sync_temperature.assert_not_called()
+
+    def test_synced_room_keeps_learning(self, mgr, model_manager):
+        mgr.process("r1", current_temp=20.0, **self.COMMON)
+        model_manager.sync_temperature.assert_not_called()
+        assert mgr._accumulated_dt["r1"] == pytest.approx(0.5)
