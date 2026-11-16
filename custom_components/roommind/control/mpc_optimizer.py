@@ -5,8 +5,15 @@ from __future__ import annotations
 import math
 from dataclasses import dataclass, field
 
-from ..const import HEATING_SYSTEM_PROFILES, MIN_POWER_FRACTION, MODE_COOLING, MODE_HEATING, MODE_IDLE
-from .residual_heat import compute_residual_heat
+from ..const import (
+    DEFAULT_COMFORT_WEIGHT,
+    HEATING_SYSTEM_PROFILES,
+    MIN_POWER_FRACTION,
+    MODE_COOLING,
+    MODE_HEATING,
+    MODE_IDLE,
+)
+from .residual_heat import compute_residual_heat, get_min_run_blocks
 from .thermal_model import RCModel
 
 # Base lookahead for per-block decision cost evaluation. Radiator / unknown
@@ -19,6 +26,21 @@ LOOKAHEAD_HORIZON_SCALE = 1.0
 # Predictions are clamped to [temp_min, temp_max], but never closer than this to where the
 # room starts: a room already past a bound must still see which action moves it back (#462).
 CLAMP_HEADROOM_K = 5.0
+# A pre-heat must reach a rising heat target within this margin at the block it starts.
+PREHEAT_DEADLINE_MARGIN = 0.1
+# A running pre-heat continues while waiting this long (1 h) would miss the target.
+PREHEAT_CONTINUE_BLOCKS = 12
+# Pre-heat lead at the default comfort weight; the slider scales it down to 0 at full efficiency.
+PREHEAT_MAX_LEAD_HOURS = 12.0
+
+
+def preheat_max_blocks(comfort_weight: float, dt_minutes: float = 5.0) -> int | None:
+    """Pre-heat lead the comfort/efficiency slider allows: the default and above
+    plan up to the horizon, towards efficiency the lead shrinks to none."""
+    if comfort_weight >= DEFAULT_COMFORT_WEIGHT:
+        return None
+    hours = PREHEAT_MAX_LEAD_HOURS * max(0.0, comfort_weight) / DEFAULT_COMFORT_WEIGHT
+    return int(hours * 60 / dt_minutes)
 
 
 @dataclass
@@ -32,6 +54,9 @@ class MPCPlan:
     # Per-system decision lookahead used when building this plan. Exposed so
     # the controller's safety guard can align its horizon with the optimizer's.
     lookahead_blocks: int = LOOKAHEAD_BASE_BLOCKS
+    # Blocks to the rising heat target the first block pre-heats for (0: none), so the
+    # controller's guard looks that far ahead instead of overruling the pre-heat.
+    preheat_blocks: int = 0
 
     def get_current_action(self) -> str:
         """Return the action for the current (first) time block."""
@@ -69,6 +94,8 @@ class MPCOptimizer:
     gate_rescue: dict[str, bool] = field(default_factory=dict)
     heating_system_type: str = ""  # key into HEATING_SYSTEM_PROFILES; "" = unknown
     approach_rate: float = 1.0  # fraction of remaining gap closed per block; 1.0 = legacy deadbeat
+    # Longest pre-heat lead the deadline may plan (blocks); None = up to the horizon.
+    preheat_max_blocks: int | None = None
 
     def __post_init__(self) -> None:
         # Set before optimize() runs so callers / patched optimize() still expose
@@ -86,6 +113,7 @@ class MPCOptimizer:
         solar_series: list[float] | None = None,
         residual_series: list[float] | None = None,
         occupancy_series: list[float] | None = None,
+        initial_mode: str = MODE_IDLE,
     ) -> MPCPlan:
         """Find optimal action sequence over the planning horizon.
 
@@ -133,6 +161,10 @@ class MPCOptimizer:
         current_temp = T_room
         current_mode = MODE_IDLE
         blocks_in_mode = 0
+        preheat_blocks = 0
+        # UFH keeps its own pre-heat (longer lookahead with synthesized afterglow): heating
+        # a screed until the air reaches the target overshot by the stored heat.
+        slow_heat = self.min_run_blocks > get_min_run_blocks("", dt_minutes)
 
         for i in range(n_blocks):
             T_out = T_outdoor_series[i]
@@ -181,6 +213,50 @@ class MPCOptimizer:
                         best_cost = cost
                         best_action = action
 
+            deadline = 0
+            if best_action != MODE_HEATING and MODE_HEATING in available and not slow_heat:
+                deadline = self._preheat_deadline(
+                    i,
+                    current_temp,
+                    T_outdoor_series,
+                    heat_target_series,
+                    dt_minutes,
+                    q_solar=q_solar,
+                    q_occupancy=q_occupancy,
+                    # Only the deadlines read the mode before this plan (a running pre-heat goes on)
+                    continuing=(initial_mode if i == 0 else current_mode) == MODE_HEATING,
+                )
+                if deadline:
+                    best_action = MODE_HEATING
+                    if i == 0:
+                        preheat_blocks = deadline
+            # Also when the greedy step already cools: a room held at its eco target picks
+            # cooling at the edge, and without the lead the controller's start hysteresis
+            # turned that start down until the lower target was 30 min away. Never over a
+            # heating step.
+            if (
+                not deadline
+                and best_action != MODE_HEATING
+                and MODE_COOLING in available
+                and (best_action != MODE_COOLING or i == 0)
+            ):
+                lead = self._precool_deadline(
+                    i,
+                    current_temp,
+                    T_outdoor_series,
+                    cool_target_series,
+                    dt_minutes,
+                    q_solar=q_solar,
+                    q_occupancy=q_occupancy,
+                    q_residual=q_residual[i:],
+                    continuing=(initial_mode if i == 0 else current_mode) == MODE_COOLING,
+                )
+                if lead:
+                    deadline = lead
+                    best_action = MODE_COOLING
+                    if i == 0:
+                        preheat_blocks = lead
+
             # Compute proportional power fraction for this block
             # Use heat target for heating power, cool target for cooling power
             pf_target = heat_tgt if best_action == MODE_HEATING else cool_tgt
@@ -195,6 +271,8 @@ class MPCOptimizer:
             )
             if best_action == MODE_IDLE:
                 pf = 0.0
+            elif deadline:
+                pf = 1.0
             elif forced and (pf_mode != best_action or pf == 0.0):
                 # Past the target inside the min run: the controller continues at gentle
                 # power, so the plan must not show a full-power run (a phantom 1-3 K
@@ -261,7 +339,101 @@ class MPCOptimizer:
             dt_minutes=dt_minutes,
             power_fractions=power_fractions,
             lookahead_blocks=self._lookahead_blocks,
+            preheat_blocks=preheat_blocks,
         )
+
+    def _precool_deadline(
+        self,
+        i: int,
+        T_room: float,
+        T_outdoor_series: list[float],
+        cool_target_series: list[float],
+        dt_minutes: float,
+        *,
+        q_solar: list[float],
+        q_occupancy: list[float],
+        q_residual: list[float],
+        continuing: bool,
+    ) -> int:
+        """Blocks from *i* to the falling cool target that waiting would miss (mirror of ``_preheat_deadline``).
+
+        The greedy plan sees a lower cool target only ``_lookahead_blocks`` ahead, so a warm
+        room started cooling 30 min before the comfort block and reached it an hour late.
+        Waits one block (a running pre-cool ``PREHEAT_CONTINUE_BLOCKS``), then cools at full
+        power; if that misses a later, lower cool target, the pre-cool starts now. Same lead
+        limit (Priority slider) as pre-heating.
+        """
+        n = len(cool_target_series)
+        now = cool_target_series[i]
+        if self.preheat_max_blocks is not None:
+            n = min(n, i + self.preheat_max_blocks + 1)
+        if next((j for j in range(i + 1, n) if cool_target_series[j] < min(now, T_room)), None) is None:
+            return 0
+        wait = max(PREHEAT_CONTINUE_BLOCKS, self.min_run_blocks) if continuing else 1
+        T = T_room
+        for j in range(i, n - 1):
+            waiting = j < i + wait
+            Q = 0.0 if waiting else -self.model.Q_cool
+            T = self.model.predict(
+                T,
+                T_outdoor_series[j],
+                Q,
+                dt_minutes,
+                q_solar=q_solar[j] if j < len(q_solar) else 0.0,
+                q_occupancy=q_occupancy[j] if j < len(q_occupancy) else 0.0,
+                q_residual=(q_residual[j - i] if j - i < len(q_residual) else 0.0) if waiting else 0.0,
+            )
+            target = cool_target_series[j + 1]
+            if target < now and T > target + PREHEAT_DEADLINE_MARGIN:
+                return j + 1 - i
+        return 0
+
+    def _preheat_deadline(
+        self,
+        i: int,
+        T_room: float,
+        T_outdoor_series: list[float],
+        heat_target_series: list[float],
+        dt_minutes: float,
+        *,
+        q_solar: list[float],
+        q_occupancy: list[float],
+        continuing: bool = False,
+    ) -> int:
+        """Blocks from *i* to the rising heat target that waiting would miss.
+
+        The greedy decision only looks ``_lookahead_blocks`` ahead, so a schedule block
+        further away stayed invisible until shortly before it and a room with a radiator
+        sized to its heat load started too late. Waits one block, then heats at full
+        power: if that misses a later, higher heat target, the pre-heat starts now
+        (as late as possible). A run already heating keeps going while waiting
+        ``PREHEAT_CONTINUE_BLOCKS`` (at least the min run) would miss: re-checking a
+        single block switched it off and on at the edge. The Priority slider limits how
+        far ahead (``preheat_max_blocks``). 0 when no such target exists.
+        """
+        n = len(heat_target_series)
+        now = heat_target_series[i]
+        if self.preheat_max_blocks is not None:
+            n = min(n, i + self.preheat_max_blocks + 1)
+        rise = next((j for j in range(i + 1, n) if heat_target_series[j] > max(now, T_room)), None)
+        if rise is None:
+            return 0
+        wait = max(PREHEAT_CONTINUE_BLOCKS, self.min_run_blocks) if continuing else 1
+        T = T_room
+        for j in range(i, n - 1):
+            Q = 0.0 if j < i + wait else self.model.Q_heat
+            T = self.model.predict(
+                T,
+                T_outdoor_series[j],
+                Q,
+                dt_minutes,
+                q_solar=q_solar[j] if j < len(q_solar) else 0.0,
+                q_occupancy=q_occupancy[j] if j < len(q_occupancy) else 0.0,
+            )
+            target = heat_target_series[j + 1]
+            if target > now and T < target - PREHEAT_DEADLINE_MARGIN:
+                return j + 1 - i
+        return 0
 
     def _evaluate_action(
         self,

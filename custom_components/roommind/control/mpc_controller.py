@@ -55,7 +55,7 @@ from ..utils.temp_utils import (
     get_temperature_rounding_mode,
     quantize_temperature_to_step,
 )
-from .mpc_optimizer import MPCOptimizer, MPCPlan
+from .mpc_optimizer import MPCOptimizer, MPCPlan, preheat_max_blocks
 from .residual_heat import get_min_run_blocks
 from .thermal_model import RoomModelManager
 
@@ -899,6 +899,10 @@ class MPCController:
         self._shading_factor = shading_factor
         self.q_occupancy = q_occupancy
         self._idle_targets: TargetTemps | None = None
+        # Strictest heat / cool target within the MPC guard window (set by _evaluate_mpc): what a
+        # pre-heat or pre-cool works towards, for heat-source orchestration
+        self._lead_heat: float | None = None
+        self._lead_cool: float | None = None
         # Devices confirmed commanded into an active mode by the last async_apply
         # (failed service calls and deliberate idles are excluded).
         self.commanded_on: set[str] = set()
@@ -916,6 +920,8 @@ class MPCController:
         cw = s.get("comfort_weight", 70)
         self._w_comfort = max(1.0, cw / 10.0)
         self._w_energy = max(1.0, (100 - cw) / 10.0)
+        # How far ahead the pre-heat deadline may start a run (the Priority slider)
+        self._preheat_max_blocks = preheat_max_blocks(cw, PLAN_DT_MINUTES)
         self._approach_rate = min(1.0, APPROACH_RATE_MIN + (1.0 - APPROACH_RATE_MIN) * cw / DEFAULT_COMFORT_WEIGHT)
         self._ac_boost_delta = ac_boost_delta(s)
 
@@ -1115,6 +1121,7 @@ class MPCController:
             gate_rescue=self.room_config.get("_outdoor_gate_rescue") or {},
             heating_system_type=self._heating_system_type,
             approach_rate=self._approach_rate,
+            preheat_max_blocks=self._preheat_max_blocks,
         )
 
         plan = optimizer.optimize(
@@ -1126,6 +1133,7 @@ class MPCController:
             solar_series=solar_series,
             residual_series=residual_series,
             occupancy_series=occupancy_series,
+            initial_mode=self.previous_mode,
         )
         self.last_plan = plan
 
@@ -1139,7 +1147,9 @@ class MPCController:
         # matches the optimizer's per-system lookahead (read from the plan) so
         # mild-weather UFH pre-heat decisions don't get suppressed by a short
         # drift check.
-        guard_blocks = max(SAFETY_GUARD_MIN_BLOCKS, min_run, plan.lookahead_blocks)
+        guard_blocks = max(SAFETY_GUARD_MIN_BLOCKS, min_run, plan.lookahead_blocks, plan.preheat_blocks + 1)
+        self._lead_heat = max(heat_target_series[:guard_blocks]) if heat_target_series else None
+        self._lead_cool = min(cool_target_series[:guard_blocks]) if cool_target_series else None
         # Only a slow heating system (UFH) needs to start before the room drifts
         # past the target; cooling always runs on an AC.
         slow_heat = min_run > get_min_run_blocks("", PLAN_DT_MINUTES)
@@ -1436,6 +1446,20 @@ class MPCController:
         if await self._call("set_temperature", {"entity_id": eid, "temperature": round(level, 2)}, temp_intent=hvac):
             _hold_modulated.add(eid)
 
+    def direct_target(self, mode: str, target: float) -> float:
+        """Room target a heating/cooling run works towards while *mode* is active.
+
+        While MPC heats ahead of a stricter upcoming target, heat-source orchestration must
+        pick its sources against that target, else a pre-heat above the eco target parked
+        them all and nothing ran until the block began. Pre-cooling mirrored. Outside MPC
+        there is no lead and the target is returned as is.
+        """
+        if mode == MODE_HEATING and self._lead_heat is not None:
+            return max(target, self._lead_heat)
+        if mode == MODE_COOLING and self._lead_cool is not None:
+            return min(target, self._lead_cool)
+        return target
+
     def _evaluate_bangbang(
         self,
         current_temp: float | None,
@@ -1560,9 +1584,11 @@ class MPCController:
         if target_temp is None:
             return int(MIN_HORIZON_HOURS * 60 / PLAN_DT_MINUTES)
         delta = abs(current_temp - target_temp) + 3.0  # extra margin
-        Q_max = max(model.Q_heat, model.Q_cool)
-        if Q_max > 0:
-            rate = Q_max / (model.C * 60)  # °C/min approx
+        # The slower direction sets the horizon: a heat-only room keeps the untrained default
+        # cooling rate, and taking the faster one cut a slow room's pre-heat window to 2 h.
+        rates = [q for q in (model.Q_heat, model.Q_cool) if q > 0]
+        if rates:
+            rate = min(rates) / (model.C * 60)  # °C/min approx
             if rate > 0:
                 est_minutes = delta / rate
                 horizon_minutes = max(MIN_HORIZON_HOURS * 60, est_minutes * HORIZON_MULTIPLIER)
@@ -1848,6 +1874,8 @@ class MPCController:
 
         if mode == MODE_HEATING and heat_source_plan is not None:
             # Orchestrated heating: route power to specific devices per plan
+            # A pre-heat works towards the upcoming target the sources were picked for
+            effective_target = self.direct_target(mode, effective_target)
             for cmd in heat_source_plan.commands:
                 if cmd.entity_id in _exclude:
                     continue

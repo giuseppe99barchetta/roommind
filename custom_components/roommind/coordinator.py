@@ -1511,7 +1511,8 @@ class RoomMindCoordinator(DataUpdateCoordinator):
                     mode=mode,
                     power_fraction=power_fraction,
                     current_temp=current_temp,
-                    target_temp=targets.heat,
+                    # A pre-heat works towards the upcoming target: pick the sources for that one
+                    target_temp=controller.direct_target(mode, targets.heat) if targets.heat is not None else None,
                     outdoor_temp=self.outdoor_temp_effective,
                     previous_active_sources=previous_source,
                     hass=self.hass,
