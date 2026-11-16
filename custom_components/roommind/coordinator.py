@@ -214,6 +214,7 @@ ENERGY_ENTITY_SUFFIXES = (
 GLOBAL_ENTITY_UNIQUE_IDS = frozenset(
     {
         f"{DOMAIN}_vacation",
+        f"{DOMAIN}_climate_control",
         f"{DOMAIN}_boiler_demand",
         f"{DOMAIN}_available_power",
         f"{DOMAIN}_reserved_power",
