@@ -684,7 +684,8 @@ HARD_OVERSHOOT_CEILING = 1.0  # °C — model-independent max overshoot before f
 # A fast system only starts once the room is this far past the target: the optimizer
 # alone switched at the target itself, every other cycle. One sensor step for TRVs; an
 # AC heats and cools the air node directly, which drops back 0.2-0.3 K right after a
-# stop, so AC-served runs use the bang-bang hysteresis.
+# stop, so any run an AC takes part in (also TRV + heat pump rooms, orchestrated or
+# not) uses the bang-bang hysteresis.
 MPC_START_HYSTERESIS = 0.1
 _TEMP_EPSILON = 1e-6  # sensor floats like 20.899999999999 still read 20.9
 
@@ -960,7 +961,9 @@ class MPCController:
         """
         if self.previous_mode != mode or self._mode_on_since is None:
             return False
-        min_run_seconds = get_min_run_blocks(self._heating_system_type, PLAN_DT_MINUTES) * PLAN_DT_MINUTES * 60
+        # Cooling always runs on an AC; the UFH profile of a hybrid room is not its run time.
+        system = self._heating_system_type if mode == MODE_HEATING else ""
+        min_run_seconds = get_min_run_blocks(system, PLAN_DT_MINUTES) * PLAN_DT_MINUTES * 60
         return (time.time() - self._mode_on_since) < min_run_seconds
 
     def _predict_idle_drift(self, current_temp: float, dt_minutes: float) -> float:
@@ -1184,7 +1187,8 @@ class MPCController:
 
         if action == MODE_HEATING:
             if not slow_heat and self.previous_mode != MODE_HEATING and not heat_rising:
-                hysteresis = MPC_START_HYSTERESIS if self.thermostats else BANGBANG_HEAT_HYSTERESIS
+                ac_heats = check_acs_can_heat(self.hass, self.room_config)
+                hysteresis = BANGBANG_HEAT_HYSTERESIS if ac_heats or not self.thermostats else MPC_START_HYSTERESIS
                 if current_temp > heat_now - hysteresis - _TEMP_EPSILON:
                     return MODE_IDLE, 0.0
         elif action == MODE_COOLING:
