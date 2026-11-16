@@ -107,6 +107,17 @@ async def test_changed_target_in_a_hold_carries_the_head_offset_only_when_on(off
 
 
 @pytest.mark.asyncio
+async def test_overshoot_stop_in_a_hold_is_not_shifted():
+    """Past the cooling target a heating unit must stop: the plain heat target goes out, no offset."""
+    hass, ctrl = _setup(_state())
+    ctrl._head_offsets = lambda eid, intent: 4.0
+    (call,) = await _start_then_hold(
+        hass, ctrl, TargetTemps(heat=20.0, cool=23.0), current_temp=23.0, started_with=TargetTemps(heat=20.0, cool=23.0)
+    )
+    assert call["temperature"] == 20.0
+
+
+@pytest.mark.asyncio
 async def test_change_is_sent_once_while_the_hold_continues():
     hass, ctrl = _setup(_state())
     lowered = TargetTemps(heat=17.0, cool=27.0)

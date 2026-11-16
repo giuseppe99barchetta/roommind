@@ -2644,6 +2644,17 @@ class RoomMindCoordinator(DataUpdateCoordinator):
         )
         _all_direct = bool(_mode_relevant_eids) and _mode_relevant_eids <= _direct_eids
         _ac_shift = self._ac_display_shift(room, settings, mode)
+        _active_ac_shifts = (
+            {
+                c.entity_id: self._head_offsets.offset(c.entity_id, "heat" if mode == MODE_HEATING else "cool")
+                for c in heat_source_plan.commands
+                if c.device_type == "ac"
+            }
+            if heat_source_plan is not None
+            and settings.get("ac_head_offset_enabled", False)
+            and mode in (MODE_HEATING, MODE_COOLING)
+            else {}
+        )
 
         return {
             "area_id": area_id,
@@ -2664,7 +2675,7 @@ class RoomMindCoordinator(DataUpdateCoordinator):
                 ac_device_max_temp,
                 direct_eids=_direct_eids,
                 ac_delta=ac_boost_delta(settings),
-                ac_shift=_ac_shift,
+                ac_shifts=_active_ac_shifts,
             )
             if heat_source_plan is not None
             else self._compute_device_setpoint(
@@ -2720,9 +2731,12 @@ class RoomMindCoordinator(DataUpdateCoordinator):
         ac_device_max_temp: float | None,
         direct_eids: set[str] | None = None,
         ac_delta: float | None = None,
-        ac_shift: float = 0.0,
+        ac_shifts: dict[str, float] | None = None,
     ) -> float | None:
-        """Compute device setpoint from the orchestrated heat source plan."""
+        """Compute device setpoint from the orchestrated heat source plan.
+
+        *ac_shifts*: learned head offset per AC (#461); the shown command's own one applies.
+        """
         if current_temp is None or target_temp is None:
             return None
         # Find the most representative active command
@@ -2742,8 +2756,9 @@ class RoomMindCoordinator(DataUpdateCoordinator):
         sp = min(boost, sp)
         if cmd.device_type != "thermostat" and ac_delta is not None:
             sp = min(sp, target_temp + ac_delta)  # same cap as the controller
-        if cmd.device_type != "thermostat" and ac_shift:
-            sp = min(boost, sp + ac_shift)  # learned head offset, as the controller
+        shift = (ac_shifts or {}).get(cmd.entity_id, 0.0) if cmd.device_type != "thermostat" else 0.0
+        if shift:
+            sp = min(boost, sp + shift)  # the shown AC's learned head offset, as the controller
         return sp
 
     @staticmethod
@@ -2897,7 +2912,11 @@ class RoomMindCoordinator(DataUpdateCoordinator):
             )
 
     def _ac_display_shift(self, room: dict, settings: dict, mode: str) -> float:
-        """Head offset shown in the device setpoint: the one all proportional ACs agree on, else 0."""
+        """Head offset in the shown device setpoint without orchestration (one value for the room).
+
+        The ACs then get one shared setpoint each shifted by its own offset; the room shows a
+        single value, so it carries the offset only when all proportional ACs agree on it.
+        """
         if not settings.get("ac_head_offset_enabled", False) or mode not in (MODE_HEATING, MODE_COOLING):
             return 0.0
         devices = room.get("devices", [])

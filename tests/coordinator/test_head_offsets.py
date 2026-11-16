@@ -94,6 +94,21 @@ def test_display_shift_only_when_enabled(hass, mock_config_entry):
     assert shifted == sp + 1.0
 
 
+def test_orchestrated_display_uses_the_shown_acs_own_offset(hass, mock_config_entry):
+    coordinator, _ = _coord(hass, mock_config_entry)
+    plan = SimpleNamespace(
+        commands=[
+            SimpleNamespace(entity_id=AC, device_type="ac", active=True, power_fraction=0.5),
+            SimpleNamespace(entity_id="climate.other_ac", device_type="ac", active=False, power_fraction=0.0),
+        ]
+    )
+    base = coordinator._compute_device_setpoint_orchestrated(plan, 18.0, 21.0, None, None)
+    shown = coordinator._compute_device_setpoint_orchestrated(
+        plan, 18.0, 21.0, None, None, ac_shifts={AC: 1.0, "climate.other_ac": 2.0}
+    )
+    assert shown == base + 1.0
+
+
 async def _cycle(hass, mock_config_entry, settings):
     room = {**_room(), "temperature_sensor": "sensor.living_room_temp"}
     store = _make_store_mock(rooms={room["area_id"]: room}, settings={"climate_control_active": True, **settings})
