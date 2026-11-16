@@ -1690,19 +1690,25 @@ class MPCController:
         await self._async_apply_modes(mode, *args, **kwargs)
         if self._valve_entities:
             power_fraction = kwargs.get("power_fraction", args[1] if len(args) > 1 else 1.0)
-            await self._async_sync_valves(mode, power_fraction, kwargs.get("heat_source_plan"))
+            exclude = kwargs.get("exclude_eids", args[3] if len(args) > 3 else None) or set()
+            await self._async_sync_valves(mode, power_fraction, kwargs.get("heat_source_plan"), exclude)
 
-    async def _async_sync_valves(self, mode: str, power_fraction: float, plan: HeatSourcePlan | None) -> None:
+    async def _async_sync_valves(
+        self, mode: str, power_fraction: float, plan: HeatSourcePlan | None, exclude: set[str]
+    ) -> None:
         """Pin the valve of each TRV with direct valve control that heats now; hand the others back.
 
         A TRV heats when this cycle commanded it on in a heating room with RoomMind's own
         sensor: its valve sits at the power the room needs (the plan's for orchestrated
         rooms) instead of the TRV's own regulation against its warm head. Every other TRV
-        (idle, cooling, window, Managed Mode, parked, excluded) gets its regulation back.
+        (idle, cooling, window, Managed Mode, parked) gets its regulation back. Excluded TRVs
+        (boiler bypass, valve-protection cycle) belong to their owner and are not touched.
         After the climate commands: the setpoint goes out first, as without valve control.
         """
         plan_pf = {c.entity_id: c.power_fraction for c in plan.commands if c.active} if plan else None
         for eid, valve in self._valve_entities.items():
+            if eid in exclude:
+                continue
             heats = mode == MODE_HEATING and self.has_external_sensor and eid in self.commanded_on
             pf = power_fraction if plan_pf is None else plan_pf.get(eid)
             if heats and pf is not None:

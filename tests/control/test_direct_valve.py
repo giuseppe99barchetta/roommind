@@ -149,7 +149,9 @@ async def test_unavailable_entity_is_retried_next_cycle():
     hass = _hass(states)
 
     await async_set_valve(hass, TRV, OPEN, CLOSE, 30, area_id="a")
-    assert TRV not in direct_valve._valve_sent
+    # The closing degree went out: not held, but on record so a release still restores it
+    assert direct_valve.held_opening(TRV) is None
+    assert direct_valve._valve_sent[TRV].partial
 
     states[OPEN] = _number(100)
     hass.services.async_call.reset_mock()
@@ -661,3 +663,71 @@ async def test_the_held_target_follows_a_change_the_position_does_not_need():
     await async_release_valve(hass, TRV, OPEN, CLOSE, area_id="a", hand_back=True)
 
     assert [c["temperature"] for c in _climate_calls(hass, "set_temperature")] == [17.0]
+
+
+@pytest.mark.asyncio
+async def test_a_half_applied_valve_is_released_after_opt_out():
+    """One degree went out, then the config dropped the valve: the orphan release restores it."""
+    states = {OPEN: _number(state="unavailable"), CLOSE: _number()}
+    hass = _hass(states)
+    await async_set_valve(hass, TRV, OPEN, CLOSE, 30, area_id="a")
+    states[OPEN], states[CLOSE] = _number(100), _number(70)
+    hass.services.async_call.reset_mock()
+
+    await direct_valve.async_release_orphaned_valves(hass, {})
+
+    assert _number_calls(hass) == [(OPEN, 100.0), (CLOSE, 100.0)]
+    assert TRV not in direct_valve._valve_sent
+
+
+@pytest.mark.asyncio
+async def test_orphans_with_control_off_get_their_degrees_back_without_a_setpoint():
+    hass = _hass({OPEN: _number(30), CLOSE: _number(70)})
+    hass.config.units.temperature_unit = "°C"
+    direct_valve._valve_sent[TRV] = direct_valve._Held(0.0, 30, 21.0, OPEN, CLOSE)
+
+    await direct_valve.async_release_orphaned_valves(hass, {}, hand_back=False)
+
+    assert _number_calls(hass) == [(OPEN, 100.0), (CLOSE, 100.0)]
+    assert _climate_calls(hass, "set_temperature") == []
+
+
+@pytest.mark.asyncio
+async def test_an_orphan_the_boiler_bypass_owns_is_left_alone():
+    hass = _hass({OPEN: _number(30), CLOSE: _number(70)})
+    direct_valve._valve_sent[TRV] = direct_valve._Held(0.0, 30, 21.0, OPEN, CLOSE)
+
+    await direct_valve.async_release_orphaned_valves(hass, {}, skip={TRV})
+
+    assert _number_calls(hass) == []
+
+
+@pytest.mark.asyncio
+async def test_an_unload_during_a_pin_hands_the_valve_straight_back():
+    """Unload ran while the first degree was on its way: the valve is not left pinned."""
+    hass = _hass({OPEN: _number(), CLOSE: _number()})
+
+    async def _unload_mid_call(domain, service, data, **_kw):
+        if data["entity_id"] == OPEN and data["value"] == 30.0:
+            direct_valve._stopped = True
+
+    hass.services.async_call.side_effect = _unload_mid_call
+    await async_set_valve(hass, TRV, OPEN, CLOSE, 30, area_id="a")
+
+    assert _number_calls(hass)[-2:] == [(OPEN, 100.0), (CLOSE, 100.0)]
+    assert TRV not in direct_valve._valve_sent
+
+
+@pytest.mark.asyncio
+async def test_an_excluded_trv_keeps_its_valve_untouched():
+    """Bypass or valve-protection cycle: the TRV's owner decides, not the room's valve sync."""
+    hass = _hass({TRV: _trv(), OPEN: _number(30), CLOSE: _number(0)})
+    room = _valve_room()
+    room["devices"][0]["valve_closing_mode"] = "idle_opening"
+    ctrl = _controller(hass, room)
+
+    await ctrl.async_apply(
+        MODE_IDLE, TargetTemps(heat=21.0, cool=24.0), power_fraction=0.0, current_temp=21.3, exclude_eids={TRV}
+    )
+
+    assert _number_calls(hass) == []

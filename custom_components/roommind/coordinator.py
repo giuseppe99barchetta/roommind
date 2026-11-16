@@ -601,7 +601,14 @@ class RoomMindCoordinator(DataUpdateCoordinator):
         # Against the live config, not this cycle's snapshot: a save during the cycle released
         # a valve the snapshot may just have pinned again (#413)
         try:
-            await async_release_orphaned_valves(self.hass, configured_valves(store.get_rooms()))
+            # Control off: only the degrees RoomMind set go back, no setpoint; bypass TRVs are the boiler's
+            live_settings = store.get_settings()
+            await async_release_orphaned_valves(
+                self.hass,
+                configured_valves(store.get_rooms()),
+                hand_back=self._live_climate_control_active(),
+                skip=set(bypass_entities(live_settings)),
+            )
         except Exception:  # noqa: BLE001
             _LOGGER.warning("Releasing unconfigured valves failed", exc_info=True)
 

@@ -32,6 +32,8 @@ class _Held(NamedTuple):
     opening_eid: str
     closing_eid: str
     idle_opening: bool = False
+    # One degree reached the device, the other did not: not held, but still to be released
+    partial: bool = False
 
     @property
     def valve(self) -> ValveEntities:
@@ -53,7 +55,7 @@ def _now() -> float:
 def held_opening(climate_eid: str) -> float | None:
     """Opening (0-1) RoomMind holds the valve at, None when it does not hold it."""
     held = _valve_sent.get(climate_eid)
-    return held.pct / 100.0 if held is not None else None
+    return held.pct / 100.0 if held is not None and not held.partial else None
 
 
 def clear_valve_cache() -> None:
@@ -150,7 +152,7 @@ async def async_set_valve(
         return
     pct = int(round(min(100.0, max(0.0, opening_pct))))
     held = _valve_sent.get(climate_eid)
-    if held is not None and held.valve == (opening_eid, closing_eid, idle_opening):
+    if held is not None and not held.partial and held.valve == (opening_eid, closing_eid, idle_opening):
         target_moved = target is not None and (held.target is None or abs(target - held.target) > 0.05)
         if abs(pct - held.pct) < VALVE_DEADBAND_PCT or (
             not urgent and not target_moved and _now() - held.at < VALVE_DWELL_SECONDS
@@ -165,9 +167,19 @@ async def async_set_valve(
         await _async_set_number(hass, opening_eid, pct, area_id),
         await _async_set_number(hass, closing_eid, pct if idle_opening else 100 - pct, area_id),
     ]
-    if None in results:
-        # Try again next cycle; a half-applied position is not remembered as held
+    if _stopped:
+        # Unload ran while the degrees were on their way: hand the valve straight back
+        for eid, value in ((opening_eid, 100), (closing_eid, 0 if idle_opening else 100)):
+            await _async_set_number(hass, eid, value, area_id, force=True)
         _valve_sent.pop(climate_eid, None)
+        return
+    if None in results:
+        # Try again next cycle; a half-applied position is not held, but stays on record so
+        # an opt-out, deletion or unload still releases the degree that went out
+        if True in results:
+            _valve_sent[climate_eid] = _Held(_now(), pct, target, opening_eid, closing_eid, idle_opening, True)
+        else:
+            _valve_sent.pop(climate_eid, None)
         return
     _valve_sent[climate_eid] = _Held(_now(), pct, target, opening_eid, closing_eid, idle_opening)
 
@@ -220,14 +232,25 @@ async def async_release_valve(
             _LOGGER.warning("Area '%s': handing the setpoint back to '%s' failed", area_id, climate_eid, exc_info=True)
 
 
-async def async_release_orphaned_valves(hass: HomeAssistant, configured: dict[str, ValveEntities]) -> None:
+async def async_release_orphaned_valves(
+    hass: HomeAssistant,
+    configured: dict[str, ValveEntities],
+    *,
+    hand_back: bool = True,
+    skip: frozenset[str] | set[str] = frozenset(),
+) -> None:
     """Release valves RoomMind still holds but no longer has in its config.
+
+    ``hand_back`` False (climate control off) puts back only the degrees RoomMind set, no
+    setpoint. ``skip``: devices someone else owns now (boiler bypass).
 
     A cycle that started before a save or delete can pin a valve again after the save
     released it; from then on no config names its number entities. A changed closing
     mode alone is no orphan: the next cycle writes the valve in the new mode.
     """
     for climate_eid, held in list(_valve_sent.items()):
+        if climate_eid in skip:
+            continue
         valve = configured.get(climate_eid)
         if valve is None or valve[:2] != (held.opening_eid, held.closing_eid):
             await async_release_valve(
@@ -236,7 +259,7 @@ async def async_release_orphaned_valves(hass: HomeAssistant, configured: dict[st
                 held.opening_eid,
                 held.closing_eid,
                 area_id="unconfigured",
-                hand_back=True,
+                hand_back=hand_back,
                 idle_opening=held.idle_opening,
             )
 
