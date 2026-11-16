@@ -192,7 +192,12 @@ class ResidualHeatLearner:
         if mode == MODE_HEATING and delivered_power is not None and delivered_power > 0:
             obs = self._obs.pop(area_id, None)
             sample = None
-            if obs is not None and (now - obs.stop) / 60.0 >= RESIDUAL_LEARN_MIN_MINUTES:
+            if (
+                obs is not None
+                and (now - obs.stop) / 60.0 >= RESIDUAL_LEARN_MIN_MINUTES
+                # A gap before the restart may hide heat or a disturbance: then it does not count
+                and (now - obs.t_prev) / 60.0 <= 2 * dt_minutes
+            ):
                 # Restarted: what was seen so far still counts when it was long enough
                 sample = self._sample(obs, tau_minutes)
             run = self._runs.setdefault(area_id, _Run(start=now))

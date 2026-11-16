@@ -290,6 +290,12 @@ def test_restart_after_min_minutes_still_counts():
     assert sample == pytest.approx(2.0, rel=0.1)
 
 
+def test_restart_after_a_gap_gives_no_sample():
+    """Updates stopped for minutes, then heating restarted: the unseen gap may hide heat."""
+    gap = tuple(round(DT * k, 6) for k in range(30, 41))  # 15-20 min after the stop missing
+    assert _replay(ResidualHeatLearner(), true_scale=2.0, skip=gap, restart_at=20.5) is None
+
+
 def test_restart_before_min_minutes_gives_no_sample():
     learner = ResidualHeatLearner()
     assert _replay(learner, true_scale=2.0, restart_at=RESIDUAL_LEARN_MIN_MINUTES - 5) is None
