@@ -28,6 +28,7 @@ _ROOM_ENTITY_KEYS = (
 # Exports end up in shared reports: no person entities, no timing of occupancy.
 _ROOM_ENTITY_LIST_KEYS = ("window_sensors", "occupancy_sensors", "covers")
 _PRIVATE_DEVICE_CLASSES = ("occupancy", "presence", "motion")
+_PRIVATE_DOMAINS = ("person", "device_tracker")
 HISTORY_48H_FIELDS = [f for f in DETAIL_FIELDS if f != "occupancy"]
 
 # People, their whereabouts and their phones must not end up in shared reports.
@@ -120,6 +121,9 @@ def _build_entity_states(hass: HomeAssistant, config: dict) -> dict[str, dict[st
     ids: list[str] = [config.get(k, "") for k in _ROOM_ENTITY_KEYS]
     for key in _ROOM_ENTITY_LIST_KEYS:
         ids.extend(config.get(key) or [])
+    # Occupancy sensors by where they come from, not by device_class (an input_boolean has
+    # none): neither their state nor its timing leaves the house.
+    occupancy = set(config.get("occupancy_sensors") or [])
     for key in ("schedules", "cover_schedules"):
         ids.extend(s.get("entity_id", "") for s in config.get(key) or [])
     now = time.time()
@@ -130,6 +134,9 @@ def _build_entity_states(hass: HomeAssistant, config: dict) -> dict[str, dict[st
         state = hass.states.get(eid)
         if state is None:
             result[eid] = {"state": "not_found"}
+            continue
+        if eid in occupancy or eid.split(".", 1)[0] in _PRIVATE_DOMAINS:
+            result[eid] = {"state": "redacted"}
             continue
         device_class = state.attributes.get("device_class")
         entry = {

@@ -784,7 +784,8 @@ async def test_diagnostics_v2_location_rounded_and_entities_without_occupancy_ti
         if eid == "sensor.t":
             return MagicMock(state="20.5", attributes={"unit_of_measurement": "°C"}, last_changed=changed)
         if eid == "binary_sensor.motion":
-            return MagicMock(state="on", attributes={"device_class": "motion"}, last_changed=changed)
+            # an occupancy sensor without device_class (e.g. an input_boolean) must not leak either
+            return MagicMock(state="on", attributes={}, last_changed=changed)
         return None
 
     hass.states.get = MagicMock(side_effect=_state)
@@ -794,7 +795,7 @@ async def test_diagnostics_v2_location_rounded_and_entities_without_occupancy_ti
     assert (result["integration"]["latitude"], result["integration"]["longitude"]) == (45, 9)
     entities = result["rooms"]["room_a"]["entities"]
     assert entities["sensor.t"]["state"] == "20.5" and "age_s" in entities["sensor.t"]
-    assert "age_s" not in entities["binary_sensor.motion"]
+    assert entities["binary_sensor.motion"] == {"state": "redacted"}
     assert entities["binary_sensor.missing"] == {"state": "not_found"}
 
 
