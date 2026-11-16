@@ -292,3 +292,99 @@ async def test_orchestrated_parked_ac_with_an_unchanged_target_gets_nothing():
 async def test_orchestrated_parked_ac_reporting_off_is_not_switched_on_again():
     hass, ctrl = _setup(_state("off"))
     assert await _orchestrated(hass, ctrl, TargetTemps(heat=17.0, cool=27.0)) == []
+
+
+# --- past the far side of the band: no boost into the other mode -------------------
+
+
+@pytest.mark.asyncio
+async def test_heating_hold_ends_once_the_room_reaches_the_cool_target():
+    """Band 21/22.5, room at 22.6: the boost would flip the unit to cooling after the min-run."""
+    hass, ctrl = _setup(_state("heat"))
+    band = TargetTemps(heat=21.0, cool=22.5)
+    (call,) = await _start_then_hold(hass, ctrl, band, current_temp=22.6, started_with=band)
+    assert call["temperature"] == 21.0
+    assert "hvac_mode" not in call
+
+
+@pytest.mark.asyncio
+async def test_heating_hold_keeps_the_boost_inside_the_band():
+    hass, ctrl = _setup(_state("heat"))
+    band = TargetTemps(heat=21.0, cool=22.5)
+    assert await _start_then_hold(hass, ctrl, band, current_temp=22.4, started_with=band) == []
+
+
+@pytest.mark.asyncio
+async def test_heating_hold_overshoot_is_sent_once():
+    hass, ctrl = _setup(_state("heat"))
+    band = TargetTemps(heat=21.0, cool=22.5)
+    assert len(await _start_then_hold(hass, ctrl, band, current_temp=22.6, started_with=band)) == 1
+    hass.services.async_call.reset_mock()
+    hass.states.get = MagicMock(return_value=_state("heat", temperature=21.0))
+    await ctrl.async_apply(MODE_IDLE, band, current_temp=22.8, compressor_forced_on=HELD)
+    assert _sent(hass) == []
+
+
+@pytest.mark.asyncio
+async def test_cooling_hold_ends_once_the_room_reaches_the_heat_target():
+    hass, ctrl = _setup(_state("cool", temperature=16.0))
+    band = TargetTemps(heat=21.0, cool=22.5)
+    await ctrl.async_apply("cooling", band, power_fraction=1.0, current_temp=24.0)
+    hass.services.async_call.reset_mock()
+    await ctrl.async_apply(MODE_IDLE, band, current_temp=20.9, compressor_forced_on=HELD)
+    # 22.5 on a device showing whole degrees is snapped to 23 by the fork's step rounding (d3a19bc5)
+    assert [c["temperature"] for c in _sent(hass)] == [23.0]
+
+
+@pytest.mark.asyncio
+async def test_heat_only_room_never_cares_about_the_cool_target():
+    room = make_room(thermostats=[], acs=[AC], climate_mode="heat_only")
+    hass, ctrl = _setup(_state("heat"), room=room)
+    band = TargetTemps(heat=21.0, cool=22.5)
+    assert await _start_then_hold(hass, ctrl, band, current_temp=23.0, started_with=band) == []
+
+
+@pytest.mark.asyncio
+async def test_cool_only_room_never_cares_about_the_heat_target():
+    room = make_room(thermostats=[], acs=[AC], climate_mode="cool_only")
+    hass, ctrl = _setup(_state("cool", temperature=16.0), room=room)
+    band = TargetTemps(heat=21.0, cool=24.0)
+    await ctrl.async_apply("cooling", band, power_fraction=1.0, current_temp=26.0)
+    hass.services.async_call.reset_mock()
+    await ctrl.async_apply(MODE_IDLE, band, current_temp=20.0, compressor_forced_on=HELD)
+    assert _sent(hass) == []
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("room_temp", "sends"), [(21.0, False), (21.2, False), (21.4, False), (21.5, True), (22.0, True)]
+)
+async def test_single_point_target_needs_the_margin_before_the_heating_hold_ends(room_temp, sends):
+    """heat == cool (schedule block with one temperature): reaching the target is not an overshoot (#436)."""
+    hass, ctrl = _setup(_state("heat"))
+    point = TargetTemps(heat=21.0, cool=21.0)
+    calls = await _start_then_hold(hass, ctrl, point, current_temp=room_temp, started_with=point)
+    assert [c["temperature"] for c in calls] == ([21.0] if sends else [])
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("room_temp", "sends"), [(21.0, False), (20.8, False), (20.6, False), (20.5, True), (20.0, True)]
+)
+async def test_single_point_target_needs_the_margin_before_the_cooling_hold_ends(room_temp, sends):
+    hass, ctrl = _setup(_state("cool", temperature=16.0))
+    point = TargetTemps(heat=21.0, cool=21.0)
+    await ctrl.async_apply("cooling", point, power_fraction=1.0, current_temp=24.0)
+    hass.services.async_call.reset_mock()
+    await ctrl.async_apply(MODE_IDLE, point, current_temp=room_temp, compressor_forced_on=HELD)
+    assert [c["temperature"] for c in _sent(hass)] == ([21.0] if sends else [])
+
+
+@pytest.mark.asyncio
+async def test_band_wider_than_the_margin_still_ends_at_the_cool_target():
+    hass, ctrl = _setup(_state("heat"))
+    band = TargetTemps(heat=21.0, cool=22.5)
+    assert await _start_then_hold(hass, ctrl, band, current_temp=22.4, started_with=band) == []
+    hass.services.async_call.reset_mock()
+    await ctrl.async_apply(MODE_IDLE, band, current_temp=22.5, compressor_forced_on=HELD)
+    assert [c["temperature"] for c in _sent(hass)] == [21.0]

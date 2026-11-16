@@ -78,6 +78,10 @@ _active_targets: dict[str, tuple[float | None, float | None]] = {}
 # A resolved target that moved by more than this since the last active command is a
 # deliberate change (°C)
 COMPRESSOR_HOLD_RETARGET_TOLERANCE = 0.05
+# Compressor hold: a heating unit keeps its boost until the room is this far above the heating
+# target (and at least at the cooling target), the cooling side mirrored. With single-point
+# targets (heat == cool) the margin keeps "target reached" from ending the hold.
+HOLD_OVERSHOOT_MARGIN = 0.5
 
 
 def _target_moved(previous: float | None, current: float | None) -> bool:
@@ -1268,15 +1272,35 @@ class MPCController:
         only after the min-run. Only the side the device regulates on counts, so
         editing the cooling target does not drop a heating unit. The device stays
         in its mode; one that is off, or has no state, is left alone.
+
+        A room that has run past the far side of its band (heating unit, room at or
+        above the cooling target) is handled as before the hold: the target goes
+        out and the unit stops heating, so the boost cannot flip it to cooling.
+        This applies to units in plain ``heat`` or ``cool`` only. "Past" means
+        beyond the far target and at least ``HOLD_OVERSHOOT_MARGIN`` from the near
+        one, so a single-point target (heat == cool) does not end the hold the
+        moment the room reaches it.
         """
         state = self.hass.states.get(eid)
         hvac = state.state if state else None
-        previous = _active_targets.get(eid)
-        if state is None or hvac not in ("heat", "cool", "heat_cool", "auto") or previous is None:
+        if state is None or hvac not in ("heat", "cool", "heat_cool", "auto"):
             return
-        heat_moved = hvac != "cool" and _target_moved(previous[0], targets.heat)
-        cool_moved = hvac != "heat" and _target_moved(previous[1], targets.cool)
-        if not heat_moved and not cool_moved:
+        previous = _active_targets.get(eid)
+        heat_moved = previous is not None and hvac != "cool" and _target_moved(previous[0], targets.heat)
+        cool_moved = previous is not None and hvac != "heat" and _target_moved(previous[1], targets.cool)
+        # Past the far side of the band the boost would carry the room over it and
+        # flip the unit to the other mode right after the min-run. Only a room that
+        # can switch sides cares; heat-only rooms never cool. A heat_cool/auto unit
+        # picks its side itself and is left to the rule below.
+        heat_overshoot = False
+        if hvac == "heat" and self.climate_mode != CLIMATE_MODE_HEAT_ONLY and targets.cool is not None:
+            limit = targets.cool if targets.heat is None else max(targets.cool, targets.heat + HOLD_OVERSHOOT_MARGIN)
+            heat_overshoot = current_temp is not None and current_temp >= limit
+        cool_overshoot = False
+        if hvac == "cool" and self.climate_mode != CLIMATE_MODE_COOL_ONLY and targets.heat is not None:
+            limit = targets.heat if targets.cool is None else min(targets.heat, targets.cool - HOLD_OVERSHOOT_MARGIN)
+            cool_overshoot = current_temp is not None and current_temp <= limit
+        if not (heat_moved or cool_moved or heat_overshoot or cool_overshoot):
             return
         _active_targets[eid] = (targets.heat, targets.cool)
 
