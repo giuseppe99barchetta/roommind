@@ -929,7 +929,7 @@ export class RoomMindPanel extends LitElement {
 
   private _onBackFromDetail() {
     this._selectedAreaId = null;
-    this._navigate("");
+    this._navigateBack("");
   }
 
   private _deletingAreaId: string | null = null;
@@ -957,7 +957,7 @@ export class RoomMindPanel extends LitElement {
       await this.hass.callWS({ type: "roommind/rooms/delete", area_id: areaId });
       if (stillShown()) {
         this._selectedAreaId = null;
-        this._navigate("");
+        this._navigateBack("");
       }
       this._loadRooms();
     } catch (err) {
@@ -1027,7 +1027,7 @@ export class RoomMindPanel extends LitElement {
 
   private _onAnalyticsRoomSelected(e: CustomEvent<{ areaId: string }>) {
     this._analyticsRoom = e.detail.areaId;
-    this._navigate(`/analytics/${e.detail.areaId}`);
+    this._navigate(`/analytics/${e.detail.areaId}`, { replace: true });
   }
 
   private async _onMoveRoomUp(e: CustomEvent<{ areaId: string }>) {
@@ -1145,9 +1145,25 @@ export class RoomMindPanel extends LitElement {
     }
   }
 
-  private _navigate(path: string) {
-    history.replaceState(null, "", `/roommind${path}`);
+  /** A new page gets its own history entry, so the browser's back returns to the one before. */
+  private _navigate(path: string, { replace = false } = {}) {
+    const url = `/roommind${path}`;
+    if (replace || url === location.pathname + location.search)
+      history.replaceState(history.state, "", url);
+    else history.pushState({ roommindFrom: location.pathname + location.search }, "", url);
     window.dispatchEvent(new Event("location-changed"));
+  }
+
+  /**
+   * The toolbar's back: the browser's back when the page was opened from `path`, else `path`
+   * in place of the current entry (a link opened straight into a room must not pile up pages).
+   */
+  private _navigateBack(path: string) {
+    if ((history.state as { roommindFrom?: string } | null)?.roommindFrom === `/roommind${path}`) {
+      history.back();
+      return;
+    }
+    this._navigate(path, { replace: true });
   }
 
   private _applyRoute() {
