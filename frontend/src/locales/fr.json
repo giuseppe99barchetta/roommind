@@ -914,5 +914,14 @@
   "schedule.preconditioning_hint": "Démarre assez tôt pour que la prochaine température programmée soit atteinte au début de sa plage. Le curseur Priorité limite l'anticipation.",
   "insights.comfort.factor.air_quality.elevated": "Murs proches du risque de moisissure",
   "insights.comfort.factor.air_quality.stale_co2": "Air vicié (CO₂ au-dessus du seuil)",
-  "insights.comfort.factor.air_quality.stale_voc": "Air vicié (COV au-dessus du seuil)"
+  "insights.comfort.factor.air_quality.stale_voc": "Air vicié (COV au-dessus du seuil)",
+  "devices.valve_direct_control": "Contrôle direct de la vanne",
+  "devices.valve_direct_info": "RoomMind maintient la vanne à l'ouverture dont la pièce a besoin via les entités number de la tête, au lieu de sa propre régulation sur sa tête chaude. Nécessite le capteur de température de la pièce. Désactivé : rien ne change.",
+  "devices.valve_opening_entity": "Degré d'ouverture de la vanne",
+  "devices.valve_closing_entity": "Degré de fermeture de la vanne",
+  "devices.valve_idle_opening_entity": "Ouverture de la vanne au repos",
+  "devices.valve_closing_mode": "Seconde valeur de la vanne",
+  "devices.valve_closing_degree": "Degré de fermeture (SONOFF TRVZB)",
+  "devices.valve_idle_opening": "Ouverture au repos (SONOFF TRV-ZBT)",
+  "devices.valve_closing_mode_info": "TRVZB : la vanne est à X avec ouverture X et fermeture 100 - X. TRV-ZBT : la seconde valeur est l'ouverture quand la tête ne chauffe pas, les deux à X."
 }

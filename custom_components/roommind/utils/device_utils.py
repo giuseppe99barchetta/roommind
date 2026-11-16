@@ -6,11 +6,18 @@ Pure utility module with NO dependencies on HA or other RoomMind modules.
 from __future__ import annotations
 
 import logging
-from typing import Any
+from typing import Any, NamedTuple
 
 _LOGGER = logging.getLogger(__name__)
 
 DEVICE_TYPE_TRV = "trv"
+
+# What the second valve entity of a TRV with direct valve control means (#482): a closing
+# degree (SONOFF TRVZB, closed position = 100 - value) or the opening while the TRV does
+# not heat (SONOFF TRV-ZBT). Missing = closing degree.
+VALVE_CLOSING_DEGREE = "closing_degree"
+VALVE_IDLE_OPENING = "idle_opening"
+VALVE_CLOSING_MODES = (VALVE_CLOSING_DEGREE, VALVE_IDLE_OPENING)
 DEVICE_TYPE_AC = "ac"
 VALID_DEVICE_TYPES = {DEVICE_TYPE_TRV, DEVICE_TYPE_AC}
 
@@ -322,3 +329,35 @@ def room_contributes_to_group(
         if eid and eid in member_set and dev.get("type") == required_type:
             return True
     return False
+
+
+class ValveEntities(NamedTuple):
+    """Number entities of a TRV with direct valve control (#413)."""
+
+    opening: str
+    closing: str
+    idle_opening: bool = False  # ``closing`` is the opening while idle, not a closing degree (#482)
+
+
+def get_valve_entities(devices: list[dict]) -> dict[str, ValveEntities]:
+    """Return {climate_entity_id: ValveEntities} for TRVs with direct valve control (#413).
+
+    Both entities are needed: the second one sets where the valve sits while the TRV's own
+    controller does not heat, so only both together pin the valve at X %.
+    """
+    result: dict[str, ValveEntities] = {}
+    for d in devices:
+        eid = d.get("entity_id")
+        opening = d.get("valve_opening_entity") or None
+        closing = d.get("valve_closing_entity") or None
+        if eid and opening and closing and d.get("type") == DEVICE_TYPE_TRV:
+            result[eid] = ValveEntities(opening, closing, d.get("valve_closing_mode") == VALVE_IDLE_OPENING)
+    return result
+
+
+def configured_valves(rooms: dict) -> dict[str, ValveEntities]:
+    """``get_valve_entities`` across all rooms."""
+    result: dict[str, ValveEntities] = {}
+    for room in rooms.values():
+        result.update(get_valve_entities(room.get("devices", [])))
+    return result

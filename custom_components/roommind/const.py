@@ -243,6 +243,9 @@ DEFAULT_HEAT_SOURCE_MIN_DWELL_MINUTES = 10
 # Compressor group defaults
 DEFAULT_COMPRESSOR_MIN_RUN_MINUTES = 15
 DEFAULT_COMPRESSOR_MIN_OFF_MINUTES = 5
+# Direct valve control (#413): TRVs whose valve opening RoomMind sets through number entities
+VALVE_DWELL_SECONDS = 600  # Minimum time a valve position stays before a small correction moves the motor again
+VALVE_DEADBAND_PCT = 5  # Smaller position changes are not sent
 COMPRESSOR_STATE_SETTLE_SECONDS = (
     120  # An "off" reading this soon after our own start is state lag, not a manual switch-off
 )

@@ -914,5 +914,14 @@
   "schedule.preconditioning_hint": "Starts early enough that the next scheduled temperature is reached when its block begins. The Priority slider limits how far ahead.",
   "insights.comfort.factor.air_quality.elevated": "Walls approaching mold risk",
   "insights.comfort.factor.air_quality.stale_co2": "Stale air (CO₂ over threshold)",
-  "insights.comfort.factor.air_quality.stale_voc": "Stale air (VOC over threshold)"
+  "insights.comfort.factor.air_quality.stale_voc": "Stale air (VOC over threshold)",
+  "devices.valve_direct_control": "Direct valve control",
+  "devices.valve_direct_info": "RoomMind holds the valve at the opening the room needs through the TRV's number entities, instead of the TRV's own regulation against its warm head. Needs the room temperature sensor. Off: nothing changes.",
+  "devices.valve_opening_entity": "Valve opening degree",
+  "devices.valve_closing_entity": "Valve closing degree",
+  "devices.valve_idle_opening_entity": "Valve opening while idle",
+  "devices.valve_closing_mode": "Second valve value",
+  "devices.valve_closing_degree": "Closing degree (SONOFF TRVZB)",
+  "devices.valve_idle_opening": "Opening while idle (SONOFF TRV-ZBT)",
+  "devices.valve_closing_mode_info": "TRVZB: the valve sits at X with opening X and closing 100 - X. TRV-ZBT: the second value is the opening while the TRV does not heat, both are set to X."
 }

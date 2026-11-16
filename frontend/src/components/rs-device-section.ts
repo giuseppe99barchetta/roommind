@@ -896,6 +896,7 @@ export class RsDeviceSection extends LitElement {
             </div>
           `
         : nothing}
+      ${isThermostat && this.selectedTempSensor ? this._renderValveControl(device) : nothing}
       ${isThermostat && this.valveProtectionEnabled
         ? html`
             <div class="detail-toggle-row">
@@ -917,6 +918,152 @@ export class RsDeviceSection extends LitElement {
           `
         : nothing}
     `;
+  }
+
+  /** Direct valve control (#413): offered for TRVs with number entities, needs the room sensor. */
+  private _renderValveControl(device: DeviceConfig) {
+    const lang = this.hass.language;
+    const id = device.entity_id;
+    const numbers = this._deviceNumberEntities(id);
+    const hasValve = !!device.valve_opening_entity && !!device.valve_closing_entity;
+    if (!hasValve && !device.valve_opening_entity && numbers.length === 0) return nothing;
+    const pair = this._detectValvePair(numbers);
+    const idleOpening = device.valve_closing_mode === "idle_opening";
+    const picker = (value: string, label: string, onChange: (v: string) => void) =>
+      html`<ha-entity-picker
+        .hass=${this.hass}
+        .includeDomains=${["number"]}
+        .value=${value}
+        .label=${label}
+        @value-changed=${(e: CustomEvent) => onChange((e.detail?.value as string) ?? "")}
+      ></ha-entity-picker>`;
+    return html`
+      <div class="detail-toggle-row">
+        <ha-checkbox
+          .checked=${hasValve || device.valve_opening_entity !== undefined}
+          @change=${(e: Event) => {
+            const target = e.target as HTMLElement & { checked: boolean };
+            this._onValveToggle(id, target.checked ? (pair ?? ["", ""]) : null);
+          }}
+        ></ha-checkbox>
+        <div class="detail-toggle-label">
+          <ha-icon icon="mdi:valve"></ha-icon>
+          ${localize("devices.valve_direct_control", lang)}
+          <rs-info-icon .text=${localize("devices.valve_direct_info", lang)}></rs-info-icon>
+        </div>
+      </div>
+      ${hasValve || device.valve_opening_entity !== undefined
+        ? html`
+            <div class="detail-field">
+              ${picker(
+                device.valve_opening_entity ?? "",
+                localize("devices.valve_opening_entity", lang),
+                (v) => this._onValveEntityChange(id, "valve_opening_entity", v),
+              )}
+            </div>
+            <div class="detail-field">
+              ${picker(
+                device.valve_closing_entity ?? "",
+                localize(
+                  idleOpening
+                    ? "devices.valve_idle_opening_entity"
+                    : "devices.valve_closing_entity",
+                  lang,
+                ),
+                (v) => this._onValveEntityChange(id, "valve_closing_entity", v),
+              )}
+            </div>
+            <div class="detail-field with-info">
+              <ha-select
+                .label=${localize("devices.valve_closing_mode", lang)}
+                .value=${device.valve_closing_mode ?? "closing_degree"}
+                .options=${[
+                  {
+                    value: "closing_degree",
+                    label: localize("devices.valve_closing_degree", lang),
+                  },
+                  { value: "idle_opening", label: localize("devices.valve_idle_opening", lang) },
+                ]}
+                @selected=${(e: Event) =>
+                  this._onValveClosingModeChange(id, getSelectValue(e) ?? "")}
+                @closed=${(e: Event) => e.stopPropagation()}
+                fixedMenuPosition
+              >
+                <ha-list-item value="closing_degree"
+                  >${localize("devices.valve_closing_degree", lang)}</ha-list-item
+                >
+                <ha-list-item value="idle_opening"
+                  >${localize("devices.valve_idle_opening", lang)}</ha-list-item
+                >
+              </ha-select>
+              <rs-info-icon
+                .text=${localize("devices.valve_closing_mode_info", lang)}
+              ></rs-info-icon>
+            </div>
+          `
+        : nothing}
+    `;
+  }
+
+  private _deviceNumberEntities(entityId: string): string[] {
+    const deviceId = this.hass.entities?.[entityId]?.device_id;
+    if (!deviceId) return [];
+    const numbers = Object.values(this.hass.entities)
+      .filter((e) => e.device_id === deviceId && e.entity_id.startsWith("number."))
+      .map((e) => e.entity_id);
+    // Not every number of a TRV is a valve degree (calibration, external temperature input)
+    const valve = numbers.filter((eid) => /valve|opening|closing|ventil|vanne|valvol/.test(eid));
+    return valve.length ? valve : numbers;
+  }
+
+  /** Opening and closing degree of the device, recognised by name (Zigbee2MQTT: *_valve_opening_degree). */
+  private _detectValvePair(numbers: string[]): [string, string] | null {
+    for (const opening of numbers) {
+      if (!opening.includes("opening")) continue;
+      const closing = opening.replace(/opening/g, "closing");
+      if (numbers.includes(closing)) return [opening, closing];
+    }
+    return null;
+  }
+
+  private _onValveToggle(entityId: string, pair: [string, string] | null): void {
+    this._fireDeviceChanged(
+      this.devices.map((d) => {
+        if (d.entity_id !== entityId) return d;
+        const updated = { ...d };
+        delete updated.valve_opening_entity;
+        delete updated.valve_closing_entity;
+        delete updated.valve_closing_mode;
+        if (pair) [updated.valve_opening_entity, updated.valve_closing_entity] = pair;
+        return updated;
+      }),
+    );
+  }
+
+  private _onValveEntityChange(
+    entityId: string,
+    key: "valve_opening_entity" | "valve_closing_entity",
+    value: string,
+  ): void {
+    this._fireDeviceChanged(
+      this.devices.map((d) => (d.entity_id === entityId ? { ...d, [key]: value } : d)),
+    );
+  }
+
+  private _onValveClosingModeChange(entityId: string, value: string): void {
+    const current = this.devices.find((d) => d.entity_id === entityId)?.valve_closing_mode;
+    if (value !== "closing_degree" && value !== "idle_opening") return;
+    if (value === (current ?? "closing_degree")) return;
+    this._fireDeviceChanged(
+      this.devices.map((d) => {
+        if (d.entity_id !== entityId) return d;
+        const updated = { ...d };
+        // The default stays unstored
+        if (value === "idle_opening") updated.valve_closing_mode = "idle_opening";
+        else delete updated.valve_closing_mode;
+        return updated;
+      }),
+    );
   }
 
   // ---- Event handlers ----

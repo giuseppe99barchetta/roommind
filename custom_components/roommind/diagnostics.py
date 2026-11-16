@@ -12,6 +12,7 @@ from homeassistant.const import __version__ as HA_VERSION
 from homeassistant.core import HomeAssistant
 
 from .const import DOMAIN, VERSION
+from .control.direct_valve import held_opening
 from .control.mpc_controller import _active_targets, _last_commands
 from .utils.history_store import DETAIL_FIELDS
 
@@ -101,6 +102,9 @@ def _build_device_states(hass: HomeAssistant, devices: list[dict]) -> list[dict[
             entry["last_command"] = dict(last_cmd)
         if eid in _active_targets:
             entry["active_target"] = list(_active_targets[eid])
+        held = held_opening(eid)
+        if held is not None:
+            entry["valve_held_opening"] = held
         result.append(entry)
     return result
 

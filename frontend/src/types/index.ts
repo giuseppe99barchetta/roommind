@@ -209,6 +209,10 @@ export interface DeviceConfig {
   fan_only_seasons?: Array<"spring" | "summer" | "autumn" | "winter">;
   setpoint_mode?: "proportional" | "direct"; // default "proportional"
   power_sensor_entity_id?: string; // instantaneous AC consumption sensor (W/kW)
+  // Direct valve control (#413/#482): TRV valve held at the room's power through number entities
+  valve_opening_entity?: string;
+  valve_closing_entity?: string;
+  valve_closing_mode?: "closing_degree" | "idle_opening";
 }
 
 export type ConflictResolution =

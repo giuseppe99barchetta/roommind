@@ -32,6 +32,7 @@ from .const import (
     build_override_live,
     is_override_suppressed,
 )
+from .control.direct_valve import async_release_valve
 from .services.analytics_service import (
     _compute_target_forecast,  # noqa: F401 - re-exported for tests
     _csv_to_points,  # noqa: F401 - re-exported for tests
@@ -40,7 +41,14 @@ from .services.analytics_service import (
     build_comparison_data,
 )
 from .utils.comfort_insights import profile_targets
-from .utils.device_utils import VALID_DEVICE_TYPES, VALID_HEATING_SYSTEM_TYPES, is_ac_type
+from .utils.device_utils import (
+    VALID_DEVICE_TYPES,
+    VALID_HEATING_SYSTEM_TYPES,
+    VALVE_CLOSING_MODES,
+    ValveEntities,
+    get_valve_entities,
+    is_ac_type,
+)
 from .utils.room_insights import build_decision_reasons, build_room_readiness
 
 _LOGGER = logging.getLogger(__name__)
@@ -84,6 +92,53 @@ def _validate_device_idle_action(device: dict) -> dict:
     if is_ac_type(device) and device.get("idle_action") == "low":
         raise vol.Invalid("idle_action='low' is only supported for TRVs (type='trv')")
     return device
+
+
+def _number_entity_or_empty(value: object) -> str:
+    """A ``number.*`` entity id, or "" for none."""
+    if value is None or value == "":
+        return ""
+    if not isinstance(value, str) or not value.startswith("number."):
+        raise vol.Invalid("must be a number entity")
+    return value
+
+
+def _validate_device_valve(device: dict) -> dict:
+    """Direct valve control (#413) is for TRVs; it takes effect once both degree entities are set."""
+    opening, closing = device.get("valve_opening_entity"), device.get("valve_closing_entity")
+    if (opening or closing) and device.get("type") != "trv":
+        raise vol.Invalid("direct valve control is only supported for TRVs (type='trv')")
+    if closing and closing == opening:
+        raise vol.Invalid("valve_opening_entity and valve_closing_entity must differ")
+    return device
+
+
+async def _async_release_dropped_valves(
+    hass: HomeAssistant, area_id: str, old: dict[str, ValveEntities], new: dict[str, ValveEntities]
+) -> None:
+    """Hand valves RoomMind no longer controls back to their TRVs (#413).
+
+    Nobody else would: without the config RoomMind does not know these number entities
+    any more, and the valve would stay pinned where it was last set. A changed closing
+    mode alone is left to the next cycle (#482): a release in the old mode would open a
+    TRV-ZBT fully while it idles.
+    """
+    for climate_eid, valve in old.items():
+        kept = new.get(climate_eid)
+        if kept is not None and kept[:2] == valve[:2]:
+            continue
+        try:
+            await async_release_valve(
+                hass,
+                climate_eid,
+                valve.opening,
+                valve.closing,
+                area_id=area_id,
+                hand_back=True,
+                idle_opening=valve.idle_opening,
+            )
+        except Exception:  # noqa: BLE001
+            _LOGGER.warning("Room '%s': releasing the valve of '%s' failed", area_id, climate_eid, exc_info=True)
 
 
 if TYPE_CHECKING:
@@ -499,8 +554,13 @@ async def websocket_list_rooms(
                     vol.Optional("fan_only_seasons", default=[]): [vol.In(["spring", "summer", "autumn", "winter"])],
                     vol.Optional("setpoint_mode", default="proportional"): vol.In(["proportional", "direct"]),
                     vol.Optional("power_sensor_entity_id", default=""): str,
+                    # Direct valve control (#413/#482): off until both number entities are set
+                    vol.Optional("valve_opening_entity"): _number_entity_or_empty,
+                    vol.Optional("valve_closing_entity"): _number_entity_or_empty,
+                    vol.Optional("valve_closing_mode"): vol.In(VALVE_CLOSING_MODES),
                 },
                 _validate_device_idle_action,
+                _validate_device_valve,
             )
         ],
         vol.Optional("temperature_sensor"): str,
@@ -701,7 +761,9 @@ async def websocket_save_room(
                 _LOGGER.exception("Failed to release dehumidifier before saving room '%s'", area_id)
                 connection.send_error(msg["id"], "device_error", "Could not stop the previous dehumidifier")
                 return
+        old_valves = get_valve_entities((store.get_room(area_id) or {}).get("devices", []))
         room = await store.async_save_room(area_id, config)
+        await _async_release_dropped_valves(hass, area_id, old_valves, get_valve_entities(room.get("devices", [])))
 
     # Notify coordinator to create/update sensor entities for the room
     coordinator = _get_coordinator(hass)

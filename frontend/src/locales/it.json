@@ -914,5 +914,14 @@
   "schedule.preconditioning_hint": "Parte in anticipo quanto serve perché la prossima temperatura programmata sia raggiunta all'inizio del blocco. Lo slider Priorità limita quanto in anticipo.",
   "insights.comfort.factor.air_quality.elevated": "Pareti vicine al rischio muffa",
   "insights.comfort.factor.air_quality.stale_co2": "Aria viziata (CO₂ oltre soglia)",
-  "insights.comfort.factor.air_quality.stale_voc": "Aria viziata (VOC oltre soglia)"
+  "insights.comfort.factor.air_quality.stale_voc": "Aria viziata (VOC oltre soglia)",
+  "devices.valve_direct_control": "Controllo diretto della valvola",
+  "devices.valve_direct_info": "RoomMind tiene la valvola all'apertura che serve alla stanza tramite le entità number della TRV, invece della regolazione della TRV sulla propria testa calda. Richiede il sensore di temperatura della stanza. Disattivato: non cambia nulla.",
+  "devices.valve_opening_entity": "Grado di apertura valvola",
+  "devices.valve_closing_entity": "Grado di chiusura valvola",
+  "devices.valve_idle_opening_entity": "Apertura valvola a riposo",
+  "devices.valve_closing_mode": "Secondo valore della valvola",
+  "devices.valve_closing_degree": "Grado di chiusura (SONOFF TRVZB)",
+  "devices.valve_idle_opening": "Apertura a riposo (SONOFF TRV-ZBT)",
+  "devices.valve_closing_mode_info": "TRVZB: la valvola sta a X con apertura X e chiusura 100 - X. TRV-ZBT: il secondo valore è l'apertura quando la TRV non scalda, entrambi vanno a X."
 }

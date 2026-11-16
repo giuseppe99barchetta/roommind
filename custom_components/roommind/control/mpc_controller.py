@@ -47,6 +47,7 @@ from ..utils.device_utils import (
     get_direct_setpoint_eids,
     get_idle_action,
     get_trv_eids,
+    get_valve_entities,
     has_reliable_hvac_modes,
 )
 from ..utils.temp_utils import (
@@ -55,6 +56,7 @@ from ..utils.temp_utils import (
     get_temperature_rounding_mode,
     quantize_temperature_to_step,
 )
+from .direct_valve import async_release_valve, async_set_valve, clear_valve_cache
 from .mpc_optimizer import MPCOptimizer, MPCPlan, preheat_max_blocks
 from .residual_heat import get_min_run_blocks
 from .thermal_model import RoomModelManager
@@ -150,6 +152,7 @@ def clear_command_cache() -> None:
     _active_targets.clear()
     _proportional_sent.clear()
     _hold_modulated.clear()
+    clear_valve_cache()
 
 
 def _resolve_idle_setpoint(
@@ -880,6 +883,8 @@ class MPCController:
         self.acs: list[str] = get_ac_eids(room_config.get("devices", []))
         self._devices: list[dict] = room_config.get("devices", [])
         self._direct_eids: set[str] = get_direct_setpoint_eids(self._devices)
+        # Direct valve control (#413): opt-in per TRV, needs RoomMind's own room sensor
+        self._valve_entities = get_valve_entities(self._devices)
         self.climate_mode: str = room_config.get("climate_mode", "auto")
         self.outdoor_temp = outdoor_temp
         self.outdoor_forecast = outdoor_forecast or []
@@ -1680,7 +1685,43 @@ class MPCController:
             series.append(q if q >= RESIDUAL_HEAT_CUTOFF else 0.0)
         return series
 
-    async def async_apply(
+    async def async_apply(self, mode: str, *args: Any, **kwargs: Any) -> None:
+        """Apply the determined mode (``_async_apply_modes``), then the TRVs' valve openings."""
+        await self._async_apply_modes(mode, *args, **kwargs)
+        if self._valve_entities:
+            power_fraction = kwargs.get("power_fraction", args[1] if len(args) > 1 else 1.0)
+            await self._async_sync_valves(mode, power_fraction, kwargs.get("heat_source_plan"))
+
+    async def _async_sync_valves(self, mode: str, power_fraction: float, plan: HeatSourcePlan | None) -> None:
+        """Pin the valve of each TRV with direct valve control that heats now; hand the others back.
+
+        A TRV heats when this cycle commanded it on in a heating room with RoomMind's own
+        sensor: its valve sits at the power the room needs (the plan's for orchestrated
+        rooms) instead of the TRV's own regulation against its warm head. Every other TRV
+        (idle, cooling, window, Managed Mode, parked, excluded) gets its regulation back.
+        After the climate commands: the setpoint goes out first, as without valve control.
+        """
+        plan_pf = {c.entity_id: c.power_fraction for c in plan.commands if c.active} if plan else None
+        for eid, valve in self._valve_entities.items():
+            heats = mode == MODE_HEATING and self.has_external_sensor and eid in self.commanded_on
+            pf = power_fraction if plan_pf is None else plan_pf.get(eid)
+            if heats and pf is not None:
+                await async_set_valve(
+                    self.hass,
+                    eid,
+                    valve.opening,
+                    valve.closing,
+                    max(0.0, min(1.0, pf)) * 100,
+                    area_id=self._area_id,
+                    target=self._idle_targets.heat if self._idle_targets else None,
+                    idle_opening=valve.idle_opening,
+                )
+            else:
+                await async_release_valve(
+                    self.hass, eid, valve.opening, valve.closing, area_id=self._area_id, idle_opening=valve.idle_opening
+                )
+
+    async def _async_apply_modes(
         self,
         mode: str,
         targets: TargetTemps | float | None = None,

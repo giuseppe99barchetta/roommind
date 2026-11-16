@@ -914,5 +914,14 @@
   "schedule.preconditioning_hint": "Startet so früh, dass die nächste geplante Temperatur zu Beginn ihres Blocks erreicht ist. Der Prioritäts-Regler begrenzt, wie weit im Voraus.",
   "insights.comfort.factor.air_quality.elevated": "Wände nähern sich dem Schimmelrisiko",
   "insights.comfort.factor.air_quality.stale_co2": "Verbrauchte Luft (CO₂ über Schwelle)",
-  "insights.comfort.factor.air_quality.stale_voc": "Verbrauchte Luft (VOC über Schwelle)"
+  "insights.comfort.factor.air_quality.stale_voc": "Verbrauchte Luft (VOC über Schwelle)",
+  "devices.valve_direct_control": "Direkte Ventilsteuerung",
+  "devices.valve_direct_info": "RoomMind hält das Ventil über die Number-Entitäten des Thermostats auf der Öffnung, die der Raum braucht, statt der eigenen Regelung am warmen Kopf. Braucht den Raumtemperatursensor. Aus: nichts ändert sich.",
+  "devices.valve_opening_entity": "Ventilöffnungsgrad",
+  "devices.valve_closing_entity": "Ventilschließgrad",
+  "devices.valve_idle_opening_entity": "Ventilöffnung im Leerlauf",
+  "devices.valve_closing_mode": "Zweiter Ventilwert",
+  "devices.valve_closing_degree": "Schließgrad (SONOFF TRVZB)",
+  "devices.valve_idle_opening": "Öffnung im Leerlauf (SONOFF TRV-ZBT)",
+  "devices.valve_closing_mode_info": "TRVZB: das Ventil steht auf X mit Öffnung X und Schließgrad 100 - X. TRV-ZBT: der zweite Wert ist die Öffnung, wenn das Thermostat nicht heizt; beide auf X."
 }
