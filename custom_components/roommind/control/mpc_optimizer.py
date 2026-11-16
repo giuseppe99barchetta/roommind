@@ -150,7 +150,8 @@ class MPCOptimizer:
                 available.append(MODE_COOLING)
 
             # If in a run and below min_run_blocks, must continue
-            if current_mode != MODE_IDLE and blocks_in_mode < self.min_run_blocks:
+            forced = current_mode != MODE_IDLE and blocks_in_mode < self.min_run_blocks
+            if forced:
                 if current_mode in available:
                     best_action = current_mode
                 else:
@@ -183,7 +184,7 @@ class MPCOptimizer:
             # Compute proportional power fraction for this block
             # Use heat target for heating power, cool target for cooling power
             pf_target = heat_tgt if best_action == MODE_HEATING else cool_tgt
-            pf, _ = self.compute_optimal_power(
+            pf, pf_mode = self.compute_optimal_power(
                 current_temp,
                 T_out,
                 pf_target,
@@ -194,8 +195,34 @@ class MPCOptimizer:
             )
             if best_action == MODE_IDLE:
                 pf = 0.0
-            elif best_action != MODE_IDLE and pf == 0.0:
-                pf = 1.0  # min_run_blocks enforcement: keep full power
+            elif forced and (pf_mode != best_action or pf == 0.0):
+                # Past the target inside the min run: the controller continues at gentle
+                # power, so the plan must not show a full-power run (a phantom 1-3 K
+                # overshoot that the cover logic and the prediction line read).
+                horizon = slice(i, i + self._lookahead_blocks)
+                strict = (
+                    max(heat_target_series[horizon])
+                    if best_action == MODE_HEATING
+                    else min(cool_target_series[horizon])
+                )
+                pf, pf_mode = self.compute_optimal_power(
+                    current_temp,
+                    T_out,
+                    strict,
+                    dt_minutes,
+                    q_solar=qs,
+                    q_residual=qr,
+                    q_occupancy=qo,
+                )
+                pf = max(pf, MIN_POWER_FRACTION) if pf_mode == best_action else MIN_POWER_FRACTION
+            elif pf_mode != best_action:
+                # compute_optimal_power found no demand in this block's direction: the
+                # deviation is smaller than the energy bias, or the room needs this
+                # direction only later (look-ahead). Its fraction is then 0.0 or belongs to
+                # the other direction, so it is not used. Heating runs at full power, which
+                # pre-heating slow systems relies on. Cooling runs at the minimum, because
+                # full power would drive an AC to its lowest setpoint.
+                pf = 1.0 if best_action == MODE_HEATING else MIN_POWER_FRACTION
 
             # Apply action with proportional Q for accurate forward prediction
             if best_action == MODE_HEATING:

@@ -838,3 +838,85 @@ def test_room_below_temp_min_still_heats():
 def test_clamp_unchanged_for_rooms_inside_the_bounds():
     opt = MPCOptimizer(RCModel(C=1.0, U=0.15, Q_heat=3.0, Q_cool=4.0))
     assert opt._temp_bounds(21.0) == (opt.temp_min, opt.temp_max)
+
+
+def test_forced_min_run_continuation_plans_gentle_power():
+    """Past the target inside the min run the plan uses gentle power like the controller,
+    not full power: that predicted the room 1-3 K below the cool target (phantom undercooling)."""
+    model = RCModel(C=1.0, U=0.5, Q_heat=6.0, Q_cool=6.0)
+    plan = MPCOptimizer(model, can_heat=False, can_cool=True, min_run_blocks=6).optimize(
+        T_room=25.5,
+        T_outdoor_series=[20.0] * 24,
+        heat_target_series=[21.0] * 24,
+        cool_target_series=[24.0] * 24,
+        dt_minutes=5,
+    )
+    assert plan.actions[:6] == [MODE_COOLING] * 6
+    assert plan.power_fractions[0] == 1.0
+    assert all(MIN_POWER_FRACTION <= pf < 1.0 for pf in plan.power_fractions[2:6])
+    assert min(plan.temperatures[:7]) > 23.0  # full power reached ~21.4 by the end of the run
+
+
+# ---------------------------------------------------------------------------
+# A block without demand in its own direction: heating at full power, cooling at the minimum
+# ---------------------------------------------------------------------------
+
+
+def _near_target_cooling_plan(w_comfort: float, w_energy: float) -> MPCPlan:
+    """Plan for a room 0.1 K above a 24 °C cool target, 30 °C outside."""
+    model = RCModel(C=1.0, U=0.0139, Q_heat=9.1, Q_cool=3.64)
+    opt = MPCOptimizer(model, can_heat=False, can_cool=True, w_comfort=w_comfort, w_energy=w_energy)
+    return opt.optimize(
+        T_room=24.1,
+        T_outdoor_series=[30.0] * 12,
+        heat_target_series=[21.0] * 12,
+        cool_target_series=[24.0] * 12,
+        dt_minutes=5,
+    )
+
+
+def test_cooling_without_demand_runs_at_min_power():
+    """With efficiency weights the energy bias removes the small demand; the block must not fall back to full power."""
+    plan = _near_target_cooling_plan(w_comfort=2.0, w_energy=8.0)
+    assert plan.get_current_action() == MODE_COOLING
+    assert plan.get_current_power_fraction() == MIN_POWER_FRACTION
+
+
+def test_efficiency_weights_cool_no_harder_than_comfort_weights():
+    """Moving the weights toward efficiency must not make near-target cooling stronger."""
+    efficiency = _near_target_cooling_plan(w_comfort=2.0, w_energy=8.0)
+    comfort = _near_target_cooling_plan(w_comfort=7.0, w_energy=3.0)
+    assert efficiency.get_current_power_fraction() <= comfort.get_current_power_fraction()
+
+
+def test_pre_cooling_below_target_runs_at_min_power():
+    """The room is 0.2 K below the cool target on a hot day: the plan starts cooling early, at the minimum fraction."""
+    model = RCModel(C=1.0, U=0.15, Q_heat=9.1, Q_cool=3.64)
+    opt = MPCOptimizer(model, can_heat=True, can_cool=True)
+    plan = opt.optimize(
+        T_room=23.8,
+        T_outdoor_series=[35.0] * 24,
+        heat_target_series=[21.0] * 24,
+        cool_target_series=[24.0] * 24,
+        dt_minutes=5,
+    )
+    assert plan.get_current_action() == MODE_COOLING
+    assert plan.get_current_power_fraction() == MIN_POWER_FRACTION
+
+
+def test_heating_block_does_not_use_a_cooling_fraction():
+    """Pre-heating ahead of a higher heat target plans the same power whether or not the room can also cool."""
+
+    def plan(can_cool: bool) -> MPCPlan:
+        opt = MPCOptimizer(RCModel(C=1.0, U=0.05, Q_heat=3.0, Q_cool=4.0), can_cool=can_cool, min_run_blocks=2)
+        return opt.optimize(
+            T_room=21.0,
+            T_outdoor_series=[16.0] * 24,
+            heat_target_series=[21.0] * 6 + [23.0] * 18,
+            cool_target_series=[21.5] * 6 + [25.0] * 18,
+            dt_minutes=5,
+        )
+
+    hybrid, heat_only = plan(can_cool=True), plan(can_cool=False)
+    assert hybrid.actions == heat_only.actions
+    assert hybrid.power_fractions == heat_only.power_fractions
