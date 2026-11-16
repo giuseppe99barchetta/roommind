@@ -888,5 +888,7 @@
   "presence.not_configured_hint": "La détection de présence n'est pas encore configurée. Ajoutez les personnes à suivre dans les paramètres de RoomMind pour l'utiliser dans cette pièce.",
   "presence.open_settings": "Configurer les personnes dans les paramètres",
   "settings.load_failed": "Impossible de charger les paramètres. Rien n'a été modifié.",
-  "settings.retry": "Réessayer"
+  "settings.retry": "Réessayer",
+  "vacation.end_day": "Date de fin",
+  "vacation.end_time": "Heure"
 }

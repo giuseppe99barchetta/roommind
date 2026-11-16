@@ -888,5 +888,7 @@
   "presence.not_configured_hint": "Presence detection is not set up yet. Add the persons to track in RoomMind Settings to use it in this room.",
   "presence.open_settings": "Configure persons in Settings",
   "settings.load_failed": "Settings could not be loaded. Nothing was changed.",
-  "settings.retry": "Retry"
+  "settings.retry": "Retry",
+  "vacation.end_day": "End date",
+  "vacation.end_time": "Time"
 }

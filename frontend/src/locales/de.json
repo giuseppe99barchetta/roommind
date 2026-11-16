@@ -888,5 +888,7 @@
   "presence.not_configured_hint": "Die Anwesenheitserkennung ist noch nicht eingerichtet. Füge die zu verfolgenden Personen in den RoomMind-Einstellungen hinzu, um sie in diesem Raum zu nutzen.",
   "presence.open_settings": "Personen in den Einstellungen konfigurieren",
   "settings.load_failed": "Einstellungen konnten nicht geladen werden. Es wurde nichts geändert.",
-  "settings.retry": "Erneut versuchen"
+  "settings.retry": "Erneut versuchen",
+  "vacation.end_day": "Enddatum",
+  "vacation.end_time": "Uhrzeit"
 }
