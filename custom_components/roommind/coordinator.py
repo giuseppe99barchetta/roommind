@@ -2851,20 +2851,25 @@ class RoomMindCoordinator(DataUpdateCoordinator):
             # Serialized with the room's commands: a cycle holding the lock finishes first,
             # and one waiting for it carries a stale generation and sends nothing.
             async with self._room_command_locks.setdefault(area_id, asyncio.Lock()):
-                stored = store.get_rooms()
-                if area_id in stored:
-                    continue
-                driven = {eid for other in stored.values() for eid in get_all_entity_ids(other.get("devices", []))}
                 for eid in get_all_entity_ids(devices):
-                    # Checked before each command: control switched off meanwhile leaves the rest alone
+                    # All checked live before each command: control switched off, the room
+                    # created again or the device taken over by another room meanwhile.
                     if not self._live_climate_control_active():
                         return
-                    if eid in driven:
+                    stored = store.get_rooms()
+                    if area_id in stored:
+                        break
+                    driven = {e for other in stored.values() for e in get_all_entity_ids(other.get("devices", []))}
+                    # The boiler manager owns the hydraulic bypass TRVs: it opens and releases them
+                    if eid in driven or eid in bypass_entities(store.get_settings()):
                         continue
                     try:
                         await async_turn_off_climate(self.hass, eid, area_id=area_id)
                     except Exception:  # noqa: BLE001
                         _LOGGER.warning("Deleted room '%s': could not switch '%s' off", area_id, eid, exc_info=True)
+                        continue
+                    # A valve-protection cycle of it would otherwise command it again when it ends
+                    self._valve_manager.forget_cycle(eid)
 
     def _warn_block_temp_rejected(self, area_id: str, field: str, raw: Any) -> None:
         """Log a rejected schedule block temperature once per distinct value."""

@@ -46,6 +46,10 @@ class ValveManager:
         """Check if a specific entity is currently being valve-cycled."""
         return entity_id in self._cycling
 
+    def forget_cycle(self, entity_id: str) -> None:
+        """Drop a running protection cycle without commanding the device (its room was deleted)."""
+        self._cycling.pop(entity_id, None)
+
     @property
     def cycling_eids(self) -> set[str]:
         """Return set of entity IDs currently being cycled."""

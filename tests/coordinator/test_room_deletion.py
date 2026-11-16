@@ -159,3 +159,44 @@ async def test_valve_protection_skips_a_room_deleted_during_the_cycle(hass, mock
         await coordinator._async_update_data()
     rooms_passed = coordinator._valve_manager.async_check_and_cycle.await_args.args[0]
     assert rooms_passed == {}
+
+
+@pytest.mark.asyncio
+async def test_boiler_bypass_trv_is_left_to_the_boiler_manager(hass, mock_config_entry):
+    coordinator = _coordinator(
+        hass,
+        mock_config_entry,
+        settings={"boiler_entity": "switch.boiler", "hydraulic_bypass_entities": ["climate.bed_trv"]},
+    )
+    coordinator.note_room_deleted("bed", BED)
+    with patch(TURN_OFF, new=AsyncMock()) as turn_off:
+        await coordinator._async_switch_deleted_rooms_off({})
+    assert [c.args[1] for c in turn_off.await_args_list] == ["climate.shared_ac"]
+
+
+@pytest.mark.asyncio
+async def test_device_taken_over_by_another_room_during_the_shutdown_is_left_on(hass, mock_config_entry):
+    """References are re-read before each command, not once for the whole room."""
+    coordinator = _coordinator(hass, mock_config_entry)
+    store = hass.data["roommind"]["store"]
+    coordinator.note_room_deleted("bed", BED)
+
+    async def _turn_off(_hass, eid, **kwargs):
+        # while the first device is switched off, another room starts using the second one
+        store.get_rooms.return_value = {
+            "living": {"area_id": "living", "devices": [{"entity_id": "climate.shared_ac", "type": "ac"}]}
+        }
+
+    with patch(TURN_OFF, new=AsyncMock(side_effect=_turn_off)) as turn_off:
+        await coordinator._async_switch_deleted_rooms_off({})
+    assert [c.args[1] for c in turn_off.await_args_list] == ["climate.bed_trv"]
+
+
+@pytest.mark.asyncio
+async def test_switched_off_device_leaves_its_valve_protection_cycle(hass, mock_config_entry):
+    coordinator = _coordinator(hass, mock_config_entry)
+    coordinator._valve_manager._cycling["climate.bed_trv"] = 1.0
+    coordinator.note_room_deleted("bed", BED)
+    with patch(TURN_OFF, new=AsyncMock()):
+        await coordinator._async_switch_deleted_rooms_off({})
+    assert not coordinator._valve_manager.is_entity_cycling("climate.bed_trv")
