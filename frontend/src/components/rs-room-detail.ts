@@ -32,6 +32,7 @@ import "../components/shared/rs-edit-dialog";
 import "../components/shared/rs-info-icon";
 import { localize } from "../utils/localize";
 import { fireSaveStatus } from "../utils/events";
+import { changedSettings, snapshotSettings } from "../utils/settings-diff";
 import { resolveHeatingSystemType } from "../utils/device-utils";
 import type { RsOverrideSection } from "./rs-override-section";
 
@@ -130,6 +131,10 @@ export class RsRoomDetail extends LitElement {
 
   private _prevAreaId: string | null = null;
   private _saveDebounce?: ReturnType<typeof setTimeout>;
+  // Room fields as last known to the backend (JSON per key); a save sends only the
+  // keys that differ, so an open room page does not undo changes made elsewhere.
+  // null for a room not stored yet: its first save sends everything.
+  private _savedPayload: Record<string, string> | null = null;
 
   static styles = css`
     :host {
@@ -383,9 +388,15 @@ export class RsRoomDetail extends LitElement {
       this._deleting = false;
       this._initFromConfig();
       this._prevAreaId = currentAreaId;
-    } else if (changedProps.has("config") && !this._dirty) {
+    } else if (changedProps.has("config") && !this._dirty && !this._saveDebounce) {
       const prevConfig = changedProps.get("config") as RoomConfig | null | undefined;
-      if (prevConfig === null || prevConfig === undefined) {
+      // Follow a stored change made elsewhere (automation, switch, card, other device);
+      // live-only refreshes keep the fields as they are.
+      if (
+        prevConfig === null ||
+        prevConfig === undefined ||
+        storedConfigChanged(prevConfig, this.config)
+      ) {
         this._initFromConfig();
       }
     }
@@ -552,6 +563,7 @@ export class RsRoomDetail extends LitElement {
     ) {
       this._editing = "devices";
     }
+    this._savedPayload = this.config ? snapshotSettings(this._buildRoomPayload()) : null;
   }
 
   private _openEdit = (section: EditableSection) => () => {
@@ -1503,71 +1515,81 @@ export class RsRoomDetail extends LitElement {
     this._doSave(areaId);
   }
 
+  private _buildRoomPayload() {
+    return {
+      devices: this._devices,
+      temperature_sensor: this._selectedTempSensor,
+      humidity_sensor: this._selectedHumiditySensor,
+      dehumidifier: this._dehumidifier,
+      ...this._humidity,
+      occupancy_sensors: [...this._selectedOccupancySensors],
+      window_sensors: [...this._selectedWindowSensors],
+      window_open_delay: this._windowOpenDelay,
+      window_close_delay: this._windowCloseDelay,
+      climate_mode: this._climateMode,
+      schedules: this._schedules,
+      schedule_selector_entity: this._scheduleSelectorEntity,
+      comfort_heat: this._comfortHeat,
+      comfort_cool: this._comfortCool,
+      eco_heat: this._ecoHeat,
+      eco_cool: this._ecoCool,
+      active_profile: this._activeProfile,
+      night_mode_enabled: this._nightModeEnabled,
+      night_start: this._nightStart,
+      night_end: this._nightEnd,
+      night_heat_delta: this._nightHeatDelta,
+      night_cool_delta: this._nightCoolDelta,
+      night_ramp_minutes: this._nightRampMinutes,
+      presence_persons: this._selectedPresencePersons.filter((p) => p),
+      display_name: this._displayName,
+      covers: [...this._selectedCovers],
+      climate_control_enabled: this._climateControlEnabled,
+      keep_fan_only_on_window_open: this._keepFanOnlyOnWindowOpen,
+      mold_f_rsi: this._moldFRsi,
+      covers_auto_enabled: this._coversAutoEnabled,
+      covers_deploy_threshold: this._coversDeployThreshold,
+      covers_min_position: this._coversMinPosition,
+      covers_override_minutes: this._coversOverrideMinutes,
+      cover_schedules: this._coverSchedules,
+      cover_schedule_selector_entity: this._coverScheduleSelectorEntity,
+      covers_night_close: this._coversNightClose,
+      covers_night_position: this._coversNightPosition,
+      covers_snap_deploy: this._coversSnapDeploy,
+      cover_orientations: this._coverOrientations,
+      covers_night_close_elevation: this._coversNightCloseElevation,
+      covers_night_close_offset_minutes: this._coversNightCloseOffsetMinutes,
+      covers_outdoor_min_temp: this._coversOutdoorMinTemp,
+      cover_min_positions: this._coverMinPositions,
+      ignore_presence: this._ignorePresence,
+      is_outdoor: this._isOutdoor,
+      valve_protection_exclude: [...this._valveProtectionExclude],
+      heat_source_orchestration: this._heatSourceOrchestration,
+      heat_source_primary_delta: this._heatSourcePrimaryDelta,
+      heat_source_outdoor_threshold: this._heatSourceOutdoorThreshold,
+      heat_source_ac_min_outdoor: this._heatSourceAcMinOutdoor,
+      native_heat_source: this._nativeHeatSource,
+      heat_source_boiler_outdoor_threshold: this._heatSourceBoilerOutdoorThreshold,
+      heat_source_heat_pump_outdoor_threshold: this._heatSourceHeatPumpOutdoorThreshold,
+      heat_source_hybrid_delta: this._heatSourceHybridDelta,
+      heat_pump_power_watts: this._heatPumpPowerWatts,
+    };
+  }
+
   private async _doSave(areaId = this.area.area_id) {
     const savedRevision = this._editRevision;
     fireSaveStatus(this, "saving");
     this._error = "";
 
     try {
-      await this.hass.callWS({
-        type: "roommind/rooms/save",
-        area_id: areaId,
-        devices: this._devices,
-        temperature_sensor: this._selectedTempSensor,
-        humidity_sensor: this._selectedHumiditySensor,
-        dehumidifier: this._dehumidifier,
-        ...this._humidity,
-        occupancy_sensors: [...this._selectedOccupancySensors],
-        window_sensors: [...this._selectedWindowSensors],
-        window_open_delay: this._windowOpenDelay,
-        window_close_delay: this._windowCloseDelay,
-        climate_mode: this._climateMode,
-        schedules: this._schedules,
-        schedule_selector_entity: this._scheduleSelectorEntity,
-        comfort_heat: this._comfortHeat,
-        comfort_cool: this._comfortCool,
-        eco_heat: this._ecoHeat,
-        eco_cool: this._ecoCool,
-        active_profile: this._activeProfile,
-        night_mode_enabled: this._nightModeEnabled,
-        night_start: this._nightStart,
-        night_end: this._nightEnd,
-        night_heat_delta: this._nightHeatDelta,
-        night_cool_delta: this._nightCoolDelta,
-        night_ramp_minutes: this._nightRampMinutes,
-        presence_persons: this._selectedPresencePersons.filter((p) => p),
-        display_name: this._displayName,
-        covers: [...this._selectedCovers],
-        climate_control_enabled: this._climateControlEnabled,
-        keep_fan_only_on_window_open: this._keepFanOnlyOnWindowOpen,
-        mold_f_rsi: this._moldFRsi,
-        covers_auto_enabled: this._coversAutoEnabled,
-        covers_deploy_threshold: this._coversDeployThreshold,
-        covers_min_position: this._coversMinPosition,
-        covers_override_minutes: this._coversOverrideMinutes,
-        cover_schedules: this._coverSchedules,
-        cover_schedule_selector_entity: this._coverScheduleSelectorEntity,
-        covers_night_close: this._coversNightClose,
-        covers_night_position: this._coversNightPosition,
-        covers_snap_deploy: this._coversSnapDeploy,
-        cover_orientations: this._coverOrientations,
-        covers_night_close_elevation: this._coversNightCloseElevation,
-        covers_night_close_offset_minutes: this._coversNightCloseOffsetMinutes,
-        covers_outdoor_min_temp: this._coversOutdoorMinTemp,
-        cover_min_positions: this._coverMinPositions,
-        ignore_presence: this._ignorePresence,
-        is_outdoor: this._isOutdoor,
-        valve_protection_exclude: [...this._valveProtectionExclude],
-        heat_source_orchestration: this._heatSourceOrchestration,
-        heat_source_primary_delta: this._heatSourcePrimaryDelta,
-        heat_source_outdoor_threshold: this._heatSourceOutdoorThreshold,
-        heat_source_ac_min_outdoor: this._heatSourceAcMinOutdoor,
-        native_heat_source: this._nativeHeatSource,
-        heat_source_boiler_outdoor_threshold: this._heatSourceBoilerOutdoorThreshold,
-        heat_source_heat_pump_outdoor_threshold: this._heatSourceHeatPumpOutdoorThreshold,
-        heat_source_hybrid_delta: this._heatSourceHybridDelta,
-        heat_pump_power_watts: this._heatPumpPowerWatts,
-      });
+      // Captured: a flush to the previous room runs while the next room initialises.
+      const snapshot = this._savedPayload;
+      const full = this._buildRoomPayload();
+      const body = snapshot ? changedSettings(full, snapshot) : full;
+      if (Object.keys(body).length) {
+        await this.hass.callWS({ type: "roommind/rooms/save", area_id: areaId, ...body });
+      }
+      if (snapshot) Object.assign(snapshot, snapshotSettings(body));
+      else if (areaId === this.area.area_id) this._savedPayload = snapshotSettings(full);
 
       // An edit made while this save was in flight is still unsaved.
       if (this._editRevision === savedRevision) this._dirty = false;
@@ -1588,6 +1610,13 @@ export class RsRoomDetail extends LitElement {
       fireSaveStatus(this, "error");
     }
   }
+}
+
+/** True when the stored room settings differ (the live block refreshes every cycle). */
+function storedConfigChanged(prev: RoomConfig, next: RoomConfig | null | undefined): boolean {
+  if (!next) return false;
+  const stored = (c: RoomConfig) => JSON.stringify({ ...c, live: undefined });
+  return stored(prev) !== stored(next);
 }
 
 declare global {

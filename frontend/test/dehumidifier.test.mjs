@@ -31,11 +31,25 @@ test("unrelated room saves preserve shared registration and humidity settings", 
   detail._displayName = "Bedroom";
   await detail._doSave();
   assert.equal(writes.length, 1);
-  assert.deepEqual(writes[0].dehumidifier, config);
-  assert.equal(writes[0].humidity_comfort_enabled, false);
-  assert.equal(writes[0].humidity_target, 58);
-  assert.equal(writes[0].humidity_tolerance, 6);
-  assert.equal(writes[0].humidity_priority, "energy");
+  // Only the edit is sent: the stored registration and humidity settings stay as they are.
+  assert.equal(writes[0].display_name, "Bedroom");
+  for (const key of ["dehumidifier", "humidity_comfort_enabled", "humidity_target", "humidity_tolerance", "humidity_priority"]) {
+    assert.equal(key in writes[0], false, key);
+  }
+});
+
+test("a changed dehumidifier is sent with the room save", async () => {
+  const detail = new RoomDetail();
+  const writes = [];
+  detail.hass = { language: "en", callWS: async (payload) => { writes.push(payload); } };
+  detail.area = { area_id: "bed" };
+  detail.config = { area_id: "bed", devices: [], dehumidifier: config };
+  detail.dispatchEvent = () => true;
+  detail._initFromConfig();
+  detail._dehumidifier = { ...config, min_run_minutes: 12 };
+  await detail._doSave();
+  assert.deepEqual(writes[0].dehumidifier, { ...config, min_run_minutes: 12 });
+  assert.equal("devices" in writes[0], false);
 });
 
 test("selecting a physical device neither enables comfort nor changes served rooms", () => {
@@ -296,8 +310,13 @@ test("room saves keep seasonal humidity targets", async () => {
   detail.dispatchEvent = () => true;
   detail._initFromConfig();
   await detail._doSave();
-  assert.deepEqual(writes[0].humidity_season_targets, { winter: 48 });
-  assert.equal(writes[0].dehumidifier.start_mode, "auto");
+  // Nothing changed: nothing is written, the stored seasonal targets are kept.
+  assert.equal(writes.length, 0);
+  detail._humidity = { ...detail._humidity, humidity_target: 52 };
+  await detail._doSave();
+  assert.equal(writes[0].humidity_target, 52);
+  assert.equal("humidity_season_targets" in writes[0], false);
+  assert.equal("dehumidifier" in writes[0], false);
 });
 
 test("forecast shows minutes per room, power, heat and the estimate hint until learned", () => {

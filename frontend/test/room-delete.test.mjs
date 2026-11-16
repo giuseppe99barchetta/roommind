@@ -50,6 +50,7 @@ test("deleting a room with a pending edit does not recreate it on unmount", asyn
 
 test("leaving the room normally still flushes the pending edit", async () => {
   const { writes, detail } = setup();
+  detail._displayName = "Edited";
   detail._autoSave();
   detail.disconnectedCallback();
   assert.deepEqual(writes, ["roommind/rooms/save"]);
@@ -129,6 +130,7 @@ test("an earlier save finishing during a failed delete keeps the newer edit dirt
     return Promise.resolve({});
   };
   globalThis.confirm = () => true;
+  detail._displayName = "First edit";
   detail._autoSave();
   const firstSave = detail._doSave(); // save of the first edit is in flight
   detail._displayName = "Newer edit";
