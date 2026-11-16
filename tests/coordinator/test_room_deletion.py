@@ -200,3 +200,65 @@ async def test_switched_off_device_leaves_its_valve_protection_cycle(hass, mock_
     with patch(TURN_OFF, new=AsyncMock()):
         await coordinator._async_switch_deleted_rooms_off({})
     assert not coordinator._valve_manager.is_entity_cycling("climate.bed_trv")
+
+
+def _device_states(hass, states: dict):
+    def _get(eid):
+        value = states.get(eid)
+        if value is None:
+            return None
+        st = MagicMock()
+        st.state = value
+        st.attributes = {"hvac_modes": ["off", "heat", "cool"]}
+        return st
+
+    hass.states.get = MagicMock(side_effect=_get)
+
+
+@pytest.mark.asyncio
+async def test_device_that_stays_on_is_retried_next_cycle(hass, mock_config_entry):
+    """A switch-off that did not take (device unavailable, lost command) is tried again."""
+    coordinator = _coordinator(hass, mock_config_entry)
+    states = {"climate.bed_trv": "off", "climate.shared_ac": "unavailable"}
+    _device_states(hass, states)
+    coordinator.note_room_deleted("bed", BED)
+    with patch(TURN_OFF, new=AsyncMock()) as turn_off:
+        await coordinator._async_switch_deleted_rooms_off({})
+        states["climate.shared_ac"] = "heat"  # back online, still running
+        await coordinator._async_switch_deleted_rooms_off({})
+    sent = [c.args[1] for c in turn_off.await_args_list]
+    assert sent == ["climate.bed_trv", "climate.shared_ac", "climate.shared_ac"]
+
+
+@pytest.mark.asyncio
+async def test_retries_stop_after_the_attempt_limit(hass, mock_config_entry):
+    from custom_components.roommind.coordinator import DELETED_ROOM_SWITCH_OFF_ATTEMPTS
+
+    coordinator = _coordinator(hass, mock_config_entry)
+    _device_states(hass, {"climate.bed_trv": "off", "climate.shared_ac": "heat"})
+    coordinator.note_room_deleted("bed", BED)
+    with patch(TURN_OFF, new=AsyncMock()) as turn_off:
+        for _ in range(DELETED_ROOM_SWITCH_OFF_ATTEMPTS + 3):
+            await coordinator._async_switch_deleted_rooms_off({})
+    ac_calls = [c for c in turn_off.await_args_list if c.args[1] == "climate.shared_ac"]
+    assert len(ac_calls) == DELETED_ROOM_SWITCH_OFF_ATTEMPTS
+    assert coordinator._deleted_rooms_to_switch_off == {}
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("room_control", [True, False])
+async def test_deletion_drops_valve_protection_cycles_even_with_control_off(hass, mock_config_entry, room_control):
+    """With global or room control off nothing is switched off, and no protection cycle may command it later."""
+    coordinator = _coordinator(hass, mock_config_entry, settings={"climate_control_active": room_control})
+    coordinator._valve_manager._cycling["climate.bed_trv"] = 1.0
+    coordinator.note_room_deleted("bed", {**BED, "climate_control_enabled": room_control and False})
+    assert not coordinator._valve_manager.is_entity_cycling("climate.bed_trv")
+
+
+@pytest.mark.asyncio
+async def test_deletion_keeps_the_protection_cycle_of_a_valve_another_room_uses(hass, mock_config_entry):
+    other = {"area_id": "living", "devices": [{"entity_id": "climate.bed_trv", "type": "trv"}]}
+    coordinator = _coordinator(hass, mock_config_entry, remaining={"living": other, "bed": BED})
+    coordinator._valve_manager._cycling["climate.bed_trv"] = 1.0
+    coordinator.note_room_deleted("bed", BED)
+    assert coordinator._valve_manager.is_entity_cycling("climate.bed_trv")

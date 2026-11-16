@@ -125,6 +125,8 @@ from .utils.sensor_utils import read_sensor_value
 from .utils.temp_utils import celsius_delta_to_ha, ha_temp_to_celsius, ha_temp_unit_str
 
 _LOGGER = logging.getLogger(__name__)
+# Cycles a deleted room's device is retried when it does not report off after the command
+DELETED_ROOM_SWITCH_OFF_ATTEMPTS = 10
 
 
 def _get_area_name(hass: HomeAssistant, area_id: str) -> str:
@@ -340,6 +342,8 @@ class RoomMindCoordinator(DataUpdateCoordinator):
         self._block_temp_warned: set[tuple[str, str, str]] = set()
         # Rooms deleted in the panel: their devices, switched off by the next cycle
         self._deleted_rooms_to_switch_off: dict[str, list[dict]] = {}
+        # Failed switch-off attempts per (deleted room, device), retried on the next cycles
+        self._deleted_switch_attempts: dict[tuple[str, str], int] = {}
         self._switch_entity_areas: set[str] = set()
         self._climate_control_switch_areas: set[str] = set()
         self._dry_switch_entity_areas: set[str] = set()
@@ -2824,6 +2828,17 @@ class RoomMindCoordinator(DataUpdateCoordinator):
         """
         # A cycle that already took this room's snapshot must not apply it any more
         self._manual_command_generations[area_id] = self._manual_command_generations.get(area_id, 0) + 1
+        # Its valve-protection cycles end without a command, whatever happens next: with
+        # control off a device run by hand must not be touched by a cycle's end either.
+        others = {
+            e
+            for other_id, other in self.hass.data[DOMAIN]["store"].get_rooms().items()
+            if other_id != area_id
+            for e in get_all_entity_ids(other.get("devices", []))
+        }
+        for eid in get_all_entity_ids(room.get("devices", [])):
+            if eid not in others:
+                self._valve_manager.forget_cycle(eid)
         if room.get("is_outdoor") or not room.get("climate_control_enabled", True):
             return False
         if not self._live_climate_control_active():
@@ -2867,9 +2882,28 @@ class RoomMindCoordinator(DataUpdateCoordinator):
                         await async_turn_off_climate(self.hass, eid, area_id=area_id)
                     except Exception:  # noqa: BLE001
                         _LOGGER.warning("Deleted room '%s': could not switch '%s' off", area_id, eid, exc_info=True)
-                        continue
                     # A valve-protection cycle of it would otherwise command it again when it ends
                     self._valve_manager.forget_cycle(eid)
+                    # The helper logs a failed call itself: retry a device that is not off yet
+                    # (unavailable, lost command) on the next cycles, a bounded number of times.
+                    if not self._is_switched_off(eid):
+                        key = (area_id, eid)
+                        attempts = self._deleted_switch_attempts.get(key, 0) + 1
+                        if attempts < DELETED_ROOM_SWITCH_OFF_ATTEMPTS:
+                            self._deleted_switch_attempts[key] = attempts
+                            retry = self._deleted_rooms_to_switch_off.setdefault(area_id, [])
+                            retry.extend(d for d in devices if d.get("entity_id") == eid)
+                            continue
+                        _LOGGER.warning("Deleted room '%s': '%s' did not switch off, giving up", area_id, eid)
+                    self._deleted_switch_attempts.pop((area_id, eid), None)
+
+    def _is_switched_off(self, eid: str) -> bool:
+        """True when a device is off, gone, or has no off mode (heat-only TRVs get min_temp instead)."""
+        state = self.hass.states.get(eid)
+        if state is None or state.state == "off":
+            return True
+        modes = state.attributes.get("hvac_modes") or []
+        return bool(modes) and "off" not in modes
 
     def _warn_block_temp_rejected(self, area_id: str, field: str, raw: Any) -> None:
         """Log a rejected schedule block temperature once per distinct value."""
