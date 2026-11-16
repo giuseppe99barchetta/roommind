@@ -97,6 +97,16 @@ async def test_lowered_heat_target_is_sent_without_hvac_mode():
 
 
 @pytest.mark.asyncio
+@pytest.mark.parametrize(("offsets", "expected"), [(None, 17.0), (lambda eid, intent: 2.0, 19.0)])
+async def test_changed_target_in_a_hold_carries_the_head_offset_only_when_on(offsets, expected):
+    """A retarget is a setpoint like any other: shifted by the unit's learned head offset (#461)."""
+    hass, ctrl = _setup(_state())
+    ctrl._head_offsets = offsets
+    (call,) = await _start_then_hold(hass, ctrl, TargetTemps(heat=17.0, cool=27.0), current_temp=19.5)
+    assert call["temperature"] == expected
+
+
+@pytest.mark.asyncio
 async def test_change_is_sent_once_while_the_hold_continues():
     hass, ctrl = _setup(_state())
     lowered = TargetTemps(heat=17.0, cool=27.0)

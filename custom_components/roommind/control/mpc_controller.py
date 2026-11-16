@@ -1353,6 +1353,8 @@ class MPCController:
         if hvac in ("heat", "cool"):
             target = targets.heat if hvac == "heat" else targets.cool
             if target is not None:
+                # The unit regulates on its own sensor: shifted like any other setpoint (#461)
+                target += self._head_shift(eid, hvac)
                 delivered = await self._call(
                     "set_temperature",
                     {"entity_id": eid, "temperature": celsius_to_ha_temp(self.hass, target)},

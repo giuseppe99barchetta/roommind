@@ -79,6 +79,19 @@ def test_missing_readings_teach_nothing():
     assert tracker.get_state() == {}
 
 
+def test_non_finite_readings_and_stored_values_are_ignored():
+    """A NaN reading must not poison the EMA (round(NaN) would then break control)."""
+    tracker = HeadOffsetTracker()
+    t = feed(tracker, "heat", 22.5, 21.0)
+    feed(tracker, "heat", float("nan"), 21.0, start=t)
+    feed(tracker, "heat", 22.5, float("inf"), start=t + 10_000)
+    assert tracker.offset(AC, "heat") == pytest.approx(1.5)
+    restored = HeadOffsetTracker()
+    restored.load_state({AC: {"heat": [float("nan"), 50], "cool": [1.0, 50]}})
+    assert "heat" not in restored.get_state()[AC]
+    assert restored.offset(AC, "cool") == 1.0
+
+
 def test_implausible_offset_is_ignored():
     """Four kelvin and more is a misplaced or broken sensor, not a bias to correct."""
     tracker = HeadOffsetTracker()

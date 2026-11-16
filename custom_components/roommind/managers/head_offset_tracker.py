@@ -14,6 +14,8 @@ with the airflow.
 
 from __future__ import annotations
 
+import math
+
 from ..const import (
     HEAD_OFFSET_ALPHA,
     HEAD_OFFSET_GRID_K,
@@ -50,7 +52,12 @@ class HeadOffsetTracker:
 
         *state*: "heat", "cool" or "idle"; None (no signal, fan only, unavailable) resets the timer.
         """
-        if state not in STATES or device_temp is None or room_temp is None:
+        if (
+            state not in STATES
+            or device_temp is None
+            or room_temp is None
+            or not (math.isfinite(device_temp) and math.isfinite(room_temp))
+        ):
             self._state_since.pop(entity_id, None)
             return
         since = self._state_since.get(entity_id)
@@ -114,5 +121,5 @@ class HeadOffsetTracker:
                     offset, n = float(value[0]), int(value[1])
                 except (TypeError, ValueError, IndexError):
                     continue
-                if abs(offset) <= HEAD_OFFSET_MAX_K:
+                if math.isfinite(offset) and abs(offset) <= HEAD_OFFSET_MAX_K:
                     self._offsets.setdefault(eid, {})[state] = [offset, n]
