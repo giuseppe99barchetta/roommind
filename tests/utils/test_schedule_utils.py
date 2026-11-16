@@ -1139,7 +1139,6 @@ class TestTimezoneAwareBlockResolution:
         assert result == TargetTemps(heat=24.0, cool=26.0)  # comfort
 
 
-
 def _monday_blocks(data: dict) -> dict:
     """Return schedule blocks with a single Monday 08:00-12:00 block."""
     return {"monday": [{"from": "08:00:00", "to": "12:00:00", "data": data}]}
@@ -1282,21 +1281,18 @@ class TestOutOfRangeBlockTemps:
 class TestFindRejectedBlockTemps:
     def test_none_and_empty_return_empty(self):
         """No schedule blocks → nothing to report."""
-        from custom_components.roommind.utils.schedule_utils import find_rejected_block_temps
 
         assert find_rejected_block_temps(None) == []
         assert find_rejected_block_temps({}) == []
 
     def test_all_valid_returns_empty(self):
         """A clean schedule produces no warnings."""
-        from custom_components.roommind.utils.schedule_utils import find_rejected_block_temps
 
         blocks = _monday_blocks({"temperature": 21.0})
         assert find_rejected_block_temps(blocks) == []
 
     def test_finds_typo_in_inactive_block(self):
         """The #395 scenario: a bad value in the 00:00-06:00 block is found at any time."""
-        from custom_components.roommind.utils.schedule_utils import find_rejected_block_temps
 
         blocks = {"monday": [{"from": "00:00:00", "to": "06:00:00", "data": {"temperature": 110}}]}
         assert find_rejected_block_temps(blocks) == [
@@ -1305,7 +1301,6 @@ class TestFindRejectedBlockTemps:
 
     def test_reports_split_fields(self):
         """heat_temperature and cool_temperature are scanned too."""
-        from custom_components.roommind.utils.schedule_utils import find_rejected_block_temps
 
         blocks = _monday_blocks({"heat_temperature": 200, "cool_temperature": 24.0})
         result = find_rejected_block_temps(blocks)
@@ -1314,14 +1309,12 @@ class TestFindRejectedBlockTemps:
 
     def test_reports_non_numeric_values(self):
         """Unparseable values are reported as-is, not swallowed."""
-        from custom_components.roommind.utils.schedule_utils import find_rejected_block_temps
 
         blocks = _monday_blocks({"temperature": "twenty"})
         assert find_rejected_block_temps(blocks)[0]["value"] == "twenty"
 
     def test_results_are_in_weekday_order(self):
         """Entries are ordered Monday-first regardless of dict insertion order."""
-        from custom_components.roommind.utils.schedule_utils import find_rejected_block_temps
 
         blocks = {
             "wednesday": [{"from": "01:00:00", "to": "02:00:00", "data": {"temperature": 111}}],
@@ -1331,7 +1324,6 @@ class TestFindRejectedBlockTemps:
 
     def test_converter_applied_before_check(self):
         """71.6°F is valid after conversion and must not be reported."""
-        from custom_components.roommind.utils.schedule_utils import find_rejected_block_temps
 
         converter = lambda v: (v - 32) * 5 / 9  # noqa: E731
         assert find_rejected_block_temps(_monday_blocks({"temperature": 71.6}), converter) == []
@@ -1339,12 +1331,10 @@ class TestFindRejectedBlockTemps:
 
     def test_missing_data_key_is_not_reported(self):
         """A block without temperature fields is fine — it falls back to comfort."""
-        from custom_components.roommind.utils.schedule_utils import find_rejected_block_temps
 
         assert find_rejected_block_temps({"monday": [{"from": "01:00:00", "to": "02:00:00"}]}) == []
 
     def test_day_with_none_block_list(self):
         """A day key holding None is tolerated."""
-        from custom_components.roommind.utils.schedule_utils import find_rejected_block_temps
 
         assert find_rejected_block_temps({"monday": None}) == []

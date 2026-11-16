@@ -3094,9 +3094,9 @@ class RoomMindCoordinator(DataUpdateCoordinator):
                     heat=h if h is not None else comfort_heat,
                     cool=c if c is not None else comfort_cool,
                 )
-            t = _read(block_temp, "temperature")
-            if t is not None:
-                return TargetTemps(heat=t, cool=t)  # single-point
+            single = _read(block_temp, "temperature")
+            if single is not None:
+                return TargetTemps(heat=single, cool=single)  # single-point
             return TargetTemps(heat=comfort_heat, cool=comfort_cool)
 
         # Schedule is "off" -> eco or off

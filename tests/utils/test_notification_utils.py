@@ -6,7 +6,10 @@ import asyncio
 import time
 from unittest.mock import AsyncMock, MagicMock, patch
 
+import homeassistant.helpers.config_validation as cv
 import pytest
+import voluptuous as vol
+from homeassistant.components.notify.const import NOTIFY_SERVICE_SCHEMA
 
 from custom_components.roommind.utils.notification_utils import (
     NotificationThrottler,
@@ -59,7 +62,6 @@ class TestNotificationThrottler:
 # --- async_send_mold_notification ---
 
 
-
 async def _send(hass, *args, **kwargs):
     """Call async_send_mold_notification and wait for its background delivery."""
     hass.async_create_background_task = MagicMock(side_effect=lambda coro, name: asyncio.ensure_future(coro))
@@ -67,6 +69,7 @@ async def _send(hass, *args, **kwargs):
     if task is not None:
         await task
     return task
+
 
 @pytest.mark.asyncio
 async def test_send_notification_with_targets():
@@ -293,6 +296,12 @@ async def test_send_notification_service_exception_triggers_fallback():
 
     mock_create.assert_called_once()
 
+
+# The schemas Home Assistant registers: the entity action only takes message and title
+# (extra keys rejected), a legacy notify service also takes data (#502).
+SEND_MESSAGE_SCHEMA = cv.make_entity_service_schema(
+    {vol.Required("message"): cv.string, vol.Optional("title"): cv.string}
+)
 
 
 def _notify_hass(entities: frozenset[str] = frozenset(), legacy: frozenset[str] = frozenset()) -> MagicMock:

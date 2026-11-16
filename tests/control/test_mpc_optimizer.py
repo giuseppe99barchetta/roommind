@@ -790,6 +790,8 @@ def test_approach_rate_widens_cooling_band_symmetrically():
     assert m1 == MODE_COOLING and m2 == MODE_COOLING
     assert pf_gentle < pf_full
     assert pf_gentle >= MIN_POWER_FRACTION
+
+
 # ---------------------------------------------------------------------------
 # Rooms already past the plausibility clamp (temp_min / temp_max)
 # ---------------------------------------------------------------------------

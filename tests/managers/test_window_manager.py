@@ -300,6 +300,8 @@ def test_remove_room_resets_seen_state():
         mock_time.time.return_value = 2000.0
         result = mgr.update("living_room", raw_open=True, open_delay=60, close_delay=0)
         assert result is True  # immediate pause again
+
+
 OTHER = "binary_sensor.door"
 
 
