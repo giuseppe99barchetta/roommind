@@ -272,3 +272,37 @@ def test_cooling_min_run_is_the_ac_one_in_a_ufh_room():
     assert ctrl._within_min_run(MODE_COOLING) is False
     ctrl.previous_mode = MODE_HEATING
     assert ctrl._within_min_run(MODE_HEATING) is True
+
+
+@pytest.mark.parametrize(
+    ("temp", "expected"),
+    [(20.5, (MODE_HEATING, 1.0)), (21.5, (MODE_HEATING, 1.0)), (22.0, (MODE_IDLE, 0.0))],
+)
+@pytest.mark.asyncio
+async def test_bangbang_min_run_continues_up_to_the_ceiling(temp, expected):
+    """Learning phase: a strong AC in a small room used to run its whole min run at full
+    boost and overheat by 4-8 K before the compressor hold even started. Power stays
+    binary so the EKF learns what the device delivers."""
+    ctrl = _controller(**_within_min_run(MODE_HEATING))
+    assert await ctrl.async_evaluate(temp, TargetTemps(heat=21.0, cool=24.0)) == expected
+
+
+@pytest.mark.parametrize(
+    ("temp", "expected"),
+    [(24.5, (MODE_COOLING, 1.0)), (23.5, (MODE_COOLING, 1.0)), (23.0, (MODE_IDLE, 0.0))],
+)
+@pytest.mark.asyncio
+async def test_bangbang_cooling_min_run_continues_up_to_the_ceiling(temp, expected):
+    ctrl = _controller(COOL_ROOM, outdoor_temp=30.0, **_within_min_run(MODE_COOLING))
+    assert await ctrl.async_evaluate(temp, TargetTemps(heat=None, cool=24.0)) == expected
+
+
+@pytest.mark.asyncio
+async def test_slow_heating_room_keeps_the_plain_min_run_while_learning():
+    """UFH + split: the capped learning runs left the screed idle for hours on one seed."""
+    ctrl = _controller(
+        {"climate_mode": "heat_only", "heating_system_type": "underfloor"},
+        heating_system_type="underfloor",
+        **_within_min_run(MODE_HEATING),
+    )
+    assert await ctrl.async_evaluate(22.5, TargetTemps(heat=21.0, cool=24.0)) == (MODE_HEATING, 1.0)
