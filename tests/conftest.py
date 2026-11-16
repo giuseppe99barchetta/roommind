@@ -176,6 +176,18 @@ def _clear_command_cache():
     clear_command_cache()
 
 
+@pytest.fixture(autouse=True)
+def _clear_module_tracking():
+    """Module-level trackers (pending notification deliveries, stateless presence) per test."""
+    from custom_components.roommind.utils import notification_utils, presence_utils
+
+    notification_utils._pending_deliveries.clear()
+    presence_utils._stateless_since.clear()
+    yield
+    notification_utils._pending_deliveries.clear()
+    presence_utils._stateless_since.clear()
+
+
 @pytest.fixture
 def hass(tmp_path):
     """Return a mocked Home Assistant instance."""

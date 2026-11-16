@@ -367,3 +367,52 @@ async def test_delivery_waits_in_the_background_and_a_hanging_push_falls_back(mo
         await task
 
     mock_create.assert_called_once()
+
+
+@pytest.mark.asyncio
+async def test_dismissal_cancels_a_hanging_delivery_so_no_late_fallback(monkeypatch):
+    """The condition cleared while a push hangs: the timeout must not post a stale sidebar alert."""
+    from custom_components.roommind.utils import notification_utils as nu
+
+    monkeypatch.setattr(nu, "NOTIFY_TIMEOUT_S", 0.05)
+    hass = _notify_hass(entities=frozenset({"notify.pixel_9"}))
+    hass.async_create_background_task = MagicMock(side_effect=lambda coro, name: asyncio.ensure_future(coro))
+
+    async def _hangs(*args, **kwargs):
+        await asyncio.sleep(10)
+
+    hass.services.async_call.side_effect = _hangs
+    targets = [{"entity_id": "notify.pixel_9", "person_entity": "", "notify_when": "always"}]
+    with (
+        patch("custom_components.roommind.utils.notification_utils.async_create") as mock_create,
+        patch("custom_components.roommind.utils.notification_utils.async_dismiss"),
+    ):
+        task = await async_send_mold_notification(hass, "living_room", targets, "Alert", "RoomMind")
+        dismiss_mold_notification(hass, "living_room")
+        with pytest.raises(asyncio.CancelledError):
+            await task
+        await asyncio.sleep(0.1)
+    mock_create.assert_not_called()
+    assert nu._pending_deliveries == {}
+
+
+@pytest.mark.asyncio
+async def test_a_new_alert_replaces_the_pending_delivery_of_the_same_tag():
+    from custom_components.roommind.utils import notification_utils as nu
+
+    hass = _notify_hass(entities=frozenset({"notify.pixel_9"}))
+    hass.async_create_background_task = MagicMock(side_effect=lambda coro, name: asyncio.ensure_future(coro))
+    gate = asyncio.Event()
+
+    async def _waits(*args, **kwargs):
+        await gate.wait()
+
+    hass.services.async_call.side_effect = _waits
+    targets = [{"entity_id": "notify.pixel_9", "person_entity": "", "notify_when": "always"}]
+    first = await async_send_mold_notification(hass, "living_room", targets, "Alert 1", "RoomMind")
+    second = await async_send_mold_notification(hass, "living_room", targets, "Alert 2", "RoomMind")
+    await asyncio.sleep(0)
+    assert first.cancelled()
+    gate.set()
+    await second
+    assert nu._pending_deliveries == {}

@@ -21,6 +21,9 @@ _LOGGER = logging.getLogger(__name__)
 NOTIF_PREFIX = "roommind_mold_"
 # Per target; a phone push that hangs must not hold back the others or the fallback
 NOTIFY_TIMEOUT_S = 15
+# Running deliveries by tag: a dismissal cancels them, so a late failure cannot
+# post the sidebar fallback for a condition that has already cleared.
+_pending_deliveries: dict[str, asyncio.Task[None]] = {}
 
 
 class NotificationThrottler:
@@ -112,9 +115,14 @@ async def async_send_mold_notification(
         # All targets were skipped → persistent fallback
         async_create(hass, message, title=title, notification_id=notification_id)
         return None
+    previous = _pending_deliveries.pop(tag, None)
+    if previous is not None and not previous.done():
+        previous.cancel()
     task: asyncio.Task[None] = hass.async_create_background_task(
         _async_deliver(hass, recipients, message, title, tag), name=f"roommind_notify_{tag}"
     )
+    _pending_deliveries[tag] = task
+    task.add_done_callback(lambda t: _pending_deliveries.pop(tag, None) if _pending_deliveries.get(tag) is t else None)
     return task
 
 
@@ -163,6 +171,9 @@ def dismiss_mold_notification(
     area_id: str,
     tag_suffix: str = "risk",
 ) -> None:
-    """Dismiss the persistent mold notification for a room."""
+    """Dismiss the persistent mold notification for a room and stop a delivery still running."""
     notification_id = f"{NOTIF_PREFIX}{area_id}_{tag_suffix}"
+    pending = _pending_deliveries.pop(notification_id, None)
+    if pending is not None and not pending.done():
+        pending.cancel()
     async_dismiss(hass, notification_id)

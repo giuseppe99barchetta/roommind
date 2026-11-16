@@ -6,7 +6,15 @@ from unittest.mock import MagicMock
 
 import pytest
 
+from custom_components.roommind.const import MAX_SENSOR_STALENESS
+from custom_components.roommind.utils import presence_utils
 from custom_components.roommind.utils.presence_utils import is_presence_away
+
+
+def _past_grace(monkeypatch):
+    """Advance the monotonic clock past the grace period for already-missing entities."""
+    real = presence_utils.time.monotonic
+    monkeypatch.setattr(presence_utils.time, "monotonic", lambda: real() + MAX_SENSOR_STALENESS + 1)
 
 
 def _make_hass(**kwargs) -> MagicMock:
@@ -224,7 +232,25 @@ def test_deleted_entity_does_not_block_remaining_persons(monkeypatch):
     _patch_registry(monkeypatch, {"person.kevin": _registry_entry()})
     settings = {"presence_enabled": True, "presence_persons": ["person.kevin"]}
     room = {"presence_persons": ["device_tracker.gone", "person.kevin"]}
+    # Unregistered and stateless: fail-safe home until it stays missing for the grace period
+    assert is_presence_away(hass, room, settings) is False
+    _past_grace(monkeypatch)
     assert is_presence_away(hass, room, settings) is True
+
+
+def test_unregistered_entity_briefly_without_state_keeps_the_room_home(monkeypatch):
+    """A YAML tracker without registry entry that loses its state for a moment is not 'deleted'."""
+    hass = _make_hass()
+    states = {"person.kevin": _make_state("person.kevin", "not_home")}
+    hass.states.get = MagicMock(side_effect=states.get)
+    _patch_registry(monkeypatch, {"person.kevin": _registry_entry()})
+    settings = {"presence_enabled": True, "presence_persons": ["person.kevin"]}
+    room = {"presence_persons": ["device_tracker.yaml_phone", "person.kevin"]}
+    assert is_presence_away(hass, room, settings) is False
+    # it reports again: the missing stretch is forgotten
+    states["device_tracker.yaml_phone"] = _make_state("device_tracker.yaml_phone", "home")
+    assert is_presence_away(hass, room, settings) is False
+    assert "device_tracker.yaml_phone" not in presence_utils._stateless_since
 
 
 def test_deleted_entity_skipped_but_home_person_still_wins(monkeypatch):
@@ -299,6 +325,8 @@ def test_deleted_entity_at_end_of_list_is_skipped(monkeypatch):
     _patch_registry(monkeypatch, {"person.kevin": _registry_entry()})
     settings = {"presence_enabled": True, "presence_persons": ["person.kevin"]}
     room = {"presence_persons": ["person.kevin", "device_tracker.gone"]}
+    assert is_presence_away(hass, room, settings) is False
+    _past_grace(monkeypatch)
     assert is_presence_away(hass, room, settings) is True
 
 

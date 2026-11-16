@@ -2,13 +2,19 @@
 
 from __future__ import annotations
 
+import time
 from typing import TYPE_CHECKING
 
 from homeassistant.core import State
 from homeassistant.helpers import entity_registry as er
 
+from ..const import MAX_SENSOR_STALENESS
+
 if TYPE_CHECKING:
     from homeassistant.core import HomeAssistant
+
+# When each unregistered, stateless presence entity was first seen missing (monotonic).
+_stateless_since: dict[str, float] = {}
 
 
 def is_presence_away(hass: HomeAssistant, room: dict, settings: dict) -> bool:
@@ -30,6 +36,8 @@ def is_presence_away(hass: HomeAssistant, room: dict, settings: dict) -> bool:
     evaluated = 0
     for pid in persons:
         state = hass.states.get(pid)
+        if state is not None:
+            _stateless_since.pop(pid, None)
         if state is None:
             # A deleted entity used to disable presence for the whole room
             # forever (#397): it can no longer be unassigned once it is gone
@@ -59,9 +67,13 @@ def _is_entity_gone(hass: HomeAssistant, entity_id: str) -> bool:
     if not hass.is_running:
         return False
     entry = er.async_get(hass).async_get(entity_id)
-    if entry is None:
-        return True
-    return entry.disabled_by is not None
+    if entry is not None:
+        # Registered: only an explicit disable proves it is gone.
+        return entry.disabled_by is not None
+    # Unregistered: a YAML entity may be briefly stateless (reload), so only one that
+    # stays missing for the sensor grace period counts as deleted.
+    since = _stateless_since.setdefault(entity_id, time.monotonic())
+    return time.monotonic() - since >= MAX_SENSOR_STALENESS
 
 
 def _is_entity_home(state: State) -> bool:
