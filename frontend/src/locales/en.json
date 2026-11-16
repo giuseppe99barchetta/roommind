@@ -915,6 +915,8 @@
   "hero.air_quality_venting": "Stale air ({value}), ventilating",
   "schedule.preconditioning_toggle": "Pre-heat / pre-cool before schedule blocks",
   "schedule.preconditioning_hint": "Starts early enough that the next scheduled temperature is reached when its block begins. The Priority slider limits how far ahead.",
+  "schedule.residual_control_toggle": "Use the learned afterglow",
+  "schedule.residual_control_hint": "Lets the radiators stop earlier when the heat they store (see Analytics, Learned Afterglow) carries the room to its target, and skips pre-heat runs the stored heat makes unnecessary. Off: heating ignores what was learned. Works once at least one run was learned.",
   "insights.comfort.factor.air_quality.elevated": "Walls approaching mold risk",
   "insights.comfort.factor.air_quality.stale_co2": "Stale air (CO₂ over threshold)",
   "insights.comfort.factor.air_quality.stale_voc": "Stale air (VOC over threshold)",

@@ -207,8 +207,11 @@ def test_disturbances_of_the_room(hass, mock_config_entry):
         {"has_external_sensor": False},
     ):
         assert _step(coordinator, room, settings, **overrides)["disturbed"] is True, overrides
+    # Paused model learning is not a disturbance: run bookkeeping goes on, only learning stops (C-01)
     settings["learning_disabled_rooms"] = [room["area_id"]]
-    assert _step(coordinator, room, settings)["disturbed"] is True
+    kwargs = _step(coordinator, room, settings)
+    assert kwargs["disturbed"] is False
+    assert kwargs["learning"] is False
 
 
 def test_room_without_a_learned_model_gets_no_estimator(hass, mock_config_entry):

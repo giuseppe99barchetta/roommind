@@ -86,6 +86,7 @@ export class RsRoomDetail extends LitElement {
   @state() private _windowCloseDelay = 0;
   @state() private _keepFanOnlyOnWindowOpen = true;
   @state() private _preconditioningEnabled = true;
+  @state() private _residualControlEnabled = false;
   @state() private _moldFRsi = 0.8;
   @state() private _climateMode: ClimateMode = "auto";
   @state() private _schedules: ScheduleEntry[] = [];
@@ -471,6 +472,7 @@ export class RsRoomDetail extends LitElement {
       this._windowCloseDelay = this.config.window_close_delay ?? 0;
       this._keepFanOnlyOnWindowOpen = this.config.keep_fan_only_on_window_open ?? true;
       this._preconditioningEnabled = this.config.preconditioning_enabled ?? true;
+      this._residualControlEnabled = this.config.residual_control_enabled ?? false;
       this._moldFRsi = this.config.mold_f_rsi ?? 0.8;
       this._climateMode = this.config.climate_mode;
       this._schedules = this.config.schedules ?? [];
@@ -528,6 +530,7 @@ export class RsRoomDetail extends LitElement {
       this._windowCloseDelay = 0;
       this._keepFanOnlyOnWindowOpen = true;
       this._preconditioningEnabled = true;
+      this._residualControlEnabled = false;
       this._moldFRsi = 0.8;
       this._climateMode = "auto";
       this._schedules = [];
@@ -1055,6 +1058,14 @@ export class RsRoomDetail extends LitElement {
             .checked=${this._preconditioningEnabled}
             @toggle-changed=${this._onPreconditioningToggle}
           ></rs-toggle-row>
+          ${resolveHeatingSystemType(this._devices) === "radiator"
+            ? html`<rs-toggle-row
+                .label=${localize("schedule.residual_control_toggle", lang)}
+                .hint=${localize("schedule.residual_control_hint", lang)}
+                .checked=${this._residualControlEnabled}
+                @toggle-changed=${this._onResidualControlToggle}
+              ></rs-toggle-row>`
+            : nothing}
         </rs-edit-dialog>`;
       case "dehumidifier":
         return html`<rs-edit-dialog
@@ -1517,6 +1528,11 @@ export class RsRoomDetail extends LitElement {
     this._autoSave();
   }
 
+  private _onResidualControlToggle(e: CustomEvent<boolean>) {
+    this._residualControlEnabled = e.detail;
+    this._autoSave();
+  }
+
   private _onOutdoorToggle(e: CustomEvent<boolean>) {
     this._isOutdoor = e.detail;
     this._autoSave();
@@ -1594,6 +1610,7 @@ export class RsRoomDetail extends LitElement {
       climate_control_enabled: this._climateControlEnabled,
       keep_fan_only_on_window_open: this._keepFanOnlyOnWindowOpen,
       preconditioning_enabled: this._preconditioningEnabled,
+      residual_control_enabled: this._residualControlEnabled,
       mold_f_rsi: this._moldFRsi,
       covers_auto_enabled: this._coversAutoEnabled,
       covers_deploy_threshold: this._coversDeployThreshold,

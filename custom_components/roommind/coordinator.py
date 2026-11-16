@@ -104,7 +104,7 @@ from .managers.heat_source_orchestrator import (
 from .managers.mold_manager import MoldManager
 from .managers.pending_shutdowns import PendingShutdowns
 from .managers.power_budget_manager import PowerBudgetManager
-from .managers.residual_heat_tracker import ResidualHeatLearner, ResidualHeatTracker
+from .managers.residual_heat_tracker import AfterglowReading, ResidualHeatLearner, ResidualHeatTracker
 from .managers.room_climate import async_apply_ac_auxiliary_mode
 from .managers.valve_manager import ValveManager
 from .managers.weather_manager import WeatherManager
@@ -337,8 +337,10 @@ class RoomMindCoordinator(DataUpdateCoordinator):
         self._night_fan_modes: dict[str, str] = {}
         # Residual heat tracking (heating → idle transition)
         self._residual_tracker = ResidualHeatTracker()
-        # Learns each radiator room's afterglow (learning only: nothing in control reads it)
+        # Learns each radiator room's afterglow; control reads it only with the room's switch
         self._residual_learner = ResidualHeatLearner()
+        # Sensor lag after a stop on stored heat (afterglow control only)
+        self._afterglow_reading = AfterglowReading()
         # Learns each AC's own-sensor offset from the room sensor (#461); applied only with the setting
         self._head_offsets = HeadOffsetTracker()
         # EKF training accumulation
@@ -1300,6 +1302,12 @@ class RoomMindCoordinator(DataUpdateCoordinator):
             system_type,
             self._previous_modes.get(area_id, MODE_IDLE),
         )
+        # Learned afterglow in control (room switch, off by default): the controller gets the
+        # learned scale / decay, the run in progress and a lag-corrected start; the EKF keeps
+        # the profile's q_residual (the scale is learned against the EKF's own idle drift).
+        afterglow, q_residual_control = self._afterglow_inputs(
+            area_id, room, system_type, has_external_sensor, current_temp, q_residual
+        )
 
         # Read current cover positions for shading factor
         cover_eids: list[str] = room.get("covers", [])
@@ -1341,13 +1349,25 @@ class RoomMindCoordinator(DataUpdateCoordinator):
             latitude=self.hass.config.latitude,
             longitude=self.hass.config.longitude,
             cloud_series=WeatherManager.extract_cloud_series(outdoor_forecast),
-            q_residual=q_residual,
+            q_residual=q_residual_control,
             heating_system_type=system_type,
             shading_factor=shading_factor,
             q_occupancy=q_occupancy,
             head_offsets=self._head_offsets.offset if settings.get("ac_head_offset_enabled", False) else None,
+            afterglow=afterglow,
         )
         mode, power_fraction = await controller.async_evaluate(current_temp, targets)
+        if afterglow is not None:
+            if mode == MODE_HEATING:
+                self._afterglow_reading.clear(area_id)
+            elif (
+                self._previous_modes.get(area_id, MODE_IDLE) == MODE_HEATING
+                and controller.last_plan is not None
+                and current_temp is not None
+            ):
+                self._afterglow_reading.note_stop(
+                    area_id, current_temp, controller.last_plan.temperatures, controller.last_plan.dt_minutes
+                )
 
         # Compute effective single target_temp for display/history (mode + climate_mode aware)
         climate_mode = room.get("climate_mode", "auto")
@@ -2414,6 +2434,7 @@ class RoomMindCoordinator(DataUpdateCoordinator):
         else:
             # Superseded by a manual command: what happened in this cycle went unseen
             self._residual_learner.remove_room(area_id)
+            self._afterglow_reading.remove_room(area_id)
 
         # Compute display mode: show actual device state when RoomMind doesn't
         # directly control the device, without affecting internal tracking
@@ -2896,6 +2917,45 @@ class RoomMindCoordinator(DataUpdateCoordinator):
         pf = 1.0 if dominated in ("heating", "cooling") else 0.0
         return (dominated, pf)
 
+    def _afterglow_inputs(
+        self,
+        area_id: str,
+        room: dict,
+        system_type: str,
+        has_external_sensor: bool,
+        current_temp: float | None,
+        q_residual: float,
+    ) -> tuple[dict[str, Any] | None, float]:
+        """(afterglow control inputs or None, q_residual for the controller) of a room (#493).
+
+        Only a radiator room in Full Control with the room switch on and at least one learned
+        sample; otherwise None and today's q_residual, so the controller plans as before.
+        """
+        if not (
+            room.get("residual_control_enabled", False)
+            and system_type == HEATING_SYSTEM_RADIATOR
+            and has_external_sensor
+            and self._model_manager.get_residual_samples(area_id) >= 1
+        ):
+            self._afterglow_reading.remove_room(area_id)
+            return None, q_residual
+        scale = self._model_manager.get_residual_scale(area_id)
+        tau = self._model_manager.get_residual_tau(area_id)
+        previous_mode = self._previous_modes.get(area_id, MODE_IDLE)
+        planning_temp = None
+        if current_temp is not None:
+            self._afterglow_reading.observe(area_id, current_temp)
+            if previous_mode != MODE_HEATING:
+                planning_temp = self._afterglow_reading.estimate(area_id, current_temp)
+        inputs = {
+            "scale": scale,
+            "tau": tau,
+            # The run in progress at the radiators' delivered power (a pinned valve's opening)
+            "heat_run": self._residual_learner.run_state(area_id) if previous_mode == MODE_HEATING else None,
+            "planning_temp": planning_temp,
+        }
+        return inputs, self._residual_tracker.get_q_residual(area_id, system_type, previous_mode, scale, tau)
+
     def _head_offset_state(self, state: Any, power_w: float | None, room_mode: str) -> str | None:
         """heat / cool / idle of an AC for the head-offset tracker, None without a usable signal.
 
@@ -2976,6 +3036,7 @@ class RoomMindCoordinator(DataUpdateCoordinator):
             # Only a room the EKF already learns: get_model() would create (and persist) a
             # default estimator for a room that never trains (no sensor, learning disabled)
             self._residual_learner.remove_room(area_id)
+            self._afterglow_reading.remove_room(area_id)
             return
         devices = room.get("devices", [])
         bypass = bypass_entities(settings)
@@ -3037,13 +3098,14 @@ class RoomMindCoordinator(DataUpdateCoordinator):
                 or not climate_active
                 or not has_external_sensor
                 or bool(room.get("is_outdoor", False))
-                or area_id in settings.get("learning_disabled_rooms", [])
                 or boiler_wait
                 or ac_heating
                 or bypass_heating
                 or valve_open_idle
             ),
             tau_minutes=learned_tau,
+            # Paused model learning: the run bookkeeping afterglow control reads goes on
+            learning=area_id not in settings.get("learning_disabled_rooms", []),
         )
         if sample is None:
             return
@@ -3918,6 +3980,7 @@ class RoomMindCoordinator(DataUpdateCoordinator):
         self._preconditioning_started_at.pop(area_id, None)
         self._residual_tracker.remove_room(area_id)
         self._residual_learner.remove_room(area_id)
+        self._afterglow_reading.remove_room(area_id)
         self._cover_orchestrator.remove_room(area_id)
         self._entity_areas.discard(area_id)
         self._energy_entity_areas.discard(area_id)
@@ -4014,6 +4077,7 @@ class RoomMindCoordinator(DataUpdateCoordinator):
         self._ekf_training.last_temps.pop(area_id, None)
         self._residual_tracker.clear_room(area_id)
         self._residual_learner.remove_room(area_id)
+        self._afterglow_reading.remove_room(area_id)
 
     def reset_thermal_all(self) -> list[str]:
         """Reset all thermal models. Returns list of affected room IDs."""
@@ -4024,6 +4088,7 @@ class RoomMindCoordinator(DataUpdateCoordinator):
         self._ekf_training.last_temps.clear()
         self._residual_tracker.clear_all()
         self._residual_learner.clear_all()
+        self._afterglow_reading.clear_all()
         return room_ids
 
     def boost_learning(self, area_id: str) -> int:

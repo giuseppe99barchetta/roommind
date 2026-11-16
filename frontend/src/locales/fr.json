@@ -915,6 +915,8 @@
   "hero.air_quality_venting": "Air vicié ({value}), ventilation en marche",
   "schedule.preconditioning_toggle": "Préchauffer / prérefroidir avant les plages",
   "schedule.preconditioning_hint": "Démarre assez tôt pour que la prochaine température programmée soit atteinte au début de sa plage. Le curseur Priorité limite l'anticipation.",
+  "schedule.residual_control_toggle": "Utiliser la chaleur résiduelle apprise",
+  "schedule.residual_control_hint": "Arrête les radiateurs plus tôt quand la chaleur qu'ils stockent (voir Analyses, Chaleur résiduelle apprise) suffit à amener la pièce à sa consigne, et évite les préchauffages que cette chaleur rend inutiles. Désactivé : le chauffage ignore ce qui a été appris. Agit dès qu'au moins un cycle a été appris.",
   "insights.comfort.factor.air_quality.elevated": "Murs proches du risque de moisissure",
   "insights.comfort.factor.air_quality.stale_co2": "Air vicié (CO₂ au-dessus du seuil)",
   "insights.comfort.factor.air_quality.stale_voc": "Air vicié (COV au-dessus du seuil)",

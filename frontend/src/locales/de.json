@@ -915,6 +915,8 @@
   "hero.air_quality_venting": "Verbrauchte Luft ({value}), Lüftung läuft",
   "schedule.preconditioning_toggle": "Vorheizen / Vorkühlen vor Zeitplanblöcken",
   "schedule.preconditioning_hint": "Startet so früh, dass die nächste geplante Temperatur zu Beginn ihres Blocks erreicht ist. Der Prioritäts-Regler begrenzt, wie weit im Voraus.",
+  "schedule.residual_control_toggle": "Gelernte Nachlaufwärme nutzen",
+  "schedule.residual_control_hint": "Lässt die Heizkörper früher abschalten, wenn ihre gespeicherte Wärme (siehe Analysen, Gelernte Nachlaufwärme) den Raum allein auf die Zieltemperatur bringt, und spart Vorheizläufe, die die gespeicherte Wärme überflüssig macht. Aus: Das Heizen ignoriert das Gelernte. Wirkt, sobald mindestens ein Lauf gelernt wurde.",
   "insights.comfort.factor.air_quality.elevated": "Wände nähern sich dem Schimmelrisiko",
   "insights.comfort.factor.air_quality.stale_co2": "Verbrauchte Luft (CO₂ über Schwelle)",
   "insights.comfort.factor.air_quality.stale_voc": "Verbrauchte Luft (VOC über Schwelle)",

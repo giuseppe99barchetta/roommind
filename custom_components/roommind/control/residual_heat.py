@@ -12,7 +12,12 @@ from __future__ import annotations
 import math
 from typing import Any
 
-from ..const import HEATING_SYSTEM_PROFILES, HEATING_SYSTEM_RADIATOR, RESIDUAL_HEAT_CUTOFF
+from ..const import (
+    HEATING_SYSTEM_PROFILES,
+    HEATING_SYSTEM_RADIATOR,
+    RADIATOR_SHORT_RUN_AFTERGLOW_K,
+    RESIDUAL_HEAT_CUTOFF,
+)
 
 
 def compute_residual_heat(
@@ -107,6 +112,39 @@ def residual_tau(system_type: str, learned: float | None = None) -> float:
         return learned
     profile = HEATING_SYSTEM_PROFILES.get(system_type)
     return float(profile["tau_minutes"]) if profile else 0.0
+
+
+def afterglow_rise_k(
+    system_type: str,
+    q_heat: float,
+    run_minutes: float,
+    scale: float = 1.0,
+    tau_minutes: float | None = None,
+) -> float:
+    """How far the stored heat of a full-power run of *run_minutes* lifts the room after the stop."""
+    q0 = compute_residual_heat(0.0, system_type, 1.0, run_minutes, scale, tau_minutes)
+    return q_heat * q0 * residual_tau(system_type, tau_minutes) / 60.0
+
+
+def heat_min_run_blocks(
+    system_type: str,
+    dt_minutes: float = 5.0,
+    *,
+    q_heat: float = 0.0,
+    scale: float = 1.0,
+    tau_minutes: float | None = None,
+    fast_heater: bool = False,
+) -> int:
+    """Minimum heating run in blocks, a single block for radiators that store a lot of heat.
+
+    Not with a heat-capable AC in the room (``fast_heater``): its compressor must not run
+    5-min cycles. Used only with afterglow control on.
+    """
+    base = get_min_run_blocks(system_type, dt_minutes)
+    if fast_heater or system_type != HEATING_SYSTEM_RADIATOR or q_heat <= 0 or dt_minutes <= 0:
+        return base
+    rise = afterglow_rise_k(system_type, q_heat, base * dt_minutes, scale, tau_minutes)
+    return 1 if rise > RADIATOR_SHORT_RUN_AFTERGLOW_K else base
 
 
 def learned_afterglow_info(estimator: Any) -> dict[str, Any]:

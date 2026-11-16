@@ -58,7 +58,7 @@ from ..utils.temp_utils import (
 )
 from .direct_valve import async_release_valve, async_set_valve, clear_valve_cache
 from .mpc_optimizer import MPCOptimizer, MPCPlan, preheat_max_blocks
-from .residual_heat import get_min_run_blocks
+from .residual_heat import get_min_run_blocks, heat_min_run_blocks
 from .thermal_model import RoomModelManager
 
 if TYPE_CHECKING:
@@ -882,8 +882,12 @@ class MPCController:
         shading_factor: float = 1.0,
         q_occupancy: float = 0.0,
         head_offsets: Callable[[str, str], float] | None = None,
+        afterglow: dict[str, Any] | None = None,
     ) -> None:
         self.hass = hass
+        # Learned radiator afterglow in control (room switch, #493): {"scale", "tau", "heat_run",
+        # "planning_temp"}; None (switch off) plans exactly as before
+        self._afterglow = afterglow
         # Learned AC head offsets (#461), None while the setting is off
         self._head_offsets = head_offsets
         self.room_config = room_config
@@ -1036,7 +1040,8 @@ class MPCController:
             return False
         # Cooling always runs on an AC; the UFH profile of a hybrid room is not its run time.
         system = self._heating_system_type if mode == MODE_HEATING else ""
-        min_run_seconds = get_min_run_blocks(system, PLAN_DT_MINUTES) * PLAN_DT_MINUTES * 60
+        blocks = self._heat_min_run_blocks() if mode == MODE_HEATING else get_min_run_blocks(system, PLAN_DT_MINUTES)
+        min_run_seconds = blocks * PLAN_DT_MINUTES * 60
         return (time.time() - self._mode_on_since) < min_run_seconds
 
     def _predict_idle_drift(self, current_temp: float, dt_minutes: float) -> float:
@@ -1112,9 +1117,7 @@ class MPCController:
             for i, (h, c) in enumerate(zip(heat_target_series, cool_target_series, strict=True)):
                 heat_target_series[i], cool_target_series[i] = _with_deadband(h, c)
 
-        from .residual_heat import get_min_run_blocks
-
-        min_run = get_min_run_blocks(self._heating_system_type, PLAN_DT_MINUTES)
+        min_run = self._heat_min_run_blocks()
 
         # Without an outdoor reading or forecast the horizon is DEFAULT_OUTDOOR_TEMP_FALLBACK,
         # a placeholder below the cooling minimum. Gating on it would bar the room from
@@ -1135,10 +1138,17 @@ class MPCController:
             heating_system_type=self._heating_system_type,
             approach_rate=self._approach_rate,
             preheat_max_blocks=self._preheat_max_blocks,
+            afterglow_control=self._afterglow is not None,
+            residual_scale=self._afterglow["scale"] if self._afterglow else 1.0,
+            residual_tau=self._afterglow["tau"] if self._afterglow else None,
         )
 
+        # The plan (only) starts from where a lagging sensor hides the afterglow (#493)
+        plan_from = current_temp
+        if self._afterglow and self._afterglow.get("planning_temp") is not None:
+            plan_from = self._afterglow["planning_temp"]
         plan = optimizer.optimize(
-            T_room=current_temp,
+            T_room=plan_from,
             T_outdoor_series=outdoor_series,
             heat_target_series=heat_target_series,
             cool_target_series=cool_target_series,
@@ -1147,6 +1157,7 @@ class MPCController:
             residual_series=residual_series,
             occupancy_series=occupancy_series,
             initial_mode=self.previous_mode,
+            heat_run=self._afterglow.get("heat_run") if self._afterglow else None,
         )
         self.last_plan = plan
 
@@ -1691,6 +1702,19 @@ class MPCController:
             return None
         return max(plan.temperatures[1:])  # Skip index 0 (current T)
 
+    def _heat_min_run_blocks(self) -> int:
+        """Heating min run: the profile's, a single block for a radiator storing a lot of heat (#493)."""
+        if not self._afterglow:
+            return get_min_run_blocks(self._heating_system_type, PLAN_DT_MINUTES)
+        return heat_min_run_blocks(
+            self._heating_system_type,
+            PLAN_DT_MINUTES,
+            q_heat=self._model_manager.get_model(self._area_id).Q_heat,
+            scale=self._afterglow["scale"],
+            tau_minutes=self._afterglow["tau"],
+            fast_heater=check_acs_can_heat(self.hass, self.room_config),
+        )
+
     def _build_residual_series(self, n_blocks: int) -> list[float] | None:
         """Build decaying residual heat series for MPC horizon."""
         if self.q_residual <= 0 or not self._heating_system_type:
@@ -1701,6 +1725,8 @@ class MPCController:
         if not profile:
             return None
         tau = profile["tau_minutes"]
+        if self._afterglow and self._afterglow.get("tau") is not None:
+            tau = self._afterglow["tau"]  # learned decay (afterglow control)
         if tau <= 0:
             return None
         series: list[float] = []

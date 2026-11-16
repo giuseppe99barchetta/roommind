@@ -915,6 +915,8 @@
   "hero.air_quality_venting": "Aria viziata ({value}), ventilazione attiva",
   "schedule.preconditioning_toggle": "Pre-riscalda / pre-raffresca prima dei blocchi",
   "schedule.preconditioning_hint": "Parte in anticipo quanto serve perché la prossima temperatura programmata sia raggiunta all'inizio del blocco. Lo slider Priorità limita quanto in anticipo.",
+  "schedule.residual_control_toggle": "Usa il calore residuo appreso",
+  "schedule.residual_control_hint": "Fa spegnere prima i radiatori quando il calore che accumulano (vedi Analytics, Calore residuo appreso) basta a portare la stanza all'obiettivo, ed evita i cicli di pre-riscaldamento che il calore accumulato rende inutili. Spento: il riscaldamento ignora ciò che è stato appreso. Funziona dopo almeno un ciclo appreso.",
   "insights.comfort.factor.air_quality.elevated": "Pareti vicine al rischio muffa",
   "insights.comfort.factor.air_quality.stale_co2": "Aria viziata (CO₂ oltre soglia)",
   "insights.comfort.factor.air_quality.stale_voc": "Aria viziata (VOC oltre soglia)",

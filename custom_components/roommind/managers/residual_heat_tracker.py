@@ -6,6 +6,7 @@ import time
 from dataclasses import dataclass, field
 
 from ..const import (
+    AFTERGLOW_READING_MAX_STEP_K,
     MODE_HEATING,
     MODE_IDLE,
     RESIDUAL_LEARN_MIN_EXPECTED_K,
@@ -26,14 +27,21 @@ class ResidualHeatTracker:
         self._off_power: dict[str, float] = {}
         self._on_since: dict[str, float] = {}
 
-    def get_q_residual(self, area_id: str, system_type: str, previous_mode: str) -> float:
-        """Compute residual heat from previous cycle state."""
+    def get_q_residual(
+        self,
+        area_id: str,
+        system_type: str,
+        previous_mode: str,
+        scale: float = 1.0,
+        tau_minutes: float | None = None,
+    ) -> float:
+        """Compute residual heat from previous cycle state (learned scale / decay for afterglow control)."""
         if not system_type or area_id not in self._off_since or previous_mode == MODE_HEATING:
             return 0.0
         elapsed = (time.time() - self._off_since[area_id]) / 60.0
         heat_dur = (self._off_since[area_id] - self._on_since.get(area_id, self._off_since[area_id])) / 60.0
         last_pf = self._off_power.get(area_id, 1.0)
-        return compute_residual_heat(elapsed, system_type, last_pf, heat_dur)
+        return compute_residual_heat(elapsed, system_type, last_pf, heat_dur, scale, tau_minutes)
 
     def update(
         self, area_id: str, mode: str, power_fraction: float, previous_mode: str, q_residual: float = 0.0
@@ -172,8 +180,13 @@ class ResidualHeatLearner:
         q_occupancy: float,
         disturbed: bool,
         tau_minutes: float | None = None,
+        learning: bool = True,
     ) -> float | None:
         """Advance one cycle. Returns a residual scale sample when an observation completes.
+
+        *learning* False (the room's model learning is paused): only the run bookkeeping goes
+        on (afterglow control reads it); no observation starts, one in progress and a pending
+        decay sample are dropped, no sample is returned.
 
         *delivered_power*: the radiators' delivered power this cycle while heating: 0 when the
         driven radiators deliver nothing (a TRV that closed on its own), None when no radiator
@@ -190,6 +203,9 @@ class ResidualHeatLearner:
             self.remove_room(area_id)
             return None
         now = time.time()
+        if not learning:
+            self._obs.pop(area_id, None)
+            self._tau_samples.pop(area_id, None)
         if mode == MODE_HEATING and delivered_power is not None and delivered_power > 0:
             obs = self._obs.pop(area_id, None)
             sample = None
@@ -213,6 +229,8 @@ class ResidualHeatLearner:
             self.remove_room(area_id)
             return None
         ended = self._runs.pop(area_id, None)
+        if not learning:
+            return None
         if ended is not None and (now - ended.last) / 60.0 > 2 * dt_minutes:
             # Cycles went unseen before the stop: when the heat really ended is unknown
             self._obs.pop(area_id, None)
@@ -260,6 +278,13 @@ class ResidualHeatLearner:
             self._tau_samples[area_id] = tau
         return sample
 
+    def run_state(self, area_id: str) -> tuple[float, float] | None:
+        """(minutes, delivered power) of the radiator run in progress, None without one."""
+        run = self._runs.get(area_id)
+        if run is None or not run.cycles:
+            return None
+        return (time.time() - run.start) / 60.0, run.power
+
     def take_tau_sample(self, area_id: str) -> float | None:
         """The decay time the last full window fitted for *area_id*, once (None without one)."""
         return self._tau_samples.pop(area_id, None)
@@ -282,3 +307,62 @@ class ResidualHeatLearner:
         self._runs.clear()
         self._obs.clear()
         self._tau_samples.clear()
+
+
+class AfterglowReading:
+    """Where a radiator room stands while its sensor lags the afterglow of a stopped run (3822bc45).
+
+    A sensor reports in steps: after the plan stops a run on the stored heat, the room rises
+    but the reading stays at the last step for minutes, and the next cycle would start the run
+    again. While the reading has not fallen below the one at the stop, the plan works from the
+    temperature the stopping plan predicted, at most one reporting step above the reading.
+    Only the plan uses it (afterglow control on); EKF, history and display keep the reading.
+    """
+
+    def __init__(self) -> None:
+        self._last: dict[str, float] = {}
+        self._step: dict[str, float] = {}
+        # area -> (stop time, reading at the stop, predicted temperatures, block minutes)
+        self._stops: dict[str, tuple[float, float, list[float], float]] = {}
+
+    def observe(self, area_id: str, reading: float) -> None:
+        """Note this cycle's reading; a change sets the sensor's reporting step."""
+        last = self._last.get(area_id)
+        if last is not None and reading != last:
+            self._step[area_id] = min(abs(reading - last), AFTERGLOW_READING_MAX_STEP_K)
+        self._last[area_id] = reading
+
+    def note_stop(self, area_id: str, reading: float, temperatures: list[float], dt_minutes: float) -> None:
+        """The plan stopped a run: remember what it expects the room to do now."""
+        self._stops[area_id] = (time.time(), reading, list(temperatures), dt_minutes)
+
+    def clear(self, area_id: str) -> None:
+        """A run started: the stop no longer applies."""
+        self._stops.pop(area_id, None)
+
+    def remove_room(self, area_id: str) -> None:
+        self._stops.pop(area_id, None)
+        self._last.pop(area_id, None)
+        self._step.pop(area_id, None)
+
+    def clear_all(self) -> None:
+        self._stops.clear()
+        self._last.clear()
+        self._step.clear()
+
+    def estimate(self, area_id: str, reading: float) -> float:
+        """The temperature to plan from: *reading*, or the stopping plan's, at most a step above."""
+        stop = self._stops.get(area_id)
+        step = self._step.get(area_id, 0.0)
+        if stop is None or step <= 0.0:
+            return reading
+        at, stop_reading, temps, dt = stop
+        minutes = (time.time() - at) / 60.0
+        if reading < stop_reading or minutes > RESIDUAL_LEARN_WINDOW_MINUTES or not temps or dt <= 0:
+            self._stops.pop(area_id, None)
+            return reading
+        k = minutes / dt
+        i = min(int(k), len(temps) - 1)
+        j = min(i + 1, len(temps) - 1)
+        predicted = temps[i] + (temps[j] - temps[i]) * (k - i)
+        return max(reading, min(reading + step, predicted))

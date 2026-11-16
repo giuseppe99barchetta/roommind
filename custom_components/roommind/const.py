@@ -242,6 +242,9 @@ RESIDUAL_TAU_GRID = (5.0, 7.5, 10.0, 15.0, 20.0, 25.0, 30.0, 40.0, 50.0, 60.0)
 RESIDUAL_TAU_MIN = 5.0
 RESIDUAL_TAU_MAX = 60.0
 RESIDUAL_TAU_MIN_RISE_K = 0.3  # the shape of a smaller rise is lost in the sensor's 0.1-0.2 K steps
+# Afterglow in control (room switch `residual_control_enabled`, off by default)
+RADIATOR_SHORT_RUN_AFTERGLOW_K = 0.5  # one min run's stored heat lifting the room more: single-block runs
+AFTERGLOW_READING_MAX_STEP_K = 0.5  # a sensor reporting step larger than this is not a step
 
 # Blind/cover control
 COVER_SOLAR_MIN: float = 0.15
