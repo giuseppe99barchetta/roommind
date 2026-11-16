@@ -1323,3 +1323,22 @@ async def test_auto_override_is_not_lowered_twice_by_night_setback(mock_coordina
 
     # Stored 21.5 so that 21.5 - 0.5 (night) = 21.0 takes effect.
     assert store.async_update_room.await_args[0][1]["override_heat"] == 21.5
+
+
+@pytest.mark.parametrize("entity_class", [RoomMindOverrideClimate, RoomMindClimate])
+@pytest.mark.parametrize(
+    "name",
+    ["current_temperature", "target_temperature", "target_temperature_low", "target_temperature_high"],
+)
+def test_temperatures_are_served_under_both_names(entity_class, name):
+    """HA 2026.11 reads native_*, older releases the old names; both must be the same property."""
+    assert getattr(entity_class, name) is getattr(entity_class, f"native_{name}")
+
+
+@pytest.mark.parametrize("entity_class", [RoomMindOverrideClimate, RoomMindClimate])
+def test_temperature_unit_is_celsius_under_both_names(entity_class, mock_coordinator):
+    from homeassistant.const import UnitOfTemperature
+
+    entity = entity_class(mock_coordinator[0], "living_room")
+    assert entity._attr_native_temperature_unit == UnitOfTemperature.CELSIUS
+    assert entity.temperature_unit == UnitOfTemperature.CELSIUS

@@ -77,6 +77,7 @@ class RoomMindOverrideClimate(CoordinatorEntity, ClimateEntity):
 
     _attr_has_entity_name = True
     _attr_icon = "mdi:thermometer-alert"
+    _attr_native_temperature_unit = UnitOfTemperature.CELSIUS
     _attr_temperature_unit = UnitOfTemperature.CELSIUS
     _attr_target_temperature_step = 0.5
     _attr_min_temp = 5.0
@@ -133,7 +134,7 @@ class RoomMindOverrideClimate(CoordinatorEntity, ClimateEntity):
         return HVACMode.HEAT
 
     @property
-    def target_temperature(self) -> float | None:
+    def native_target_temperature(self) -> float | None:
         if not self._is_override_active():
             return None
         room = self._room() or {}
@@ -144,21 +145,21 @@ class RoomMindOverrideClimate(CoordinatorEntity, ClimateEntity):
         return float(val) if isinstance(val, (int, float)) else None
 
     @property
-    def target_temperature_low(self) -> float | None:
+    def native_target_temperature_low(self) -> float | None:
         if not self._is_override_active():
             return None
         val = (self._room() or {}).get("override_heat")
         return float(val) if isinstance(val, (int, float)) else None
 
     @property
-    def target_temperature_high(self) -> float | None:
+    def native_target_temperature_high(self) -> float | None:
         if not self._is_override_active():
             return None
         val = (self._room() or {}).get("override_cool")
         return float(val) if isinstance(val, (int, float)) else None
 
     @property
-    def current_temperature(self) -> float | None:
+    def native_current_temperature(self) -> float | None:
         """Return the room's current temperature from coordinator data."""
         data = self.coordinator.data
         if not data:
@@ -168,6 +169,12 @@ class RoomMindOverrideClimate(CoordinatorEntity, ClimateEntity):
             return None
         val = room_data.get("current_temp")
         return float(val) if isinstance(val, (int, float)) else None
+
+    # HA before 2026.11 reads the old names; a class providing both makes newer HA use native_*
+    current_temperature = native_current_temperature
+    target_temperature = native_target_temperature
+    target_temperature_low = native_target_temperature_low
+    target_temperature_high = native_target_temperature_high
 
     @property
     def current_humidity(self) -> float | None:
@@ -438,7 +445,7 @@ class RoomMindClimate(RoomMindOverrideClimate):
         return float(heat)
 
     @property
-    def target_temperature(self) -> float | None:
+    def native_target_temperature(self) -> float | None:
         mode = self._target_control_mode()
         if mode is None:
             return None
@@ -456,12 +463,17 @@ class RoomMindClimate(RoomMindOverrideClimate):
         return float(heat), float(cool)
 
     @property
-    def target_temperature_low(self) -> float | None:
+    def native_target_temperature_low(self) -> float | None:
         return self._auto_band()[0]
 
     @property
-    def target_temperature_high(self) -> float | None:
+    def native_target_temperature_high(self) -> float | None:
         return self._auto_band()[1]
+
+    # Re-bind: the base-class aliases point at the base properties
+    target_temperature = native_target_temperature
+    target_temperature_low = native_target_temperature_low
+    target_temperature_high = native_target_temperature_high
 
     @property
     def hvac_action(self) -> Any:
