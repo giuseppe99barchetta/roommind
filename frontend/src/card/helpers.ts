@@ -51,6 +51,18 @@ export function overrideMessage(
   return msg;
 }
 
+/** First non-outdoor room by shown name ("" without one): the stub config of a new card. */
+export function firstRoomId(
+  rooms: Record<string, RoomConfig>,
+  hass?: Pick<HomeAssistant, "areas">,
+): string {
+  const named = Object.values(rooms)
+    .filter((r) => !r.is_outdoor)
+    .map((r) => ({ id: r.area_id, name: hass ? roomName(r, hass, r.area_id) : r.area_id }))
+    .sort((a, b) => a.name.localeCompare(b.name));
+  return named[0]?.id ?? "";
+}
+
 export function errorText(err: unknown, fallback: string): string {
   if (err instanceof Error && err.message) return err.message;
   const msg = (err as { message?: string } | null)?.message;

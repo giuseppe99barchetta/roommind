@@ -13,7 +13,7 @@ import { formatMode, getModeClass } from "../utils/room-state";
 import { formatTemp, tempUnit, toCelsius, toDisplay } from "../utils/temperature";
 import { serverNow } from "../utils/server-clock";
 import { refreshRooms, setFeedHass, subscribeRooms, type RoomsFeed } from "./rooms-feed";
-import { errorText, overrideMessage, remainingText, roomName } from "./helpers";
+import { errorText, firstRoomId, overrideMessage, remainingText, roomName } from "./helpers";
 
 export interface RoomCardConfig {
   type: string;
@@ -53,8 +53,16 @@ export class RoomMindRoomCard extends LitElement {
     return document.createElement("roommind-room-card-editor");
   }
 
-  public static getStubConfig(): RoomCardConfig {
-    return { type: "custom:roommind-room-card", area_id: "" };
+  /** The card picker awaits this: a new card starts on the first RoomMind room. */
+  public static async getStubConfig(hass?: HomeAssistant): Promise<RoomCardConfig> {
+    let areaId = "";
+    try {
+      const result = await hass?.callWS<RoomsFeed>({ type: "roommind/rooms/list" });
+      areaId = firstRoomId(result?.rooms ?? {}, hass);
+    } catch {
+      // Without the list the editor asks for the room
+    }
+    return { type: "custom:roommind-room-card", area_id: areaId };
   }
 
   public setConfig(config: RoomCardConfig): void {

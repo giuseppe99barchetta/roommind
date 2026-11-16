@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { overrideMessage, remainingText, roomName } from "../dist/card/helpers.js";
+import { firstRoomId, overrideMessage, remainingText, roomName } from "../dist/card/helpers.js";
 
 test("remaining time in hours and minutes, empty once past", () => {
   const now = 1_000_000_000;
@@ -15,6 +15,17 @@ test("room name: display name, then area name, then id", () => {
   assert.equal(roomName({ display_name: "Living" }, hass, "a1"), "Living");
   assert.equal(roomName({}, hass, "a1"), "Sala");
   assert.equal(roomName(undefined, hass, "zz"), "zz");
+});
+
+test("a new card starts on the first indoor room by name", () => {
+  const hass = { areas: { b: { area_id: "b", name: "Bagno" }, s: { area_id: "s", name: "Sala" } } };
+  const rooms = {
+    s: { area_id: "s" },
+    b: { area_id: "b" },
+    out: { area_id: "out", display_name: "Aaa", is_outdoor: true },
+  };
+  assert.equal(firstRoomId(rooms, hass), "b");
+  assert.equal(firstRoomId({}, hass), "");
 });
 
 test("comfort and eco overrides send only type and duration", () => {
