@@ -8,6 +8,7 @@ import time
 from collections.abc import AsyncIterator, Callable
 from contextlib import asynccontextmanager
 from datetime import timedelta
+from functools import partial
 from typing import Any
 
 from homeassistant.components.persistent_notification import async_create as async_create_notification
@@ -38,6 +39,8 @@ from .const import (
     HISTORY_WRITE_CYCLES,
     MAX_PREDICTION_DELTA,
     MAX_SENSOR_STALENESS,
+    MAX_TARGET_TEMP,
+    MIN_TARGET_TEMP,
     MODE_COOLING,
     MODE_HEATING,
     MODE_IDLE,
@@ -330,6 +333,9 @@ class RoomMindCoordinator(DataUpdateCoordinator):
         self._had_valid_temp: set[str] = set()
         self._startup_ts: float = time.monotonic()
         self._startup_guard_warned: set[str] = set()
+        # Out-of-range schedule block temps already warned about (#395), keyed by
+        # (area_id, field, raw value) so the 30 s cycle does not flood the log.
+        self._block_temp_warned: set[tuple[str, str, str]] = set()
         self._switch_entity_areas: set[str] = set()
         self._climate_control_switch_areas: set[str] = set()
         self._dry_switch_entity_areas: set[str] = set()
@@ -1019,6 +1025,7 @@ class RoomMindCoordinator(DataUpdateCoordinator):
                 "target_temp": None,
                 "heat_target": None,
                 "cool_target": None,
+                "schedule_temp_warnings": [],
                 "mode": MODE_IDLE,
                 "heating_power": 0,
                 "device_setpoint": None,
@@ -1064,6 +1071,7 @@ class RoomMindCoordinator(DataUpdateCoordinator):
 
         # Load schedule blocks once — used for both target temp resolution and MPC lookahead.
         from .utils.schedule_utils import (
+            find_rejected_block_temps,
             get_active_schedule_entity,
             make_target_resolver,
             read_schedule_blocks,
@@ -1077,6 +1085,10 @@ class RoomMindCoordinator(DataUpdateCoordinator):
         )
         schedule_state = self.hass.states.get(schedule_entity_id) if schedule_entity_id else None
         fan_only_schedule_active = bool(schedule_state and schedule_state.state == SCHEDULE_STATE_ON)
+
+        # Scan the whole week so the panel can flag a typo in a block that is not
+        # running right now (#395). Only the active schedule is loaded.
+        schedule_temp_warnings = find_rejected_block_temps(schedule_blocks, partial(ha_temp_to_celsius, self.hass))
 
         # Determine dual heat/cool target temperatures
         # Returns TargetTemps(heat, cool). None values mean "force off".
@@ -1968,6 +1980,7 @@ class RoomMindCoordinator(DataUpdateCoordinator):
             mpc_active=mpc_active,
             compressor_protection_reason=compressor_protection_reason,
         )
+        room_state["schedule_temp_warnings"] = schedule_temp_warnings
         # Wants radiator heat but the boiler is not (yet) running: valves closed.
         # commanded_mode keeps the request (boiler demand); what the room is
         # actually doing, and what history records, is idle.
@@ -2728,6 +2741,23 @@ class RoomMindCoordinator(DataUpdateCoordinator):
                 continue
         return MODE_IDLE
 
+    def _warn_block_temp_rejected(self, area_id: str, field: str, raw: Any) -> None:
+        """Log a rejected schedule block temperature once per distinct value."""
+        key = (area_id, field, str(raw))
+        if key in self._block_temp_warned:
+            return
+        self._block_temp_warned.add(key)
+        _LOGGER.warning(
+            "Room '%s': schedule block %s=%r is outside the plausible range "
+            "%.1f-%.1f C and was ignored - falling back to the comfort target. "
+            "Check the schedule helper for a typo.",
+            area_id,
+            field,
+            raw,
+            MIN_TARGET_TEMP,
+            MAX_TARGET_TEMP,
+        )
+
     def _read_window_states(self, room: dict) -> dict[str, str | None]:
         """Return the raw state of each configured window/door sensor (None if it has no state object)."""
         states: dict[str, str | None] = {}
@@ -2997,26 +3027,31 @@ class RoomMindCoordinator(DataUpdateCoordinator):
                 cool_temp = state.attributes.get("cool_temperature")
                 block_temp = state.attributes.get("temperature")
 
+            # Block values are unvalidated user YAML: implausible values are dropped
+            # in favour of the comfort fallback (#395).
+            from .utils.schedule_utils import sanitize_block_temp
+
+            converter = partial(ha_temp_to_celsius, self.hass)
+            area_id = room.get("area_id", "unknown")
+
+            def _read(raw: Any, field: str) -> float | None:
+                if raw is None:
+                    return None
+                val = sanitize_block_temp(raw, converter)
+                if val is None:
+                    self._warn_block_temp_rejected(area_id, field, raw)
+                return val
+
             if heat_temp is not None or cool_temp is not None:
-                h = comfort_heat
-                c = comfort_cool
-                if heat_temp is not None:
-                    try:
-                        h = ha_temp_to_celsius(self.hass, float(heat_temp))
-                    except (ValueError, TypeError):
-                        pass
-                if cool_temp is not None:
-                    try:
-                        c = ha_temp_to_celsius(self.hass, float(cool_temp))
-                    except (ValueError, TypeError):
-                        pass
-                return TargetTemps(heat=h, cool=c)
-            if block_temp is not None:
-                try:
-                    t = ha_temp_to_celsius(self.hass, float(block_temp))
-                    return TargetTemps(heat=t, cool=t)  # single-point
-                except (ValueError, TypeError):
-                    pass
+                h = _read(heat_temp, "heat_temperature")
+                c = _read(cool_temp, "cool_temperature")
+                return TargetTemps(
+                    heat=h if h is not None else comfort_heat,
+                    cool=c if c is not None else comfort_cool,
+                )
+            t = _read(block_temp, "temperature")
+            if t is not None:
+                return TargetTemps(heat=t, cool=t)  # single-point
             return TargetTemps(heat=comfort_heat, cool=comfort_cool)
 
         # Schedule is "off" -> eco or off
@@ -3191,6 +3226,7 @@ class RoomMindCoordinator(DataUpdateCoordinator):
         self._last_valid_temps.pop(area_id, None)
         self._had_valid_temp.discard(area_id)
         self._startup_guard_warned.discard(area_id)
+        self._block_temp_warned = {k for k in self._block_temp_warned if k[0] != area_id}
         self._ekf_training.remove_room(area_id)
         self._pending_predictions.pop(area_id, None)
         self._preconditioning_started_at.pop(area_id, None)
