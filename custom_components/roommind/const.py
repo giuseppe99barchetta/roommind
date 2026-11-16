@@ -234,6 +234,9 @@ DEFAULT_HEAT_SOURCE_MIN_DWELL_MINUTES = 10
 # Compressor group defaults
 DEFAULT_COMPRESSOR_MIN_RUN_MINUTES = 15
 DEFAULT_COMPRESSOR_MIN_OFF_MINUTES = 5
+COMPRESSOR_STATE_SETTLE_SECONDS = (
+    120  # An "off" reading this soon after our own start is state lag, not a manual switch-off
+)
 
 # Compressor group master device — conflict resolution strategies
 CONFLICT_RESOLUTION_HEATING_PRIORITY = "heating_priority"
