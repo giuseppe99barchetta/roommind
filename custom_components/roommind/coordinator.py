@@ -2371,6 +2371,9 @@ class RoomMindCoordinator(DataUpdateCoordinator):
                 boiler_wait=boiler_wait,
                 compressor_forced_on=compressor_forced_on,
             )
+        else:
+            # Superseded by a manual command: what happened in this cycle went unseen
+            self._residual_learner.remove_room(area_id)
 
         # Compute display mode: show actual device state when RoomMind doesn't
         # directly control the device, without affecting internal tracking

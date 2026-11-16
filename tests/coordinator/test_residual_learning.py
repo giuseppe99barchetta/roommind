@@ -309,6 +309,34 @@ async def test_learned_afterglow_does_not_change_control(hass, mock_config_entry
 
 
 @pytest.mark.asyncio
+async def test_superseded_cycle_drops_the_learner_state(hass, mock_config_entry):
+    """A cycle a manual command superseded went unseen: run and observation are dropped."""
+    coordinator, aid = _cycle_setup(hass, mock_config_entry)
+    room = coordinator.hass.data["roommind"]["store"].get_rooms.return_value[aid]
+    coordinator._residual_learner._runs[aid] = MagicMock()
+    coordinator._residual_learner._obs[aid] = MagicMock()
+    await coordinator._observe_and_train(
+        area_id=aid,
+        room=room,
+        settings={},
+        current_temp_raw=20.0,
+        mode=MODE_IDLE,
+        power_fraction=0.0,
+        window_open=False,
+        raw_open=False,
+        q_residual=0.0,
+        shading_factor=1.0,
+        q_occupancy=0.0,
+        has_external_sensor=True,
+        heat_source_plan=None,
+        climate_active=True,
+        track_mode=False,
+    )
+    assert aid not in coordinator._residual_learner._runs
+    assert aid not in coordinator._residual_learner._obs
+
+
+@pytest.mark.asyncio
 async def test_thermal_reset_drops_the_learner_state(hass, mock_config_entry):
     coordinator, aid = _cycle_setup(hass, mock_config_entry)
     coordinator._model_manager.update_residual_scale(aid, 4.0)
