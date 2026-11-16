@@ -178,8 +178,7 @@ async def async_set_valve(
         # an opt-out, deletion or unload still releases the degree that went out
         if True in results:
             _valve_sent[climate_eid] = _Held(_now(), pct, target, opening_eid, closing_eid, idle_opening, True)
-        else:
-            _valve_sent.pop(climate_eid, None)
+        # Nothing went out: a valve held before stays at its old opening and on record
         return
     _valve_sent[climate_eid] = _Held(_now(), pct, target, opening_eid, closing_eid, idle_opening)
 

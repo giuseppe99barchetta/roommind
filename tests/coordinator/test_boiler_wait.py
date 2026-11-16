@@ -237,3 +237,38 @@ def test_boiler_quorum_weights_rooms_by_radiator_valves(hass, mock_config_entry)
 
     assert coordinator._boiler_valves_per_room({"sala"}, rooms) == {"sala": 2}
     assert coordinator._boiler_valves_per_room({"sala", "bagno"}, rooms) == {"sala": 2, "bagno": 1}
+
+
+@pytest.mark.asyncio
+async def test_a_pinned_valve_is_released_while_the_boiler_is_waited_for(hass, mock_config_entry):
+    """Direct valve control (#413): the closing setpoint cannot close a valve RoomMind pins open."""
+    from custom_components.roommind.control import direct_valve
+
+    opening, closing = "number.living_room_valve_opening_degree", "number.living_room_valve_closing_degree"
+    room = {
+        **SAMPLE_ROOM,
+        "devices": [
+            {
+                "entity_id": "climate.living_room",
+                "type": "trv",
+                "role": "auto",
+                "heating_system_type": "",
+                "valve_opening_entity": opening,
+                "valve_closing_entity": closing,
+            }
+        ],
+    }
+    coordinator, store = _setup(hass, mock_config_entry, room, BOILER)
+    attrs = {"min": 0, "max": 100, "step": 1}
+    hass.states.get = MagicMock(
+        side_effect=make_mock_states_get(
+            temp="17.0", humidity="50.0", extra={opening: ("60", attrs), closing: ("40", attrs)}
+        )
+    )
+    direct_valve._valve_sent["climate.living_room"] = direct_valve._Held(0.0, 60, 21.0, opening, closing)
+
+    result = await coordinator._async_process_room(room, store.get_settings(), [])
+
+    assert result["boiler_wait"] is True
+    assert direct_valve.held_opening("climate.living_room") is None
+    assert ("set_value", {"entity_id": opening, "value": 100.0}) in _writes_to(hass, opening)

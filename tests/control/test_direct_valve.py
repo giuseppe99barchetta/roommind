@@ -731,3 +731,16 @@ async def test_an_excluded_trv_keeps_its_valve_untouched():
     )
 
     assert _number_calls(hass) == []
+
+
+@pytest.mark.asyncio
+async def test_a_failed_adjustment_keeps_the_previous_hold_on_record():
+    """Both degrees unavailable for a change: the valve still sits at the old opening."""
+    states = {OPEN: _number(), CLOSE: _number()}
+    hass = _hass(states)
+    await async_set_valve(hass, TRV, OPEN, CLOSE, 30, area_id="a")
+    states[OPEN] = states[CLOSE] = _number(state="unavailable")
+
+    await async_set_valve(hass, TRV, OPEN, CLOSE, 80, area_id="a", urgent=True)
+
+    assert direct_valve.held_opening(TRV) == 0.3

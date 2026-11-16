@@ -46,6 +46,7 @@ from .utils.device_utils import (
     VALID_HEATING_SYSTEM_TYPES,
     VALVE_CLOSING_MODES,
     ValveEntities,
+    configured_valves,
     get_valve_entities,
     is_ac_type,
 )
@@ -123,9 +124,14 @@ async def _async_release_dropped_valves(
     mode alone is left to the next cycle (#482): a release in the old mode would open a
     TRV-ZBT fully while it idles.
     """
+    # Another stored room driving the same TRV or number entities keeps the valve
+    others = configured_valves({aid: r for aid, r in hass.data[DOMAIN]["store"].get_rooms().items() if aid != area_id})
+    shared_numbers = {eid for v in others.values() for eid in v[:2]}
     for climate_eid, valve in old.items():
         kept = new.get(climate_eid)
         if kept is not None and kept[:2] == valve[:2]:
+            continue
+        if climate_eid in others or shared_numbers & set(valve[:2]):
             continue
         try:
             await async_release_valve(

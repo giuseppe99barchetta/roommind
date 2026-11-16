@@ -1787,6 +1787,12 @@ class RoomMindCoordinator(DataUpdateCoordinator):
                         targets=None,  # closing setpoint = device minimum, not target - offset
                         force_off=True,
                     )
+                    # A pinned valve would stay open through the closing setpoint (#413)
+                    await self._async_release_valves(
+                        area_id,
+                        [d for d in control_room.get("devices", []) if d.get("entity_id") == trv_eid],
+                        hand_back=False,
+                    )
                 await controller.async_apply(
                     mode,
                     targets,

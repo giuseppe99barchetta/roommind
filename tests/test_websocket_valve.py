@@ -175,3 +175,18 @@ async def test_clearing_an_idle_opening_valve_hands_it_back_closed(ws_hass, stor
     await _save(ws_hass, connection, [_device()], msg_id=2)
 
     assert _number_calls(ws_hass) == [(OPEN, 100.0), (CLOSE, 0.0)]
+
+
+@pytest.mark.asyncio
+async def test_a_valve_another_room_still_drives_is_left_alone(ws_hass, store, connection):
+    await store.async_load()
+    await _save(ws_hass, connection, [_device(valve_opening_entity=OPEN, valve_closing_entity=CLOSE)])
+    await store.async_save_room(
+        "kitchen", {"devices": [_device(valve_opening_entity=OPEN, valve_closing_entity=CLOSE)]}
+    )
+    _pinned(ws_hass)
+    ws_hass.services.async_call.reset_mock()
+
+    await _save(ws_hass, connection, [_device()], msg_id=2)
+
+    assert _number_calls(ws_hass) == []
