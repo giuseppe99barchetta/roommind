@@ -135,6 +135,10 @@ export class RsRoomDetail extends LitElement {
   // keys that differ, so an open room page does not undo changes made elsewhere.
   // null for a room not stored yet: its first save sends everything.
   private _savedPayload: Record<string, string> | null = null;
+  // Saves run one after another: each compares against what the previous one stored,
+  // so reverting a value while a save is in flight still reaches the backend.
+  private _saveQueue: Promise<void> = Promise.resolve();
+  private _savesInFlight = 0;
 
   static styles = css`
     :host {
@@ -1577,15 +1581,34 @@ export class RsRoomDetail extends LitElement {
     };
   }
 
-  private async _doSave(areaId = this.area.area_id) {
+  private _doSave(areaId = this.area.area_id): Promise<void> {
+    // Captured now: a flush to the previous room runs while the next room initialises,
+    // so its fields and snapshot must be read before the queue gets to it.
+    const full = this._buildRoomPayload();
+    const snapshot = this._savedPayload;
     const savedRevision = this._editRevision;
     fireSaveStatus(this, "saving");
     this._error = "";
+    const run = () => this._saveNow(areaId, full, snapshot, savedRevision);
+    // Idle: start right away (the request goes out now); busy: after the running one.
+    const started = this._savesInFlight === 0 ? run() : this._saveQueue.then(run);
+    this._savesInFlight++;
+    this._saveQueue = started.finally(() => {
+      this._savesInFlight--;
+    });
+    return this._saveQueue;
+  }
 
+  private async _saveNow(
+    areaId: string,
+    full: ReturnType<RsRoomDetail["_buildRoomPayload"]>,
+    capturedSnapshot: Record<string, string> | null,
+    savedRevision: number,
+  ) {
     try {
-      // Captured: a flush to the previous room runs while the next room initialises.
-      const snapshot = this._savedPayload;
-      const full = this._buildRoomPayload();
+      // A new room's first save may have stored it meanwhile: compare against that.
+      const snapshot =
+        capturedSnapshot ?? (areaId === this.area.area_id ? this._savedPayload : null);
       const body = snapshot ? changedSettings(full, snapshot) : full;
       if (Object.keys(body).length) {
         await this.hass.callWS({ type: "roommind/rooms/save", area_id: areaId, ...body });

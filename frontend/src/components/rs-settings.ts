@@ -105,6 +105,10 @@ export class RsSettings extends LitElement {
   // Last payload known to the backend, per key (JSON); a save sends only keys that differ,
   // so a page left open does not undo changes made elsewhere.
   private _savedPayload: Record<string, string> | null = null;
+  // Saves run one after another: each compares against what the previous one stored,
+  // so reverting a value while a save is in flight still reaches the backend.
+  private _saveQueue: Promise<void> = Promise.resolve();
+  private _savesInFlight = 0;
   @state() private _category: "overview" | "system" | "protection" | "advanced" = "overview";
 
   private _saveDebounce?: ReturnType<typeof setTimeout>;
@@ -587,7 +591,18 @@ export class RsSettings extends LitElement {
     };
   }
 
-  private async _doSave() {
+  private _doSave(): Promise<void> {
+    // Idle: start right away; busy: after the running one, against what it stored.
+    const started =
+      this._savesInFlight === 0 ? this._saveNow() : this._saveQueue.then(() => this._saveNow());
+    this._savesInFlight++;
+    this._saveQueue = started.finally(() => {
+      this._savesInFlight--;
+    });
+    return this._saveQueue;
+  }
+
+  private async _saveNow() {
     // Never save after a failed load: the fields hold defaults and would reset everything.
     if (this._loadFailed || !this._savedPayload) return;
     fireSaveStatus(this, "saving");
