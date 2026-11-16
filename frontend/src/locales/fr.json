@@ -890,5 +890,6 @@
   "settings.load_failed": "Impossible de charger les paramètres. Rien n'a été modifié.",
   "settings.retry": "Réessayer",
   "vacation.end_day": "Date de fin",
-  "vacation.end_time": "Heure"
+  "vacation.end_time": "Heure",
+  "schedule.block_temp_rejected": "Valeurs hors de la plage valide {min}–{max}{unit} : {values}. La température de confort est utilisée à la place — vérifiez l'assistant de planning pour une faute de frappe."
 }

@@ -890,5 +890,6 @@
   "settings.load_failed": "Impossibile caricare le impostazioni. Non è stato modificato nulla.",
   "settings.retry": "Riprova",
   "vacation.end_day": "Data di fine",
-  "vacation.end_time": "Ora"
+  "vacation.end_time": "Ora",
+  "schedule.block_temp_rejected": "Valori fuori dall'intervallo valido {min}–{max}{unit}: {values}. Viene usata la temperatura comfort: controlla l'helper della programmazione per un errore di battitura."
 }

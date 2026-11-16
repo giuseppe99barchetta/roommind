@@ -890,5 +890,6 @@
   "settings.load_failed": "Einstellungen konnten nicht geladen werden. Es wurde nichts geändert.",
   "settings.retry": "Erneut versuchen",
   "vacation.end_day": "Enddatum",
-  "vacation.end_time": "Uhrzeit"
+  "vacation.end_time": "Uhrzeit",
+  "schedule.block_temp_rejected": "Werte außerhalb des gültigen Bereichs {min}–{max}{unit}: {values}. Stattdessen wird die Komforttemperatur verwendet – prüfe den Zeitplan-Helfer auf einen Tippfehler."
 }

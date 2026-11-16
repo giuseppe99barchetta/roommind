@@ -890,5 +890,6 @@
   "settings.load_failed": "Settings could not be loaded. Nothing was changed.",
   "settings.retry": "Retry",
   "vacation.end_day": "End date",
-  "vacation.end_time": "Time"
+  "vacation.end_time": "Time",
+  "schedule.block_temp_rejected": "Values outside the valid range {min}–{max}{unit}: {values}. The comfort target is used instead — check the schedule helper for a typo."
 }

@@ -23,8 +23,17 @@ export interface CoverScheduleEntry {
   mode?: "force" | "gate";
 }
 
+/** A schedule block temperature the backend discarded as implausible (#395). */
+export interface ScheduleTempWarning {
+  day: string; // lowercase English weekday, e.g. "monday"
+  from: string; // "HH:MM:SS"
+  field: "temperature" | "heat_temperature" | "cool_temperature";
+  value: string; // the offending raw value; may not be numeric
+}
+
 export interface RoomLiveData {
   dehumidifier?: DehumidifierStatus;
+  schedule_temp_warnings?: ScheduleTempWarning[];
   current_temp: number | null;
   current_humidity: number | null;
   target_temp: number | null;

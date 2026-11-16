@@ -1,6 +1,6 @@
 import { html, css, nothing } from "lit";
 import { customElement, property } from "lit/decorators.js";
-import type { ScheduleEntry, ClimateMode } from "../types";
+import type { ScheduleEntry, ClimateMode, ScheduleTempWarning } from "../types";
 import { localize } from "../utils/localize";
 import {
   formatTemp,
@@ -11,6 +11,9 @@ import {
   tempRange,
 } from "../utils/temperature";
 import { RsScheduleBase } from "./shared/rs-schedule-base";
+
+/** Mirrors _WEEKDAYS in the backend's schedule_utils.py. */
+const WEEKDAYS = ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"];
 import { inputStyles } from "../styles/input-styles";
 
 @customElement("rs-schedule-settings")
@@ -35,11 +38,29 @@ export class RsScheduleSettings extends RsScheduleBase {
   @property({ type: Number }) public ecoHeat = 17.0;
   @property({ type: Number }) public ecoCool = 27.0;
   @property({ type: String }) public climateMode: ClimateMode = "auto";
+  /** Block temperatures of the active schedule the backend discarded (#395). */
+  @property({ attribute: false }) public scheduleTempWarnings: ScheduleTempWarning[] = [];
 
   static styles = [
     RsScheduleBase.sharedStyles,
     inputStyles,
     css`
+      .inline-warning {
+        display: flex;
+        gap: 8px;
+        align-items: flex-start;
+        margin-bottom: 12px;
+        padding: 8px 12px;
+        border-radius: 8px;
+        font-size: 13px;
+        color: var(--primary-text-color);
+        background: rgba(var(--rgb-warning-color, 255, 166, 0), 0.15);
+      }
+      .inline-warning ha-icon {
+        --mdc-icon-size: 18px;
+        color: var(--warning-color, #ffa600);
+        flex: none;
+      }
       .fallback-hint {
         font-size: 11px;
         color: var(--secondary-text-color);
@@ -126,10 +147,47 @@ export class RsScheduleSettings extends RsScheduleBase {
   ];
 
   render() {
-    if (!this.editing) {
-      return this._renderViewMode();
+    return html`${this._renderRejectedTempWarning()}
+    ${this.editing ? this._renderEditMode() : this._renderViewMode()}`;
+  }
+
+  /**
+   * Warn about block temperatures the backend discarded (#395). Sourced from the backend's
+   * whole-week scan of the active schedule, so a typo in the 03:00 block shows at any time.
+   */
+  private _renderRejectedTempWarning() {
+    const warnings = this.scheduleTempWarnings ?? [];
+    if (warnings.length === 0) return nothing;
+    const range = tempRange(5, 35, this.hass);
+    return html`
+      <div class="inline-warning">
+        <ha-icon icon="mdi:alert-outline"></ha-icon>
+        <span
+          >${localize("schedule.block_temp_rejected", this.hass.language, {
+            values: warnings.map((w) => this._formatWarning(w)).join(", "),
+            min: range.min,
+            max: range.max,
+            unit: tempUnit(this.hass),
+          })}</span
+        >
+      </div>
+    `;
+  }
+
+  /** "110 (Mon 00:00)": weekday localised via Intl, so no extra locale keys. */
+  private _formatWarning(w: ScheduleTempWarning): string {
+    const index = WEEKDAYS.indexOf(w.day);
+    let when = w.from.slice(0, 5);
+    if (index >= 0) {
+      // 2024-01-01 was a Monday, so +index lands on the right weekday.
+      const date = new Date(Date.UTC(2024, 0, 1 + index));
+      const weekday = new Intl.DateTimeFormat(this.hass.language, {
+        weekday: "short",
+        timeZone: "UTC",
+      }).format(date);
+      when = `${weekday} ${when}`;
     }
-    return this._renderEditMode();
+    return `${w.value} (${when})`;
   }
 
   // ─── View mode ─────────────────────────────────────────────────

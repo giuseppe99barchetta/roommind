@@ -691,6 +691,7 @@ export class RsRoomDetail extends LitElement {
                     .ecoHeat=${this._ecoHeat}
                     .ecoCool=${this._ecoCool}
                     .climateMode=${this._climateMode}
+                    .scheduleTempWarnings=${this.config?.live?.schedule_temp_warnings ?? []}
                     .editing=${false}
                     @schedules-changed=${this._onSchedulesChanged}
                     @schedule-selector-changed=${this._onScheduleSelectorChanged}
@@ -1016,6 +1017,7 @@ export class RsRoomDetail extends LitElement {
             .ecoHeat=${this._ecoHeat}
             .ecoCool=${this._ecoCool}
             .climateMode=${this._climateMode}
+            .scheduleTempWarnings=${this.config?.live?.schedule_temp_warnings ?? []}
             .editing=${true}
             @schedules-changed=${this._onSchedulesChanged}
             @schedule-selector-changed=${this._onScheduleSelectorChanged}
