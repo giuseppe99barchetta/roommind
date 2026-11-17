@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { after, before, test } from "node:test";
 import { createServer } from "vite";
 
-let server, RoomDetail, SensorSection, ScheduleSettings;
+let server, RoomDetail, SensorSection, ScheduleSettings, Comfort, NumberField;
 before(async () => {
   globalThis.window ??= { addEventListener() {}, removeEventListener() {} };
   server = await createServer({ configFile: false, server: { middlewareMode: true } });
@@ -12,6 +12,12 @@ before(async () => {
   ));
   ({ RsScheduleSettings: ScheduleSettings } = await server.ssrLoadModule(
     "/src/components/rs-schedule-settings.ts",
+  ));
+  ({ RsComfortSection: Comfort } = await server.ssrLoadModule(
+    "/src/components/rs-comfort-section.ts",
+  ));
+  ({ RsNumberField: NumberField } = await server.ssrLoadModule(
+    "/src/components/shared/rs-number-field.ts",
   ));
 });
 after(async () => {
@@ -254,4 +260,82 @@ test("the CO2 threshold keeps any whole ppm the backend accepts (825 stays 825)"
   const { s } = sensors({ co2Sensor: "sensor.co2", co2Threshold: 1000 });
   const steps = bindings(s._renderCo2Settings("en"), "<rs-number-field", ".step");
   assert.deepEqual(steps, [1]);
+});
+
+// ── Comfort and profiles in the 2.0 controls: same setting-changed events ──
+
+function comfort(props = {}) {
+  const c = new Comfort();
+  Object.assign(c, { hass, climateMode: "auto", profileTargets: {} }, props);
+  const events = [];
+  c.dispatchEvent = (e) => {
+    events.push(e.detail);
+    return true;
+  };
+  return { c, events };
+}
+
+const stop = (detail) => ({ detail, stopPropagation() {} });
+
+test("comfort: a profile is picked and picking the active one again clears it", () => {
+  const { c, events } = comfort();
+  const [pick] = bindings(c.render(), "<rs-segmented", "@value-changed");
+  pick(stop({ value: "work" }));
+  const reselect = comfort({ activeProfile: "work" });
+  bindings(reselect.c.render(), "<rs-segmented", "@value-changed")[0](stop({ value: "work" }));
+  assert.deepEqual(events, [{ key: "active_profile", value: "work" }]);
+  assert.deepEqual(reselect.events, [{ key: "active_profile", value: "" }]);
+  assert.deepEqual(
+    bindings(c.render(), "<rs-segmented", ".options")[0].map((o) => o.value),
+    ["", "work", "sleep", "guests", "away"],
+  );
+});
+
+test("comfort: the profile targets stay visible in the field's hint", () => {
+  const { c } = comfort({ profileTargets: { work: { heat_target: 19.5, cool_target: 24 } } });
+  const [hint] = bindings(c.render(), "<rs-field", ".hint");
+  assert.match(hint, /Work 19[.,]5 – 24[.,]0°C/);
+});
+
+test("comfort: the night switch and fields send the same keys, ranges from the backend", () => {
+  const { c, events } = comfort({ nightModeEnabled: true });
+  const tree = c.render();
+  bindings(tree, "<rs-list-row", "@toggle-changed")[0]({ detail: false });
+  const times = bindings(tree, "<ha-textfield", "@change");
+  times[0]({ target: { value: "23:15" } });
+  times[1]({ target: { value: "06:30" } });
+  const numbers = bindings(tree, "<rs-number-field", "@value-changed");
+  numbers[0]({ detail: { value: -1.5 } });
+  numbers[1]({ detail: { value: 0.8 } });
+  numbers[2]({ detail: { value: 12 } });
+  assert.deepEqual(events, [
+    { key: "night_mode_enabled", value: false },
+    { key: "night_start", value: "23:15" },
+    { key: "night_end", value: "06:30" },
+    { key: "night_heat_delta", value: -1.5 },
+    { key: "night_cool_delta", value: 0.8 },
+    { key: "night_ramp_minutes", value: 12 },
+  ]);
+  const range = (name) => bindings(tree, "<rs-number-field", name);
+  assert.deepEqual(range(".min"), [-5, 0, 0]);
+  assert.deepEqual(range(".max"), [0, 5, 240]);
+  // ramp step 1: a 12-minute ramp stays 12 (the old input's step was 5)
+  assert.deepEqual(range(".step"), [0.1, 0.1, 1]);
+});
+
+test("comfort: night fields round to their step (−0.27 → −0.3) and a ramp of 12 stays 12", () => {
+  const commit = (props, typed) => {
+    const f = new NumberField();
+    Object.assign(f, { value: 0 }, props);
+    const out = [];
+    f.dispatchEvent = (e) => {
+      out.push(e.detail.value);
+      return true;
+    };
+    f._onChange({ stopPropagation() {}, target: { value: typed } });
+    return out;
+  };
+  assert.deepEqual(commit({ min: -5, max: 0, step: 0.1 }, "-0.27"), [-0.3]);
+  assert.deepEqual(commit({ min: -5, max: 0, step: 0.1 }, "-9"), [-5]);
+  assert.deepEqual(commit({ min: 0, max: 240, step: 1 }, "12"), [12]);
 });
