@@ -176,14 +176,16 @@ test("a non-admin views an editable helper without the admin-only schedule/list"
   assert.equal(calls.includes("schedule/list"), false);
 });
 
-test("opening the editor waits for the room save; a failed save keeps the room page", async () => {
+test("opening the editor saves the room first: a failed save stays, the next click retries", async () => {
   const detail = new RoomDetail();
   detail.hass = hass;
   detail.area = hass.areas.sala;
   const out = [];
   detail.dispatchEvent = (e) => (out.push(e), true);
   let fail = true;
+  let saves = 0;
   detail._doSave = () => {
+    saves++;
     detail._saveQueue = Promise.resolve().then(() => {
       if (!fail) detail._dirty = false;
     });
@@ -194,8 +196,9 @@ test("opening the editor waits for the room save; a failed save keeps the room p
   const ev = { stopPropagation() {}, detail: { entityId: "schedule.a" } };
   await detail._onOpenScheduleEditor(ev);
   assert.equal(out.length, 0, "stays on the room page");
+  // No new edit, no debounce: the click itself retries the save
   fail = false;
-  detail._saveDebounce = setTimeout(() => {}, 10000);
   await detail._onOpenScheduleEditor(ev);
+  assert.ok(saves >= 3, `retried (${saves} saves)`);
   assert.equal(out[0].type, "open-schedule-editor");
 });

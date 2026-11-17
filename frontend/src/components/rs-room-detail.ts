@@ -657,6 +657,8 @@ export class RsRoomDetail extends LitElement {
     }
     // A save already out (the debounce fired) finishes first
     await this._saveQueue;
+    // Still unsaved (an earlier save failed, nothing pending): try again now
+    if (this._dirty) await this._doSave();
     // A failed save keeps the page and its edit (the dialog shows the error): leaving would
     // unmount it and, e.g., leave a just created helper unassigned
     if (this._dirty) return;
@@ -1028,6 +1030,7 @@ export class RsRoomDetail extends LitElement {
           hasInfo
           @rs-dialog-closed=${this._closeEdit}
         >
+          ${this._error ? html`<div class="error" role="alert">${this._error}</div>` : nothing}
           <div slot="info">
             <p><strong>${localize("schedule.help_temps_title", lang)}</strong></p>
             <p>${localize("schedule.help_temps", lang)}</p>
@@ -1249,6 +1252,7 @@ export class RsRoomDetail extends LitElement {
           hasInfo
           @rs-dialog-closed=${this._closeEdit}
         >
+          ${this._error ? html`<div class="error" role="alert">${this._error}</div>` : nothing}
           <div slot="info">
             <b>${localize("covers.info.selection_title", lang)}</b><br />
             ${localize("covers.info.selection_body", lang)}
