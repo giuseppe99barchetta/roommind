@@ -606,6 +606,7 @@ class RoomMindCoordinator(DataUpdateCoordinator):
             room = rooms[area_id]
             # Live, not this cycle's snapshot: a room deleted or resting since the cycle began
             if not self._room_still_runs(area_id):
+                self._model_inputs.unusable(area_id)
                 continue
             try:
                 room_state = await self._async_process_room(
@@ -625,6 +626,8 @@ class RoomMindCoordinator(DataUpdateCoordinator):
                 room_states[area_id] = room_state
             except Exception:
                 _LOGGER.exception("Room '%s': processing failed, skipping", area_id)
+                # A cycle without training: this interval's model inputs are not replayable
+                self._model_inputs.unusable(area_id)
 
         self._humidity_sensor_snapshot = {}
         self._humidity_mold_snapshot = {}
@@ -2417,7 +2420,14 @@ class RoomMindCoordinator(DataUpdateCoordinator):
                 solar=self._current_q_solar * (shading_factor if shading_factor is not None else 0.0),
                 residual=q_residual_training,
                 occupancy=q_occupancy,
-                window_closed=not window_open and not raw_open,
+                # Certainly closed: no open window or delay, and every sensor reports right now
+                # (a dropout keeps the last reading for control; the backtest must not trust it)
+                window_closed=not window_open
+                and not raw_open
+                and all(
+                    state not in (None, "unavailable", "unknown", "on")
+                    for state in self._read_window_states(room).values()
+                ),
             )
         else:
             self._ekf_training.clear(area_id)

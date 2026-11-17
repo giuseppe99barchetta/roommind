@@ -55,7 +55,7 @@ DETAIL_FIELDS = [
     "target_reason",
 ]
 # Inputs the room model learned from over each row's interval (analytics backtest); blank when
-# the interval cannot be replayed (managers/model_inputs.py)
+# the interval cannot be replayed (managers/model_inputs.py) and in the archived history
 MODEL_INPUT_FIELDS = ("model_power", "model_solar", "model_residual", "model_occupancy")
 DETAIL_FIELDS += MODEL_INPUT_FIELDS
 START_FIELDS = {"heating": "heat_starts", "cooling": "cool_starts"}
@@ -334,7 +334,9 @@ class HistoryStore:
                         except (ValueError, TypeError):
                             pass
                 avg_row[field] = round(sum(vals) / len(vals), 2) if vals else ""
-            avg_row.update(self._model_inputs_mean(bucket))
+            # A row's inputs belong to the interval that ends at it, which a 5-minute bucket
+            # stamped at its start no longer marks: archived rows are not replayed (backtest)
+            avg_row.update(dict.fromkeys(MODEL_INPUT_FIELDS, ""))
             avg_row["energy_prediction_confidence"] = bucket[-1].get("energy_prediction_confidence", "")
             avg_row["ac_efficiency_status"] = bucket[-1].get("ac_efficiency_status", "")
             temps = [t for r in bucket if (t := self._float(r.get("room_temp", ""))) is not None]
@@ -343,22 +345,6 @@ class HistoryStore:
             avg_row.update(starts[bucket_key])
             result.append(avg_row)
         return result
-
-    @classmethod
-    def _model_inputs_mean(cls, bucket: list[dict]) -> dict:
-        """Mean model inputs of a bucket, blank unless every row has them in one mode.
-
-        A row without inputs is an interval the backtest must not replay; a bucket mixing
-        heating, cooling and idle cannot be replayed from means either.
-        """
-        blank = dict.fromkeys(MODEL_INPUT_FIELDS, "")
-        rows = [[cls._float(r.get(key, "")) for key in MODEL_INPUT_FIELDS] for r in bucket]
-        if not rows or any(v is None for row in rows for v in row):
-            return blank
-        signs = {(row[0] > 0) - (row[0] < 0) for row in rows}
-        if len(signs) != 1:
-            return blank
-        return {key: round(sum(row[i] for row in rows) / len(rows), 3) for i, key in enumerate(MODEL_INPUT_FIELDS)}
 
     @staticmethod
     def _float(value: str) -> float | None:

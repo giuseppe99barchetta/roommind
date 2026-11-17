@@ -87,3 +87,14 @@ def test_ninety_days_of_rows_stay_fast():
 @pytest.mark.parametrize("u", [0.0, -1.0])
 def test_a_model_without_losses_gives_nothing(u):
     assert backtest(_simulate(20), RCModel(C=2.0, U=u, Q_heat=1.0, Q_cool=1.0)).predicted == {}
+
+
+def test_an_hour_must_start_close_to_one_hour_before():
+    """Irregular rows: a start reading 70 minutes back is not a one-hour forecast."""
+    points = _simulate(60, 0.0)
+    # remove the rows between 61 and 69 minutes before the last one
+    last = points[-1]["ts"]
+    kept = [p for p in points if not (last - 69 * 60 < p["ts"] < last - 58 * 60)]
+    # one long step left: keep the chain (rows within MAX_STEP_S) but the start is too early
+    assert last - max(p["ts"] for p in kept if p["ts"] <= last - 3600) > 3600 + 300
+    assert last not in backtest(kept, MODEL).predicted

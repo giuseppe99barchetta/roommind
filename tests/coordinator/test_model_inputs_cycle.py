@@ -78,3 +78,37 @@ async def test_device_commands_do_not_depend_on_the_recording(hass, mock_config_
     await _written_rows(coordinator2, history2)
     without = _commands(hass)
     assert with_recording == without
+
+
+@pytest.mark.asyncio
+async def test_a_window_sensor_dropout_writes_no_inputs(hass, mock_config_entry):
+    """The window manager keeps the last closed reading; the backtest must not trust it."""
+    room = {**SAMPLE_ROOM, "window_sensors": ["binary_sensor.win"]}
+    coordinator, history = _setup(hass, mock_config_entry, room=room)
+    base = make_mock_states_get()
+
+    def states(entity_id):
+        if entity_id == "binary_sensor.win":
+            return MagicMock(state="off" if coordinator._history_write_count == 0 else "unavailable")
+        return base(entity_id)
+
+    hass.states.get = MagicMock(side_effect=states)
+    rows = await _written_rows(coordinator, history)
+    assert rows and not any(k in rows[-1] for k in MODEL_INPUT_FIELDS)
+
+
+@pytest.mark.asyncio
+async def test_a_failed_room_cycle_writes_no_inputs(hass, mock_config_entry):
+    coordinator, history = _setup(hass, mock_config_entry)
+    real = coordinator._async_process_room
+    calls = {"n": 0}
+
+    async def flaky(*args, **kwargs):
+        calls["n"] += 1
+        if calls["n"] == 2:
+            raise RuntimeError("boom")
+        return await real(*args, **kwargs)
+
+    coordinator._async_process_room = flaky
+    rows = await _written_rows(coordinator, history)
+    assert rows and not any(k in rows[-1] for k in MODEL_INPUT_FIELDS)

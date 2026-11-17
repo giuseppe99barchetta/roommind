@@ -18,28 +18,16 @@ def test_record_writes_the_columns_and_blanks_missing_ones(tmp_path):
     assert all(second[k] == "" for k in MODEL_INPUT_FIELDS)
 
 
-def test_compaction_averages_a_bucket_of_complete_same_mode_rows(tmp_path):
+def test_archived_rows_carry_no_inputs(tmp_path):
+    """A row's inputs end at its own timestamp; a bucket stamped at its start cannot keep that."""
     hs = HistoryStore(str(tmp_path))
-    rows = [_row(0, **FULL), _row(180, **{**FULL, "model_power": 0.7})]
-    (bucket,) = hs._downsample(rows, 300)
-    assert bucket["model_power"] == 0.6
-    assert bucket["model_solar"] == 1.0
-
-
-def test_compaction_blanks_a_bucket_with_an_unusable_row(tmp_path):
-    hs = HistoryStore(str(tmp_path))
-    (bucket,) = hs._downsample([_row(0, **FULL), _row(180)], 300)
-    assert all(bucket[k] == "" for k in MODEL_INPUT_FIELDS)
-
-
-def test_compaction_blanks_a_bucket_mixing_modes(tmp_path):
-    hs = HistoryStore(str(tmp_path))
-    rows = [_row(0, **FULL), _row(180, **{**FULL, "model_power": 0.0})]
-    (bucket,) = hs._downsample(rows, 300)
-    assert all(bucket[k] == "" for k in MODEL_INPUT_FIELDS)
-    rows = [_row(0, **FULL), _row(180, **{**FULL, "model_power": -0.4})]
-    (bucket,) = hs._downsample(rows, 300)
-    assert bucket["model_power"] == ""
+    for rows in (
+        [_row(0, **FULL), _row(180, **{**FULL, "model_power": 0.7})],
+        [_row(0, **FULL), _row(180)],
+        [_row(0, **FULL), _row(180, **{**FULL, "model_power": -0.4})],
+    ):
+        (bucket,) = hs._downsample(rows, 300)
+        assert all(bucket[k] == "" for k in MODEL_INPUT_FIELDS)
 
 
 def test_an_old_file_gets_the_new_columns(tmp_path):

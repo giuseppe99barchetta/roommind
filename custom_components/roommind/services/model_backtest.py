@@ -21,6 +21,8 @@ from ..control.thermal_model import RCModel
 BACKTEST_HORIZON_S = 3600.0
 # A longer gap between two rows breaks the chain (restart, missing sensor)
 MAX_STEP_S = 900.0
+# How much earlier than one hour the start reading may be (rows come every ~3 minutes)
+MAX_START_SLACK_S = 300.0
 # Windows needed before a figure is shown
 MIN_BACKTEST_WINDOWS = 12
 
@@ -103,7 +105,7 @@ def backtest(points: list[dict], model: RCModel) -> BacktestResult:
         start = ts[i] - BACKTEST_HORIZON_S
         while j + 1 < i and ts[j + 1] <= start:
             j += 1
-        if ts[j] > start or ts[i] - ts[j] > BACKTEST_HORIZON_S + MAX_STEP_S:
+        if ts[j] > start or ts[i] - ts[j] > BACKTEST_HORIZON_S + MAX_START_SLACK_S:
             continue
         if breaks[i] - breaks[j]:
             continue
