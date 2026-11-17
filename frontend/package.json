@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build && vite build -c vite.card.config.ts && node scripts/compress-frontend.mjs && node scripts/check-bundles.mjs",
-    "test": "tsc && node --test test/heating-settings.test.mjs test/dehumidifier.test.mjs test/room-delete.test.mjs test/settings-diff.test.mjs test/save-queue.test.mjs test/room-card.test.mjs test/dashboard-layout.test.mjs test/room-page.test.mjs test/room-sections.test.mjs test/room-sections-b.test.mjs test/settings-page.test.mjs && vitest run",
+    "test": "tsc && node --test test/heating-settings.test.mjs test/dehumidifier.test.mjs test/room-delete.test.mjs test/settings-diff.test.mjs test/save-queue.test.mjs test/room-card.test.mjs test/dashboard-layout.test.mjs test/room-page.test.mjs test/room-sections.test.mjs test/room-sections-b.test.mjs test/settings-page.test.mjs test/settings-panels.test.mjs && vitest run",
     "preview": "vite preview",
     "lint": "eslint src/",
     "format": "prettier --write src/",

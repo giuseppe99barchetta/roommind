@@ -6,7 +6,8 @@ import { RsSettingsBase } from "./rs-settings-base";
 import { customElement, property } from "lit/decorators.js";
 import type { HomeAssistant } from "../../types";
 import { localize } from "../../utils/localize";
-import "../shared/rs-radio-group";
+import { hasFloors } from "../../utils/dashboard";
+import "../shared/rs-segmented";
 
 @customElement("rs-settings-general")
 export class RsSettingsGeneral extends RsSettingsBase {
@@ -17,58 +18,44 @@ export class RsSettingsGeneral extends RsSettingsBase {
 
   render() {
     const l = this.hass.language;
-
     return html`
-      ${this.hass.floors && Object.keys(this.hass.floors).length > 0
-        ? html`<div class="settings-section first">
-            <div class="toggle-row">
-              <div class="toggle-text">
-                <span class="toggle-label">${localize("settings.group_by_floor", l)}</span>
-              </div>
-              <ha-switch
-                .checked=${this.groupByFloor}
-                @change=${(e: Event) =>
-                  this._fire("groupByFloor", (e.target as HTMLInputElement).checked)}
-              ></ha-switch>
-            </div>
+      <div class="settings-section first">
+        <rs-list-row
+          switch
+          wrap
+          .heading=${localize("settings.climate_control_active", l)}
+          .secondary=${localize("settings.climate_control_hint", l)}
+          .checked=${this.climateControlActive}
+          @toggle-changed=${(e: CustomEvent<boolean>) =>
+            this._fire("climateControlActive", e.detail)}
+        ></rs-list-row>
+      </div>
+      ${hasFloors(this.hass)
+        ? html`<div class="settings-section">
+            <rs-list-row
+              switch
+              wrap
+              .heading=${localize("settings.group_by_floor", l)}
+              .checked=${this.groupByFloor}
+              @toggle-changed=${(e: CustomEvent<boolean>) => this._fire("groupByFloor", e.detail)}
+            ></rs-list-row>
           </div>`
         : nothing}
-
-      <div
-        class="settings-section ${this.hass.floors && Object.keys(this.hass.floors).length > 0
-          ? ""
-          : "first"}"
-      >
-        <div class="toggle-row">
-          <div class="toggle-text">
-            <span class="toggle-label">${localize("settings.climate_control_active", l)}</span>
-            <span class="toggle-hint">${localize("settings.climate_control_hint", l)}</span>
-          </div>
-          <ha-switch
-            .checked=${this.climateControlActive}
-            @change=${(e: Event) =>
-              this._fire("climateControlActive", (e.target as HTMLInputElement).checked)}
-          ></ha-switch>
-        </div>
-      </div>
-
       <div class="settings-section">
-        <div class="toggle-text">
-          <span class="toggle-label">${localize("settings.temperature_rounding", l)}</span>
-          <span class="toggle-hint">${localize("settings.temperature_rounding_hint", l)}</span>
-        </div>
-        <div style="margin-top: 12px">
-          <rs-radio-group
-            .options=${[
-              { value: "nearest", label: localize("settings.temperature_rounding_nearest", l) },
-              { value: "down", label: localize("settings.temperature_rounding_down", l) },
-              { value: "up", label: localize("settings.temperature_rounding_up", l) },
-            ]}
-            .selected=${this.temperatureRoundingMode}
-            @selected-changed=${(e: CustomEvent<string>) =>
-              this._fire("temperatureRoundingMode", e.detail)}
-          ></rs-radio-group>
-        </div>
+        <span class="field-label">${localize("settings.temperature_rounding", l)}</span>
+        <p class="note">${localize("settings.temperature_rounding_hint", l)}</p>
+        <rs-segmented
+          wrap
+          .label=${localize("settings.temperature_rounding", l)}
+          .options=${[
+            { value: "nearest", label: localize("settings.temperature_rounding_nearest", l) },
+            { value: "down", label: localize("settings.temperature_rounding_down", l) },
+            { value: "up", label: localize("settings.temperature_rounding_up", l) },
+          ]}
+          .value=${this.temperatureRoundingMode}
+          @value-changed=${(e: CustomEvent<{ value: string }>) =>
+            this._fire("temperatureRoundingMode", e.detail.value)}
+        ></rs-segmented>
       </div>
     `;
   }

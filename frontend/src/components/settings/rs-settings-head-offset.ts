@@ -1,7 +1,7 @@
 /**
  * rs-settings-head-offset – AC sensor offset (#461): switch and the offsets learned per AC.
  */
-import { html, nothing } from "lit";
+import { html } from "lit";
 import { RsSettingsBase } from "./rs-settings-base";
 import { customElement, property } from "lit/decorators.js";
 import type { HomeAssistant } from "../../types";
@@ -28,16 +28,16 @@ export class RsSettingsHeadOffset extends RsSettingsBase {
     const l = this.hass.language;
     const acs = Object.keys(this.acHeadOffsets ?? {});
     return html`
-      <div class="toggle-row">
-        <div class="toggle-text">
-          <span class="toggle-label">${localize("head_offset.title", l)}</span>
-          <span class="toggle-hint">${localize("head_offset.hint", l)}</span>
-        </div>
-        <ha-switch
+      <div class="settings-section first">
+        <rs-list-row
+          switch
+          wrap
+          .heading=${localize("head_offset.title", l)}
+          .secondary=${localize("head_offset.hint", l)}
           .checked=${this.acHeadOffsetEnabled}
-          @change=${(e: Event) =>
-            this._fire("acHeadOffsetEnabled", (e.target as HTMLInputElement).checked)}
-        ></ha-switch>
+          @toggle-changed=${(e: CustomEvent<boolean>) =>
+            this._fire("acHeadOffsetEnabled", e.detail)}
+        ></rs-list-row>
       </div>
       <div class="field-hint" style="margin-top: 12px">
         ${acs.length
@@ -59,7 +59,6 @@ export class RsSettingsHeadOffset extends RsSettingsBase {
               </table>`
           : localize("head_offset.none", l)}
       </div>
-      ${nothing}
     `;
   }
 

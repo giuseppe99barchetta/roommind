@@ -443,6 +443,7 @@ export class RsSettings extends LitElement {
           .notificationsEnabled=${this._moldNotificationsEnabled}
           .notificationTargets=${this._moldNotificationTargets}
           .notificationCooldown=${this._moldNotificationCooldown}
+          .moldDetectionEnabled=${this._moldDetectionEnabled}
           .moldPreventionEnabled=${this._moldPreventionEnabled}
           .moldPreventionNotify=${this._moldPreventionNotify}
           .windowOpenNotificationMinutes=${this._windowOpenNotificationMinutes}
@@ -455,10 +456,6 @@ export class RsSettings extends LitElement {
           .rooms=${this.rooms}
           .learningDisabledRooms=${this._learningDisabledRooms}
           .boostAppliedAt=${this._boostAppliedAt}
-          .roomsLive=${Object.fromEntries(
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any -- HA room data includes untyped live state
-            Object.entries(this.rooms).map(([id, r]) => [id, (r as any).live ?? {}]),
-          )}
           @setting-changed=${this._onSettingChanged}
           @boost-applied=${this._onBoostApplied}
         ></rs-settings-learning>

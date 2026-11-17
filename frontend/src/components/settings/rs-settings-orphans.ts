@@ -9,6 +9,8 @@ import { customElement, property, state } from "lit/decorators.js";
 import { RsSettingsBase } from "./rs-settings-base";
 import type { HomeAssistant, RoomWithoutArea } from "../../types";
 import { localize } from "../../utils/localize";
+import { alertStyles } from "../../styles/tokens";
+import "../shared/rs-confirm-button";
 
 @customElement("rs-settings-orphans")
 export class RsSettingsOrphans extends RsSettingsBase {
@@ -20,7 +22,7 @@ export class RsSettingsOrphans extends RsSettingsBase {
 
   private async _delete(room: RoomWithoutArea): Promise<void> {
     const l = this.hass.language;
-    if (!confirm(localize("orphans.confirm_delete", l, { name: room.display_name }))) return;
+    if (this._busy) return;
     this._busy = room.area_id;
     this._error = "";
     try {
@@ -37,28 +39,37 @@ export class RsSettingsOrphans extends RsSettingsBase {
   render() {
     const l = this.hass.language;
     const rooms = this.rooms.filter((r) => !this._deleted.has(r.area_id));
-    if (!rooms.length) return html`<span class="field-hint">${localize("orphans.none", l)}</span>`;
+    if (!rooms.length) return html`<p class="note">${localize("orphans.none", l)}</p>`;
     return html`
+      ${this._error ? html`<p class="rs-alert" role="alert">${this._error}</p>` : nothing}
       ${rooms.map(
-        (room) => html`
-          <div class="toggle-row">
-            <div class="toggle-text">
-              <span class="toggle-label">${room.display_name}</span>
-              <span class="toggle-hint">${localize("orphans.hint", l)}</span>
-            </div>
-            <ha-button ?disabled=${this._busy === room.area_id} @click=${() => this._delete(room)}
-              >${localize("orphans.delete", l)}</ha-button
+        (room, idx) => html`
+          <div class="settings-section ${idx === 0 ? "first" : ""}">
+            <rs-list-row
+              wrap
+              icon="mdi:home-remove-outline"
+              .heading=${room.display_name || room.area_id}
+              .secondary=${localize("orphans.hint", l)}
             >
+              <rs-confirm-button
+                slot="end"
+                .label=${localize("orphans.delete", l)}
+                .accessibleLabel=${`${localize("orphans.delete", l)}: ${room.display_name || room.area_id}`}
+                .confirmMessage=${localize("orphans.confirm_delete", l, {
+                  name: room.display_name || room.area_id,
+                })}
+                .disabled=${this._busy === room.area_id}
+                destructive
+                @confirmed=${() => this._delete(room)}
+              ></rs-confirm-button>
+            </rs-list-row>
           </div>
         `,
       )}
-      ${this._error
-        ? html`<span class="field-hint" style="color: var(--error-color)">${this._error}</span>`
-        : nothing}
     `;
   }
 
-  static styles = [RsSettingsBase.settingsBaseStyles];
+  static styles = [RsSettingsBase.settingsBaseStyles, alertStyles];
 }
 
 declare global {

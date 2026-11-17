@@ -7,6 +7,8 @@ import type { HomeAssistant, CompressorGroup, ConflictResolution } from "../../t
 import { localize } from "../../utils/localize";
 import { getSelectValue } from "../../utils/events";
 import "../shared/rs-confirm-button";
+import "../shared/rs-number-field";
+import "../shared/rs-list-row";
 import { inputStyles } from "../../styles/input-styles";
 
 @customElement("rs-settings-compressor")
@@ -152,38 +154,28 @@ export class RsSettingsCompressor extends LitElement {
 
         <ha-expansion-panel .header=${localize("common.advanced", l)} outlined>
           <div class="number-fields">
-            <div>
-              <ha-textfield
-                type="number"
-                .value=${String(group.min_run_minutes)}
-                .label=${localize("compressor.min_run", l)}
-                .suffix=${localize("compressor.min_run_suffix", l)}
-                min="1"
-                max="60"
-                step="1"
-                @change=${(e: Event) => {
-                  const v = parseInt((e.target as HTMLInputElement).value, 10);
-                  if (!isNaN(v) && v >= 1 && v <= 60) this._updateGroup(idx, "min_run_minutes", v);
-                }}
-              ></ha-textfield>
-              <div class="field-hint">${localize("compressor.min_run_hint", l)}</div>
-            </div>
-            <div>
-              <ha-textfield
-                type="number"
-                .value=${String(group.min_off_minutes)}
-                .label=${localize("compressor.min_off", l)}
-                .suffix=${localize("compressor.min_off_suffix", l)}
-                min="1"
-                max="30"
-                step="1"
-                @change=${(e: Event) => {
-                  const v = parseInt((e.target as HTMLInputElement).value, 10);
-                  if (!isNaN(v) && v >= 1 && v <= 30) this._updateGroup(idx, "min_off_minutes", v);
-                }}
-              ></ha-textfield>
-              <div class="field-hint">${localize("compressor.min_off_hint", l)}</div>
-            </div>
+            <rs-number-field
+              .label=${localize("compressor.min_run", l)}
+              .suffix=${localize("compressor.min_run_suffix", l)}
+              .hint=${localize("compressor.min_run_hint", l)}
+              .min=${1}
+              .max=${60}
+              .step=${1}
+              .value=${group.min_run_minutes}
+              @value-changed=${(e: CustomEvent<{ value: number }>) =>
+                this._updateGroup(idx, "min_run_minutes", e.detail.value)}
+            ></rs-number-field>
+            <rs-number-field
+              .label=${localize("compressor.min_off", l)}
+              .suffix=${localize("compressor.min_off_suffix", l)}
+              .hint=${localize("compressor.min_off_hint", l)}
+              .min=${1}
+              .max=${30}
+              .step=${1}
+              .value=${group.min_off_minutes}
+              @value-changed=${(e: CustomEvent<{ value: number }>) =>
+                this._updateGroup(idx, "min_off_minutes", e.detail.value)}
+            ></rs-number-field>
           </div>
         </ha-expansion-panel>
 
@@ -199,21 +191,15 @@ export class RsSettingsCompressor extends LitElement {
         ></ha-entity-picker>
         <div class="field-hint">${localize("compressor.master_entity_hint", l)}</div>
 
-        <div class="field-row">
-          <ha-formfield .label=${localize("compressor.enforce_uniform_mode", l)}>
-            <ha-switch
-              .checked=${group.enforce_uniform_mode || false}
-              @change=${(e: Event) => {
-                this._updateGroup(
-                  idx,
-                  "enforce_uniform_mode",
-                  (e.target as HTMLInputElement).checked,
-                );
-              }}
-            ></ha-switch>
-          </ha-formfield>
-          <div class="field-hint">${localize("compressor.enforce_uniform_mode_hint", l)}</div>
-        </div>
+        <rs-list-row
+          switch
+          wrap
+          .heading=${localize("compressor.enforce_uniform_mode", l)}
+          .secondary=${localize("compressor.enforce_uniform_mode_hint", l)}
+          .checked=${group.enforce_uniform_mode || false}
+          @toggle-changed=${(e: CustomEvent<boolean>) =>
+            this._updateGroup(idx, "enforce_uniform_mode", e.detail)}
+        ></rs-list-row>
 
         ${group.master_entity || group.enforce_uniform_mode
           ? html`

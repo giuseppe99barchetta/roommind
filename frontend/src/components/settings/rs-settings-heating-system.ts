@@ -9,6 +9,7 @@ import {
 } from "../../utils/heating-settings";
 import { getSelectValue } from "../../utils/events";
 import { localize } from "../../utils/localize";
+import "../shared/rs-list-row";
 
 // HA 2026.8's ha-entity-picker is single-value only. The entity selector
 // routes `multiple` values to ha-entities-picker, whose value is string[].
@@ -159,18 +160,14 @@ export class RsSettingsHeatingSystem extends LitElement {
                 >${localize("settings.boiler.bypass_temperature", l)}
                 ${number("bypassTemperature", this.bypassTemperature)}</label
               >
-              <div class="toggle">
-                <span
-                  ><b>${localize("settings.boiler.child_lock", this.hass.language)}</b
-                  ><small
-                    >${localize("settings.boiler.child_lock_hint", this.hass.language)}</small
-                  ></span
-                ><ha-switch
-                  .checked=${this.bypassChildLock}
-                  @change=${(e: Event) =>
-                    fire("bypassChildLock", (e.target as HTMLInputElement).checked)}
-                ></ha-switch>
-              </div>
+              <rs-list-row
+                switch
+                wrap
+                .heading=${localize("settings.boiler.child_lock", this.hass.language)}
+                .secondary=${localize("settings.boiler.child_lock_hint", this.hass.language)}
+                .checked=${this.bypassChildLock}
+                @toggle-changed=${(e: CustomEvent<boolean>) => fire("bypassChildLock", e.detail)}
+              ></rs-list-row>
               <ha-select
                 .value=${this.demandUnit}
                 .label=${localize("settings.boiler.demand_unit", this.hass.language)}
@@ -223,15 +220,14 @@ export class RsSettingsHeatingSystem extends LitElement {
         >
       </div>
       <div class="section">
-        <div class="toggle">
-          <span
-            ><b>${localize("settings.power_budget.title", l)}</b
-            ><small>${localize("settings.power_budget.hint", l)}</small></span
-          ><ha-switch
-            .checked=${this.budgetEnabled}
-            @change=${(e: Event) => fire("budgetEnabled", (e.target as HTMLInputElement).checked)}
-          ></ha-switch>
-        </div>
+        <rs-list-row
+          switch
+          wrap
+          .heading=${localize("settings.power_budget.title", l)}
+          .secondary=${localize("settings.power_budget.hint", l)}
+          .checked=${this.budgetEnabled}
+          @toggle-changed=${(e: CustomEvent<boolean>) => fire("budgetEnabled", e.detail)}
+        ></rs-list-row>
         ${this.budgetEnabled
           ? html`<ha-entity-picker
                 .hass=${this.hass}
