@@ -70,6 +70,13 @@ export class RoomMindPanel extends LitElement {
   @state() private _scheduleEntity: string | null = null;
   @state() private _scheduleRoom = "";
   @state() private _scheduleKind: "" | "climate" | "cover" = "";
+  /**
+   * The leave of the editor in flight (its token), else null: one at a time, and the editor is
+   * inert while it runs. Only the leave holding the token changes it or the schedule state.
+   */
+  @state() private _leaving: object | null = null;
+  /** A route change (browser Back/Forward) arrived during the leave: it wins once saved. */
+  private _pendingRoute = false;
   @state() private _wide = typeof window !== "undefined" && window.innerWidth >= SETTINGS_WIDE_MIN;
   private _resizeObserver?: ResizeObserver;
   private _layoutRevisions: Record<string, number> = {};
@@ -633,7 +640,8 @@ export class RoomMindPanel extends LitElement {
         .kind=${this._scheduleKind}
         .rooms=${this._rooms}
         .scheduleOffAction=${this._scheduleOffAction}
-        @schedule-closed=${this._onScheduleClosed}
+        ?inert=${this._leaving !== null}
+        @schedule-closed=${this._onEditorClosed}
       ></rs-schedule-editor>`;
     }
     switch (this._activeTab) {
@@ -894,59 +902,149 @@ export class RoomMindPanel extends LitElement {
     this._scheduleKind = e.detail.kind ?? "";
     this._selectedAreaId = null;
     if (!e.detail.areaId) this._activeTab = "schedules";
+    this._navigate(this._scheduleUrl());
+  }
+
+  /** The editor's own path, with the room and kind it was opened for. */
+  private _scheduleUrl(): string {
     const query = new URLSearchParams();
-    if (e.detail.areaId) query.set("room", e.detail.areaId);
+    if (this._scheduleRoom) query.set("room", this._scheduleRoom);
     if (this._scheduleKind) query.set("kind", this._scheduleKind);
     const search = query.toString();
-    this._navigate(
-      `/schedule/${encodeURIComponent(e.detail.entityId)}${search ? `?${search}` : ""}`,
-    );
+    return `/schedule/${encodeURIComponent(this._scheduleEntity ?? "")}${search ? `?${search}` : ""}`;
   }
 
   /**
    * Leaving the editor saves its last change first. A failed save keeps the editor open with the
-   * edit (the toast says why); leaving again retries. Returns whether it may close.
-   * shortcut: the browser's own Back is not guarded (the editor flushes as it unmounts and a
-   * failed save is only announced); a popstate guard restoring the editor is left for later.
+   * edit (the toast says why) and, when the browser already moved on (Back), puts its URL back;
+   * leaving again retries. All exits (toolbar back, tabs, browser Back, the editor's own close)
+   * share one leave at a time (`_leaving`): toolbar and tabs are ignored while it runs, a route
+   * change is remembered and wins once the save succeeded.
+   * shortcut: closing the whole panel (sidebar) is still unguarded; the editor sends its change as
+   * it unmounts and a failed save is only announced.
    */
-  private async _leaveSchedule(): Promise<boolean> {
-    const editor = this.renderRoot.querySelector<RsScheduleEditor>("rs-schedule-editor");
-    const message = await editor?.flush();
-    if (message) {
-      showToast(this, message, this.hass.language);
-      return false;
+  private _beginLeave(): object | null {
+    if (this._leaving) return null;
+    this._pendingRoute = false;
+    return (this._leaving = {});
+  }
+
+  private get _editor(): RsScheduleEditor | null {
+    return this.renderRoot.querySelector<RsScheduleEditor>("rs-schedule-editor");
+  }
+
+  /**
+   * Saves the editor's last change for the leave `token`: true when it may close, false when the
+   * save failed (the leave is over, the editor stays), null when the leave is no longer current.
+   */
+  private async _flushFor(token: object): Promise<boolean | null> {
+    const editor = this._editor;
+    const entity = this._scheduleEntity;
+    const message = (await editor?.flush()) ?? "";
+    if (this._leaving !== token) return null;
+    if (this._editor !== editor || this._scheduleEntity !== entity) {
+      // The editor changed under this leave (should not happen): end it, change nothing else
+      this._leaving = null;
+      this._pendingRoute = false;
+      return null;
     }
-    return true;
+    if (!message) return true;
+    const moved =
+      this._pendingRoute ||
+      (globalThis.location !== undefined &&
+        location.pathname + location.search !== `/roommind${this._scheduleUrl()}`);
+    // Ended before the URL is put back: that route change is this panel's own, not a new leave
+    this._leaving = null;
+    this._pendingRoute = false;
+    showToast(this, message, this.hass.language);
+    if (moved) this._navigate(this._scheduleUrl());
+    return false;
+  }
+
+  /** Ends the current leave by closing the editor; a remembered route change wins. */
+  private _endLeave(close: () => void) {
+    const pending = this._pendingRoute;
+    this._leaving = null;
+    this._pendingRoute = false;
+    if (pending) {
+      this._scheduleEntity = null;
+      this._scheduleRoom = "";
+      this._applyRoute();
+      return;
+    }
+    close();
   }
 
   /** Back from the schedule editor: to the room it came from, else the schedule overview. */
   private _onBackFromSchedule = async () => {
-    if (!(await this._leaveSchedule())) return;
-    await this._onScheduleClosed();
+    const token = this._beginLeave();
+    if (!token || !(await this._flushFor(token))) return;
+    await this._closeSchedule(token);
+  };
+
+  /** The editor closed itself (removed from its room): it saved already, then the same way out. */
+  private _onEditorClosed = async () => {
+    const token = this._beginLeave();
+    if (!token || !(await this._flushFor(token))) return;
+    await this._closeSchedule(token);
   };
 
   /**
    * The room page reads its config once when it mounts: load the rooms first, else it starts
    * from a poll that still lists the room's schedules as they were before the editor.
    */
-  private _onScheduleClosed = async () => {
+  private async _closeSchedule(token: object) {
     const room = this._scheduleRoom;
     await this._loadRooms();
-    this._scheduleEntity = null;
-    this._scheduleRoom = "";
-    if (room && this.hass?.areas?.[room]) {
-      this._activeTab = "areas";
-      this._selectedAreaId = room;
-      this._navigateBack(`/room/${room}`);
-    } else {
-      this._activeTab = "schedules";
-      this._navigateBack("/schedules");
+    if (this._leaving !== token) return;
+    // Backstop: the editor is inert during the leave, but anything still unsaved is sent first
+    if (this._editor?.pending && !(await this._flushFor(token))) return;
+    if (this._leaving !== token) return;
+    this._endLeave(() => {
+      this._scheduleEntity = null;
+      this._scheduleRoom = "";
+      if (room && this.hass?.areas?.[room]) {
+        this._activeTab = "areas";
+        this._selectedAreaId = room;
+        this._navigateBack(`/room/${room}`);
+      } else {
+        this._activeTab = "schedules";
+        this._navigateBack("/schedules");
+      }
+    });
+  }
+
+  /**
+   * Browser Back/Forward while the editor is open: with a change to send, the route waits for the
+   * save (the editor stays mounted meanwhile). Returns whether the route is held back.
+   */
+  private _holdRoute(): boolean {
+    if (!this._scheduleEntity) return false;
+    const path = this.route?.path ?? "";
+    const same =
+      path.startsWith("/schedule/") && decodeURIComponent(path.slice(10)) === this._scheduleEntity;
+    if (this._leaving) {
+      this._pendingRoute = !same;
+      return !same;
     }
-  };
+    if (same || !this._editor?.pending) return false;
+    const token = this._beginLeave() as object;
+    this._pendingRoute = true;
+    void this._flushFor(token).then((ok) => {
+      if (ok && this._leaving === token) this._endLeave(() => this._applyRoute());
+    });
+    return true;
+  }
 
   private async _onTabClicked(tab: TabId) {
     if (this._scheduleEntity) {
-      if (!(await this._leaveSchedule())) return;
+      const token = this._beginLeave();
+      if (!token || !(await this._flushFor(token))) return;
+      if (this._pendingRoute) {
+        this._endLeave(() => undefined);
+        return;
+      }
+      this._leaving = null;
       this._scheduleEntity = null;
       this._scheduleRoom = "";
     }
@@ -1093,7 +1191,7 @@ export class RoomMindPanel extends LitElement {
   }
 
   protected willUpdate(changedProps: Map<string, unknown>) {
-    if (changedProps.has("route") && this._routeApplied) {
+    if (changedProps.has("route") && this._routeApplied && !this._holdRoute()) {
       this._applyRoute();
     }
     if (changedProps.has("_rooms") || changedProps.has("hass")) {

@@ -518,6 +518,14 @@ export class RsScheduleEditor extends LitElement {
     return this._flush();
   }
 
+  /** Whether flush() has anything to send or wait for (the panel guards leaving on it). */
+  public get pending(): boolean {
+    if (this._timer || this._saving) return true;
+    if (this._deleting || !this._loaded?.itemId || !this._canEdit || !this._effectiveName)
+      return false;
+    return this._payloadJson() !== this._savedJson;
+  }
+
   protected willUpdate(changed: PropertyValues<this>): void {
     // The panel's poll is newer than what the editor fetched itself.
     if (changed.has("rooms")) this._freshRooms = null;

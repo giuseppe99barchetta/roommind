@@ -115,9 +115,8 @@ test("leaving the editor with a failed save keeps it open (back and tabs); a goo
   panel._scheduleRoom = "sala";
   let result = "Could not save";
   panel.dispatchEvent = () => true;
-  Object.defineProperty(panel, "renderRoot", {
-    value: { querySelector: () => ({ flush: async () => result }) },
-  });
+  const editor = { flush: async () => result, pending: true };
+  Object.defineProperty(panel, "renderRoot", { value: { querySelector: () => editor } });
   await panel._onBackFromSchedule();
   assert.equal(panel._scheduleEntity, "schedule.heating", "back kept the editor");
   await panel._onTabClicked("settings");
@@ -201,4 +200,184 @@ test("opening the editor saves the room first: a failed save stays, the next cli
   await detail._onOpenScheduleEditor(ev);
   assert.ok(saves >= 3, `retried (${saves} saves)`);
   assert.equal(out[0].type, "open-schedule-editor");
+});
+
+// ── Browser Back guarded: a failed save never loses the edit ──
+const tick = () => new Promise((r) => setImmediate(r));
+
+function guarded({ pending = true } = {}) {
+  const panel = new Panel();
+  panel.hass = hass;
+  panel._rooms = {};
+  panel._routeApplied = true;
+  const nav = [];
+  panel._navigate = (p) => nav.push(p);
+  panel._navigateBack = (p) => nav.push(`back:${p}`);
+  let loads = [];
+  panel._loadRooms = () => new Promise((r) => loads.push(r));
+  const toasts = [];
+  panel.dispatchEvent = (e) => {
+    if (e.type === "hass-notification") toasts.push(e.detail.message);
+    return true;
+  };
+  const gates = [];
+  const editor = {
+    pending,
+    flushes: 0,
+    flush() {
+      this.flushes++;
+      return new Promise((r) => gates.push(r));
+    },
+  };
+  Object.defineProperty(panel, "renderRoot", { value: { querySelector: () => editor } });
+  panel._scheduleEntity = "schedule.heating";
+  panel._scheduleRoom = "sala";
+  panel._activeTab = "areas";
+  panel.route = { path: "/schedule/schedule.heating" };
+  const go = (path) => {
+    panel.route = { path };
+    panel.willUpdate(new Map([["route", undefined]]));
+  };
+  const save = async (message) => {
+    if (!message) editor.pending = false; // saved: nothing left to send
+    gates.shift()(message);
+    await tick();
+  };
+  const loaded = async () => {
+    loads.shift()();
+    await tick();
+  };
+  return { panel, editor, nav, toasts, go, save, loaded, gates };
+}
+
+test("browser Back with a failing save keeps the editor, says why and puts its URL back", async () => {
+  const g = guarded();
+  g.go("/room/sala");
+  assert.equal(g.panel._scheduleEntity, "schedule.heating", "route held while saving");
+  assert.ok(g.panel._leaving, "editor inert while saving");
+  await g.save("Could not save");
+  assert.equal(g.panel._scheduleEntity, "schedule.heating");
+  assert.equal(g.panel._leaving, null, "editable again, draft intact");
+  assert.deepEqual(g.toasts, ["Could not save"]);
+  assert.deepEqual(g.nav, ["/schedule/schedule.heating?room=sala"]);
+});
+
+test("browser Back with a good save applies the route after the save", async () => {
+  const g = guarded();
+  g.go("/settings");
+  assert.equal(g.panel._activeTab, "areas", "not yet");
+  await g.save("");
+  assert.equal(g.panel._scheduleEntity, null);
+  assert.equal(g.panel._activeTab, "settings");
+  assert.deepEqual(g.toasts, []);
+});
+
+test("browser Back with nothing pending leaves at once, as before", () => {
+  const g = guarded({ pending: false });
+  g.go("/settings");
+  assert.equal(g.panel._scheduleEntity, null);
+  assert.equal(g.panel._activeTab, "settings");
+  assert.equal(g.editor.flushes, 0);
+});
+
+test("two route changes during one failing save: one save, one toast, the editor stays", async () => {
+  const g = guarded();
+  g.go("/room/sala");
+  g.go("/settings");
+  assert.equal(g.editor.flushes, 1);
+  await g.save("Could not save");
+  assert.equal(g.panel._scheduleEntity, "schedule.heating");
+  assert.equal(g.toasts.length, 1);
+});
+
+test("toolbar back or a tab, then browser Back during the save: the route wins or the URL returns", async () => {
+  for (const start of ["toolbar", "tab"]) {
+    const ok = guarded();
+    const leaving =
+      start === "toolbar" ? ok.panel._onBackFromSchedule() : ok.panel._onTabClicked("analytics");
+    ok.go("/settings");
+    await ok.save("");
+    if (start === "toolbar") await ok.loaded();
+    await leaving;
+    assert.equal(ok.panel._activeTab, "settings", `${start}: the browser's route, not its own`);
+    assert.ok(!ok.nav.includes("back:/room/sala"), start);
+
+    const bad = guarded();
+    const failing =
+      start === "toolbar" ? bad.panel._onBackFromSchedule() : bad.panel._onTabClicked("analytics");
+    bad.go("/settings");
+    await bad.save("Could not save");
+    await failing;
+    assert.equal(bad.panel._scheduleEntity, "schedule.heating", start);
+    assert.deepEqual(bad.toasts, ["Could not save"], start);
+    assert.deepEqual(bad.nav, ["/schedule/schedule.heating?room=sala"], start);
+  }
+});
+
+test("toolbar back: a route change while the rooms reload is applied instead of the room", async () => {
+  const g = guarded();
+  const leaving = g.panel._onBackFromSchedule();
+  await g.save("");
+  g.go("/settings");
+  assert.equal(g.panel._scheduleEntity, "schedule.heating", "held during the reload");
+  await g.loaded();
+  await leaving;
+  assert.equal(g.panel._activeTab, "settings");
+  assert.deepEqual(g.nav, []);
+});
+
+test("toolbar back: an edit forced in during the reload whose save fails keeps the editor", async () => {
+  const g = guarded();
+  const leaving = g.panel._onBackFromSchedule();
+  await g.save("");
+  assert.ok(g.panel._leaving, "inert during the reload");
+  g.editor.pending = true;
+  await g.loaded();
+  await g.save("Could not save");
+  await leaving;
+  assert.equal(g.panel._scheduleEntity, "schedule.heating");
+  assert.deepEqual(g.toasts, ["Could not save"]);
+});
+
+test("a stale leave finishing its reload changes nothing a newer one owns", async () => {
+  const g = guarded();
+  const leaving = g.panel._onBackFromSchedule();
+  await g.save("");
+  const newer = {};
+  g.panel._leaving = newer;
+  g.panel._scheduleEntity = "schedule.other";
+  await g.loaded();
+  await leaving;
+  assert.equal(g.panel._leaving, newer, "the newer leave keeps the editor inert");
+  assert.equal(g.panel._scheduleEntity, "schedule.other");
+  assert.deepEqual(g.nav, []);
+});
+
+test("toolbar back and tabs during a browser-Back save are ignored; the route then applies", async () => {
+  const g = guarded();
+  g.go("/settings");
+  await g.panel._onBackFromSchedule();
+  await g.panel._onTabClicked("analytics");
+  assert.equal(g.editor.flushes, 1);
+  await g.save("");
+  assert.equal(g.panel._activeTab, "settings");
+  assert.deepEqual(g.nav, []);
+});
+
+test("the editor is rendered inert while a leave runs", () => {
+  const g = guarded();
+  g.panel._roomsLoaded = true;
+  g.panel._leaving = {};
+  const tpl = g.panel._renderTab();
+  const find = (v) =>
+    Array.isArray(v) ? v.flatMap(find) : v?.strings ? [v, ...v.values.flatMap(find)] : [];
+  const editorTpl = find(tpl).find((t) => t.strings.join("").includes("<rs-schedule-editor"));
+  assert.ok(editorTpl, "editor template");
+  const i = editorTpl.strings.findIndex((s) => s.trimEnd().endsWith("?inert="));
+  assert.equal(editorTpl.values[i], true);
+  g.panel._leaving = null;
+  const idle = find(g.panel._renderTab()).find((t) =>
+    t.strings.join("").includes("<rs-schedule-editor"),
+  );
+  assert.equal(idle.values[i], false);
 });
