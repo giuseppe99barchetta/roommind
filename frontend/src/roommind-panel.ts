@@ -10,6 +10,7 @@ import { computeAreaInfos, type AreaInfo } from "./utils/dashboard";
 import type { HouseSummary } from "./components/dashboard/rs-dashboard";
 import "./components/dashboard/rs-dashboard";
 import "./components/dashboard/rs-dashboard-edit";
+import "./components/shared/rs-icon-button";
 
 const BACK_PATH = "M20,11V13H8L13.5,18.5L12.08,19.92L4.16,12L12.08,4.08L13.5,5.5L8,11H20Z";
 
@@ -52,6 +53,7 @@ export class RoomMindPanel extends LitElement {
   @state() private _roomOrder: string[] = [];
   @state() private _groupByFloor = false;
   @state() private _editing = false;
+  private _layoutRevisions: Record<string, number> = {};
   @state() private _outdoorTemp: number | null = null;
   @state() private _elementsLoaded = false;
 
@@ -63,6 +65,17 @@ export class RoomMindPanel extends LitElement {
   private _boundConnectionReady?: () => void;
 
   static styles = css`
+    .edit-bar,
+    .dashboard-actions {
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 8px;
+      padding: 8px 16px 0;
+    }
+    .edit-bar {
+      justify-content: space-between;
+    }
     :host {
       display: block;
       font-family: var(
@@ -647,18 +660,25 @@ export class RoomMindPanel extends LitElement {
       anyoneHome: this._anyoneHome,
       outdoorTemp: this._outdoorTemp,
     };
-    return html`<rs-dashboard
-      .hass=${common.hass}
-      .infos=${common.infos}
-      .hiddenRooms=${common.hiddenRooms}
-      .groupByFloor=${common.groupByFloor}
-      .controlMode=${common.controlMode}
-      .climateControlActive=${common.climateControlActive}
-      .summary=${summary}
-      @area-selected=${this._onAreaSelected}
-      @room-updated=${this._onRoomUpdated}
-      @edit-requested=${this._startEditing}
-    ></rs-dashboard>`;
+    return html`<div class="dashboard-actions">
+        <rs-icon-button
+          icon="mdi:pencil"
+          .label=${localize("panel.edit_rooms", this.hass.language)}
+          @click=${this._startEditing}
+        ></rs-icon-button>
+      </div>
+      <rs-dashboard
+        .hass=${common.hass}
+        .infos=${common.infos}
+        .hiddenRooms=${common.hiddenRooms}
+        .groupByFloor=${common.groupByFloor}
+        .controlMode=${common.controlMode}
+        .climateControlActive=${common.climateControlActive}
+        .summary=${summary}
+        @area-selected=${this._onAreaSelected}
+        @room-updated=${this._onRoomUpdated}
+        @edit-requested=${this._startEditing}
+      ></rs-dashboard>`;
   }
 
   private _renderSettings() {
@@ -848,14 +868,22 @@ export class RoomMindPanel extends LitElement {
     });
   }
 
-  /** Dashboard layout through the settings merge (only the changed field); rolls back on error. */
+  /**
+   * Dashboard layout through the settings merge (only the changed field). A failed save rolls
+   * back only while it is still that field's latest change, then the server's state is reloaded:
+   * an older failure must not undo a newer change that went through.
+   */
   private async _saveLayout(changes: Record<string, unknown>, rollback: () => void) {
+    const key = Object.keys(changes).join(",");
+    const revision = (this._layoutRevisions[key] ?? 0) + 1;
+    this._layoutRevisions[key] = revision;
     try {
       await this.hass.callWS({ type: "roommind/settings/save", ...changes });
     } catch (err) {
-      rollback();
+      if (this._layoutRevisions[key] === revision) rollback();
       // eslint-disable-next-line no-console
       console.debug("[RoomMind] save layout:", err);
+      await this._loadRooms();
     }
   }
 
