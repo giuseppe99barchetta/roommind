@@ -7,6 +7,12 @@ export type TranslationKey = keyof typeof en;
 
 const translations: Record<string, Record<string, string>> = { en, de, fr, it };
 
+/** The panel's language outside a component (the card picker, dialogs): HA's, else the browser's. */
+export function uiLanguage(): string {
+  const root = document.querySelector("home-assistant") as { hass?: { language?: string } } | null;
+  return root?.hass?.language ?? navigator.language ?? "en";
+}
+
 /**
  * Look up a translation key for the given language.
  * Falls back to English if the key is missing in the target language.

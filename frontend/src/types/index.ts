@@ -32,6 +32,10 @@ export interface ScheduleTempWarning {
 }
 
 export interface RoomLiveData {
+  // Upstream 2.0 panel fields; the fork's backend may not send them (optional)
+  preheat?: { mode: "heating" | "cooling"; target: number; at: number } | null;
+  setback?: { devices: string[]; until: number | null } | null;
+  n_observations?: number;
   dehumidifier?: DehumidifierStatus;
   schedule_temp_warnings?: ScheduleTempWarning[];
   current_temp: number | null;
@@ -411,7 +415,8 @@ export interface HomeAssistant {
   entities: Record<string, HassEntityRegistryEntry>;
   devices: Record<string, HassDeviceRegistryEntry>;
   language: string;
-  config: { unit_system: { temperature: string } };
+  config: { unit_system: { temperature: string }; time_zone?: string };
+  user?: { is_admin: boolean; name?: string };
   connection?: HassConnection;
 }
 
@@ -438,6 +443,8 @@ export interface HassEntityRegistryEntry {
 export interface HassDeviceRegistryEntry {
   id: string;
   area_id: string | null;
+  name?: string | null;
+  name_by_user?: string | null;
 }
 
 export interface HassEntity {
@@ -448,6 +455,7 @@ export interface HassEntity {
 
 export interface AnalyticsDataPoint {
   ts: number;
+  humidity?: number | null;
   room_temp: number | null;
   outdoor_temp: number | null;
   target_temp: number | null;
