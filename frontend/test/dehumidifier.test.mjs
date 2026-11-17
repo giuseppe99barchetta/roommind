@@ -170,10 +170,12 @@ function templates(value) {
 }
 
 function clickChoice(view, label) {
-  const choice = templates(view).find(t =>
-    t.strings.join("").includes('class="choice"') && t.values.includes(label));
-  assert.ok(choice, `Missing choice: ${label}`);
-  choice.values.find((_, i) => choice.strings[i].trimEnd().endsWith("@click="))();
+  const at = (t, name) => t.values.find((_, i) => t.strings[i].trimEnd().endsWith(name));
+  const group = templates(view).find(t =>
+    t.strings.join("").includes("<rs-segmented") && at(t, ".options=")?.some(o => o.label === label));
+  assert.ok(group, `Missing choice: ${label}`);
+  const option = at(group, ".options=").find(o => o.label === label);
+  at(group, "@value-changed=")({ detail: { value: option.value }, stopPropagation() {} });
 }
 
 test("automatic and manual choices preserve device protections and do not opt into comfort", () => {
@@ -391,4 +393,83 @@ test("measured power is labelled and the picker only offers power sensors", () =
   assert.ok(renderedText(section.render()).includes("measured"));
   section.live.devices[0].measured_power_w = null;
   assert.ok(!renderedText(section.render()).includes("measured"));
+});
+
+// ── 2.0 controls in the editor: same events and details as the old controls ──
+function editor(humidity = {}) {
+  const section = new Section();
+  section.hass = { language: "en", states: {}, areas: {} };
+  section.areaId = "bed";
+  section.config = config;
+  section.editing = true;
+  section.rooms = { bed: {}, bath: { display_name: "Bathroom" }, office: { display_name: "Office" }, hall: { display_name: "Hall" } };
+  section.humidity = { humidity_comfort_enabled: false, humidity_target: 55, humidity_tolerance: 5, humidity_priority: "balanced", ...humidity };
+  const events = [];
+  section.dispatchEvent = event => { events.push({ type: event.type, detail: event.detail }); return true; };
+  return { section, events };
+}
+
+// Values bound to `name` on the element `tag` itself (the binding's open tag is that element)
+function bound(view, tag, name) {
+  return templates(view).flatMap(t => t.values.filter((_, i) => {
+    const before = t.strings.slice(0, i + 1).join(" ");
+    return before.trimEnd().endsWith(name + "=") && before.lastIndexOf("<") === before.lastIndexOf(tag);
+  }));
+}
+
+function row(view, heading) {
+  const t = templates(view).find(t => t.strings.join("").includes("<rs-list-row") && t.values.includes(heading));
+  assert.ok(t, `Missing row: ${heading}`);
+  return t.values.find((_, i) => t.strings[i].trimEnd().endsWith("@toggle-changed="));
+}
+
+test("served rooms are switch rows that add and remove the room like the old checkboxes", () => {
+  const { section, events } = editor();
+  row(section.render(), "Hall")({ detail: true });
+  row(section.render(), "Bathroom")({ detail: false });
+  assert.deepEqual(events.map(e => e.type), ["dehumidifier-changed", "dehumidifier-changed"]);
+  assert.deepEqual(events[0].detail, { ...config, served_area_ids: ["bath", "office", "hall"] });
+  assert.deepEqual(events[1].detail, { ...config, served_area_ids: ["office"] });
+});
+
+test("comfort and seasonal switches send the same humidity changes", () => {
+  const { section, events } = editor();
+  row(section.render(), "Humidity comfort")({ detail: true });
+  row(section.render(), "Different target per season")({ detail: true });
+  assert.deepEqual(events[0], { type: "humidity-changed", detail: { humidity_comfort_enabled: true } });
+  assert.equal(events[1].type, "humidity-changed");
+  assert.deepEqual(Object.values(events[1].detail.humidity_season_targets), [55, 55, 55, 55]);
+});
+
+test("every humidity and protection number is an rs-number-field with the old range and step", () => {
+  const { section, events } = editor({ humidity_season_targets: { winter: 50, spring: 50, summer: 60, autumn: 50 } });
+  const view = section.render();
+  assert.equal(bound(view, "<rs-threshold-field", ".value").length, 0);
+  assert.equal(bound(view, "<rs-number-field", "@input").length, 0, "no event on input alone");
+  assert.deepEqual(bound(view, "<rs-number-field", ".min"), [30, 0, 30, 30, 30, 30, 0, 0, 0]);
+  assert.deepEqual(bound(view, "<rs-number-field", ".max"), [80, 20, 80, 80, 80, 80, 1440, 1440, 100000]);
+  assert.deepEqual(bound(view, "<rs-number-field", ".step"), [1, 1, 1, 1, 1, 1, 1, 1, 1]);
+  const handlers = bound(view, "<rs-number-field", "@value-changed");
+  [60, 8, 45, 50, 65, 50, 10, 12, 300].forEach((value, i) => handlers[i]({ detail: { value } }));
+  assert.deepEqual(events.map(e => e.detail), [
+    { humidity_target: 60 },
+    { humidity_tolerance: 8 },
+    { humidity_season_targets: { winter: 45, spring: 50, summer: 60, autumn: 50 } },
+    { humidity_season_targets: { winter: 50, spring: 50, summer: 60, autumn: 50 } },
+    { humidity_season_targets: { winter: 50, spring: 50, summer: 65, autumn: 50 } },
+    { humidity_season_targets: { winter: 50, spring: 50, summer: 60, autumn: 50 } },
+    { ...config, min_run_minutes: 10 },
+    { ...config, min_off_minutes: 12 },
+    { ...config, power_watts: 300 },
+  ]);
+});
+
+test("the humidity number field commits a rounded value on change only (55.4 → 55)", async () => {
+  const { RsNumberField } = await server.ssrLoadModule("/src/components/shared/rs-number-field.ts");
+  const field = new RsNumberField();
+  Object.assign(field, { value: 50, min: 30, max: 80, step: 1 });
+  const out = [];
+  field.dispatchEvent = e => { out.push(e.detail.value); return true; };
+  field._onChange({ stopPropagation() {}, target: { value: "55.4" } });
+  assert.deepEqual(out, [55]);
 });

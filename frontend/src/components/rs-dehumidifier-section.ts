@@ -13,8 +13,10 @@ import { localize, type TranslationKey } from "../utils/localize";
 import { getSelectValue, openEntityInfo } from "../utils/events";
 import { inputStyles } from "../styles/input-styles";
 import "./shared/rs-entity-picker-field";
-import "./shared/rs-threshold-field";
-import "./shared/rs-toggle-row";
+import "./shared/rs-field";
+import "./shared/rs-list-row";
+import "./shared/rs-number-field";
+import "./shared/rs-segmented";
 
 export type HumiditySettings = Required<
   Pick<
@@ -57,7 +59,6 @@ export class RsDehumidifierSection extends LitElement {
       * {
         box-sizing: border-box;
       }
-      .panel,
       .device,
       .room-summary {
         border: 1px solid var(--divider-color, rgba(128, 128, 128, 0.18));
@@ -69,12 +70,15 @@ export class RsDehumidifierSection extends LitElement {
         display: grid;
         gap: 14px;
       }
-      .panel-heading {
-        display: flex;
-        align-items: center;
-        gap: 10px;
+      .panel + .panel {
+        border-top: 1px solid var(--divider-color, rgba(128, 128, 128, 0.16));
+        padding-top: 16px;
       }
-      .step,
+      /* switch rows reach the dialog/card edge like the other 2.0 rows */
+      .panel > rs-list-row,
+      .rooms {
+        margin-inline: calc(-1 * var(--rs-space-4, 16px));
+      }
       .device-icon {
         display: grid;
         place-items: center;
@@ -208,55 +212,6 @@ export class RsDehumidifierSection extends LitElement {
         margin-bottom: 4px;
         color: var(--primary-text-color);
       }
-      .choices {
-        display: grid;
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-        gap: 8px;
-      }
-      .choices.priority {
-        grid-template-columns: repeat(3, minmax(0, 1fr));
-      }
-      .choice {
-        display: flex;
-        flex-direction: column;
-        align-items: flex-start;
-        justify-content: flex-start;
-        padding: 12px;
-        border: 1px solid var(--divider-color, rgba(128, 128, 128, 0.2));
-        border-radius: 10px;
-        color: var(--primary-text-color);
-        line-height: 1.5;
-      }
-      .choice[aria-pressed="true"] {
-        border-color: var(--primary-color);
-        background: color-mix(in srgb, var(--primary-color) 8%, transparent);
-      }
-      .choice strong {
-        display: block;
-        font-size: 13px;
-        margin-bottom: 4px;
-      }
-      .choice .hint {
-        font-size: 12px;
-      }
-      .room-options {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(min(100%, 190px), 1fr));
-        gap: 8px;
-      }
-      .room-option {
-        padding: 8px 10px;
-        border: 1px solid var(--divider-color, rgba(128, 128, 128, 0.2));
-        border-radius: 10px;
-        cursor: pointer;
-        font-size: 13px;
-        min-width: 0;
-        overflow-wrap: anywhere;
-      }
-      .room-option.selected {
-        border-color: color-mix(in srgb, var(--primary-color) 45%, transparent);
-        background: color-mix(in srgb, var(--primary-color) 6%, transparent);
-      }
       details {
         border-top: 1px solid var(--divider-color, rgba(128, 128, 128, 0.16));
         padding-top: 12px;
@@ -347,10 +302,6 @@ export class RsDehumidifierSection extends LitElement {
         padding: 0;
       }
       @media (max-width: 480px) {
-        .choices.priority {
-          grid-template-columns: 1fr;
-        }
-        .panel,
         .device,
         .room-summary {
           padding: 12px;
@@ -458,17 +409,19 @@ export class RsDehumidifierSection extends LitElement {
 
   private _seasonTargetFields() {
     const enabled = this._seasonTargetsEnabled();
-    return html`<rs-toggle-row
-        .label=${this._label("dehumidifier.season_targets")}
+    return html`<rs-list-row
+        switch
+        wrap
+        .heading=${this._label("dehumidifier.season_targets")}
+        .secondary=${this._label("dehumidifier.season_targets_hint")}
         .checked=${enabled}
         @toggle-changed=${(e: CustomEvent<boolean>) => this._toggleSeasonTargets(e.detail)}
-      ></rs-toggle-row>
-      <p class="hint">${this._label("dehumidifier.season_targets_hint")}</p>
+      ></rs-list-row>
       ${enabled
         ? html`<div class="numbers">
             ${SEASONS.map(
               (season) =>
-                html`<rs-threshold-field
+                html`<rs-number-field
                   .label=${this._label(`dehumidifier.season_${season}`)}
                   .value=${this.humidity.humidity_season_targets?.[season] ??
                   this.humidity.humidity_target}
@@ -476,18 +429,42 @@ export class RsDehumidifierSection extends LitElement {
                   .max=${80}
                   .step=${1}
                   suffix="%"
-                  @value-changed=${(e: CustomEvent<number>) => this._seasonTarget(season, e.detail)}
-                ></rs-threshold-field>`,
+                  @value-changed=${(e: CustomEvent<{ value: number }>) =>
+                    this._seasonTarget(season, e.detail.value)}
+                ></rs-number-field>`,
             )}
           </div>`
         : nothing}`;
   }
 
-  private _heading(step: string, title: TranslationKey) {
-    return html`<div class="panel-heading">
-      <span class="step">${step}</span>
-      <h4>${this._label(title)}</h4>
-    </div>`;
+  private _heading(title: TranslationKey) {
+    return html`<h4>${this._label(title)}</h4>`;
+  }
+
+  /** A choice of fixed options (mode, priority); the picked option's explanation below it. */
+  private _choices<T extends string>(
+    title: TranslationKey,
+    options: readonly T[],
+    value: T,
+    labelKey: (option: T) => TranslationKey,
+    hintKey: (option: T) => TranslationKey,
+    pick: (option: T) => void,
+  ) {
+    return html`<rs-field .label=${this._label(title)} .hint=${this._label(hintKey(value))}>
+      <rs-segmented
+        wrap
+        .label=${this._label(title)}
+        .options=${options.map((option) => ({
+          value: option,
+          label: this._label(labelKey(option)),
+        }))}
+        .value=${value}
+        @value-changed=${(e: CustomEvent<{ value: string }>) => {
+          e.stopPropagation();
+          pick(e.detail.value as T);
+        }}
+      ></rs-segmented>
+    </rs-field>`;
   }
 
   private _disabledNotice(room: string) {
@@ -522,7 +499,7 @@ export class RsDehumidifierSection extends LitElement {
         ? this._disabledNotice(this._roomName(this.areaId))
         : nothing}
       <section class="panel">
-        ${this._heading("1", "dehumidifier.device")}
+        ${this._heading("dehumidifier.device")}
         <rs-entity-picker-field
           .hass=${this.hass}
           .label=${this._label("dehumidifier.device")}
@@ -583,34 +560,22 @@ export class RsDehumidifierSection extends LitElement {
           : nothing}
         ${config
           ? html`
-              <h4>${this._label("dehumidifier.mode")}</h4>
-              <div class="choices" role="group" aria-label=${this._label("dehumidifier.mode")}>
-                ${(["auto", "manual"] as const).map(
-                  (mode) =>
-                    html` <button
-                      type="button"
-                      class="choice"
-                      aria-pressed=${config.mode === mode}
-                      @click=${() => this._deviceChanged({ ...config, mode })}
-                    >
-                      <strong>${this._label(`dehumidifier.${mode}`)}</strong>
-                      <span class="hint"
-                        >${this._label(
-                          mode === "auto"
-                            ? "dehumidifier.auto_hint"
-                            : "dehumidifier.manual_option_hint",
-                        )}</span
-                      >
-                    </button>`,
-                )}
-              </div>
+              ${this._choices(
+                "dehumidifier.mode",
+                ["auto", "manual"] as const,
+                config.mode,
+                (mode) => `dehumidifier.${mode}`,
+                (mode) =>
+                  mode === "auto" ? "dehumidifier.auto_hint" : "dehumidifier.manual_option_hint",
+                (mode) => this._deviceChanged({ ...config, mode }),
+              )}
               ${this._startModePicker(config)}
             `
           : nothing}
       </section>
       ${config
         ? html`<section class="panel">
-            ${this._heading("2", "dehumidifier.served_rooms")}
+            ${this._heading("dehumidifier.served_rooms")}
             <p class="hint">${this._label("dehumidifier.coverage_hint")}</p>
             <div class="chips">
               <span class="chip host"
@@ -619,28 +584,26 @@ export class RsDehumidifierSection extends LitElement {
             </div>
             <fieldset>
               <legend class="eyebrow">${this._label("dehumidifier.additional_rooms")}</legend>
-              <div class="room-options">
+              <div class="rooms">
                 ${Object.entries(this.rooms)
                   .filter(([id, r]) => id !== this.areaId && !r.is_outdoor)
                   .map(
                     ([id]) =>
-                      html` <label
-                        class="room-option ${config.served_area_ids.includes(id) ? "selected" : ""}"
-                      >
-                        <ha-checkbox
-                          .checked=${config.served_area_ids.includes(id)}
-                          @change=${(e: Event) => {
-                            const selected = (e.target as HTMLInputElement).checked;
-                            this._deviceChanged({
-                              ...config,
-                              served_area_ids: selected
-                                ? [...new Set([...config.served_area_ids, id])]
-                                : config.served_area_ids.filter((a) => a !== id),
-                            });
-                          }}
-                        ></ha-checkbox
-                        >${this._roomName(id)}
-                      </label>`,
+                      html`<rs-list-row
+                        switch
+                        icon="mdi:door"
+                        .heading=${this._roomName(id)}
+                        .checked=${config.served_area_ids.includes(id)}
+                        @toggle-changed=${(e: CustomEvent<boolean>) => {
+                          const selected = e.detail;
+                          this._deviceChanged({
+                            ...config,
+                            served_area_ids: selected
+                              ? [...new Set([...config.served_area_ids, id])]
+                              : config.served_area_ids.filter((a) => a !== id),
+                          });
+                        }}
+                      ></rs-list-row>`,
                   )}
               </div>
             </fieldset>
@@ -650,57 +613,52 @@ export class RsDehumidifierSection extends LitElement {
           </section>`
         : nothing}
       <section class="panel">
-        ${this._heading(config ? "3" : "2", "dehumidifier.room_comfort")}
-        <rs-toggle-row
-          .label=${this._label("dehumidifier.comfort")}
+        ${this._heading("dehumidifier.room_comfort")}
+        <rs-list-row
+          switch
+          wrap
+          .heading=${this._label("dehumidifier.comfort")}
+          .secondary=${this._label("dehumidifier.comfort_hint")}
           .checked=${this.humidity.humidity_comfort_enabled}
           @toggle-changed=${(e: CustomEvent<boolean>) =>
             this._humidityChanged({ humidity_comfort_enabled: e.detail })}
-        ></rs-toggle-row>
-        <p class="hint">${this._label("dehumidifier.comfort_hint")}</p>
+        ></rs-list-row>
         <div class="numbers">
-          <rs-threshold-field
+          <rs-number-field
             .label=${this._label("dehumidifier.target")}
             .value=${this.humidity.humidity_target}
             .min=${30}
             .max=${80}
             .step=${1}
             suffix="%"
-            @value-changed=${(e: CustomEvent<number>) =>
-              this._humidityChanged({ humidity_target: Math.max(30, Math.min(80, e.detail)) })}
-          ></rs-threshold-field>
-          <rs-threshold-field
+            @value-changed=${(e: CustomEvent<{ value: number }>) =>
+              this._humidityChanged({
+                humidity_target: Math.max(30, Math.min(80, e.detail.value)),
+              })}
+          ></rs-number-field>
+          <rs-number-field
             .label=${this._label("dehumidifier.tolerance")}
             .value=${this.humidity.humidity_tolerance}
             .min=${0}
             .max=${20}
             .step=${1}
             suffix="%"
-            @value-changed=${(e: CustomEvent<number>) =>
-              this._humidityChanged({ humidity_tolerance: Math.max(0, Math.min(20, e.detail)) })}
-          ></rs-threshold-field>
+            @value-changed=${(e: CustomEvent<{ value: number }>) =>
+              this._humidityChanged({
+                humidity_tolerance: Math.max(0, Math.min(20, e.detail.value)),
+              })}
+          ></rs-number-field>
         </div>
         <p class="hint">${this._label("dehumidifier.tolerance_hint")}</p>
         ${this._seasonTargetFields()}
-        <h4>${this._label("dehumidifier.priority")}</h4>
-        <div
-          class="choices priority"
-          role="group"
-          aria-label=${this._label("dehumidifier.priority")}
-        >
-          ${(["comfort", "balanced", "energy"] as const).map(
-            (priority) =>
-              html` <button
-                type="button"
-                class="choice"
-                aria-pressed=${this.humidity.humidity_priority === priority}
-                @click=${() => this._humidityChanged({ humidity_priority: priority })}
-              >
-                <strong>${this._label(`dehumidifier.priority_${priority}`)}</strong>
-                <span class="hint">${this._label(`dehumidifier.priority_${priority}_hint`)}</span>
-              </button>`,
-          )}
-        </div>
+        ${this._choices(
+          "dehumidifier.priority",
+          ["comfort", "balanced", "energy"] as const,
+          this.humidity.humidity_priority,
+          (priority) => `dehumidifier.priority_${priority}`,
+          (priority) => `dehumidifier.priority_${priority}_hint`,
+          (priority) => this._humidityChanged({ humidity_priority: priority }),
+        )}
       </section>
       ${config
         ? html`<details>
@@ -710,15 +668,16 @@ export class RsDehumidifierSection extends LitElement {
               <div class="numbers">
                 ${(["min_run_minutes", "min_off_minutes", "power_watts"] as const).map(
                   (key) =>
-                    html` <rs-threshold-field
+                    html`<rs-number-field
                       .label=${this._label(`dehumidifier.${key}`)}
                       .value=${config[key]}
                       .min=${0}
                       .max=${key === "power_watts" ? 100000 : 1440}
                       .step=${1}
                       .suffix=${key === "power_watts" ? "W" : "min"}
-                      @value-changed=${(e: CustomEvent<number>) => this._number(key, e.detail)}
-                    ></rs-threshold-field>`,
+                      @value-changed=${(e: CustomEvent<{ value: number }>) =>
+                        this._number(key, e.detail.value)}
+                    ></rs-number-field>`,
                 )}
               </div>
               <p class="hint">${this._label("dehumidifier.power_hint")}</p>
