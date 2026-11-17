@@ -63,7 +63,8 @@ export async function readWeek(hass: HomeAssistant, entityId: string): Promise<W
 
 export async function loadSchedule(hass: HomeAssistant, entityId: string): Promise<LoadedSchedule> {
   const name = (hass.states[entityId]?.attributes?.friendly_name as string) || entityId;
-  if (isEditableSchedule(hass, entityId)) {
+  // schedule/list is admin-only: a non-admin reads the week through the service (view only)
+  if (isAdmin(hass) && isEditableSchedule(hass, entityId)) {
     const [ids, items] = await Promise.all([
       scheduleEntityIds(hass),
       hass.callWS<StorageScheduleItem[]>({ type: "schedule/list" }),

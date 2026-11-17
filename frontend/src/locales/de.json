@@ -1462,7 +1462,7 @@
   "schedule_editor.clear_day": "Tag leeren",
   "schedule_editor.comfort_hint": "Nutzt die Komforttemperatur des jeweiligen Raums ({rooms}).",
   "schedule_editor.comfort_hint_plain": "Nutzt die Komforttemperatur des Raums.",
-  "schedule_editor.conflict": "Der Zeitplan wurde inzwischen woanders geändert. Hier steht jetzt dieser Stand, deine letzte Änderung ist nicht gespeichert.",
+  "schedule_editor.conflict": "Der Zeitplan wurde inzwischen woanders geändert. Deine Änderung steht noch hier und ist nicht gespeichert: deine behalten (speichert darüber) oder die andere Fassung laden.",
   "schedule_editor.conflict_keep_mine": "Meine behalten",
   "schedule_editor.conflict_load_theirs": "Deren laden",
   "schedule_editor.cool_above": "Kühlen ab",

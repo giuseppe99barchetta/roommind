@@ -655,6 +655,11 @@ export class RsRoomDetail extends LitElement {
       this._saveDebounce = undefined;
       await this._doSave();
     }
+    // A save already out (the debounce fired) finishes first
+    await this._saveQueue;
+    // A failed save keeps the page and its edit (the dialog shows the error): leaving would
+    // unmount it and, e.g., leave a just created helper unassigned
+    if (this._dirty) return;
     this._editing = null;
     this.dispatchEvent(
       new CustomEvent("open-schedule-editor", {

@@ -1462,7 +1462,7 @@
   "schedule_editor.clear_day": "Vider le jour",
   "schedule_editor.comfort_hint": "Utilise la température de confort de chaque pièce ({rooms}).",
   "schedule_editor.comfort_hint_plain": "Utilise la température de confort de la pièce.",
-  "schedule_editor.conflict": "Ce planning a été modifié ailleurs entre-temps. Cette version est maintenant affichée, votre dernière modification n’a pas été enregistrée.",
+  "schedule_editor.conflict": "Ce planning a été modifié ailleurs entre-temps. Votre modification est toujours affichée et non enregistrée : gardez la vôtre (l’enregistre par-dessus) ou chargez l’autre version.",
   "schedule_editor.conflict_keep_mine": "Garder la mienne",
   "schedule_editor.conflict_load_theirs": "Charger l’autre",
   "schedule_editor.cool_above": "Refroidir au-dessus de",

@@ -1462,7 +1462,7 @@
   "schedule_editor.clear_day": "Svuota giorno",
   "schedule_editor.comfort_hint": "Usa la temperatura comfort di ciascuna stanza ({rooms}).",
   "schedule_editor.comfort_hint_plain": "Usa la temperatura comfort della stanza.",
-  "schedule_editor.conflict": "Questa programmazione è stata modificata altrove nel frattempo. Ora mostra quella versione, la tua ultima modifica non è stata salvata.",
+  "schedule_editor.conflict": "Questa programmazione è stata modificata altrove nel frattempo. La tua modifica è ancora qui e non è salvata: tieni la tua (la salva sopra) o carica l'altra versione.",
   "schedule_editor.conflict_keep_mine": "Tieni la mia",
   "schedule_editor.conflict_load_theirs": "Carica la loro",
   "schedule_editor.cool_above": "Raffresca sopra",

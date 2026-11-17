@@ -154,3 +154,48 @@ test("the room's schedule dialog opens the editor for this room through the pane
   });
   assert.deepEqual(out[0].detail, { entityId: "schedule.a", areaId: "sala", kind: "climate" });
 });
+
+test("a non-admin views an editable helper without the admin-only schedule/list", async () => {
+  const calls = [];
+  const h = {
+    ...hass,
+    user: { is_admin: false },
+    states: {
+      "schedule.a": { entity_id: "schedule.a", state: "on", attributes: { editable: true } },
+    },
+    callWS: async (msg) => {
+      calls.push(msg.type);
+      if (msg.type === "schedule/list") throw new Error("Unauthorized");
+      if (msg.type === "execute_script" || msg.type === "call_service")
+        return { response: { "schedule.a": {} } };
+      return [];
+    },
+  };
+  const loaded = await api.loadSchedule(h, "schedule.a");
+  assert.equal(loaded.itemId, null, "view only");
+  assert.equal(calls.includes("schedule/list"), false);
+});
+
+test("opening the editor waits for the room save; a failed save keeps the room page", async () => {
+  const detail = new RoomDetail();
+  detail.hass = hass;
+  detail.area = hass.areas.sala;
+  const out = [];
+  detail.dispatchEvent = (e) => (out.push(e), true);
+  let fail = true;
+  detail._doSave = () => {
+    detail._saveQueue = Promise.resolve().then(() => {
+      if (!fail) detail._dirty = false;
+    });
+    return detail._saveQueue;
+  };
+  detail._dirty = true;
+  detail._saveDebounce = setTimeout(() => {}, 10000);
+  const ev = { stopPropagation() {}, detail: { entityId: "schedule.a" } };
+  await detail._onOpenScheduleEditor(ev);
+  assert.equal(out.length, 0, "stays on the room page");
+  fail = false;
+  detail._saveDebounce = setTimeout(() => {}, 10000);
+  await detail._onOpenScheduleEditor(ev);
+  assert.equal(out[0].type, "open-schedule-editor");
+});
