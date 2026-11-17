@@ -148,8 +148,14 @@ describe("roomHints fork extras (comfort score, insights)", () => {
     });
     const ids = (c: RoomConfig) => roomHints(c, "controlled", ctx).map((h) => h.id);
     expect(ids(r)).toEqual(expect.arrayContaining(["comfort", "issues"]));
-    const good = room({ comfort_score: { score: 90, label: "good", factors: {}, breakdown: {} } });
-    expect(ids(good)).not.toContain("comfort");
+    for (const label of ["excellent", "good"] as const) {
+      const shown = roomHints(
+        room({ comfort_score: { score: 90, label, factors: {}, breakdown: {} } }),
+        "controlled",
+        ctx,
+      );
+      expect(shown.find((h) => h.id === "comfort")?.severity).toBe("info");
+    }
   });
 
   test("air quality uses the fork's ventilation flag", () => {

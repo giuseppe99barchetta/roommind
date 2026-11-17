@@ -335,10 +335,14 @@ export function roomHints(
   }
   // Fork: comfort score and comfort insights, as the fork's room cards showed them
   const comfort = live.comfort_score;
-  if (comfort && (comfort.label === "fair" || comfort.label === "poor")) {
+  if (comfort) {
+    // Every score, as the fork's room card showed it; a poor one stands out
     hints.push({
       id: "comfort",
-      icon: "mdi:emoticon-neutral-outline",
+      icon:
+        comfort.label === "excellent" || comfort.label === "good"
+          ? "mdi:emoticon-happy-outline"
+          : "mdi:emoticon-neutral-outline",
       severity: comfort.label === "poor" ? "warn" : "info",
       key: "card.comfort_score",
       params: { score: comfort.score },

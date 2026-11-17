@@ -52,3 +52,18 @@ test("an older failed layout save does not undo a newer one that went through", 
   assert.deepEqual(panel._hiddenRooms, ["a", "b"]);
   assert.equal(reloads(), 1, "the server's state is reloaded after the failure");
 });
+
+test("a rooms/list answer sent before a layout edit does not bring the old layout back", async () => {
+  let answer;
+  const { panel } = panelWith(async (msg) => {
+    if (msg.type === "roommind/rooms/list") return new Promise((r) => (answer = r));
+    return {};
+  });
+  panel._loadRooms = Object.getPrototypeOf(panel)._loadRooms.bind(panel);
+  panel._hiddenRooms = [];
+  const load = panel._loadRooms(); // poll in flight
+  panel._onRoomHiddenChanged(new CustomEvent("x", { detail: { areaId: "a", hidden: true } }));
+  answer({ rooms: {}, hidden_rooms: [], room_order: [], group_by_floor: false });
+  await load;
+  assert.deepEqual(panel._hiddenRooms, ["a"]);
+});

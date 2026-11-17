@@ -54,6 +54,8 @@ export class RoomMindPanel extends LitElement {
   @state() private _groupByFloor = false;
   @state() private _editing = false;
   private _layoutRevisions: Record<string, number> = {};
+  // Bumped on every local layout edit: a rooms/list answer sent before it keeps its layout fields out
+  private _layoutEpoch = 0;
   @state() private _outdoorTemp: number | null = null;
   @state() private _elementsLoaded = false;
 
@@ -691,6 +693,8 @@ export class RoomMindPanel extends LitElement {
 
   private async _loadRooms() {
     if (!this.hass) return;
+    // A layout edit made while this request is out wins over its (older) layout fields
+    const layoutEpoch = this._layoutEpoch;
     try {
       const result = await this.hass.callWS<{
         rooms: Record<string, RoomConfig>;
@@ -720,10 +724,12 @@ export class RoomMindPanel extends LitElement {
       this._vacationActive = result.vacation_active ?? false;
       this._vacationTemp = result.vacation_temp ?? null;
       this._vacationUntil = result.vacation_until ?? null;
-      this._hiddenRooms = result.hidden_rooms ?? [];
-      this._roomOrder = result.room_order ?? [];
+      if (layoutEpoch === this._layoutEpoch) {
+        this._hiddenRooms = result.hidden_rooms ?? [];
+        this._roomOrder = result.room_order ?? [];
+        this._groupByFloor = result.group_by_floor ?? false;
+      }
       this._outdoorTemp = result.outdoor_temp ?? null;
-      this._groupByFloor = result.group_by_floor ?? false;
       this._controlMode = result.control_mode ?? "bangbang";
       this._climateControlActive = result.climate_control_active ?? true;
       this._presenceEnabled = result.presence_enabled ?? false;
@@ -877,6 +883,7 @@ export class RoomMindPanel extends LitElement {
     const key = Object.keys(changes).join(",");
     const revision = (this._layoutRevisions[key] ?? 0) + 1;
     this._layoutRevisions[key] = revision;
+    this._layoutEpoch++;
     try {
       await this.hass.callWS({ type: "roommind/settings/save", ...changes });
     } catch (err) {
