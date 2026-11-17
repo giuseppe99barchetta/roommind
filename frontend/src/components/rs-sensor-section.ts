@@ -885,7 +885,7 @@ export class RsSensorSection extends LitElement {
       suffix="ppm"
       .min=${MIN_CO2_THRESHOLD}
       .max=${MAX_CO2_THRESHOLD}
-      .step=${50}
+      .step=${1}
       .value=${this.co2Threshold}
       @value-changed=${(e: CustomEvent<{ value: number }>) =>
         this._fireSensorChanged("co2_threshold", e.detail.value)}

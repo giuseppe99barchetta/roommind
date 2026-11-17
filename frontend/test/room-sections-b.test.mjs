@@ -249,3 +249,9 @@ test("schedule status texts carry the unit once, no placeholder left", () => {
     assert.equal((t.match(/°C/g) ?? []).length, 1, t);
   }
 });
+
+test("the CO2 threshold keeps any whole ppm the backend accepts (825 stays 825)", () => {
+  const { s } = sensors({ co2Sensor: "sensor.co2", co2Threshold: 1000 });
+  const steps = bindings(s._renderCo2Settings("en"), "<rs-number-field", ".step");
+  assert.deepEqual(steps, [1]);
+});

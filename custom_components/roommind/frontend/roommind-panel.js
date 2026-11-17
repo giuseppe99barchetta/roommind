@@ -3143,7 +3143,7 @@
       suffix="ppm"
       .min=${800}
       .max=${Nn}
-      .step=${50}
+      .step=${1}
       .value=${this.co2Threshold}
       @value-changed=${e=>this._fireSensorChanged(`co2_threshold`,e.detail.value)}
     ></rs-number-field>`:y}_renderVocSettings(e){if(!this.vocSensor)return y;let t=this.hass.states[this.vocSensor]?.attributes?.unit_of_measurement??``;return v`<rs-field
