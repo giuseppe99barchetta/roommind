@@ -146,8 +146,15 @@ export class RsSettingsHeatingSystem extends LitElement {
         ${this.boilerEntity
           ? html`<ha-select
                 .value=${this.boilerControlType}
+                .options=${[
+                  { value: "climate", label: localize("settings.boiler.control_type_climate", l) },
+                  { value: "switch", label: localize("settings.boiler.control_type_switch", l) },
+                ]}
                 .label=${localize("settings.boiler.control_type", l)}
-                @selected=${(e: CustomEvent) => fire("boilerControlType", e.detail.value)}
+                @selected=${(e: Event) => {
+                  const value = getSelectValue(e);
+                  if (value === "climate" || value === "switch") fire("boilerControlType", value);
+                }}
                 ><ha-list-item value="climate"
                   >${localize("settings.boiler.control_type_climate", l)}</ha-list-item
                 ><ha-list-item value="switch"
@@ -201,21 +208,19 @@ export class RsSettingsHeatingSystem extends LitElement {
               ></rs-list-row>
               <ha-select
                 .value=${this.demandUnit}
-                .label=${localize("settings.boiler.demand_unit", this.hass.language)}
+                .options=${[
+                  { value: "valves", label: localize("settings.boiler.demand_unit_valves", l) },
+                  { value: "rooms", label: localize("settings.boiler.demand_unit_rooms", l) },
+                ]}
+                .label=${localize("settings.boiler.demand_unit", l)}
                 @selected=${(e: Event) => {
                   const value = getSelectValue(e);
                   if (value === "valves" || value === "rooms") fire("demandUnit", value);
                 }}
                 ><ha-list-item value="valves"
-                  >${localize(
-                    "settings.boiler.demand_unit_valves",
-                    this.hass.language,
-                  )}</ha-list-item
+                  >${localize("settings.boiler.demand_unit_valves", l)}</ha-list-item
                 ><ha-list-item value="rooms"
-                  >${localize(
-                    "settings.boiler.demand_unit_rooms",
-                    this.hass.language,
-                  )}</ha-list-item
+                  >${localize("settings.boiler.demand_unit_rooms", l)}</ha-list-item
                 ></ha-select
               >
               ${number(

@@ -360,6 +360,16 @@ function own(value, tag, name, out = []) {
   return out;
 }
 
+test("the wall preset menu lists labelled options (current HA reads .options)", () => {
+  const { s } = sensors({ humiditySensor: "sensor.hum", moldFRsi: 0.8 });
+  const options = own(s.render(), "<ha-select", ".options").find((o) =>
+    o.some((x) => x.value === "custom"),
+  );
+  assert.ok(options, "wall preset options");
+  assert.ok(options.length > 1);
+  for (const x of options) assert.ok(x.label && x.label !== x.value, x.value);
+});
+
 // ── Room insights as 2.0 list cards: same texts, same conditions ──
 test("room insights render as list cards with rows, not an ha-card", () => {
   const i = new Insights();

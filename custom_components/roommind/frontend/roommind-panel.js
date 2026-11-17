@@ -3020,6 +3020,7 @@
         <ha-select
           .label=${D(`devices.wall_preset`,e)}
           .value=${t?String(t.value):`custom`}
+          .options=${[...oi.map(t=>({value:String(t.value),label:`${D(t.key,e)} (${t.value.toFixed(2)})`})),{value:`custom`,label:D(`devices.wall_preset_measured`,e)}]}
           fixedMenuPosition
           @selected=${e=>{let t=tn(e);t&&t!==`custom`&&this._fireWallFactor(parseFloat(t))}}
           @closed=${e=>e.stopPropagation()}
@@ -6580,8 +6581,9 @@
         ></ha-entity-picker>
         ${this.boilerEntity?v`<ha-select
                 .value=${this.boilerControlType}
+                .options=${[{value:`climate`,label:D(`settings.boiler.control_type_climate`,e)},{value:`switch`,label:D(`settings.boiler.control_type_switch`,e)}]}
                 .label=${D(`settings.boiler.control_type`,e)}
-                @selected=${e=>t(`boilerControlType`,e.detail.value)}
+                @selected=${e=>{let n=tn(e);(n===`climate`||n===`switch`)&&t(`boilerControlType`,n)}}
                 ><ha-list-item value="climate"
                   >${D(`settings.boiler.control_type_climate`,e)}</ha-list-item
                 ><ha-list-item value="switch"
@@ -6611,12 +6613,13 @@
               ></rs-list-row>
               <ha-select
                 .value=${this.demandUnit}
-                .label=${D(`settings.boiler.demand_unit`,this.hass.language)}
+                .options=${[{value:`valves`,label:D(`settings.boiler.demand_unit_valves`,e)},{value:`rooms`,label:D(`settings.boiler.demand_unit_rooms`,e)}]}
+                .label=${D(`settings.boiler.demand_unit`,e)}
                 @selected=${e=>{let n=tn(e);(n===`valves`||n===`rooms`)&&t(`demandUnit`,n)}}
                 ><ha-list-item value="valves"
-                  >${D(`settings.boiler.demand_unit_valves`,this.hass.language)}</ha-list-item
+                  >${D(`settings.boiler.demand_unit_valves`,e)}</ha-list-item
                 ><ha-list-item value="rooms"
-                  >${D(`settings.boiler.demand_unit_rooms`,this.hass.language)}</ha-list-item
+                  >${D(`settings.boiler.demand_unit_rooms`,e)}</ha-list-item
                 ></ha-select
               >
               ${n(`minDemandRooms`,this.minDemandRooms,D(`settings.boiler.min_demand_rooms`,e),1,20,1,{hint:D(`settings.boiler.min_demand_hint`,e)})}
@@ -6729,16 +6732,17 @@
                 .value=${t.boiler_state}
               ></rs-list-row>
               <rs-list-row
+                wrap
                 icon="mdi:valve"
                 .heading=${D(`preview.bypass`,e)}
-                .value=${t.bypass_acknowledged?D(`preview.acknowledged`,e):D(`preview.not_acknowledged`,e)}
+                .secondary=${t.bypass_acknowledged?D(`preview.acknowledged`,e):D(`preview.not_acknowledged`,e)}
               ></rs-list-row>
             </div>
             <div class="settings-section">
               ${Object.entries(t.rooms).map(([t,n])=>v`<rs-list-row
                     wrap
                     icon="mdi:door"
-                    .heading=${t.replaceAll(`_`,` `)}
+                    .heading=${this.hass.areas?.[t]?.name??t.replaceAll(`_`,` `)}
                     .secondary=${[`${n.watts} W · ${D(`heat_source.budget_${n.source}`,e)}`,D(`preview.reason_${n.reason}`,e),n.current_decision_reasons.length?`${D(`preview.current_reasons`,e)}: ${n.current_decision_reasons.join(`, `)}`:``].filter(Boolean).join(` · `)}
                   ></rs-list-row>`)}
             </div>`:y}

@@ -346,6 +346,31 @@ test("heating system: number fields keep the backend ranges, keys and fractional
   assert.deepEqual(commit({ min: 1, max: 240, step: 0.1 }, ""), []);
 });
 
+test("heating system: both boiler menus list labelled options and send their keys", () => {
+  const p = new panels["heating-system"]();
+  Object.assign(p, { hass, boilerEntity: "climate.boiler", bypassEntities: ["switch.b"] });
+  const events = [];
+  p.dispatchEvent = (e) => {
+    events.push(e.detail);
+    return true;
+  };
+  const view = p.render();
+  const options = ownBindings(view, "<ha-select", ".options");
+  const values = options.map((o) => o.map((x) => x.value).join(","));
+  assert.ok(values.includes("climate,switch"), values.join("|"));
+  assert.ok(values.includes("valves,rooms"), values.join("|"));
+  for (const o of options) for (const x of o) assert.ok(x.label && x.label !== x.value, x.value);
+  for (const fn of ownBindings(view, "<ha-select", "@selected"))
+    (fn({ detail: { value: "switch" } }), fn({ detail: { value: "rooms" } }));
+  assert.deepEqual(
+    events.filter((e) => e.key === "boilerControlType" || e.key === "demandUnit"),
+    [
+      { key: "boilerControlType", value: "switch" },
+      { key: "demandUnit", value: "rooms" },
+    ],
+  );
+});
+
 test("narrow screens: preview rooms keep wattage and source in the wrapping line, heating pairs stack", async () => {
   const mod = await server.ssrLoadModule("/src/components/settings/rs-settings-preview.ts");
   const p = new mod.RsSettingsPreview();
@@ -378,6 +403,12 @@ test("narrow screens: preview rooms keep wattage and source in the wrapping line
     secondary.join("|"),
   );
   assert.ok(!ownBindings(view, "<rs-list-row", ".value").some((v) => String(v).includes("800 W")));
+  // the room's Home Assistant name, and the long bypass text wraps instead of being cut
+  p.hass = { ...hass, areas: { sala: { area_id: "sala", name: "Sala grande" } } };
+  const named = p.render();
+  assert.ok(ownBindings(named, "<rs-list-row", ".heading").includes("Sala grande"));
+  // headroom, meter and boiler keep a value; the bypass text is in the wrapping line
+  assert.equal(ownBindings(named, "<rs-list-row", ".value").length, 3);
   const css = panels["heating-system"].styles.cssText;
   assert.match(css, /container-type:\s*inline-size/);
   assert.match(

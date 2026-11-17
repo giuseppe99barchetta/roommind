@@ -115,9 +115,10 @@ export class RsSettingsPreview extends RsSettingsBase {
                 .value=${r.boiler_state}
               ></rs-list-row>
               <rs-list-row
+                wrap
                 icon="mdi:valve"
                 .heading=${localize("preview.bypass", lang)}
-                .value=${r.bypass_acknowledged
+                .secondary=${r.bypass_acknowledged
                   ? localize("preview.acknowledged", lang)
                   : localize("preview.not_acknowledged", lang)}
               ></rs-list-row>
@@ -128,7 +129,7 @@ export class RsSettingsPreview extends RsSettingsBase {
                   html`<rs-list-row
                     wrap
                     icon="mdi:door"
-                    .heading=${areaId.replaceAll("_", " ")}
+                    .heading=${this.hass.areas?.[areaId]?.name ?? areaId.replaceAll("_", " ")}
                     .secondary=${[
                       // in the wrapping line, not the row's value: a narrow screen would cut it
                       `${room.watts} W · ${localize(`heat_source.budget_${room.source}`, lang)}`,

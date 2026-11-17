@@ -767,6 +767,13 @@ export class RsSensorSection extends LitElement {
         <ha-select
           .label=${localize("devices.wall_preset", l)}
           .value=${preset ? String(preset.value) : "custom"}
+          .options=${[
+            ...F_RSI_PRESETS.map((p) => ({
+              value: String(p.value),
+              label: `${localize(p.key, l)} (${p.value.toFixed(2)})`,
+            })),
+            { value: "custom", label: localize("devices.wall_preset_measured", l) },
+          ]}
           fixedMenuPosition
           @selected=${(e: Event) => {
             const v = getSelectValue(e);
