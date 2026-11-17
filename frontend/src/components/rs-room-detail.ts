@@ -117,6 +117,7 @@ export class RsRoomDetail extends LitElement {
   private _deleting = false;
   private _editRevision = 0;
   @state() private _editing: EditableSection | null = null;
+  @state() private _focusDevice = "";
   @state() private _detailView: "overview" | "equipment" | "advanced" = "overview";
   @state() private _selectedPresencePersons: string[] = [];
   @state() private _displayName = "";
@@ -633,11 +634,27 @@ export class RsRoomDetail extends LitElement {
   }
 
   private _openEdit = (section: EditableSection) => () => {
+    this._focusDevice = "";
     this._editing = section;
+  };
+
+  /** A section's own row on the view opens its dialog. */
+  private _onSectionEditClick = (section: EditableSection) => (e: Event) => {
+    e.stopPropagation();
+    this._focusDevice = "";
+    this._editing = section;
+  };
+
+  /** A device row (or "add") on the view opens the devices dialog on that device. */
+  private _onDevicesEditClick = (e: CustomEvent<{ entityId?: string }>) => {
+    e.stopPropagation();
+    this._focusDevice = e.detail?.entityId ?? "";
+    this._editing = "devices";
   };
 
   private _closeEdit = () => {
     this._editing = null;
+    this._focusDevice = "";
   };
 
   /** Expose effective override for hero-status via the override sub-component. */
@@ -854,8 +871,7 @@ export class RsRoomDetail extends LitElement {
           .selectedTempSensor=${this._selectedTempSensor}
           .valveProtectionExclude=${this._valveProtectionExclude}
           .valveProtectionEnabled=${this.valveProtectionEnabled}
-          @device-changed=${this._onDeviceChanged}
-          @valve-protection-exclude-toggle=${this._onValveProtectionExcludeToggle}
+          @edit-click=${this._onDevicesEditClick}
         ></rs-device-section>
       </rs-list-card>
 
@@ -935,7 +951,9 @@ export class RsRoomDetail extends LitElement {
               .boilerOutdoorThreshold=${this._heatSourceBoilerOutdoorThreshold}
               .heatPumpOutdoorThreshold=${this._heatSourceHeatPumpOutdoorThreshold}
               .hybridDelta=${this._heatSourceHybridDelta}
-              @setting-changed=${this._onHeatSourceSettingChanged}
+              .outdoorTemp=${this.outdoorTemp}
+              .climateMode=${this._climateMode}
+              @edit-click=${this._onSectionEditClick("heatSource")}
             ></rs-heat-source-section>
           </rs-list-card>`
         : nothing}
@@ -1080,6 +1098,7 @@ export class RsRoomDetail extends LitElement {
             .selectedTempSensor=${this._selectedTempSensor}
             .valveProtectionExclude=${this._valveProtectionExclude}
             .valveProtectionEnabled=${this.valveProtectionEnabled}
+            .focusEntity=${this._focusDevice}
             @device-changed=${this._onDeviceChanged}
             @valve-protection-exclude-toggle=${this._onValveProtectionExcludeToggle}
           ></rs-device-section>
@@ -1237,6 +1256,8 @@ export class RsRoomDetail extends LitElement {
             .native=${this._nativeHeatSource}
             .heatPumpPower=${this._heatPumpPowerWatts}
             .powerBudgetEstimates=${this.config?.live?.power_budget_estimates}
+            .outdoorTemp=${this.outdoorTemp}
+            .climateMode=${this._climateMode}
             @setting-changed=${this._onHeatSourceSettingChanged}
           ></rs-heat-source-section>
         </rs-edit-dialog>`;

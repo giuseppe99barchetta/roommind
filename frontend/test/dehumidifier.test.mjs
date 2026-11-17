@@ -251,11 +251,15 @@ test("a registered device waiting for live data is not shown as unassigned", () 
 });
 
 test("equipment cards remain actionable without any configured entities", () => {
-  for (const Component of [Sensors, Devices]) {
+  for (const [Component, action] of [
+    [Sensors, "Gestisci"],
+    // 2.0 device card: an "add" row that opens the devices dialog
+    [Devices, "Aggiungi dispositivo"],
+  ]) {
     const section = new Component();
     section.hass = { language: "it", states: {}, areas: {} };
     const text = renderedText(section.render());
-    assert.ok(text.includes("Gestisci"));
+    assert.ok(text.includes(action), action);
   }
   const sensors = new Sensors();
   sensors.hass = { language: "it", states: { "binary_sensor.window": { state: "unavailable", attributes: {} } } };

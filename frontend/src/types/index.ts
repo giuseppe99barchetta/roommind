@@ -426,6 +426,8 @@ export interface HomeAssistant {
   config: { unit_system: { temperature: string }; time_zone?: string };
   user?: { is_admin: boolean; name?: string };
   connection?: HassConnection;
+  formatEntityState?: (stateObj: HassEntity) => string;
+  formatEntityAttributeValue?: (stateObj: HassEntity, attribute: string, value?: unknown) => string;
 }
 
 export interface HassArea {
