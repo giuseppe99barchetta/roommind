@@ -230,6 +230,7 @@ def _csv_to_points(rows: list[dict]) -> list[dict]:
                 "ac_efficiency_status": row.get("ac_efficiency_status") or None,
                 "heat_target": _safe_float(row.get("heat_target", "")),
                 "cool_target": _safe_float(row.get("cool_target", "")),
+                "target_reason": row.get("target_reason", ""),
                 "heat_starts": _safe_int(row.get("heat_starts", "")),
                 "cool_starts": _safe_int(row.get("cool_starts", "")),
                 "room_temp_max": _safe_float(row.get("room_temp_max", "")),

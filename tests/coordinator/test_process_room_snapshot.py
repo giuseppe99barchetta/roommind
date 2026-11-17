@@ -37,6 +37,7 @@ def _setup_coordinator(hass, mock_config_entry, rooms, settings=None):
 # Keys that every normal (non-outdoor) room return dict must contain.
 NORMAL_ROOM_KEYS = {
     "dehumidifier",
+    "target_reason",
     "area_id",
     "current_temp",
     "current_temp_raw",

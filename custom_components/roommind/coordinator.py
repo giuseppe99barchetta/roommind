@@ -60,6 +60,9 @@ from .const import (
     OUTDOOR_UNAVAILABLE_NOTIFICATION_ID,
     OUTDOOR_UNAVAILABLE_NOTIFY_CYCLES,
     SCHEDULE_STATE_ON,
+    TARGET_REASON_AWAY,
+    TARGET_REASON_OVERRIDE,
+    TARGET_REASON_VACATION,
     SENSOR_STALE_REPAIR_DELAY,
     THERMAL_SAVE_CYCLES,
     UPDATE_INTERVAL,
@@ -730,6 +733,7 @@ class RoomMindCoordinator(DataUpdateCoordinator):
                             "ac_efficiency_reason": rs.get("ac_efficiency_reason"),
                             "heat_target": rs.get("heat_target"),
                             "cool_target": rs.get("cool_target"),
+                            "target_reason": rs.get("target_reason", ""),
                             **self._dehumidifier_manager.history_sample(area_id),
                         },
                     )
@@ -1211,7 +1215,9 @@ class RoomMindCoordinator(DataUpdateCoordinator):
 
         # Determine dual heat/cool target temperatures
         # Returns TargetTemps(heat, cool). None values mean "force off".
-        targets = self._resolve_target_temps(room, settings, schedule_blocks, schedule_entity_id)
+        targets, target_reason = self._resolve_target_temps_and_reason(
+            room, settings, schedule_blocks, schedule_entity_id
+        )
 
         # Manual HEAT/COOL selected on the canonical climate pin the room to the
         # logical target of that direction.  AUTO (stored as None) is RoomMind's
@@ -1227,6 +1233,8 @@ class RoomMindCoordinator(DataUpdateCoordinator):
                 heat=float(logical_heat) if requested_hvac_mode == "heat" else None,
                 cool=float(logical_cool) if requested_hvac_mode == "cool" else None,
             )
+            # The room's own manual target, not what the resolution named
+            target_reason = ""
 
         # Mold prevention is an automatic safety policy. While RoomMind automatic
         # control is enabled it temporarily supersedes OFF/FAN_ONLY/DRY, but the
@@ -2143,6 +2151,7 @@ class RoomMindCoordinator(DataUpdateCoordinator):
             compressor_protection_reason=compressor_protection_reason,
         )
         room_state["schedule_temp_warnings"] = schedule_temp_warnings
+        room_state["target_reason"] = target_reason
         # Wants radiator heat but the boiler is not (yet) running: valves closed.
         # commanded_mode keeps the request (boiler demand); what the room is
         # actually doing, and what history records, is idle.
@@ -3672,7 +3681,20 @@ class RoomMindCoordinator(DataUpdateCoordinator):
         schedule_blocks: dict | None = None,
         schedule_entity_id: str | None = None,
     ) -> TargetTemps:
-        """Resolve dual heat/cool target temperatures.
+        """Resolve dual heat/cool target temperatures (see _resolve_target_temps_and_reason)."""
+        return self._resolve_target_temps_and_reason(room, settings, schedule_blocks, schedule_entity_id)[0]
+
+    def _resolve_target_temps_and_reason(
+        self,
+        room: dict,
+        settings: dict,
+        schedule_blocks: dict | None = None,
+        schedule_entity_id: str | None = None,
+    ) -> tuple[TargetTemps, str]:
+        """Resolve dual heat/cool target temperatures and what set them.
+
+        The reason is a TARGET_REASON_* value, empty for the profile/schedule/comfort/eco;
+        it is recorded with the history and the analytics chart marks the target line with it.
 
         Priority: override > vacation > presence away > schedule block temp > comfort/eco.
         Returns TargetTemps(heat, cool). None values mean "force off".
@@ -3682,8 +3704,6 @@ class RoomMindCoordinator(DataUpdateCoordinator):
         held in the store but skipped here so the room follows the presence-away
         branch instead.
         """
-        from .utils.schedule_utils import find_active_block
-
         # 1. Override — split heat/cool dead-band (suppressed when presence-away clears it)
         override_heat = room.get("override_heat")
         override_cool = room.get("override_cool")
@@ -3692,7 +3712,7 @@ class RoomMindCoordinator(DataUpdateCoordinator):
             if override_until is None or time.time() < override_until:
                 presence_away_now = not room.get("ignore_presence", False) and self._is_presence_away(room, settings)
                 if not (presence_away_now and bool(settings.get("presence_clears_override", False))):
-                    return TargetTemps(heat=override_heat, cool=override_cool)
+                    return TargetTemps(heat=override_heat, cool=override_cool), TARGET_REASON_OVERRIDE
             else:
                 # Timed override has expired — auto-clear
                 area_id = room.get("area_id", "unknown")
@@ -3717,7 +3737,7 @@ class RoomMindCoordinator(DataUpdateCoordinator):
                 if vacation_temp is not None:
                     t = float(vacation_temp)
                     eco_cool = room.get("eco_cool", DEFAULT_ECO_COOL)
-                    return TargetTemps(heat=t, cool=max(t, eco_cool))
+                    return TargetTemps(heat=t, cool=max(t, eco_cool)), TARGET_REASON_VACATION
             elif self._vacation_clear_scheduled_for != vacation_until:
                 # One save for all rooms, not one per room in the same tick.
                 self._vacation_clear_scheduled_for = vacation_until
@@ -3732,11 +3752,26 @@ class RoomMindCoordinator(DataUpdateCoordinator):
         # 2.5 Presence-based eco or off (skip if room ignores presence)
         if not room.get("ignore_presence", False) and self._is_presence_away(room, settings):
             if settings.get("presence_away_action", "eco") == "off":
-                return TargetTemps(heat=None, cool=None)
-            return TargetTemps(
-                heat=room.get("eco_heat", DEFAULT_ECO_HEAT),
-                cool=room.get("eco_cool", DEFAULT_ECO_COOL),
+                return TargetTemps(heat=None, cool=None), TARGET_REASON_AWAY
+            return (
+                TargetTemps(
+                    heat=room.get("eco_heat", DEFAULT_ECO_HEAT),
+                    cool=room.get("eco_cool", DEFAULT_ECO_COOL),
+                ),
+                TARGET_REASON_AWAY,
             )
+
+        return self._resolve_schedule_targets(room, settings, schedule_blocks, schedule_entity_id), ""
+
+    def _resolve_schedule_targets(
+        self,
+        room: dict,
+        settings: dict,
+        schedule_blocks: dict | None,
+        schedule_entity_id: str | None,
+    ) -> TargetTemps:
+        """Profile / schedule block / comfort / eco targets (step 3 of the target resolution)."""
+        from .utils.schedule_utils import find_active_block
 
         # 3. Schedule / comfort / eco
         profile = active_profile(room)

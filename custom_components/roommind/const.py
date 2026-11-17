@@ -48,6 +48,11 @@ DEFAULT_COMFORT_COOL = 24.0
 DEFAULT_ECO_HEAT = 17.0
 DEFAULT_ECO_COOL = 27.0
 
+# What set a room's targets, recorded with the history for the analytics chart; "" = profile/schedule
+TARGET_REASON_OVERRIDE = "override"
+TARGET_REASON_VACATION = "vacation"
+TARGET_REASON_AWAY = "away"
+
 
 # Context identifier for RoomMind-initiated service calls.
 # Automations can check: trigger.context.parent_id == "roommind"

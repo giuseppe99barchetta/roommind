@@ -52,6 +52,7 @@ DETAIL_FIELDS = [
     "cool_starts",
     "room_temp_max",
     "room_temp_min",
+    "target_reason",
 ]
 START_FIELDS = {"heating": "heat_starts", "cooling": "cool_starts"}
 DETAIL_MAX_AGE = 48 * 3600  # 48 hours
@@ -164,6 +165,7 @@ class HistoryStore:
                     "dehumidifier_power_w": _blank(data.get("dehumidifier_power_w")),
                     "heat_target": _blank(data.get("heat_target")),
                     "cool_target": _blank(data.get("cool_target")),
+                    "target_reason": data.get("target_reason") or "",
                 }
             )
 
@@ -292,6 +294,7 @@ class HistoryStore:
                 "ventilation_active": bucket[0].get("ventilation_active", ""),
                 "window_open": bucket[0].get("window_open", ""),
                 "device_setpoint": bucket[0].get("device_setpoint", ""),
+                "target_reason": bucket[0].get("target_reason", ""),
                 "ac_device_power_w_json": bucket[-1].get("ac_device_power_w_json", "{}"),
                 "predicted_device_power_w_json": bucket[-1].get("predicted_device_power_w_json", "{}"),
             }
