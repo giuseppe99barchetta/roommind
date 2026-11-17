@@ -65,6 +65,10 @@ export class RsRoomDetail extends LitElement {
 
   @property({ type: Boolean }) public valveProtectionEnabled = false;
   @property({ type: String }) public presenceAwayAction: "eco" | "off" = "eco";
+  @property({ type: String }) public controlMode: "mpc" | "bangbang" = "bangbang";
+  @property({ type: Boolean }) public vacationActive = false;
+  @property({ attribute: false }) public vacationUntil: number | null = null;
+  @property({ attribute: false }) public outdoorTemp: number | null = null;
   // The override section's effective override (optimistic), shown in the hero
   @state() private _override: EffectiveOverride | null = null;
 
@@ -679,6 +683,10 @@ export class RsRoomDetail extends LitElement {
             .isOutdoor=${outdoor}
             .overrideInfo=${this._override ?? this._getEffectiveOverride()}
             .climateControlActive=${this.climateControlActive && this._climateControlEnabled}
+            .controlMode=${this.controlMode}
+            .vacationActive=${this.vacationActive}
+            .vacationUntil=${this.vacationUntil}
+            .outdoorTemp=${this.outdoorTemp}
             @display-name-changed=${this._onDisplayNameChanged}
           >
             ${this.config && !outdoor
@@ -1133,6 +1141,7 @@ export class RsRoomDetail extends LitElement {
             .language=${this.hass.language}
             @presence-persons-changed=${this._onPresencePersonsChanged}
             @ignore-presence-changed=${this._onIgnorePresenceChanged}
+            @open-settings=${this._onOpenPresenceSettings}
           ></rs-presence-section>
         </rs-edit-dialog>`;
       case "covers":

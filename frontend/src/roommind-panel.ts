@@ -620,6 +620,10 @@ export class RoomMindPanel extends LitElement {
             .climateControlActive=${this._climateControlActive}
             .valveProtectionEnabled=${this._valveProtectionEnabled}
             .presenceAwayAction=${this._presenceAwayAction}
+            .controlMode=${this._controlMode}
+            .vacationActive=${this._vacationActive}
+            .vacationUntil=${this._vacationUntil}
+            .outdoorTemp=${this._outdoorTemp}
             @back-clicked=${this._onBackFromDetail}
             @room-updated=${this._onRoomUpdated}
           ></rs-room-detail>

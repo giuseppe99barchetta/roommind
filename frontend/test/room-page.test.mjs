@@ -140,3 +140,94 @@ test("no 'until the next schedule change' choice is offered (the fork's override
     false,
   );
 });
+
+// Value bound to `.name=` (or `@name=`) on the first template whose markup holds `tag`.
+function binding(value, tag, name) {
+  if (value == null || typeof value !== "object") return undefined;
+  if (Array.isArray(value)) {
+    for (const v of value) {
+      const found = binding(v, tag, name);
+      if (found !== undefined) return found;
+    }
+    return undefined;
+  }
+  if (!value.strings) return undefined;
+  if (value.strings.join("").includes(tag)) {
+    const i = value.strings.findIndex((s) => s.trimEnd().endsWith(name + "="));
+    if (i >= 0) return value.values[i];
+  }
+  return binding(value.values, tag, name);
+}
+
+function roomDetail(extra = {}) {
+  const detail = new RoomDetail();
+  detail.hass = hass;
+  detail.area = hass.areas.sala;
+  detail.config = {
+    area_id: "sala",
+    devices: [{ entity_id: "climate.trv", type: "trv", role: "auto" }],
+    climate_mode: "auto",
+    schedules: [],
+    live: { mode: "idle", current_temp: 20, target_temp: 21 },
+  };
+  Object.assign(detail, extra);
+  detail._initFromConfig();
+  return detail;
+}
+
+test("the room page hands the panel's vacation and control mode to the hero", () => {
+  const detail = roomDetail({
+    controlMode: "bangbang",
+    vacationActive: true,
+    vacationUntil: 4102444800,
+    outdoorTemp: 3,
+  });
+  const tpl = detail.render();
+  assert.equal(binding(tpl, "<rs-room-hero", ".controlMode"), "bangbang");
+  assert.equal(binding(tpl, "<rs-room-hero", ".vacationActive"), true);
+  assert.equal(binding(tpl, "<rs-room-hero", ".vacationUntil"), 4102444800);
+  assert.equal(binding(tpl, "<rs-room-hero", ".outdoorTemp"), 3);
+});
+
+test("the presence edit dialog's settings link navigates", () => {
+  const detail = roomDetail();
+  detail._editing = "presence";
+  const handler = binding(detail._renderEditDialog(), "<rs-presence-section", "@open-settings");
+  assert.equal(typeof handler, "function");
+});
+
+test("the hero keeps the fork's diagnostics: budget, preconditioning, AC efficiency, sensor, window", () => {
+  const hero = new Hero();
+  hero.hass = hass;
+  hero.area = hass.areas.sala;
+  hero.config = { area_id: "sala", climate_mode: "auto", temperature_sensor: "sensor.t", live: {} };
+  const texts = (live) => {
+    hero.config = { ...hero.config, live };
+    return hero._chips(live).map((c) => c.text);
+  };
+  const all = texts({
+    mode: "idle",
+    current_temp: null,
+    power_budget_blocked: true,
+    preconditioning_active: true,
+    ac_efficiency_status: "possible_issue",
+    window_open: true,
+    window_open_minutes: 12,
+    window_impact_c: -0.8,
+    window_recovery_minutes: 25,
+  }).join(" | ");
+  for (const s of [
+    "power budget",
+    "Pre-conditioning active",
+    "responding slowly",
+    "Temperature sensor unavailable",
+    "25 min",
+    "-0.8",
+  ])
+    assert.ok(all.includes(s), `${s} in ${all}`);
+  const planned = texts({ mode: "idle", current_temp: 20, preconditioning_planned_at: 4102444800 });
+  assert.ok(
+    planned.some((t) => t.length > 0 && /pre-?condition/i.test(t)),
+    planned.join(" | "),
+  );
+});

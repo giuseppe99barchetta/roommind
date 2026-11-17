@@ -16,6 +16,7 @@ import { formatMinutes, formatNumber, formatPercent } from "../../utils/format";
 import { buildSparkline, type RecentTemp, type SparklinePaths } from "../../utils/sparkline";
 import { NO_OVERRIDE, type EffectiveOverride } from "../../utils/override";
 import { boostHoursLeft } from "../../utils/learning";
+import { serverNow } from "../../utils/server-clock";
 import { tokens } from "../../styles/tokens";
 import "../shared/rs-hint-chip";
 import "../shared/rs-icon-button";
@@ -621,7 +622,14 @@ export class RsRoomHero extends LitElement {
       .filter((h) => !(boostHours != null && h.id === "mpc_learning"))
       .map((h) => ({
         icon: h.icon,
-        text: hintText(h, l),
+        text:
+          h.id === "window_open" && live.window_open_minutes != null && live.window_impact_c != null
+            ? localize("hero.window_impact", l, {
+                minutes: String(live.window_open_minutes),
+                impact: `${live.window_impact_c >= 0 ? "+" : ""}${live.window_impact_c.toFixed(1)}`,
+                unit: tempUnit(this.hass),
+              })
+            : hintText(h, l),
         variant: h.severity === "info" ? "default" : h.severity,
         info:
           h.id === "compressor"
@@ -646,12 +654,70 @@ export class RsRoomHero extends LitElement {
         info: localize("hero.compressor_protection_info", l),
       });
     }
+    chips.push(...this._forkChips(live));
     if (boostHours != null) {
       chips.push({
         icon: "mdi:school-outline",
         text: localize("learning.boost_active", l, { time: formatMinutes(boostHours * 60, l) }),
         variant: "default",
         info: localize("learning.boost_info", l),
+      });
+    }
+    return chips;
+  }
+
+  /** The fork's diagnostics the shared room hints do not carry. */
+  private _forkChips(live: RoomLiveData): HeroChip[] {
+    const l = this._lang;
+    const chips: HeroChip[] = [];
+    if (live.window_open && live.window_recovery_minutes != null) {
+      chips.push({
+        icon: "mdi:clock-fast",
+        text: localize("hero.window_recovery", l, {
+          minutes: String(live.window_recovery_minutes),
+        }),
+        variant: "default",
+      });
+    }
+    if (this.config?.temperature_sensor && live.current_temp == null) {
+      chips.push({
+        icon: "mdi:thermometer-alert",
+        text: localize("hero.temperature_sensor_unavailable", l),
+        variant: "warn",
+      });
+    }
+    if (live.power_budget_blocked) {
+      chips.push({
+        icon: "mdi:flash-alert",
+        text: localize("hero.power_budget_blocked", l),
+        variant: "warn",
+      });
+    }
+    if (live.preconditioning_active) {
+      chips.push({
+        icon: "mdi:calendar-clock",
+        text: localize("hero.preconditioning_active", l),
+        variant: "default",
+      });
+    } else if (
+      live.preconditioning_planned_at &&
+      live.preconditioning_planned_at > serverNow() / 1000
+    ) {
+      chips.push({
+        icon: "mdi:calendar-clock",
+        text: localize("hero.preconditioning_planned", l, {
+          time: new Intl.DateTimeFormat(l, { hour: "2-digit", minute: "2-digit" }).format(
+            new Date(live.preconditioning_planned_at * 1000),
+          ),
+        }),
+        variant: "default",
+      });
+    }
+    if (live.ac_efficiency_status === "possible_issue") {
+      chips.push({
+        icon: "mdi:air-filter",
+        text: localize("hero.ac_efficiency_issue", l),
+        variant: "warn",
       });
     }
     return chips;
@@ -715,11 +781,13 @@ export class RsRoomHero extends LitElement {
       // The fork sends no delta: its string names the prevention (and the strategy) only
       const delta = live.mold_prevention_delta;
       adjustments.push(
-        delta != null
-          ? localize("card.mold_prevention", l, {
-              delta: `${formatNumber(toDisplayDelta(delta, this.hass), this.hass)} ${unit}`,
-            })
-          : localize("card.mold_prevention", l),
+        live.mold_prevention_strategy === "dehumidifier"
+          ? localize("dehumidifier.request_mold", l)
+          : delta != null
+            ? localize("card.mold_prevention", l, {
+                delta: `${formatNumber(toDisplayDelta(delta, this.hass), this.hass)} ${unit}`,
+              })
+            : localize("card.mold_prevention", l),
       );
     }
     return html`<div class="target">
