@@ -897,6 +897,7 @@ export class RoomMindPanel extends LitElement {
   private _onOpenScheduleEditor(
     e: CustomEvent<{ entityId: string; areaId: string; kind?: "" | "climate" | "cover" }>,
   ) {
+    this._dropLeave();
     this._scheduleEntity = e.detail.entityId;
     this._scheduleRoom = e.detail.areaId;
     this._scheduleKind = e.detail.kind ?? "";
@@ -923,6 +924,17 @@ export class RoomMindPanel extends LitElement {
    * shortcut: closing the whole panel (sidebar) is still unguarded; the editor sends its change as
    * it unmounts and a failed save is only announced.
    */
+  /** A different editor opens: a leave still running for the old one no longer owns anything. */
+  private _dropLeave() {
+    this._leaving = null;
+    this._pendingRoute = false;
+  }
+
+  /** Whether `token` still owns the leave of this very editor (same element, same helper). */
+  private _owns(token: object, editor: RsScheduleEditor | null, entity: string | null): boolean {
+    return this._leaving === token && this._editor === editor && this._scheduleEntity === entity;
+  }
+
   private _beginLeave(): object | null {
     if (this._leaving) return null;
     this._pendingRoute = false;
@@ -941,18 +953,12 @@ export class RoomMindPanel extends LitElement {
     const editor = this._editor;
     const entity = this._scheduleEntity;
     const message = (await editor?.flush()) ?? "";
-    if (this._leaving !== token) return null;
-    if (this._editor !== editor || this._scheduleEntity !== entity) {
-      // The editor changed under this leave (should not happen): end it, change nothing else
-      this._leaving = null;
-      this._pendingRoute = false;
-      return null;
-    }
+    if (!this._owns(token, editor, entity)) return null;
     if (!message) return true;
     const moved =
-      this._pendingRoute ||
-      (globalThis.location !== undefined &&
-        location.pathname + location.search !== `/roommind${this._scheduleUrl()}`);
+      globalThis.location === undefined
+        ? this._pendingRoute
+        : location.pathname + location.search !== `/roommind${this._scheduleUrl()}`;
     // Ended before the URL is put back: that route change is this panel's own, not a new leave
     this._leaving = null;
     this._pendingRoute = false;
@@ -995,11 +1001,13 @@ export class RoomMindPanel extends LitElement {
    */
   private async _closeSchedule(token: object) {
     const room = this._scheduleRoom;
+    const editor = this._editor;
+    const entity = this._scheduleEntity;
     await this._loadRooms();
-    if (this._leaving !== token) return;
+    if (!this._owns(token, editor, entity)) return;
     // Backstop: the editor is inert during the leave, but anything still unsaved is sent first
-    if (this._editor?.pending && !(await this._flushFor(token))) return;
-    if (this._leaving !== token) return;
+    if (editor?.pending && !(await this._flushFor(token))) return;
+    if (!this._owns(token, editor, entity)) return;
     this._endLeave(() => {
       this._scheduleEntity = null;
       this._scheduleRoom = "";
@@ -1024,8 +1032,9 @@ export class RoomMindPanel extends LitElement {
     const same =
       path.startsWith("/schedule/") && decodeURIComponent(path.slice(10)) === this._scheduleEntity;
     if (this._leaving) {
-      this._pendingRoute = !same;
-      return !same;
+      // Latest intent, even a return to this editor: applied once the save is through
+      this._pendingRoute = true;
+      return true;
     }
     if (same || !this._editor?.pending) return false;
     const token = this._beginLeave() as object;

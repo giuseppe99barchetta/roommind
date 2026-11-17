@@ -381,3 +381,29 @@ test("the editor is rendered inert while a leave runs", () => {
   );
   assert.equal(idle.values[i], false);
 });
+
+test("toolbar back, then the browser returns to this editor during the save: the editor stays", async () => {
+  const g = guarded();
+  const leaving = g.panel._onBackFromSchedule();
+  g.go("/schedule/schedule.heating");
+  await g.save("");
+  await g.loaded();
+  await leaving;
+  assert.equal(g.panel._scheduleEntity, "schedule.heating", "the latest intent was the editor");
+  assert.equal(g.panel._leaving, null);
+  assert.ok(!g.nav.some((p) => p.startsWith("back:")), g.nav.join());
+});
+
+test("a different editor opened during the reload: the old leave leaves it and its state alone", async () => {
+  const g = guarded();
+  const leaving = g.panel._onBackFromSchedule();
+  await g.save("");
+  g.panel._onOpenScheduleEditor({ detail: { entityId: "schedule.other", areaId: "sala" } });
+  const after = [...g.nav];
+  g.panel._pendingRoute = true; // a route change the newer editor's own flow remembered
+  await g.loaded();
+  await leaving;
+  assert.equal(g.panel._scheduleEntity, "schedule.other");
+  assert.equal(g.panel._pendingRoute, true, "untouched by the stale leave");
+  assert.deepEqual(g.nav, after);
+});
