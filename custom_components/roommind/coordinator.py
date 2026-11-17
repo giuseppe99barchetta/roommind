@@ -2397,7 +2397,12 @@ class RoomMindCoordinator(DataUpdateCoordinator):
         if track_mode and afterglow_plan is not None:
             if mode == MODE_HEATING:
                 self._afterglow_reading.clear(area_id)
-            elif self._previous_modes.get(area_id, MODE_IDLE) == MODE_HEATING and current_temp_raw is not None:
+            elif (
+                self._previous_modes.get(area_id, MODE_IDLE) == MODE_HEATING
+                and current_temp_raw is not None
+                # Only a plan that stopped the run predicts its afterglow (not one a gate overrode)
+                and afterglow_plan.actions[:1] != [MODE_HEATING]
+            ):
                 self._afterglow_reading.note_stop(
                     area_id, current_temp_raw, afterglow_plan.temperatures, afterglow_plan.dt_minutes
                 )

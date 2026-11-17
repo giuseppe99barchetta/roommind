@@ -128,7 +128,7 @@ async def test_sensor_lag_follows_the_final_mode(hass, mock_config_entry):
     room = _room(True)
     coordinator, aid = _coord(hass, mock_config_entry, room)
     _learned(coordinator, aid)  # afterglow control needs a learned room
-    plan = MagicMock(temperatures=[20.2, 20.4], dt_minutes=5.0)
+    plan = MagicMock(temperatures=[20.2, 20.4], dt_minutes=5.0, actions=["idle", "idle"])
     common = dict(
         area_id=aid,
         room=room,
@@ -149,4 +149,32 @@ async def test_sensor_lag_follows_the_final_mode(hass, mock_config_entry):
     await coordinator._observe_and_train(mode=MODE_IDLE, **common)  # e.g. a window turned the heating off
     assert aid in coordinator._afterglow_reading._stops
     await coordinator._observe_and_train(mode=MODE_HEATING, **common)
+    assert aid not in coordinator._afterglow_reading._stops
+
+
+@pytest.mark.asyncio
+async def test_a_heating_plan_overridden_to_idle_is_no_afterglow_forecast(hass, mock_config_entry):
+    """D1b: a window or gate stopping a run the plan kept heating must not feed the sensor-lag estimate."""
+    room = _room(True)
+    coordinator, aid = _coord(hass, mock_config_entry, room)
+    _learned(coordinator, aid)
+    coordinator._previous_modes[aid] = MODE_HEATING
+    plan = MagicMock(temperatures=[20.2, 20.6], dt_minutes=5.0, actions=["heating", "heating"])
+    await coordinator._observe_and_train(
+        area_id=aid,
+        room=room,
+        settings={},
+        current_temp_raw=20.2,
+        mode=MODE_IDLE,
+        power_fraction=0.0,
+        window_open=True,
+        raw_open=True,
+        q_residual=0.0,
+        shading_factor=1.0,
+        q_occupancy=0.0,
+        has_external_sensor=True,
+        heat_source_plan=None,
+        climate_active=True,
+        afterglow_plan=plan,
+    )
     assert aid not in coordinator._afterglow_reading._stops
