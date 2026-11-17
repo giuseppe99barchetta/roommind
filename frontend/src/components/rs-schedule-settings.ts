@@ -13,7 +13,8 @@ import {
 import { formatNumber } from "../utils/format";
 import { RsScheduleBase } from "./shared/rs-schedule-base";
 import { inputStyles } from "../styles/input-styles";
-import { readWeek } from "../utils/schedule-api";
+import { isAdmin, isEditableSchedule, readWeek } from "../utils/schedule-api";
+import "./schedule/rs-schedule-create";
 import { dayTimes, nowInZone, type Week } from "../utils/schedule-week";
 import "./shared/rs-list-row";
 import "./shared/rs-info-icon";
@@ -61,6 +62,9 @@ export class RsScheduleSettings extends RsScheduleBase {
   /** Presence detection applies to this room (on globally, persons to watch, not ignored). */
   @property({ type: Boolean }) public presenceActive = false;
   /** Week of the active schedule for today's timeline; `_weekKey` = what it was read for. */
+  /** Default name of a schedule created from the dialog. */
+  @property({ type: String }) public roomName = "";
+  @state() private _creating = false;
   @state() private _week: Week | null = null;
   @state() private _now = nowInZone(undefined);
   private _weekKey = "";
@@ -300,15 +304,68 @@ export class RsScheduleSettings extends RsScheduleBase {
     `;
   }
 
-  /** Picking an existing Home Assistant schedule helper (created under Settings → Helpers). */
+  /**
+   * Ways to give the room a schedule: create one here (admins), or pick an existing Home
+   * Assistant schedule helper (non-admins also get the link to the helpers).
+   */
   private _renderAddSource() {
     const l = this.hass.language;
     const usedIds = new Set(this.schedules.map((s) => s.entity_id));
-    return this._renderAddRow(
-      localize("schedule.select_schedule", l),
-      this._getAvailableEntities(usedIds),
-      (eid) => this._addSchedule(eid),
-      localize("schedule.create_helper_hint", l),
+    const admin = isAdmin(this.hass);
+    return html`
+      ${admin ? this._renderCreate() : nothing}
+      ${this._renderAddRow(
+        localize("schedule.select_schedule", l),
+        this._getAvailableEntities(usedIds),
+        (eid) => this._addSchedule(eid),
+        admin ? "" : localize("schedule.create_helper_hint", l),
+      )}
+    `;
+  }
+
+  private _renderCreate() {
+    const l = this.hass.language;
+    if (!this._creating) {
+      return html`<rs-list-row
+        class="create-row"
+        clickable
+        plain-icon
+        variant="primary"
+        icon="mdi:plus"
+        .heading=${localize("schedule_editor.create", l)}
+        @row-click=${() => (this._creating = true)}
+      ></rs-list-row>`;
+    }
+    return html`<rs-schedule-create
+      .hass=${this.hass}
+      .defaultName=${this.roomName}
+      @create-cancelled=${() => (this._creating = false)}
+      @schedule-created=${(e: CustomEvent<{ entityId: string }>) => {
+        this._creating = false;
+        this._emitSchedules([...this.schedules, { entity_id: e.detail.entityId }]);
+        this._openEditor(e.detail.entityId);
+      }}
+    ></rs-schedule-create>`;
+  }
+
+  /** "Edit" for storage helpers (admins), "View" for YAML helpers and non-admins. */
+  private _renderEditorButton(entityId: string) {
+    const l = this.hass.language;
+    const edit = isAdmin(this.hass) && isEditableSchedule(this.hass, entityId);
+    if (!this.hass.states[entityId]) return nothing;
+    return html`<ha-button appearance="outlined" @click=${() => this._openEditor(entityId)}>
+      <ha-icon slot="start" .icon=${edit ? "mdi:pencil" : "mdi:eye-outline"}></ha-icon>
+      ${localize(edit ? "schedule_editor.edit" : "schedule_editor.view", l)}
+    </ha-button>`;
+  }
+
+  private _openEditor(entityId: string) {
+    this.dispatchEvent(
+      new CustomEvent("open-schedule-editor", {
+        detail: { entityId },
+        bubbles: true,
+        composed: true,
+      }),
     );
   }
 
@@ -336,6 +393,7 @@ export class RsScheduleSettings extends RsScheduleBase {
                   .filter(Boolean)
                   .join(" · ")}</span
               >
+              ${this._renderEditorButton(schedule.entity_id)}
               ${this._renderScheduleControls(
                 index,
                 count,

@@ -642,6 +642,33 @@ export class RsRoomDetail extends LitElement {
     this._editing = section;
   };
 
+  /**
+   * The schedule dialog opens the editor page: a pending room save (e.g. the just created
+   * helper's assignment) goes out first, the page switch unmounts this element.
+   */
+  private _onOpenScheduleEditor = async (
+    e: CustomEvent<{ entityId: string; kind?: "climate" | "cover" }>,
+  ) => {
+    e.stopPropagation();
+    if (this._saveDebounce) {
+      clearTimeout(this._saveDebounce);
+      this._saveDebounce = undefined;
+      await this._doSave();
+    }
+    this._editing = null;
+    this.dispatchEvent(
+      new CustomEvent("open-schedule-editor", {
+        detail: {
+          entityId: e.detail.entityId,
+          areaId: this.area.area_id,
+          kind: e.detail.kind ?? "climate",
+        },
+        bubbles: true,
+        composed: true,
+      }),
+    );
+  };
+
   /** A schedule card row opens the schedule or the temperatures dialog. */
   private _onScheduleEditClick = (e: CustomEvent<{ part?: ScheduleCardPart } | undefined>) => {
     e.stopPropagation();
@@ -1063,6 +1090,7 @@ export class RsRoomDetail extends LitElement {
             .editing=${true}
             @schedules-changed=${this._onSchedulesChanged}
             @schedule-selector-changed=${this._onScheduleSelectorChanged}
+            @open-schedule-editor=${this._onOpenScheduleEditor}
           ></rs-schedule-settings>
           <rs-toggle-row
             .label=${localize("schedule.preconditioning_toggle", lang)}
@@ -1250,6 +1278,7 @@ export class RsRoomDetail extends LitElement {
             ${localize("covers.info.entities_body", lang)}
           </div>
           <rs-covers-section
+            @open-schedule-editor=${this._onOpenScheduleEditor}
             .hass=${this.hass}
             .area=${this.area}
             .editing=${true}

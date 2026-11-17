@@ -4,6 +4,10 @@ import type { HomeAssistant, RoomConfig, RoomWithoutArea } from "./types";
 import { loadHaElements } from "./load-ha-elements";
 import { localize } from "./utils/localize";
 import "./components/rs-settings";
+import "./components/schedule/rs-schedule-editor";
+import "./components/schedule/rs-schedule-overview";
+import type { RsScheduleEditor } from "./components/schedule/rs-schedule-editor";
+import { showToast } from "./utils/toast";
 import {
   getSettingsCategory,
   resolveSettingsCategory,
@@ -30,7 +34,7 @@ const CHART_PATH =
 const THERMOMETER_PATH =
   "M15 13V5A3 3 0 0 0 9 5V13A5 5 0 1 0 15 13M12 4A1 1 0 0 1 13 5V8H11V5A1 1 0 0 1 12 4Z";
 
-type TabId = "areas" | "analytics" | "settings";
+type TabId = "areas" | "analytics" | "schedules" | "settings";
 
 @customElement("roommind-panel")
 export class RoomMindPanel extends LitElement {
@@ -62,6 +66,10 @@ export class RoomMindPanel extends LitElement {
   @state() private _groupByFloor = false;
   @state() private _editing = false;
   @state() private _settingsCategory = "";
+  /** Schedule helper open in the editor page, the room it was opened from and its list. */
+  @state() private _scheduleEntity: string | null = null;
+  @state() private _scheduleRoom = "";
+  @state() private _scheduleKind: "" | "climate" | "cover" = "";
   @state() private _wide = typeof window !== "undefined" && window.innerWidth >= SETTINGS_WIDE_MIN;
   private _resizeObserver?: ResizeObserver;
   private _layoutRevisions: Record<string, number> = {};
@@ -524,13 +532,15 @@ export class RoomMindPanel extends LitElement {
     if (!this._elementsLoaded || !this.hass) return html``;
 
     const l = this.hass.language;
-    const inDetail = !!this._selectedAreaId;
-    const detailArea = inDetail ? this.hass?.areas?.[this._selectedAreaId!] : null;
+    const inSchedule = !!this._scheduleEntity;
+    const inDetail = !!this._selectedAreaId || inSchedule;
+    const detailArea = this._selectedAreaId ? this.hass?.areas?.[this._selectedAreaId] : null;
     const settingsPage = this._settingsSubpage();
 
     const tabLabels: Record<TabId, string> = {
       areas: localize("panel.tab.rooms", l),
       analytics: localize("tabs.analytics", l),
+      schedules: localize("panel.tab.schedules", l),
       settings: localize("panel.tab.settings", l),
     };
 
@@ -539,8 +549,10 @@ export class RoomMindPanel extends LitElement {
         ${inDetail
           ? html`<ha-icon-button
               .path=${BACK_PATH}
-              aria-label=${localize("panel.tab.rooms", l)}
-              @click=${this._onBackFromDetail}
+              aria-label=${inSchedule
+                ? localize(this._scheduleRoom ? "room.back_to_room" : "schedules.back", l)
+                : localize("panel.tab.rooms", l)}
+              @click=${inSchedule ? this._onBackFromSchedule : this._onBackFromDetail}
             ></ha-icon-button>`
           : settingsPage
             ? html`<ha-icon-button
@@ -555,14 +567,17 @@ export class RoomMindPanel extends LitElement {
             ></span>`
           : nothing}
         <div class="title">
-          ${inDetail
-            ? this._rooms[this._selectedAreaId!]?.display_name || detailArea?.name || ""
-            : settingsPage
-              ? localize(getSettingsCategory(settingsPage)!.title, l)
-              : localize("panel.title", l)}
+          ${inSchedule
+            ? (this.hass.states[this._scheduleEntity!]?.attributes?.friendly_name as string) ||
+              this._scheduleEntity
+            : inDetail
+              ? this._rooms[this._selectedAreaId!]?.display_name || detailArea?.name || ""
+              : settingsPage
+                ? localize(getSettingsCategory(settingsPage)!.title, l)
+                : localize("panel.title", l)}
         </div>
         ${this._renderSaveIndicator()}
-        ${inDetail && this._rooms[this._selectedAreaId!]
+        ${inDetail && !inSchedule && this._rooms[this._selectedAreaId!]
           ? html`<ha-icon-button
                 .path=${CHART_PATH}
                 @click=${this._onGoToAnalytics}
@@ -593,7 +608,9 @@ export class RoomMindPanel extends LitElement {
                         ? "mdi:home-outline"
                         : tab === "analytics"
                           ? "mdi:chart-areaspline"
-                          : "mdi:cog-outline"}
+                          : tab === "schedules"
+                            ? "mdi:calendar-clock"
+                            : "mdi:cog-outline"}
                     ></ha-icon>
                     ${tabLabels[tab]}
                   </button>
@@ -608,6 +625,17 @@ export class RoomMindPanel extends LitElement {
   }
 
   private _renderTab() {
+    if (this._scheduleEntity && this._roomsLoaded) {
+      return html`<rs-schedule-editor
+        .hass=${this.hass}
+        .entityId=${this._scheduleEntity}
+        .roomId=${this._scheduleRoom}
+        .kind=${this._scheduleKind}
+        .rooms=${this._rooms}
+        .scheduleOffAction=${this._scheduleOffAction}
+        @schedule-closed=${this._onScheduleClosed}
+      ></rs-schedule-editor>`;
+    }
     switch (this._activeTab) {
       case "areas":
         return this._renderAreas();
@@ -619,6 +647,14 @@ export class RoomMindPanel extends LitElement {
           .controlMode=${this._controlMode}
           @room-selected=${this._onAnalyticsRoomSelected}
         ></rs-analytics>`;
+      case "schedules":
+        return this._roomsLoaded
+          ? html`<rs-schedule-overview
+              .hass=${this.hass}
+              .rooms=${this._rooms}
+              @open-schedule-editor=${this._onOpenScheduleEditor}
+            ></rs-schedule-overview>`
+          : this._renderAreas();
       case "settings":
         return this._renderSettings();
       default:
@@ -637,6 +673,7 @@ export class RoomMindPanel extends LitElement {
         const config = this._rooms[this._selectedAreaId] ?? null;
         return html`
           <rs-room-detail
+            @open-schedule-editor=${this._onOpenScheduleEditor}
             .rooms=${this._rooms}
             .area=${area}
             .config=${config}
@@ -849,7 +886,70 @@ export class RoomMindPanel extends LitElement {
     }
   }
 
-  private _onTabClicked(tab: TabId) {
+  private _onOpenScheduleEditor(
+    e: CustomEvent<{ entityId: string; areaId: string; kind?: "" | "climate" | "cover" }>,
+  ) {
+    this._scheduleEntity = e.detail.entityId;
+    this._scheduleRoom = e.detail.areaId;
+    this._scheduleKind = e.detail.kind ?? "";
+    this._selectedAreaId = null;
+    if (!e.detail.areaId) this._activeTab = "schedules";
+    const query = new URLSearchParams();
+    if (e.detail.areaId) query.set("room", e.detail.areaId);
+    if (this._scheduleKind) query.set("kind", this._scheduleKind);
+    const search = query.toString();
+    this._navigate(
+      `/schedule/${encodeURIComponent(e.detail.entityId)}${search ? `?${search}` : ""}`,
+    );
+  }
+
+  /**
+   * Leaving the editor saves its last change first. A failed save keeps the editor open with the
+   * edit (the toast says why); leaving again retries. Returns whether it may close.
+   * shortcut: the browser's own Back is not guarded (the editor flushes as it unmounts and a
+   * failed save is only announced); a popstate guard restoring the editor is left for later.
+   */
+  private async _leaveSchedule(): Promise<boolean> {
+    const editor = this.renderRoot.querySelector<RsScheduleEditor>("rs-schedule-editor");
+    const message = await editor?.flush();
+    if (message) {
+      showToast(this, message, this.hass.language);
+      return false;
+    }
+    return true;
+  }
+
+  /** Back from the schedule editor: to the room it came from, else the schedule overview. */
+  private _onBackFromSchedule = async () => {
+    if (!(await this._leaveSchedule())) return;
+    await this._onScheduleClosed();
+  };
+
+  /**
+   * The room page reads its config once when it mounts: load the rooms first, else it starts
+   * from a poll that still lists the room's schedules as they were before the editor.
+   */
+  private _onScheduleClosed = async () => {
+    const room = this._scheduleRoom;
+    await this._loadRooms();
+    this._scheduleEntity = null;
+    this._scheduleRoom = "";
+    if (room && this.hass?.areas?.[room]) {
+      this._activeTab = "areas";
+      this._selectedAreaId = room;
+      this._navigateBack(`/room/${room}`);
+    } else {
+      this._activeTab = "schedules";
+      this._navigateBack("/schedules");
+    }
+  };
+
+  private async _onTabClicked(tab: TabId) {
+    if (this._scheduleEntity) {
+      if (!(await this._leaveSchedule())) return;
+      this._scheduleEntity = null;
+      this._scheduleRoom = "";
+    }
     this._activeTab = tab;
     this._selectedAreaId = null;
     this._settingsCategory = "";
@@ -1037,7 +1137,20 @@ export class RoomMindPanel extends LitElement {
 
   private _applyRoute() {
     const path = this.route?.path ?? "";
-    if (path.startsWith("/room/")) {
+    this._scheduleEntity = null;
+    if (path.startsWith("/schedule/")) {
+      this._selectedAreaId = null;
+      this._scheduleEntity = decodeURIComponent(path.slice(10));
+      // The route carries only the path; the room comes from the query string.
+      const query = new URLSearchParams(window.location?.search ?? "");
+      this._scheduleRoom = query.get("room") ?? "";
+      const kind = query.get("kind");
+      this._scheduleKind = kind === "cover" || kind === "climate" ? kind : "";
+      this._activeTab = this._scheduleRoom ? "areas" : "schedules";
+    } else if (path === "/schedules") {
+      this._activeTab = "schedules";
+      this._selectedAreaId = null;
+    } else if (path.startsWith("/room/")) {
       this._activeTab = "areas";
       this._selectedAreaId = decodeURIComponent(path.slice(6));
     } else if (path.startsWith("/analytics/")) {

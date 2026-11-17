@@ -1463,6 +1463,8 @@
   "schedule_editor.comfort_hint": "Uses the comfort temperature of each room ({rooms}).",
   "schedule_editor.comfort_hint_plain": "Uses the room's comfort temperature.",
   "schedule_editor.conflict": "This schedule was changed elsewhere in the meantime. It now shows that version, your last change was not saved.",
+  "schedule_editor.conflict_keep_mine": "Keep mine",
+  "schedule_editor.conflict_load_theirs": "Load theirs",
   "schedule_editor.cool_above": "Cool above",
   "schedule_editor.heat_below": "Heat to",
   "schedule_editor.target": "Target temperature",

@@ -3231,3 +3231,42 @@ async def test_list_rooms_exposes_effective_profile_targets(ws_hass, store, conn
     room = connection.send_result.call_args[0][1]["rooms"]["studio"]
     assert room["profile_targets"]["sleep"] == {"heat_target": 18.5, "cool_target": 26.0, "humidity_target": 55.0}
     assert room["profile_targets"]["away"]["heat_target"] == 17.0
+
+
+@pytest.mark.asyncio
+async def test_save_room_with_only_schedules_keeps_the_rest(ws_hass, store, connection):
+    """The schedule editor saves a room with only its schedule list: every other field stays."""
+    await store.async_load()
+    await _save_room(
+        ws_hass,
+        connection,
+        {
+            "id": 2,
+            "type": "roommind/rooms/save",
+            "area_id": "office",
+            "thermostats": ["climate.office_trv"],
+            "temperature_sensor": "sensor.office_temp",
+            "climate_mode": "heat_only",
+            "comfort_heat": 22.5,
+            "schedules": [{"entity_id": "schedule.a"}],
+            "cover_schedules": [{"entity_id": "schedule.c", "mode": "gate"}],
+        },
+    )
+    connection.send_result.reset_mock()
+    await _save_room(
+        ws_hass,
+        connection,
+        {
+            "id": 3,
+            "type": "roommind/rooms/save",
+            "area_id": "office",
+            "schedules": [{"entity_id": "schedule.a"}, {"entity_id": "schedule.b"}],
+        },
+    )
+    room = connection.send_result.call_args[0][1]["room"]
+    assert [s["entity_id"] for s in room["schedules"]] == ["schedule.a", "schedule.b"]
+    assert room["thermostats"] == ["climate.office_trv"]
+    assert room["temperature_sensor"] == "sensor.office_temp"
+    assert room["climate_mode"] == "heat_only"
+    assert room["comfort_heat"] == 22.5
+    assert room["cover_schedules"] == [{"entity_id": "schedule.c", "mode": "gate"}]

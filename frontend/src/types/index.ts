@@ -428,6 +428,8 @@ export interface HomeAssistant {
   connection?: HassConnection;
   formatEntityState?: (stateObj: HassEntity) => string;
   formatEntityAttributeValue?: (stateObj: HassEntity, attribute: string, value?: unknown) => string;
+  /** HA's own light/dark choice (may differ from the OS). */
+  themes?: { darkMode?: boolean };
 }
 
 export interface HassArea {

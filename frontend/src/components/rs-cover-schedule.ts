@@ -1,14 +1,19 @@
 import { html, css, nothing } from "lit";
-import { customElement, property } from "lit/decorators.js";
+import { customElement, property, state } from "lit/decorators.js";
 import type { CoverScheduleEntry } from "../types";
 import { localize } from "../utils/localize";
 import { RsScheduleBase } from "./shared/rs-schedule-base";
+import { isAdmin, isEditableSchedule } from "../utils/schedule-api";
+import "./schedule/rs-schedule-create";
 import { inputStyles } from "../styles/input-styles";
 
 @customElement("rs-cover-schedule")
 export class RsCoverSchedule extends RsScheduleBase {
   protected readonly _kind = "cover";
   @property({ attribute: false }) public schedules: CoverScheduleEntry[] = [];
+  /** Default name of a helper created here. */
+  @property({ type: String }) public roomName = "";
+  @state() private _creating = false;
 
   static styles = [
     RsScheduleBase.sharedStyles,
@@ -123,6 +128,26 @@ export class RsCoverSchedule extends RsScheduleBase {
                     <span class="schedule-status-dot"></span>
                     <span class="schedule-name">${this._getFriendlyName(entry.entity_id)}</span>
                     <span class="schedule-status">${this._statusText(state, l)}</span>
+                    ${this.hass.states[entry.entity_id]
+                      ? html`<ha-button
+                          appearance="outlined"
+                          @click=${() => this._openEditor(entry.entity_id)}
+                        >
+                          <ha-icon
+                            slot="start"
+                            .icon=${isAdmin(this.hass) &&
+                            isEditableSchedule(this.hass, entry.entity_id)
+                              ? "mdi:pencil"
+                              : "mdi:eye-outline"}
+                          ></ha-icon>
+                          ${localize(
+                            isAdmin(this.hass) && isEditableSchedule(this.hass, entry.entity_id)
+                              ? "schedule_editor.edit"
+                              : "schedule_editor.view",
+                            l,
+                          )}
+                        </ha-button>`
+                      : nothing}
                     ${this._renderScheduleControls(
                       index,
                       count,
@@ -172,11 +197,12 @@ export class RsCoverSchedule extends RsScheduleBase {
             </div>
           `
         : nothing}
+      ${isAdmin(this.hass) ? this._renderCreate() : nothing}
       ${this._renderAddRow(
         localize("covers.add_schedule", l),
         this._getAvailableEntities(usedIds),
         (eid) => this._addSchedule(eid),
-        localize("covers.schedule_create_link", l),
+        isAdmin(this.hass) ? "" : localize("covers.schedule_create_link", l),
       )}
       ${this._renderSelectorSection(
         count,
@@ -205,6 +231,42 @@ export class RsCoverSchedule extends RsScheduleBase {
   }
 
   // ─── Schedule management ─────────────────────────────────────────
+
+  private _renderCreate() {
+    const l = this.hass.language;
+    if (!this._creating) {
+      return html`<rs-list-row
+        class="create-row"
+        clickable
+        plain-icon
+        variant="primary"
+        icon="mdi:plus"
+        .heading=${localize("schedule_editor.create", l)}
+        @row-click=${() => (this._creating = true)}
+      ></rs-list-row>`;
+    }
+    return html`<rs-schedule-create
+      .hass=${this.hass}
+      kind="cover"
+      .defaultName=${localize("covers.schedule_default_name", l, { room: this.roomName })}
+      @create-cancelled=${() => (this._creating = false)}
+      @schedule-created=${(e: CustomEvent<{ entityId: string }>) => {
+        this._creating = false;
+        this._addSchedule(e.detail.entityId);
+        this._openEditor(e.detail.entityId);
+      }}
+    ></rs-schedule-create>`;
+  }
+
+  private _openEditor(entityId: string) {
+    this.dispatchEvent(
+      new CustomEvent("open-schedule-editor", {
+        detail: { entityId, kind: "cover" },
+        bubbles: true,
+        composed: true,
+      }),
+    );
+  }
 
   private _addSchedule(entityId: string) {
     this._emitSchedules([...this.schedules, { entity_id: entityId, mode: "force" }]);
