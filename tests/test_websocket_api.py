@@ -252,6 +252,27 @@ async def test_rooms_list_lists_resting_rooms_apart(ws_hass, store, connection):
 
 
 @pytest.mark.asyncio
+async def test_rooms_list_sends_air_quality_for_the_dashboard(ws_hass, store, connection):
+    """D2: the dashboard's air-quality hint reads these live fields."""
+    await store.async_load()
+    await store.async_save_room("sala", {"thermostats": ["climate.sala"]})
+    coordinator = MagicMock()
+    coordinator.rooms = {
+        "sala": {"co2": 1450, "air_quality_bad": True, "air_quality_reason": "co2", "air_ventilation_active": True}
+    }
+    coordinator.async_request_refresh = AsyncMock()
+    ws_hass.data[DOMAIN]["coordinator"] = coordinator
+    await _list_rooms(ws_hass, connection, {"id": 1, "type": "roommind/rooms/list"})
+    live = connection.send_result.call_args[0][1]["rooms"]["sala"]["live"]
+    assert (live["co2"], live["air_quality_bad"], live["air_quality_reason"], live["air_ventilation_active"]) == (
+        1450,
+        True,
+        "co2",
+        True,
+    )
+
+
+@pytest.mark.asyncio
 async def test_list_rooms_after_save(ws_hass, store, connection):
     """After saving a room, list_rooms includes it with live state."""
     await store.async_load()

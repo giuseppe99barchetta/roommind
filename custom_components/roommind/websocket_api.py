@@ -464,6 +464,11 @@ async def websocket_list_rooms(
             "mold_surface_rh": live.get("mold_surface_rh"),
             "mold_prevention_active": live.get("mold_prevention_active", False),
             "mold_prevention_strategy": live.get("mold_prevention_strategy"),
+            # Air quality for the dashboard hints (#267)
+            "co2": live.get("co2"),
+            "air_quality_bad": live.get("air_quality_bad", False),
+            "air_quality_reason": live.get("air_quality_reason"),
+            "air_ventilation_active": live.get("air_ventilation_active", False),
             "ac_power_w": live.get("ac_power_w"),
             "ac_energy_today_kwh": live.get("ac_energy_today_kwh"),
             "predicted_power_w": live.get("predicted_power_w"),

@@ -11,7 +11,7 @@ export const OVERRIDE_DURATIONS_H = [1, 2, 4];
 /** `duration` for an override without end (the backend stores no `override_until`). */
 export const OVERRIDE_PERMANENT_H = 0;
 
-/** Fallback duration of a dashboard quick override in a room without schedule (h). */
+/** Duration of a dashboard quick override (h): the fork's override has no "until the next schedule change". */
 export const QUICK_OVERRIDE_FALLBACK_H = 4;
 
 /** Override as the UI shows it: live data, or what the user just set before the poll confirms it. */
@@ -77,18 +77,13 @@ export function isInvalidBand(heat: number | null, cool: number | null): boolean
   return heat != null && cool != null && cool < heat;
 }
 
-/**
- * WS message for `roommind/override/set`; presets take their targets from the room.
- * `untilScheduleChange`: hold until the next schedule change, `hours` is the fallback for
- * rooms without a schedule.
- */
+/** WS message for `roommind/override/set`; presets take their targets from the room. */
 export function overrideSetMessage(
   areaId: string,
   type: OverrideType,
   hours: number,
   climateMode: ClimateMode,
   custom: { heat: number; cool: number },
-  untilScheduleChange = false,
 ): Record<string, unknown> {
   const msg: Record<string, unknown> = {
     type: "roommind/override/set",
@@ -96,7 +91,6 @@ export function overrideSetMessage(
     override_type: type,
     duration: hours,
   };
-  if (untilScheduleChange) msg.until_schedule_change = true;
   if (type === "custom") {
     if (climateMode !== "cool_only") msg.heat = custom.heat;
     if (climateMode !== "heat_only") msg.cool = custom.cool;
@@ -131,12 +125,21 @@ export function quickOptions(
       label: localize(hasSchedule ? "card.quick.schedule" : "card.quick.normal", language),
       icon: hasSchedule ? "mdi:calendar-clock" : "mdi:home-thermometer-outline",
     },
-    { value: "comfort", label: localize("override.comfort", language), icon: "mdi:sofa" },
-    { value: "eco", label: localize("override.eco", language), icon: "mdi:leaf" },
+    // The quick override lasts QUICK_OVERRIDE_FALLBACK_H: the label says so
+    {
+      value: "comfort",
+      label: `${localize("override.comfort", language)} · ${QUICK_OVERRIDE_FALLBACK_H} h`,
+      icon: "mdi:sofa",
+    },
+    {
+      value: "eco",
+      label: `${localize("override.eco", language)} · ${QUICK_OVERRIDE_FALLBACK_H} h`,
+      icon: "mdi:leaf",
+    },
   ];
 }
 
-/** WS message for a quick choice: clear, or comfort/eco until the next schedule change. */
+/** WS message for a quick choice: clear, or comfort/eco for QUICK_OVERRIDE_FALLBACK_H hours. */
 export function quickMessage(config: RoomConfig, value: QuickValue): Record<string, unknown> {
   if (value === "schedule") return { type: "roommind/override/clear", area_id: config.area_id };
   return overrideSetMessage(
@@ -145,6 +148,5 @@ export function quickMessage(config: RoomConfig, value: QuickValue): Record<stri
     QUICK_OVERRIDE_FALLBACK_H,
     config.climate_mode ?? "auto",
     { heat: 0, cool: 0 },
-    true,
   );
 }

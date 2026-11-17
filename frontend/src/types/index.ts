@@ -36,6 +36,11 @@ export interface RoomLiveData {
   preheat?: { mode: "heating" | "cooling"; target: number; at: number } | null;
   setback?: { devices: string[]; until: number | null } | null;
   n_observations?: number;
+  // Upstream 2.0 fields the fork backend does not send (yet): the views hide what needs them
+  recent_temps?: [number, number | null, number | null][];
+  compressor_protection_until?: number | null;
+  occupancy_vacant?: boolean;
+  mold_prevention_delta?: number | null;
   dehumidifier?: DehumidifierStatus;
   schedule_temp_warnings?: ScheduleTempWarning[];
   current_temp: number | null;
@@ -422,6 +427,7 @@ export interface HomeAssistant {
 
 export interface HassArea {
   area_id: string;
+  icon?: string | null;
   name: string;
   picture: string | null;
   floor_id: string | null;
