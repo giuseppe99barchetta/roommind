@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { after, before, test } from "node:test";
 import { createServer } from "vite";
 
-let server, RoomDetail, SensorSection, ScheduleSettings, Comfort, NumberField;
+let server, RoomDetail, SensorSection, ScheduleSettings, Comfort, NumberField, Insights;
 before(async () => {
   globalThis.window ??= { addEventListener() {}, removeEventListener() {} };
   server = await createServer({ configFile: false, server: { middlewareMode: true } });
@@ -18,6 +18,9 @@ before(async () => {
   ));
   ({ RsNumberField: NumberField } = await server.ssrLoadModule(
     "/src/components/shared/rs-number-field.ts",
+  ));
+  ({ RsRoomInsights: Insights } = await server.ssrLoadModule(
+    "/src/components/rs-room-insights.ts",
   ));
 });
 after(async () => {
@@ -338,4 +341,59 @@ test("comfort: night fields round to their step (−0.27 → −0.3) and a ramp 
   assert.deepEqual(commit({ min: -5, max: 0, step: 0.1 }, "-0.27"), [-0.3]);
   assert.deepEqual(commit({ min: -5, max: 0, step: 0.1 }, "-9"), [-5]);
   assert.deepEqual(commit({ min: 0, max: 240, step: 1 }, "12"), [12]);
+});
+
+// Values bound to `name` on the element `tag` itself (its open tag is the last one before)
+function own(value, tag, name, out = []) {
+  if (Array.isArray(value)) value.forEach((v) => own(v, tag, name, out));
+  else if (value && typeof value === "object" && value.strings) {
+    value.values.forEach((v, i) => {
+      const before = value.strings.slice(0, i + 1).join(" ");
+      if (
+        before.trimEnd().endsWith(name + "=") &&
+        before.lastIndexOf("<") === before.lastIndexOf(tag)
+      )
+        out.push(v);
+      own(v, tag, name, out);
+    });
+  }
+  return out;
+}
+
+// ── Room insights as 2.0 list cards: same texts, same conditions ──
+test("room insights render as list cards with rows, not an ha-card", () => {
+  const i = new Insights();
+  i.hass = hass;
+  i.decisionReasons = ["window_open"];
+  i.comfortScore = {
+    score: 82,
+    label: "fair",
+    factors: {},
+    breakdown: { temperature: { penalty: 18, status: "off_target" } },
+  };
+  i.readiness = {
+    level: "partial",
+    ready_count: 1,
+    total_count: 2,
+    items: [
+      { key: "temperature", status: "ready" },
+      { key: "window", status: "missing" },
+    ],
+  };
+  const tree = i.render();
+  const text = flat(tree);
+  assert.ok(!text.includes("<ha-card"), "no ha-card wrapper");
+  assert.equal(own(tree, "<rs-list-card", ".heading").length, 3);
+  const headings = own(tree, "<rs-list-row", ".heading");
+  assert.ok(headings.includes("Comfort 82%"), headings.join("|"));
+  assert.ok(
+    headings.some((h) => /window/i.test(h)),
+    headings.join("|"),
+  );
+  assert.deepEqual(own(tree, "<rs-list-row", ".value"), ["−18", "82/100"]);
+  const empty = new Insights();
+  empty.hass = hass;
+  const bare = empty.render();
+  assert.equal(own(bare, "<rs-list-card", ".heading").length, 1, "no readiness, no score");
+  assert.ok(own(bare, "<rs-list-row", ".heading").length === 1, "idle reason only");
 });
