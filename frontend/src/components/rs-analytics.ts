@@ -33,23 +33,26 @@ function bandSides(mode: string | undefined): "both" | "heat" | "cool" {
   return "both";
 }
 
-/**
- * The fork's answer in the 2.0 chart's terms: `humidity` from `current_humidity` (kept for the
- * export). The recorded `predicted_temp` is the end of the forecast at that time, not the
- * model one hour ahead the 2.0 chart draws from it ("backtest"): left out of the past points so
- * no line is labeled as something it is not; the forecast keeps its prediction.
- */
+/** The 2.0 chart reads `humidity`; the fork records `current_humidity` (kept for the export). */
 function withHumidity(data: AnalyticsData): AnalyticsData {
-  const past = (p: AnalyticsDataPoint) => ({
-    ...p,
-    humidity: p.humidity ?? p.current_humidity ?? null,
-    predicted_temp: null,
-  });
+  const alias = (p: AnalyticsDataPoint) =>
+    p.humidity == null && p.current_humidity != null ? { ...p, humidity: p.current_humidity } : p;
   return {
     ...data,
-    detail: (data.detail ?? []).map(past),
-    history: (data.history ?? []).map(past),
+    detail: (data.detail ?? []).map(alias),
+    history: (data.history ?? []).map(alias),
   };
+}
+
+/**
+ * For the chart only: the recorded `predicted_temp` is the end of the forecast at that time,
+ * not the model one hour ahead the 2.0 chart draws from it ("backtest"), so the past points go
+ * without it (no line labeled as something it is not). The export keeps the recorded values.
+ */
+function forChart(data: AnalyticsData | null): AnalyticsData | null {
+  if (!data) return data;
+  const past = (p: AnalyticsDataPoint) => ({ ...p, predicted_temp: null });
+  return { ...data, detail: data.detail.map(past), history: data.history.map(past) };
 }
 
 @customElement("rs-analytics")
@@ -69,6 +72,8 @@ export class RsAnalytics extends LitElement {
   @state() private _comparison: ComparisonRoom[] = [];
   @state() private _comparisonInfoExpanded = false;
   private _pointsOf: AnalyticsData | null = null;
+  private _chartOf: AnalyticsData | null = null;
+  private _chartCache: AnalyticsData | null = null;
   private _pointsCache: AnalyticsDataPoint[] = [];
   private _zoneApplied = false;
 
@@ -174,7 +179,7 @@ export class RsAnalytics extends LitElement {
                 : nothing}
               <rs-analytics-chart
                 .hass=${this.hass}
-                .data=${this._data}
+                .data=${this._chartData()}
                 .rangeStart=${this._rangeStart}
                 .rangeEnd=${this._rangeEnd}
                 .chartAnchor=${this._chartAnchor}
@@ -291,6 +296,15 @@ export class RsAnalytics extends LitElement {
       this._pointsCache = [...data.history, ...data.detail];
     }
     return this._pointsCache;
+  }
+
+  /** The chart's copy of the data, one per answer so the chart does not redraw needlessly. */
+  private _chartData(): AnalyticsData | null {
+    if (this._chartOf !== this._data) {
+      this._chartOf = this._data;
+      this._chartCache = forChart(this._data);
+    }
+    return this._chartCache;
   }
 
   /** Recompute the active quick range up to now (today moves on, a new day starts at midnight). */

@@ -247,10 +247,17 @@ test("fork-only shapes: legacy AC list cools, solar shows without a learned flag
   })(page.render());
   assert.deepEqual(bound, [true]);
 
+  // The chart gets no recorded prediction (no mislabeled backtest line); the export keeps it
   assert.ok(
-    page._points().every((p) => p.predicted_temp === null),
-    "no backtest series",
+    page._chartData().history.every((p) => p.predicted_temp === null),
+    "chart",
   );
+  assert.ok(
+    page._data.history.every((p) => p.predicted_temp === 20.2),
+    "export data",
+  );
+  const { buildCsvString } = await server.ssrLoadModule("/src/utils/analytics-export.ts");
+  assert.ok(buildCsvString(page._data).includes("20.2"), "CSV keeps predicted_temp");
   const m = new Model();
   const data = structuredClone(page._data);
   data.model.model.Q_solar = 300;
