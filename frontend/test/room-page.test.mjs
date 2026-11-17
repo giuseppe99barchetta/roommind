@@ -328,3 +328,32 @@ test("a stored target off the stepper grid shows as stored (21.2 °C, not 21)", 
   const text = flat(row);
   assert.ok(text.includes("21.2"), text);
 });
+
+test("the fork's own sections sit in a padded body inside their cards; percent shown once", () => {
+  const detail = new RoomDetail();
+  detail.hass = hass;
+  detail.area = hass.areas.sala;
+  detail.config = { area_id: "sala", climate_mode: "auto", devices: [], schedules: [], live: {} };
+  detail._initFromConfig();
+  // Each fork section sits in a <div class="fork-section"> of the same template part
+  const wrapped = [];
+  (function walk(v) {
+    if (Array.isArray(v)) return v.forEach(walk);
+    if (!v || typeof v !== "object" || !v.strings) return;
+    v.strings.forEach((str, i) => {
+      if (!str.includes('class="fork-section"')) return;
+      const inner = str.slice(str.lastIndexOf('class="fork-section"')) + flat(v.values[i]);
+      for (const tag of ["<rs-comfort-section", "<rs-dehumidifier-section"])
+        if (inner.includes(tag)) wrapped.push(tag);
+    });
+    v.values.forEach(walk);
+  })(detail._renderSectionCards());
+  assert.deepEqual(wrapped.sort(), ["<rs-comfort-section", "<rs-dehumidifier-section"]);
+  const hero = new Hero();
+  hero.hass = hass;
+  hero.area = hass.areas.sala;
+  const live = { mode: "idle", current_temp: 20, target_temp: 21, mold_surface_rh: 66 };
+  hero.config = { area_id: "sala", climate_mode: "auto", schedules: [], live };
+  const all = flat(hero.render());
+  assert.equal(all.includes("%%"), false);
+});

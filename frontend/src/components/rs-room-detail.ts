@@ -167,6 +167,13 @@ export class RsRoomDetail extends LitElement {
   private _savesInFlight = 0;
 
   static styles = css`
+    /* The fork's own sections (comfort and profiles, dehumidifier) bring no inner spacing of
+       their own: inside a list card they get the card's side and bottom padding */
+    .fork-section {
+      display: block;
+      padding: 0 var(--rs-space-4) var(--rs-space-4);
+    }
+
     .layout {
       display: grid;
       grid-template-columns: minmax(0, 1fr);
@@ -777,12 +784,15 @@ export class RsRoomDetail extends LitElement {
         <div class="col right">
           ${outdoor ? nothing : this._renderSectionCards()}
           <rs-list-card .heading=${localize("room.section.area", l)}>
-            <rs-toggle-row
-              .label=${localize("room.outdoor_toggle", l)}
-              .hint=${localize("room.outdoor_hint", l)}
+            <rs-list-row
+              switch
+              wrap
+              icon="mdi:tree-outline"
+              .heading=${localize("room.outdoor_toggle", l)}
+              .secondary=${localize("room.outdoor_hint", l)}
               .checked=${this._isOutdoor}
               @toggle-changed=${this._onOutdoorToggle}
-            ></rs-toggle-row>
+            ></rs-list-row>
           </rs-list-card>
           ${!outdoor && this.config
             ? html`<rs-room-insights
@@ -896,19 +906,21 @@ export class RsRoomDetail extends LitElement {
       </rs-list-card>
 
       <rs-list-card .heading=${localize("room.section.comfort", l)}>
-        <rs-comfort-section
-          .hass=${this.hass}
-          .activeProfile=${this._activeProfile}
-          .profileTargets=${this.config?.profile_targets ?? {}}
-          .climateMode=${this._climateMode}
-          .nightModeEnabled=${this._nightModeEnabled}
-          .nightStart=${this._nightStart}
-          .nightEnd=${this._nightEnd}
-          .nightHeatDelta=${this._nightHeatDelta}
-          .nightCoolDelta=${this._nightCoolDelta}
-          .nightRampMinutes=${this._nightRampMinutes}
-          @setting-changed=${this._onComfortSettingChanged}
-        ></rs-comfort-section>
+        <div class="fork-section">
+          <rs-comfort-section
+            .hass=${this.hass}
+            .activeProfile=${this._activeProfile}
+            .profileTargets=${this.config?.profile_targets ?? {}}
+            .climateMode=${this._climateMode}
+            .nightModeEnabled=${this._nightModeEnabled}
+            .nightStart=${this._nightStart}
+            .nightEnd=${this._nightEnd}
+            .nightHeatDelta=${this._nightHeatDelta}
+            .nightCoolDelta=${this._nightCoolDelta}
+            .nightRampMinutes=${this._nightRampMinutes}
+            @setting-changed=${this._onComfortSettingChanged}
+          ></rs-comfort-section>
+        </div>
       </rs-list-card>
 
       <rs-list-card .heading=${localize("room.section.devices", l)}>
@@ -926,7 +938,8 @@ export class RsRoomDetail extends LitElement {
       </rs-list-card>
 
       <rs-list-card .heading=${localize("dehumidifier.title", l)}>
-        ${this._editButton("dehumidifier")} ${this._renderDehumidifier(false)}
+        ${this._editButton("dehumidifier")}
+        <div class="fork-section">${this._renderDehumidifier(false)}</div>
       </rs-list-card>
 
       <rs-list-card .heading=${localize("room.section.sensors", l)}>
