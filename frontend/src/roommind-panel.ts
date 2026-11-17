@@ -4,6 +4,10 @@ import type { HomeAssistant, RoomConfig, RoomWithoutArea } from "./types";
 import { loadHaElements } from "./load-ha-elements";
 import { localize } from "./utils/localize";
 import "./components/rs-settings";
+import {
+  getSettingsCategory,
+  resolveSettingsCategory,
+} from "./components/settings/settings-categories";
 import "./components/rs-analytics";
 import { noteServerTime } from "./utils/server-clock";
 import { computeAreaInfos, type AreaInfo } from "./utils/dashboard";
@@ -11,6 +15,9 @@ import type { HouseSummary } from "./components/dashboard/rs-dashboard";
 import "./components/dashboard/rs-dashboard";
 import "./components/dashboard/rs-dashboard-edit";
 import "./components/shared/rs-icon-button";
+
+/** From this own width the settings list and the selected panel sit side by side. */
+const SETTINGS_WIDE_MIN = 900;
 
 const BACK_PATH = "M20,11V13H8L13.5,18.5L12.08,19.92L4.16,12L12.08,4.08L13.5,5.5L8,11H20Z";
 
@@ -54,6 +61,9 @@ export class RoomMindPanel extends LitElement {
   @state() private _roomOrder: string[] = [];
   @state() private _groupByFloor = false;
   @state() private _editing = false;
+  @state() private _settingsCategory = "";
+  @state() private _wide = typeof window !== "undefined" && window.innerWidth >= SETTINGS_WIDE_MIN;
+  private _resizeObserver?: ResizeObserver;
   private _layoutRevisions: Record<string, number> = {};
   // Bumped on every local layout edit: a rooms/list answer sent before it keeps its layout fields out
   private _layoutEpoch = 0;
@@ -459,6 +469,11 @@ export class RoomMindPanel extends LitElement {
 
   connectedCallback() {
     super.connectedCallback();
+    this._resizeObserver ??= new ResizeObserver((entries) => {
+      const width = entries[0]?.contentRect.width ?? 0;
+      if (width > 0) this._wide = width >= SETTINGS_WIDE_MIN;
+    });
+    this._resizeObserver.observe(this);
     loadHaElements().then(() => {
       this._elementsLoaded = true;
     });
@@ -489,6 +504,7 @@ export class RoomMindPanel extends LitElement {
 
   disconnectedCallback() {
     super.disconnectedCallback();
+    this._resizeObserver?.disconnect();
     if (this._refreshInterval) {
       clearInterval(this._refreshInterval);
       this._refreshInterval = undefined;
@@ -510,6 +526,7 @@ export class RoomMindPanel extends LitElement {
     const l = this.hass.language;
     const inDetail = !!this._selectedAreaId;
     const detailArea = inDetail ? this.hass?.areas?.[this._selectedAreaId!] : null;
+    const settingsPage = this._settingsSubpage();
 
     const tabLabels: Record<TabId, string> = {
       areas: localize("panel.tab.rooms", l),
@@ -525,8 +542,14 @@ export class RoomMindPanel extends LitElement {
               aria-label=${localize("panel.tab.rooms", l)}
               @click=${this._onBackFromDetail}
             ></ha-icon-button>`
-          : html`<ha-menu-button .hass=${this.hass} .narrow=${this.narrow}></ha-menu-button>`}
-        ${!inDetail
+          : settingsPage
+            ? html`<ha-icon-button
+                .path=${BACK_PATH}
+                aria-label=${localize("settings.back", l)}
+                @click=${this._onBackFromSettingsPage}
+              ></ha-icon-button>`
+            : html`<ha-menu-button .hass=${this.hass} .narrow=${this.narrow}></ha-menu-button>`}
+        ${!inDetail && !settingsPage
           ? html`<span class="brand-mark"
               ><ha-icon icon="mdi:home-thermometer-outline"></ha-icon
             ></span>`
@@ -534,7 +557,9 @@ export class RoomMindPanel extends LitElement {
         <div class="title">
           ${inDetail
             ? this._rooms[this._selectedAreaId!]?.display_name || detailArea?.name || ""
-            : localize("panel.title", l)}
+            : settingsPage
+              ? localize(getSettingsCategory(settingsPage)!.title, l)
+              : localize("panel.title", l)}
         </div>
         ${this._renderSaveIndicator()}
         ${inDetail && this._rooms[this._selectedAreaId!]
@@ -695,8 +720,35 @@ export class RoomMindPanel extends LitElement {
       .hass=${this.hass}
       .rooms=${this._rooms}
       .roomsWithoutArea=${this._roomsWithoutArea}
+      .category=${this._settingsCategory}
+      .wide=${this._wide}
+      .controlMode=${this._controlMode}
+      @settings-category-changed=${this._onSettingsCategoryChanged}
     ></rs-settings>`;
   }
+
+  /** The settings category shown as its own page (narrow layout), else "". */
+  private _settingsSubpage() {
+    if (this._activeTab !== "settings" || this._selectedAreaId || this._wide) return "";
+    return resolveSettingsCategory(
+      this._settingsCategory,
+      this._roomsWithoutArea.length > 0,
+      false,
+    );
+  }
+
+  private _onSettingsCategoryChanged(e: CustomEvent<{ category: string }>) {
+    this._settingsCategory = e.detail.category;
+    // Wide: a selection in the list/detail view; narrow: the category opens as its own page
+    this._navigate(this._settingsCategory ? `/settings/${this._settingsCategory}` : "/settings", {
+      replace: this._wide,
+    });
+  }
+
+  private _onBackFromSettingsPage = () => {
+    this._settingsCategory = "";
+    this._navigateBack("/settings");
+  };
 
   private async _loadRooms() {
     if (!this.hass) return;
@@ -801,6 +853,7 @@ export class RoomMindPanel extends LitElement {
   private _onTabClicked(tab: TabId) {
     this._activeTab = tab;
     this._selectedAreaId = null;
+    this._settingsCategory = "";
     if (tab === "areas") {
       this._navigate("");
     } else {
@@ -996,9 +1049,11 @@ export class RoomMindPanel extends LitElement {
       this._activeTab = "analytics";
       this._selectedAreaId = null;
       this._analyticsRoom = "";
-    } else if (path === "/settings") {
+    } else if (path === "/settings" || path.startsWith("/settings/")) {
       this._activeTab = "settings";
       this._selectedAreaId = null;
+      const requested = decodeURIComponent(path.slice(10));
+      this._settingsCategory = getSettingsCategory(requested) ? requested : "";
     } else {
       this._activeTab = "areas";
       this._selectedAreaId = null;

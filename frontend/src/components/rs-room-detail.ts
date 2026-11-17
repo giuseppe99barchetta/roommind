@@ -1547,9 +1547,9 @@ export class RsRoomDetail extends LitElement {
   // ---- Presence settings link ----
 
   private _onOpenPresenceSettings(e: Event) {
-    // Same in-panel navigation as roommind-panel's _navigate; presence lives on the default tab.
+    // Same in-panel navigation as roommind-panel._navigate, straight to the presence category.
     e.preventDefault();
-    history.replaceState(null, "", "/roommind/settings");
+    history.replaceState(null, "", "/roommind/settings/presence");
     window.dispatchEvent(new Event("location-changed"));
   }
 

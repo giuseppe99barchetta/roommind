@@ -1,9 +1,9 @@
 /**
  * rs-settings – Global RoomMind settings page (orchestrator).
- * Owns all state, loads/saves settings, delegates rendering to sub-components
- * wrapped in ha-expansion-panel accordion sections.
+ * Owns all state, loads/saves settings (the fork's diff + queue), shows the 2.0 list of
+ * categories with the selected one's panel beside it (wide) or as its own page (narrow).
  */
-import { LitElement, html, css } from "lit";
+import { LitElement, html, css, nothing } from "lit";
 import { customElement, property, state } from "lit/decorators.js";
 import type {
   HomeAssistant,
@@ -21,7 +21,18 @@ import {
   normalizePowerSensorMode,
 } from "../utils/heating-settings";
 import { VACATION_SENTINEL } from "../utils/constants";
-import "./settings/rs-settings-panel";
+import {
+  SETTINGS_GROUPS,
+  getSettingsCategory,
+  resolveSettingsCategory,
+  type SettingsCategoryId,
+} from "./settings/settings-categories";
+import { tokens } from "../styles/tokens";
+import { formatNumber, formatPercent } from "../utils/format";
+import { formatTempLocale, tempUnit } from "../utils/temperature";
+import { learningRoomIds } from "../utils/learning";
+import "./shared/rs-list-row";
+import "./shared/rs-badge";
 import "./settings/rs-settings-general";
 import "./settings/rs-settings-sensors";
 import "./settings/rs-settings-control";
@@ -46,6 +57,12 @@ export class RsSettings extends LitElement {
   @property({ attribute: false }) public hass!: HomeAssistant;
   @property({ attribute: false }) public rooms: Record<string, RoomConfig> = {};
   @property({ attribute: false }) public roomsWithoutArea: RoomWithoutArea[] = [];
+  /** Requested category (from the URL); unknown or unavailable ones fall back. */
+  @property({ type: String }) public category = "";
+  /** List and panel side by side; otherwise list, then the panel as a subpage. */
+  @property({ type: Boolean }) public wide = true;
+  /** Global control mode (from rooms/list), for the control category's summary. */
+  @property({ type: String }) public controlMode: "mpc" | "bangbang" = "mpc";
 
   @state() private _groupByFloor = false;
   @state() private _climateControlActive = true;
@@ -116,7 +133,6 @@ export class RsSettings extends LitElement {
   // so reverting a value while a save is in flight still reaches the backend.
   private _saveQueue: Promise<void> = Promise.resolve();
   private _savesInFlight = 0;
-  @state() private _category: "overview" | "system" | "protection" | "advanced" = "overview";
 
   private _saveDebounce?: ReturnType<typeof setTimeout>;
 
@@ -231,295 +247,475 @@ export class RsSettings extends LitElement {
       </div>`;
     }
 
+    const selected = resolveSettingsCategory(this.category, this._hasOrphans(), this.wide);
+    const subpage = !this.wide && !!selected;
+    // Every panel stays mounted (only the selected one shown): panels with their own state
+    // (preview result, a vacation time picked before the date, orphan deletions) keep it.
+    return html`<div class="layout ${this.wide ? "wide" : ""}">
+      <div class="nav-wrap" ?hidden=${subpage}>${this._renderNav(selected)}</div>
+      <ha-card class="page ${this.wide ? "" : "subpage"}" ?hidden=${!selected}>
+        ${selected ? this._renderPageHead(selected) : nothing}
+        <div class="page-body">${this._renderPanels(selected)}</div>
+      </ha-card>
+    </div>`;
+  }
+
+  private _renderNav(selected: SettingsCategoryId | "") {
     const l = this.hass.language;
-    const categories = [
-      { id: "overview", icon: "mdi:view-dashboard-outline", count: 4 },
-      { id: "system", icon: "mdi:hvac", count: 4 },
-      { id: "protection", icon: "mdi:shield-check-outline", count: 3 },
-      { id: "advanced", icon: "mdi:tune-vertical", count: 2 },
-    ] as const;
+    const hasOrphans = this._hasOrphans();
+    return html`<nav aria-label=${localize("panel.tab.settings", l)}>
+      ${SETTINGS_GROUPS.map((group) => {
+        const categories = group.categories.filter((c) => c.id !== "orphans" || hasOrphans);
+        if (!categories.length) return nothing;
+        return html`<section class="group">
+          <h2 class="group-label">${localize(group.label, l)}</h2>
+          <ha-card class="nav-card">
+            ${categories.map((c) => {
+              const summary = this._summary(c.id);
+              const attention = c.id === "orphans";
+              return html`<rs-list-row
+                data-id=${c.id}
+                href=${`/roommind/settings/${c.id}`}
+                single-line
+                .icon=${c.icon}
+                .iconColor=${attention ? "var(--rs-warn)" : ""}
+                .variant=${attention ? "warn" : "default"}
+                .heading=${localize(c.title, l)}
+                .secondary=${summary.text}
+                .status=${summary.on === undefined ? "" : summary.on ? "on" : "off"}
+                .selected=${this.wide && selected === c.id}
+                .chevron=${!this.wide}
+                @click=${(e: MouseEvent) => this._onNavClick(e, c.id)}
+              ></rs-list-row>`;
+            })}
+          </ha-card>
+        </section>`;
+      })}
+    </nav>`;
+  }
 
-    return html`
-      <div class="settings-intro">
-        <div class="eyebrow">ROOMMIND / ${localize("settings.hub.eyebrow", l)}</div>
-        <h1>${localize("settings.hub.title", l)}</h1>
-        <p>${localize("settings.hub.description", l)}</p>
-        <div class="control-status ${this._climateControlActive ? "running" : "paused"}">
-          <span class="status-dot"></span>
-          ${this._climateControlActive
-            ? localize("settings.hub.running", l)
-            : localize("settings.hub.paused", l)}
+  private _renderPageHead(id: SettingsCategoryId) {
+    const l = this.hass.language;
+    const category = getSettingsCategory(id)!;
+    // As its own page the toolbar already shows the title; the heading stays for screen readers
+    return html`<header class="page-head">
+      <span class="page-icon ${id === "orphans" ? "attention" : ""}" aria-hidden="true">
+        <ha-icon .icon=${category.icon}></ha-icon>
+      </span>
+      <div class="page-text">
+        <div class="page-title-row">
+          <h2 id="page-title" tabindex="-1">${localize(category.title, l)}</h2>
+          ${id === "notifications"
+            ? html`<rs-badge
+                .label=${localize("badge.beta", l)}
+                .hint=${localize("badge.beta_hint", l)}
+              ></rs-badge>`
+            : nothing}
         </div>
+        <p>${localize(category.intro, l)}</p>
       </div>
-      <div class="settings-workspace">
-        <nav class="settings-navigation" aria-label=${localize("settings.hub.navigation", l)}>
-          ${categories.map(
-            (category) => html`
-              <button
-                class="category-button ${this._category === category.id ? "selected" : ""}"
-                type="button"
-                aria-current=${this._category === category.id ? "page" : "false"}
-                @click=${() => {
-                  this._category = category.id;
-                }}
-              >
-                <ha-icon icon=${category.icon}></ha-icon>
-                <span class="category-copy">
-                  <strong>${localize(`settings.hub.${category.id}`, l)}</strong>
-                  <small>${localize(`settings.hub.${category.id}_hint`, l)}</small>
-                </span>
-                <span class="category-count">${category.count}</span>
-              </button>
-            `,
+    </header>`;
+  }
+
+  private _renderPanels(selected: SettingsCategoryId | "") {
+    const show = (id: SettingsCategoryId) => selected !== id;
+    return html`
+      <div class="panel" ?hidden=${show("heating_system")}>
+        <rs-settings-heating-system
+          .hass=${this.hass}
+          .boilerEntity=${this._boilerEntity}
+          .boilerControlType=${this._boilerControlType}
+          .bypassEntities=${this._bypassEntities}
+          .startupDelay=${this._startupDelay}
+          .shutdownDelay=${this._shutdownDelay}
+          .bypassTemperature=${this._bypassTemperature}
+          .bypassChildLock=${this._bypassChildLock}
+          .minDemandRooms=${this._minDemandRooms}
+          .demandUnit=${this._demandUnit}
+          .minRunMinutes=${this._minRunMinutes}
+          .minOffMinutes=${this._minOffMinutes}
+          .faultRetryMinutes=${this._faultRetryMinutes}
+          .maxWaitMinutes=${this._maxWaitMinutes}
+          .budgetEnabled=${this._budgetEnabled}
+          .powerSensor=${this._powerSensor}
+          .powerMode=${this._powerMode}
+          .maxPower=${this._maxPower}
+          .reserve=${this._reserve}
+          .energyPricePerKwh=${this._energyPricePerKwh}
+          @setting-changed=${this._onSettingChanged}
+        ></rs-settings-heating-system>
+      </div>
+      <div class="panel" ?hidden=${show("preview")}>
+        <rs-settings-preview .hass=${this.hass}></rs-settings-preview>
+      </div>
+      <div class="panel" ?hidden=${show("general")}>
+        <rs-settings-general
+          .hass=${this.hass}
+          .groupByFloor=${this._groupByFloor}
+          .climateControlActive=${this._climateControlActive}
+          .temperatureRoundingMode=${this._temperatureRoundingMode}
+          @setting-changed=${this._onSettingChanged}
+        ></rs-settings-general>
+      </div>
+      <div class="panel" ?hidden=${show("sensors")}>
+        <rs-settings-sensors
+          .hass=${this.hass}
+          .outdoorTempSensor=${this._outdoorTempSensor}
+          .outdoorHumiditySensor=${this._outdoorHumiditySensor}
+          .weatherEntity=${this._weatherEntity}
+          .outdoorUnavailableNotify=${this._outdoorUnavailableNotify}
+          @setting-changed=${this._onSettingChanged}
+        ></rs-settings-sensors>
+      </div>
+      <div class="panel" ?hidden=${show("control")}>
+        <rs-settings-control
+          .hass=${this.hass}
+          .comfortWeight=${this._comfortWeight}
+          .outdoorCoolingMin=${this._outdoorCoolingMin}
+          .outdoorHeatingMax=${this._outdoorHeatingMax}
+          .predictionEnabled=${this._predictionEnabled}
+          .scheduleOffAction=${this._scheduleOffAction}
+          @setting-changed=${this._onSettingChanged}
+        ></rs-settings-control>
+      </div>
+      <div class="panel" ?hidden=${show("presence")}>
+        <rs-settings-presence
+          .hass=${this.hass}
+          .presenceEnabled=${this._presenceEnabled}
+          .presencePersons=${this._presencePersons}
+          .presenceAwayAction=${this._presenceAwayAction}
+          .presenceClearsOverride=${this._presenceClearsOverride}
+          @setting-changed=${this._onSettingChanged}
+        ></rs-settings-presence>
+      </div>
+      <div class="panel" ?hidden=${show("vacation")}>
+        <rs-settings-vacation
+          .hass=${this.hass}
+          .vacationActive=${this._vacationActive}
+          .vacationTemp=${this._vacationTemp}
+          .vacationUntil=${this._vacationUntil}
+          @setting-changed=${this._onSettingChanged}
+        ></rs-settings-vacation>
+      </div>
+      <div class="panel" ?hidden=${show("valve")}>
+        <rs-settings-valve
+          .hass=${this.hass}
+          .valveProtectionEnabled=${this._valveProtectionEnabled}
+          .valveProtectionInterval=${this._valveProtectionInterval}
+          @setting-changed=${this._onSettingChanged}
+        ></rs-settings-valve>
+      </div>
+      <div class="panel" ?hidden=${show("compressor")}>
+        <rs-settings-compressor
+          .hass=${this.hass}
+          .compressorGroups=${this._compressorGroups}
+          @setting-changed=${this._onSettingChanged}
+        ></rs-settings-compressor>
+      </div>
+      <div class="panel" ?hidden=${show("orphans")}>
+        <rs-settings-orphans
+          .hass=${this.hass}
+          .rooms=${this.roomsWithoutArea}
+        ></rs-settings-orphans>
+      </div>
+      <div class="panel" ?hidden=${show("head_offset")}>
+        <rs-settings-head-offset
+          .hass=${this.hass}
+          .acHeadOffsetEnabled=${this._acHeadOffsetEnabled}
+          .acHeadOffsets=${this._acHeadOffsets}
+          @setting-changed=${this._onSettingChanged}
+        ></rs-settings-head-offset>
+      </div>
+      <div class="panel" ?hidden=${show("mold")}>
+        <rs-settings-mold
+          .hass=${this.hass}
+          .moldDetectionEnabled=${this._moldDetectionEnabled}
+          .moldHumidityThreshold=${this._moldHumidityThreshold}
+          .moldSustainedMinutes=${this._moldSustainedMinutes}
+          .moldPreventionEnabled=${this._moldPreventionEnabled}
+          .moldPreventionSustainedMinutes=${this._moldPreventionSustainedMinutes}
+          .moldPreventionDehumidificationEnabled=${this._moldPreventionDehumidificationEnabled}
+          .moldPreventionDryMinTemperature=${this._moldPreventionDryMinTemperature}
+          @setting-changed=${this._onSettingChanged}
+        ></rs-settings-mold>
+      </div>
+      <div class="panel" ?hidden=${show("notifications")}>
+        <rs-settings-notifications
+          .hass=${this.hass}
+          .notificationsEnabled=${this._moldNotificationsEnabled}
+          .notificationTargets=${this._moldNotificationTargets}
+          .notificationCooldown=${this._moldNotificationCooldown}
+          .moldPreventionEnabled=${this._moldPreventionEnabled}
+          .moldPreventionNotify=${this._moldPreventionNotify}
+          .windowOpenNotificationMinutes=${this._windowOpenNotificationMinutes}
+          @setting-changed=${this._onSettingChanged}
+        ></rs-settings-notifications>
+      </div>
+      <div class="panel" ?hidden=${show("learning")}>
+        <rs-settings-learning
+          .hass=${this.hass}
+          .rooms=${this.rooms}
+          .learningDisabledRooms=${this._learningDisabledRooms}
+          .boostAppliedAt=${this._boostAppliedAt}
+          .roomsLive=${Object.fromEntries(
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any -- HA room data includes untyped live state
+            Object.entries(this.rooms).map(([id, r]) => [id, (r as any).live ?? {}]),
           )}
-        </nav>
-        <div class="settings-body">
-          <div class="category-heading">
-            <div class="eyebrow">${localize("settings.hub.category_label", l)}</div>
-            <h2>${localize(`settings.hub.${this._category}`, l)}</h2>
-            <p>${localize(`settings.hub.${this._category}_hint`, l)}</p>
-          </div>
-          <rs-settings-panel
-            ?hidden=${this._category !== "system"}
-            icon="mdi:home-thermometer"
-            .heading=${localize("settings.hub.heating", l)}
-            .intro=${localize("settings.hub.heating_hint", l)}
-            ><rs-settings-heating-system
-              .hass=${this.hass}
-              .boilerEntity=${this._boilerEntity}
-              .boilerControlType=${this._boilerControlType}
-              .bypassEntities=${this._bypassEntities}
-              .startupDelay=${this._startupDelay}
-              .shutdownDelay=${this._shutdownDelay}
-              .bypassTemperature=${this._bypassTemperature}
-              .bypassChildLock=${this._bypassChildLock}
-              .minDemandRooms=${this._minDemandRooms}
-              .demandUnit=${this._demandUnit}
-              .minRunMinutes=${this._minRunMinutes}
-              .minOffMinutes=${this._minOffMinutes}
-              .faultRetryMinutes=${this._faultRetryMinutes}
-              .maxWaitMinutes=${this._maxWaitMinutes}
-              .budgetEnabled=${this._budgetEnabled}
-              .powerSensor=${this._powerSensor}
-              .powerMode=${this._powerMode}
-              .maxPower=${this._maxPower}
-              .reserve=${this._reserve}
-              .energyPricePerKwh=${this._energyPricePerKwh}
-              @setting-changed=${this._onSettingChanged}
-            ></rs-settings-heating-system>
-          </rs-settings-panel>
-
-          <rs-settings-panel
-            ?hidden=${this._category !== "protection"}
-            icon="mdi:shield-search"
-            .heading=${localize("preview.title", l)}
-            .intro=${localize("preview.intro", l)}
-          >
-            <rs-settings-preview .hass=${this.hass}></rs-settings-preview>
-          </rs-settings-panel>
-
-          <rs-settings-panel
-            ?hidden=${this._category !== "overview"}
-            icon="mdi:power"
-            .heading=${localize("settings.general_title", l)}
-            .intro=${localize("settings.intro.general", l)}
-          >
-            <rs-settings-general
-              .hass=${this.hass}
-              .groupByFloor=${this._groupByFloor}
-              .climateControlActive=${this._climateControlActive}
-              .temperatureRoundingMode=${this._temperatureRoundingMode}
-              @setting-changed=${this._onSettingChanged}
-            ></rs-settings-general>
-          </rs-settings-panel>
-
-          <rs-settings-panel
-            ?hidden=${this._category !== "system"}
-            icon="mdi:thermometer"
-            .heading=${localize("settings.sensors_title", l)}
-            .intro=${localize("settings.intro.sensors", l)}
-          >
-            <rs-settings-sensors
-              .hass=${this.hass}
-              .outdoorTempSensor=${this._outdoorTempSensor}
-              .outdoorHumiditySensor=${this._outdoorHumiditySensor}
-              .weatherEntity=${this._weatherEntity}
-              .outdoorUnavailableNotify=${this._outdoorUnavailableNotify}
-              @setting-changed=${this._onSettingChanged}
-            ></rs-settings-sensors>
-          </rs-settings-panel>
-
-          <rs-settings-panel
-            ?hidden=${this._category !== "overview"}
-            icon="mdi:tune-variant"
-            .heading=${localize("settings.control_title", l)}
-            .intro=${localize("settings.intro.control", l)}
-          >
-            <rs-settings-control
-              .hass=${this.hass}
-              .comfortWeight=${this._comfortWeight}
-              .outdoorCoolingMin=${this._outdoorCoolingMin}
-              .outdoorHeatingMax=${this._outdoorHeatingMax}
-              .predictionEnabled=${this._predictionEnabled}
-              .scheduleOffAction=${this._scheduleOffAction}
-              @setting-changed=${this._onSettingChanged}
-            ></rs-settings-control>
-          </rs-settings-panel>
-
-          <rs-settings-panel
-            ?hidden=${this._category !== "overview"}
-            icon="mdi:home-account"
-            .heading=${localize("presence.title", l)}
-            .intro=${localize("settings.intro.presence", l)}
-          >
-            <rs-settings-presence
-              .hass=${this.hass}
-              .presenceEnabled=${this._presenceEnabled}
-              .presencePersons=${this._presencePersons}
-              .presenceAwayAction=${this._presenceAwayAction}
-              .presenceClearsOverride=${this._presenceClearsOverride}
-              @setting-changed=${this._onSettingChanged}
-            ></rs-settings-presence>
-          </rs-settings-panel>
-
-          <rs-settings-panel
-            ?hidden=${this._category !== "overview"}
-            icon="mdi:airplane"
-            .heading=${localize("vacation.title", l)}
-            .intro=${localize("settings.intro.vacation", l)}
-          >
-            <rs-settings-vacation
-              .hass=${this.hass}
-              .vacationActive=${this._vacationActive}
-              .vacationTemp=${this._vacationTemp}
-              .vacationUntil=${this._vacationUntil}
-              @setting-changed=${this._onSettingChanged}
-            ></rs-settings-vacation>
-          </rs-settings-panel>
-
-          <rs-settings-panel
-            ?hidden=${this._category !== "system"}
-            icon="mdi:shield-refresh"
-            .heading=${localize("valve_protection.title", l)}
-            .intro=${localize("settings.intro.valve", l)}
-          >
-            <rs-settings-valve
-              .hass=${this.hass}
-              .valveProtectionEnabled=${this._valveProtectionEnabled}
-              .valveProtectionInterval=${this._valveProtectionInterval}
-              @setting-changed=${this._onSettingChanged}
-            ></rs-settings-valve>
-          </rs-settings-panel>
-
-          <rs-settings-panel
-            ?hidden=${this._category !== "system"}
-            icon="mdi:heat-pump-outline"
-            .heading=${localize("compressor.title", l)}
-            .intro=${localize("settings.intro.compressor", l)}
-          >
-            <rs-settings-compressor
-              .hass=${this.hass}
-              .compressorGroups=${this._compressorGroups}
-              @setting-changed=${this._onSettingChanged}
-            ></rs-settings-compressor>
-          </rs-settings-panel>
-
-          <rs-settings-panel
-            ?hidden=${this._category !== "system" || !this.roomsWithoutArea.length}
-            icon="mdi:home-off-outline"
-            .heading=${localize("orphans.title", l)}
-            .intro=${localize("settings.intro.orphans", l)}
-          >
-            <rs-settings-orphans
-              .hass=${this.hass}
-              .rooms=${this.roomsWithoutArea}
-            ></rs-settings-orphans>
-          </rs-settings-panel>
-
-          <rs-settings-panel
-            ?hidden=${this._category !== "system"}
-            icon="mdi:thermometer-lines"
-            .heading=${localize("head_offset.title", l)}
-            .intro=${localize("settings.intro.head_offset", l)}
-          >
-            <rs-settings-head-offset
-              .hass=${this.hass}
-              .acHeadOffsetEnabled=${this._acHeadOffsetEnabled}
-              .acHeadOffsets=${this._acHeadOffsets}
-              @setting-changed=${this._onSettingChanged}
-            ></rs-settings-head-offset>
-          </rs-settings-panel>
-
-          <rs-settings-panel
-            ?hidden=${this._category !== "protection"}
-            icon="mdi:water-alert"
-            .heading=${localize("mold.title", l)}
-            .intro=${localize("settings.intro.mold", l)}
-          >
-            <rs-settings-mold
-              .hass=${this.hass}
-              .moldDetectionEnabled=${this._moldDetectionEnabled}
-              .moldHumidityThreshold=${this._moldHumidityThreshold}
-              .moldSustainedMinutes=${this._moldSustainedMinutes}
-              .moldPreventionEnabled=${this._moldPreventionEnabled}
-              .moldPreventionSustainedMinutes=${this._moldPreventionSustainedMinutes}
-              .moldPreventionDehumidificationEnabled=${this._moldPreventionDehumidificationEnabled}
-              .moldPreventionDryMinTemperature=${this._moldPreventionDryMinTemperature}
-              @setting-changed=${this._onSettingChanged}
-            ></rs-settings-mold>
-          </rs-settings-panel>
-
-          <rs-settings-panel
-            ?hidden=${this._category !== "protection"}
-            icon="mdi:bell-outline"
-            .heading=${localize("notifications.title", l)}
-            .intro=${localize("settings.intro.notifications", l)}
-            .badge=${localize("badge.beta", l)}
-            .badgeHint=${localize("badge.beta_hint", l)}
-          >
-            <rs-settings-notifications
-              .hass=${this.hass}
-              .notificationsEnabled=${this._moldNotificationsEnabled}
-              .notificationTargets=${this._moldNotificationTargets}
-              .notificationCooldown=${this._moldNotificationCooldown}
-              .moldPreventionEnabled=${this._moldPreventionEnabled}
-              .moldPreventionNotify=${this._moldPreventionNotify}
-              .windowOpenNotificationMinutes=${this._windowOpenNotificationMinutes}
-              @setting-changed=${this._onSettingChanged}
-            ></rs-settings-notifications>
-          </rs-settings-panel>
-
-          <rs-settings-panel
-            ?hidden=${this._category !== "advanced"}
-            icon="mdi:brain"
-            .heading=${localize("settings.learning_title", l)}
-            .intro=${localize("settings.intro.learning", l)}
-          >
-            <rs-settings-learning
-              .hass=${this.hass}
-              .rooms=${this.rooms}
-              .learningDisabledRooms=${this._learningDisabledRooms}
-              .boostAppliedAt=${this._boostAppliedAt}
-              .roomsLive=${Object.fromEntries(
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any -- HA room data includes untyped live state
-                Object.entries(this.rooms).map(([id, r]) => [id, (r as any).live ?? {}]),
-              )}
-              @setting-changed=${this._onSettingChanged}
-              @boost-applied=${this._onBoostApplied}
-            ></rs-settings-learning>
-          </rs-settings-panel>
-
-          <rs-settings-panel
-            ?hidden=${this._category !== "advanced"}
-            icon="mdi:restart"
-            .heading=${localize("settings.reset_title", l)}
-            .intro=${localize("settings.intro.reset", l)}
-          >
-            <rs-settings-reset .hass=${this.hass} .rooms=${this.rooms}></rs-settings-reset>
-          </rs-settings-panel>
-        </div>
+          @setting-changed=${this._onSettingChanged}
+          @boost-applied=${this._onBoostApplied}
+        ></rs-settings-learning>
+      </div>
+      <div class="panel" ?hidden=${show("reset")}>
+        <rs-settings-reset .hass=${this.hass} .rooms=${this.rooms}></rs-settings-reset>
       </div>
     `;
+  }
+
+  /** One line per category in the list: what is set right now; `on` only for on/off features. */
+  private _summary(id: SettingsCategoryId): { text: string; on?: boolean } {
+    const l = this.hass.language;
+    const off = localize("settings.summary.off", l);
+    const count = (n: number) => formatNumber(n, this.hass);
+    switch (id) {
+      case "orphans": {
+        const names = this.roomsWithoutArea.map((r) => r.display_name || r.area_id);
+        return {
+          text: localize(
+            names.length === 1 ? "settings.summary.orphans_one" : "settings.summary.orphans",
+            l,
+            { count: count(names.length), names: new Intl.ListFormat(l).format(names) },
+          ),
+        };
+      }
+      case "general": {
+        if (!this._climateControlActive) {
+          return { text: localize("settings.summary.general_off", l), on: false };
+        }
+        const n = Object.values(this.rooms).filter(
+          (r) =>
+            (r.devices?.length ?? 0) > 0 && !r.is_outdoor && r.climate_control_enabled !== false,
+        ).length;
+        return {
+          text: localize(
+            n === 1 ? "settings.summary.general_on_one" : "settings.summary.general_on",
+            l,
+            { count: count(n) },
+          ),
+          on: true,
+        };
+      }
+      case "vacation": {
+        if (!this._vacationActive) return { text: off, on: false };
+        const temp = `${formatTempLocale(this._vacationTemp, this.hass, 0, 1)} ${tempUnit(this.hass)}`;
+        const until = this._vacationUntil ? new Date(this._vacationUntil) : null;
+        return {
+          text:
+            until && !isNaN(until.getTime())
+              ? localize("settings.summary.vacation_until", l, {
+                  temp,
+                  date: new Intl.DateTimeFormat(l, {
+                    weekday: "short",
+                    day: "numeric",
+                    month: "short",
+                    hour: "numeric",
+                    minute: "2-digit",
+                  }).format(until),
+                })
+              : localize("settings.summary.vacation_open", l, { temp }),
+          on: true,
+        };
+      }
+      case "presence": {
+        if (!this._presenceEnabled) return { text: off, on: false };
+        const n = this._presencePersons.filter((p) => p).length;
+        const action = localize(
+          this._presenceAwayAction === "off"
+            ? "settings.summary.away_off"
+            : "settings.summary.away_eco",
+          l,
+        );
+        const key =
+          n === 0
+            ? "settings.summary.presence_none"
+            : n === 1
+              ? "settings.summary.presence_one"
+              : "settings.summary.presence";
+        return { text: localize(key, l, { count: count(n), action }), on: true };
+      }
+      case "control":
+        return {
+          text:
+            this.controlMode === "bangbang"
+              ? localize("settings.summary.control_simple", l)
+              : localize("settings.summary.control_mpc", l, {
+                  weight: formatPercent(this._comfortWeight, this.hass),
+                }),
+        };
+      case "sensors": {
+        const parts: string[] = [];
+        if (this._outdoorTempSensor) {
+          const v = this._sensorValue(this._outdoorTempSensor);
+          parts.push(
+            v === null
+              ? localize("settings.summary.outdoor_waiting", l)
+              : localize("settings.summary.outdoor", l, {
+                  value: `${formatNumber(v, this.hass, 1)} ${tempUnit(this.hass)}`,
+                }),
+          );
+        }
+        if (this._outdoorHumiditySensor) {
+          const v = this._sensorValue(this._outdoorHumiditySensor);
+          if (v !== null) parts.push(formatPercent(v, this.hass));
+        }
+        if (this._weatherEntity) {
+          const name =
+            this.hass.states[this._weatherEntity]?.attributes?.friendly_name ?? this._weatherEntity;
+          parts.push(localize("settings.summary.weather", l, { name: String(name) }));
+        }
+        return {
+          text: parts.length ? parts.join(" · ") : localize("settings.summary.not_set_up", l),
+        };
+      }
+      case "heating_system": {
+        if (!this._boilerEntity) return { text: localize("settings.summary.not_set_up", l) };
+        const name =
+          this.hass.states[this._boilerEntity]?.attributes?.friendly_name ?? this._boilerEntity;
+        return { text: localize("settings.summary.boiler", l, { name: String(name) }) };
+      }
+      case "head_offset":
+        return this._acHeadOffsetEnabled
+          ? { text: localize("settings.summary.on", l), on: true }
+          : { text: off, on: false };
+      case "preview":
+        return { text: localize("preview.intro", l) };
+      case "learning": {
+        const ids = learningRoomIds(this.rooms);
+        const paused = this._learningDisabledRooms.filter((rid) => ids.includes(rid)).length;
+        let text: string;
+        if (!ids.length) text = localize("settings.summary.learning_no_rooms", l);
+        else if (!paused) {
+          text = localize(
+            ids.length === 1
+              ? "settings.summary.learning_all_one"
+              : "settings.summary.learning_all",
+            l,
+            { count: count(ids.length) },
+          );
+        } else if (paused === ids.length) {
+          text = localize("settings.summary.learning_paused_all", l);
+        } else {
+          text = localize("settings.summary.learning_some", l, {
+            paused: count(paused),
+            count: count(ids.length),
+          });
+        }
+        return { text };
+      }
+      case "mold": {
+        const parts: string[] = [];
+        if (this._moldDetectionEnabled) {
+          parts.push(
+            localize("settings.summary.mold_detect", l, {
+              value: formatPercent(this._moldHumidityThreshold, this.hass),
+            }),
+          );
+        }
+        // The fork's prevention has no intensity setting (upstream's summary names its delta)
+        if (this._moldPreventionEnabled)
+          parts.push(localize("settings.summary.mold_prevent_on", l));
+        return parts.length ? { text: parts.join(" · "), on: true } : { text: off, on: false };
+      }
+      case "valve":
+        return this._valveProtectionEnabled
+          ? {
+              text: localize("settings.summary.valve_on", l, {
+                days: count(this._valveProtectionInterval),
+              }),
+              on: true,
+            }
+          : { text: off, on: false };
+      case "compressor": {
+        const groups = this._compressorGroups.length;
+        if (!groups) return { text: localize("settings.summary.compressor_none", l) };
+        const devices = this._compressorGroups.reduce((n, g) => n + g.members.length, 0);
+        return {
+          text: [
+            localize(groups === 1 ? "settings.summary.groups_one" : "settings.summary.groups", l, {
+              count: count(groups),
+            }),
+            localize(
+              devices === 1 ? "settings.summary.devices_one" : "settings.summary.devices",
+              l,
+              { count: count(devices) },
+            ),
+          ].join(" · "),
+        };
+      }
+      case "notifications": {
+        if (!this._moldNotificationsEnabled) return { text: off, on: false };
+        // Mold detection, the prevention notice and the open-window notice send from this page
+        if (
+          !this._moldDetectionEnabled &&
+          !(this._moldPreventionEnabled && this._moldPreventionNotify) &&
+          !this._windowOpenNotificationMinutes
+        ) {
+          return { text: localize("settings.summary.notify_no_source", l), on: false };
+        }
+        const n = this._moldNotificationTargets.filter((t) => t.entity_id).length;
+        const key =
+          n === 0
+            ? "settings.summary.notify_none"
+            : n === 1
+              ? "settings.summary.notify_one"
+              : "settings.summary.notify";
+        return { text: localize(key, l, { count: count(n) }), on: true };
+      }
+      case "reset":
+        return { text: localize("settings.summary.reset", l) };
+    }
+  }
+
+  private _sensorValue(entityId: string): number | null {
+    const st = this.hass.states[entityId];
+    if (!st || st.state === "unavailable" || st.state === "unknown") return null;
+    const v = parseFloat(st.state);
+    return isNaN(v) ? null : v;
+  }
+
+  private _hasOrphans(): boolean {
+    return this.roomsWithoutArea.length > 0;
+  }
+
+  private _onNavClick(e: MouseEvent, id: SettingsCategoryId) {
+    // Ctrl/Cmd/Shift/middle click keep the browser's "open in new tab".
+    if (e.ctrlKey || e.metaKey || e.shiftKey || e.button === 1) return;
+    e.preventDefault();
+    this._selectCategory(id);
+  }
+
+  private _selectCategory(category: SettingsCategoryId | "") {
+    this.dispatchEvent(
+      new CustomEvent("settings-category-changed", {
+        detail: { category },
+        bubbles: true,
+        composed: true,
+      }),
+    );
+  }
+
+  protected updated(changed: Map<string, unknown>) {
+    if (!changed.has("category") || this.wide) return;
+    const previous = changed.get("category") as string | undefined;
+    if (this.category && resolveSettingsCategory(this.category, this._hasOrphans(), false)) {
+      // Subpage opened from a scrolled list: start at its top, focus its heading.
+      window.scrollTo({ top: 0 });
+      this.renderRoot.querySelector<HTMLElement>("#page-title")?.focus({ preventScroll: true });
+    } else if (previous) {
+      // Back to the list: return to the entry the subpage was opened from.
+      const row = this.renderRoot.querySelector<HTMLElement>(`rs-list-row[data-id="${previous}"]`);
+      row?.scrollIntoView({ block: "center" });
+      row?.focus();
+    }
   }
 
   private _onBoostApplied(e: CustomEvent<{ area_id: string; n_observations: number }>) {
@@ -662,192 +858,148 @@ export class RsSettings extends LitElement {
     }
   }
 
-  static styles = css`
-    :host {
-      display: block;
-      --rs-ui-line: var(--divider-color, rgba(125, 125, 125, 0.16));
-    }
-    .settings-intro {
-      padding: 12px 2px 30px;
-      position: relative;
-    }
-    .eyebrow {
-      color: var(--secondary-text-color);
-      text-transform: uppercase;
-      font-size: 11px;
-      letter-spacing: 0.13em;
-      font-weight: 700;
-    }
-    .settings-intro h1 {
-      font-size: clamp(27px, 3vw, 38px);
-      line-height: 1.15;
-      letter-spacing: -0.035em;
-      margin: 10px 0 10px;
-      font-weight: 700;
-    }
-    .settings-intro p,
-    .category-heading p {
-      color: var(--secondary-text-color);
-      font-size: 14px;
-      line-height: 1.65;
-      max-width: 620px;
-      margin: 0;
-    }
-    .control-status {
-      display: inline-flex;
-      gap: 8px;
-      align-items: center;
-      margin-top: 17px;
-      padding: 8px 12px;
-      border-radius: 999px;
-      font-size: 12px;
-      font-weight: 650;
-      background: var(--secondary-background-color, rgba(128, 128, 128, 0.1));
-    }
-    .status-dot {
-      width: 8px;
-      height: 8px;
-      border-radius: 50%;
-      background: var(--secondary-text-color);
-    }
-    .running .status-dot {
-      background: var(--success-color, #36a578);
-    }
-    .settings-workspace {
-      display: grid;
-      grid-template-columns: 250px minmax(0, 1fr);
-      gap: 34px;
-      align-items: start;
-    }
-    .settings-navigation {
-      display: grid;
-      gap: 6px;
-      position: sticky;
-      top: 132px;
-    }
-    .category-button {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      text-align: left;
-      border: 1px solid transparent;
-      border-radius: 14px;
-      padding: 12px 14px;
-      font: inherit;
-      color: var(--secondary-text-color);
-      background: transparent;
-      cursor: pointer;
-      min-height: 64px;
-      transition:
-        background 0.18s ease,
-        border-color 0.18s ease;
-    }
-    .category-button:hover {
-      background: var(--secondary-background-color, rgba(128, 128, 128, 0.08));
-    }
-    .category-button.selected {
-      color: var(--primary-text-color);
-      border-color: var(--rs-ui-line);
-      background: var(--card-background-color);
-      box-shadow: 0 3px 18px rgba(0, 0, 0, 0.04);
-    }
-    .category-button ha-icon {
-      --mdc-icon-size: 21px;
-      flex-shrink: 0;
-    }
-    .category-button.selected ha-icon {
-      color: var(--primary-color);
-    }
-    .category-copy {
-      display: grid;
-      gap: 4px;
-      min-width: 0;
-      flex: 1;
-    }
-    .category-copy strong {
-      font-size: 14px;
-      font-weight: 650;
-    }
-    .category-copy small {
-      font-size: 11px;
-      opacity: 0.75;
-      line-height: 1.3;
-    }
-    .category-count {
-      font-size: 11px;
-      opacity: 0.55;
-      font-variant-numeric: tabular-nums;
-    }
-    .category-button:focus-visible {
-      outline: 2px solid var(--primary-color);
-      outline-offset: 2px;
-    }
-    .settings-body {
-      display: grid;
-      gap: 12px;
-      min-width: 0;
-    }
-    .category-heading {
-      padding: 5px 0 13px;
-    }
-    .category-heading h2 {
-      font-size: 23px;
-      font-weight: 650;
-      letter-spacing: -0.025em;
-      margin: 8px 0 6px;
-    }
-    rs-settings-panel[hidden] {
-      display: none !important;
-    }
-    @media (max-width: 850px) {
-      .settings-workspace {
+  static styles = [
+    tokens,
+    css`
+      :host {
         display: block;
       }
-      .settings-navigation {
+
+      [hidden] {
+        display: none !important;
+      }
+
+      .layout {
         display: flex;
-        overflow-x: auto;
-        gap: 8px;
-        position: relative;
-        top: auto;
-        padding: 0 0 14px;
-        margin-bottom: 20px;
-        scrollbar-width: thin;
+        flex-direction: column;
+        gap: var(--rs-space-5);
       }
-      .category-button {
-        flex: 0 0 auto;
-        min-height: 48px;
-        padding: 10px 13px;
-        white-space: nowrap;
+
+      .layout.wide {
+        display: grid;
+        grid-template-columns: 330px minmax(0, 1fr);
+        align-items: start;
       }
-      .category-copy small,
-      .category-count {
+
+      nav {
+        display: flex;
+        flex-direction: column;
+        gap: var(--rs-space-4);
+        min-width: 0;
+      }
+
+      .group-label {
+        margin: 0 var(--rs-space-2) var(--rs-space-2);
+        font-size: var(--rs-font-sm);
+        font-weight: 500;
+        color: var(--secondary-text-color);
+      }
+
+      .nav-card {
+        padding: var(--rs-space-1);
+        --rs-list-row-padding: var(--rs-space-3);
+      }
+
+      .page {
+        min-width: 0;
+      }
+
+      .page-head {
+        display: flex;
+        gap: var(--rs-space-4);
+        align-items: flex-start;
+        padding: var(--rs-space-5) var(--rs-space-5) var(--rs-space-4);
+      }
+
+      .page-icon {
+        width: 48px;
+        height: 48px;
+        border-radius: 50%;
+        flex: none;
+        display: grid;
+        place-items: center;
+        background: var(--rs-fill-primary);
+        color: var(--primary-color);
+        --mdc-icon-size: 26px;
+      }
+
+      .page-icon.attention {
+        background: color-mix(in srgb, var(--rs-warn) 14%, transparent);
+        color: var(--rs-warn);
+      }
+
+      .page-text {
+        min-width: 0;
+      }
+
+      .page-title-row {
+        display: flex;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: var(--rs-space-2);
+        margin-top: 2px;
+      }
+
+      h2 {
+        margin: 0;
+        font-size: 22px;
+        font-weight: 400;
+        line-height: 1.3;
+        overflow-wrap: anywhere;
+      }
+
+      h2:focus {
+        outline: none;
+      }
+
+      .subpage .page-icon {
         display: none;
       }
-      .category-copy {
-        display: block;
-      }
-      .settings-intro {
-        padding-bottom: 22px;
-      }
-    }
-    @media (max-width: 500px) {
-      .settings-intro h1 {
-        font-size: 28px;
-      }
-      .category-button ha-icon {
-        --mdc-icon-size: 18px;
-      }
-      .category-heading h2 {
-        font-size: 21px;
-      }
-    }
 
-    .loading {
-      padding: 80px 16px;
-      text-align: center;
-      color: var(--secondary-text-color);
-    }
-  `;
+      .subpage h2 {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        overflow: hidden;
+        clip-path: inset(50%);
+        white-space: nowrap;
+      }
+
+      .page-text p {
+        margin: var(--rs-space-1) 0 0;
+        color: var(--secondary-text-color);
+        font-size: 13px;
+        line-height: 1.5;
+        max-width: 70ch;
+      }
+
+      .page-body {
+        --rs-settings-inline: var(--rs-space-5);
+        padding: 0 var(--rs-space-5) var(--rs-space-4);
+      }
+
+      @media (max-width: 600px) {
+        .page-head {
+          padding: var(--rs-space-4) var(--rs-space-4) var(--rs-space-3);
+        }
+
+        .page-body {
+          --rs-settings-inline: var(--rs-space-4);
+          padding: 0 var(--rs-space-4) var(--rs-space-3);
+        }
+
+        h2 {
+          font-size: var(--rs-font-xl);
+        }
+      }
+
+      .loading {
+        padding: 80px 16px;
+        text-align: center;
+        color: var(--secondary-text-color);
+      }
+    `,
+  ];
 }
 
 declare global {
