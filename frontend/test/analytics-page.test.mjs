@@ -271,3 +271,22 @@ test("fork-only shapes: legacy AC list cools, solar shows without a learned flag
   });
   assert.ok(m._tiles().some((t) => t.id === "solar_gain"));
 });
+
+test("the afterglow info names the per-room residual control switch, not 'learning only'", async () => {
+  const { readFileSync } = await import("node:fs");
+  const stale = {
+    en: "does not change heating yet",
+    de: "ändert sich noch nicht",
+    fr: "ne change pas encore",
+    it: "il riscaldamento non cambia.",
+  };
+  for (const lang of ["en", "de", "fr", "it"]) {
+    const strings = JSON.parse(
+      readFileSync(new URL(`../src/locales/${lang}.json`, import.meta.url), "utf8"),
+    );
+    const info = strings["analytics.info.residual_afterglow"];
+    assert.ok(!info.includes(stale[lang]), `${lang}: ${info}`);
+    assert.ok(info.includes(strings["schedule.residual_control_toggle"]), `${lang}: ${info}`);
+    assert.ok(info.includes(strings["room.section.schedule"]), `${lang}: ${info}`);
+  }
+});
