@@ -71,6 +71,8 @@ export class RsOverrideSection extends LitElement {
   @state() private _optimisticOverride: Omit<EffectiveOverride, "active"> | null = null;
   @state() private _optimisticClear = false;
   private _optimisticSince = 0;
+  // A failure rolls back only while its request is still the latest set/clear
+  private _opRevision = 0;
   private _lastFired = "";
 
   static styles = [
@@ -286,6 +288,7 @@ export class RsOverrideSection extends LitElement {
     const nowS = serverNow() / 1000;
     const until = hours > 0 ? nowS + hours * 3600 : null;
     const previous = this._optimisticOverride;
+    const revision = ++this._opRevision;
     this._optimisticOverride = { type: pendingType, heat, cool, until };
     this._optimisticSince = Date.now();
     this._optimisticClear = false;
@@ -302,6 +305,7 @@ export class RsOverrideSection extends LitElement {
       await this.hass.callWS(msg);
       this._fireRoomUpdated();
     } catch (err) {
+      if (revision !== this._opRevision) return;
       this._optimisticOverride = previous;
       this._overrideError = errorText(
         err,
@@ -316,6 +320,7 @@ export class RsOverrideSection extends LitElement {
   private async _onClearOverride(): Promise<void> {
     if (!this.config) return;
 
+    const revision = ++this._opRevision;
     this._optimisticClear = true;
     this._optimisticSince = Date.now();
     this._optimisticOverride = null;
@@ -328,6 +333,7 @@ export class RsOverrideSection extends LitElement {
       });
       this._fireRoomUpdated();
     } catch (err) {
+      if (revision !== this._opRevision) return;
       this._optimisticClear = false;
       this._overrideError = errorText(
         err,

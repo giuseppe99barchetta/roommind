@@ -286,3 +286,38 @@ test("turning control off while a choice is open drops it and sends nothing", as
   await section._onOverrideActivate(2);
   assert.equal(sent.length, 0);
 });
+
+test("a late failure of an older override request does not undo a newer one", async () => {
+  let rejectFirst;
+  const calls = [];
+  const section = new OverrideSection();
+  section.hass = {
+    ...hass,
+    callWS: (msg) => {
+      calls.push(msg);
+      return calls.length === 1
+        ? new Promise((_, reject) => (rejectFirst = reject))
+        : Promise.resolve({});
+    },
+  };
+  section.config = { area_id: "sala", climate_mode: "auto", live: {} };
+  section.climateMode = "auto";
+  section.dispatchEvent = () => true;
+  section._overridePending = "boost";
+  const first = section._onOverrideActivate(2);
+  section._overridePending = "eco";
+  await section._onOverrideActivate(2);
+  rejectFirst(new Error("boom"));
+  await first;
+  assert.equal(section.getEffectiveOverride().type, "eco");
+  assert.equal(section._overrideError, "");
+
+  // Same for a clear overtaken by a newer set
+  calls.length = 0;
+  const clear = section._onClearOverride();
+  section._overridePending = "boost";
+  await section._onOverrideActivate(1);
+  rejectFirst(new Error("boom"));
+  await clear;
+  assert.equal(section.getEffectiveOverride().type, "boost");
+});
