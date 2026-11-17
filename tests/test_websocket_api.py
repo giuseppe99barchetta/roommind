@@ -1762,7 +1762,8 @@ async def test_analytics_with_range_key(ws_hass, store, connection):
     assert len(result["detail"]) == 1
     assert result["detail"][0]["ts"] == 1000.0
     # read_detail was called with max_age=86400
-    coordinator._history_store.read_detail.assert_called_once_with("room_a", 86400)
+    # first read: the chart range; the rhythm reads its own window afterwards
+    assert coordinator._history_store.read_detail.call_args_list[0].args == ("room_a", 86400)
 
 
 @pytest.mark.asyncio
@@ -1797,12 +1798,7 @@ async def test_analytics_with_custom_timestamps(ws_hass, store, connection):
 
     result = connection.send_result.call_args[0][1]
     assert len(result["detail"]) == 1
-    coordinator._history_store.read_detail.assert_called_once_with(
-        "room_a",
-        None,
-        1000.0,
-        2000.0,
-    )
+    assert coordinator._history_store.read_detail.call_args_list[0].args == ("room_a", None, 1000.0, 2000.0)
 
 
 @pytest.mark.asyncio

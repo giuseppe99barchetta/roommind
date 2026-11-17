@@ -16,7 +16,8 @@ MAX_SAMPLE_GAP_S = 900
 RHYTHM_DAYS = 14
 RHYTHM_MAX_DAYS = 31
 RHYTHM_MIN_DAYS = 2
-RHYTHM_MEANS = {"temp": "room_temp", "humidity": "humidity", "outdoor": "outdoor_temp"}
+# Hourly means of the grid: output key -> point field (the fork's points carry current_humidity)
+RHYTHM_MEANS = {"temp": "room_temp", "humidity": "current_humidity", "outdoor": "outdoor_temp"}
 # How long after a run the room may still carry it past the target (radiators keep giving heat)
 OVERSHOOT_WINDOW_S = 3600
 # A pre-heat starts at most this long before the block it heats for (PREHEAT_MAX_LEAD_HOURS)

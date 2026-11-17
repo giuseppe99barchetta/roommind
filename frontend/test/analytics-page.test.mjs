@@ -290,3 +290,45 @@ test("the afterglow info names the per-room residual control switch, not 'learni
     assert.ok(info.includes(strings["room.section.schedule"]), `${lang}: ${info}`);
   }
 });
+
+test("the rhythm card shows when the backend sends a rhythm; a picked day becomes the range", async () => {
+  const day = (date) => ({
+    date,
+    heat: Array(24).fill(0.5),
+    cool: Array(24).fill(null),
+    window: Array(24).fill(0),
+    deviation: Array(24).fill(0),
+    below: Array(24).fill(0),
+    above: Array(24).fill(0),
+    temp: Array(24).fill(20.5),
+    humidity: Array(24).fill(55),
+    outdoor: Array(24).fill(4),
+    within: 1,
+  });
+  const page = await loadedPage();
+  page._data = { ...page._data, rhythm: { days: [day("2026-11-17"), day("2026-11-16")] } };
+  assert.ok(flat(page.render()).includes("<rs-analytics-rhythm"), "card mounted");
+
+  const { RsAnalyticsRhythm } = await server.ssrLoadModule(
+    "/src/components/analytics/rs-analytics-rhythm.ts",
+  );
+  const card = new RsAnalyticsRhythm();
+  Object.assign(card, {
+    hass,
+    rhythm: page._data.rhythm,
+    rangeStart: Date.UTC(2026, 10, 16),
+    rangeEnd: Date.UTC(2026, 10, 17),
+    language: "en",
+    canHeat: true,
+    canCool: false,
+    hasWindowSensor: true,
+    bandSides: { heat: true, cool: false },
+  });
+  assert.equal(/NaN|undefined/.test(flat(card.render())), false);
+
+  globalThis.matchMedia ??= () => ({ matches: true });
+  void page._onDaySelected(new CustomEvent("day-selected", { detail: "2026-11-16" }));
+  assert.equal(page._activeQuick, null);
+  assert.ok(page._rangeEnd > page._rangeStart);
+  assert.ok(page._rangeEnd - page._rangeStart < 25 * 3600_000, "one day");
+});

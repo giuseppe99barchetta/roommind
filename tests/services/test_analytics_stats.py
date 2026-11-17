@@ -190,7 +190,7 @@ def test_rhythm_shares_are_parts_of_the_hour():
 
 
 def test_rhythm_hours_carry_the_means_for_the_popup():
-    points = _hour_of_samples(4, 7) + _hour_of_samples(5, 7, room_temp=20.5, humidity=48.0, outdoor_temp=6.0)
+    points = _hour_of_samples(4, 7) + _hour_of_samples(5, 7, room_temp=20.5, current_humidity=48.0, outdoor_temp=6.0)
     rhythm = compute_rhythm(points, "auto", _local_ts(5, 20))
     assert rhythm is not None
     newest = rhythm["days"][0]

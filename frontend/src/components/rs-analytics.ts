@@ -5,10 +5,17 @@
 import { LitElement, html, css, nothing } from "lit";
 import { customElement, property, state } from "lit/decorators.js";
 import type { HomeAssistant, RoomConfig, AnalyticsData, AnalyticsDataPoint } from "../types";
-import { QUICK_RANGE_DAYS, haTimeZone, quickRange } from "../utils/analytics-time";
+import {
+  QUICK_RANGE_DAYS,
+  haTimeZone,
+  isoDateInZone,
+  quickRange,
+  startOfDayInZone,
+} from "../utils/analytics-time";
 import { localize, type TranslationKey } from "../utils/localize";
 import "./analytics/rs-analytics-toolbar";
 import "./analytics/rs-analytics-chart";
+import "./analytics/rs-analytics-rhythm";
 import "./analytics/rs-energy-analytics-chart";
 import "./analytics/rs-analytics-model";
 import "./analytics/rs-analytics-summary";
@@ -188,6 +195,20 @@ export class RsAnalytics extends LitElement {
                 .targetBand=${sides}
                 .showPrice=${false}
               ></rs-analytics-chart>
+              ${!this.rooms[this._selectedRoom]?.is_outdoor && this._data?.rhythm
+                ? html`<rs-analytics-rhythm
+                    .hass=${this.hass}
+                    .rhythm=${this._data.rhythm}
+                    .rangeStart=${this._rangeStart}
+                    .rangeEnd=${this._rangeEnd}
+                    .language=${l}
+                    .canHeat=${flags.canHeat}
+                    .canCool=${flags.canCool}
+                    .hasWindowSensor=${flags.hasWindowSensor}
+                    .bandSides=${sides}
+                    @day-selected=${this._onDaySelected}
+                  ></rs-analytics-rhythm>`
+                : nothing}
               ${!this.rooms[this._selectedRoom]?.is_outdoor
                 ? html` <rs-energy-analytics-chart
                       .hass=${this.hass}
@@ -337,6 +358,25 @@ export class RsAnalytics extends LitElement {
     this._rangeEnd = rangeEnd;
     this._chartAnchor = chartAnchor;
   }
+
+  /** A day picked in the rhythm card becomes the chart's range (today: the live 24 h). */
+  private _onDaySelected = async (e: CustomEvent<string>) => {
+    const now = Date.now();
+    const zone = haTimeZone(this.hass);
+    const start = startOfDayInZone(e.detail, zone);
+    const today = e.detail === isoDateInZone(now, zone);
+    this._activeQuick = today ? "24h" : null;
+    this._rangeStart = start;
+    // The day's last second: midnight of the next day minus one, found via noon (DST)
+    const end = startOfDayInZone(isoDateInZone(start + 36 * 3600_000, zone), zone) - 1000;
+    this._rangeEnd = today ? now : end;
+    this._chartAnchor = this._rangeEnd;
+    await this.updateComplete;
+    const smooth = !matchMedia("(prefers-reduced-motion: reduce)").matches;
+    this.renderRoot
+      ?.querySelector("rs-analytics-chart")
+      ?.scrollIntoView({ block: "nearest", behavior: smooth ? "smooth" : "auto" });
+  };
 
   private _buildWsParams(): Record<string, unknown> {
     return {
