@@ -216,3 +216,55 @@ test("learn faster is not offered before the room has a model", () => {
   })(tpl);
   assert.deepEqual(found, [true]);
 });
+
+// ── Safety preview in the 2.0 controls: same request, mode change clears the result ──
+test("safety preview: segmented mode, a button that runs the same read-only request, rows", async () => {
+  const mod = await server.ssrLoadModule("/src/components/settings/rs-settings-preview.ts");
+  const p = new mod.RsSettingsPreview();
+  const calls = [];
+  p.hass = {
+    ...hass,
+    callWS: async (msg) => {
+      calls.push(msg);
+      return {
+        read_only: true,
+        mode: msg.mode,
+        house_available_watts: 1234.4,
+        power_sensor_healthy: true,
+        power_sensor_age_seconds: 12,
+        boiler_state: "idle",
+        bypass_acknowledged: false,
+        boiler_demand_rooms: [],
+        rooms: {
+          living_room: {
+            watts: 800,
+            source: "learned",
+            samples: 3,
+            already_running: false,
+            would_allow: true,
+            reason: "eligible",
+            current_decision_reasons: ["window_open"],
+          },
+        },
+      };
+    },
+  };
+  const view = p.render();
+  const text = JSON.stringify(view.strings);
+  assert.ok(!text.includes("<select") && !text.includes("<button"), "no native select/button");
+  const [pick] = handlers(view).filter((fn) => String(fn).includes("_mode"));
+  pick({ detail: { value: "heating" }, stopPropagation() {} });
+  assert.equal(p._mode, "heating");
+  await p._refresh();
+  assert.deepEqual(calls, [{ type: "roommind/control/preview", mode: "heating" }]);
+  const rows = JSON.stringify(p.render(), (k, v) => (typeof v === "function" ? undefined : v));
+  assert.ok(rows.includes("1234 W"), rows);
+  assert.ok(rows.includes("living room"), rows);
+  assert.ok(rows.includes("800 W"), rows);
+  // a new mode drops the old result, as the select did
+  handlers(p.render()).filter((fn) => String(fn).includes("_mode"))[0]({
+    detail: { value: "dry" },
+    stopPropagation() {},
+  });
+  assert.equal(p._result, undefined);
+});

@@ -6715,91 +6715,56 @@
       color: var(--secondary-text-color);
       margin-top: 4px;
     }
-  `}};k([w({attribute:!1})],Y.prototype,`hass`,void 0),k([w({type:String})],Y.prototype,`boilerEntity`,void 0),k([w({type:String})],Y.prototype,`boilerControlType`,void 0),k([w({type:Array})],Y.prototype,`bypassEntities`,void 0),k([w({type:Number})],Y.prototype,`startupDelay`,void 0),k([w({type:Number})],Y.prototype,`shutdownDelay`,void 0),k([w({type:Number})],Y.prototype,`bypassTemperature`,void 0),k([w({type:Boolean})],Y.prototype,`bypassChildLock`,void 0),k([w({type:Number})],Y.prototype,`minDemandRooms`,void 0),k([w({type:String})],Y.prototype,`demandUnit`,void 0),k([w({type:Number})],Y.prototype,`minRunMinutes`,void 0),k([w({type:Number})],Y.prototype,`minOffMinutes`,void 0),k([w({type:Number})],Y.prototype,`faultRetryMinutes`,void 0),k([w({type:Number})],Y.prototype,`maxWaitMinutes`,void 0),k([w({type:Boolean})],Y.prototype,`budgetEnabled`,void 0),k([w({type:String})],Y.prototype,`powerSensor`,void 0),k([w({type:String})],Y.prototype,`powerMode`,void 0),k([w({type:Number})],Y.prototype,`maxPower`,void 0),k([w({type:Number})],Y.prototype,`reserve`,void 0),k([w({type:Number})],Y.prototype,`energyPricePerKwh`,void 0),k([T()],Y.prototype,`_powerModeState`,void 0),Y=k([C(`rs-settings-heating-system`)],Y),x(),E(),A();var Ua=class extends b{constructor(...e){super(...e),this._mode=`cooling`,this._loading=!1,this._error=!1}static{this.styles=l`
-    :host {
-      display: block;
-      font-size: 13px;
-    }
-    .controls {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      flex-wrap: wrap;
-    }
-    select,
-    button {
-      padding: 8px 12px;
-      border-radius: 9px;
-      background: var(--card-background-color);
-      color: var(--primary-text-color);
-      border: 1px solid var(--divider-color);
-    }
-    button {
-      cursor: pointer;
-    }
-    button:disabled {
-      opacity: 0.6;
-      cursor: default;
-    }
-    .summary {
-      margin: 12px 0;
-      color: var(--secondary-text-color);
-      line-height: 1.6;
-    }
-    .room {
-      padding: 10px 0;
-      border-top: 1px solid var(--divider-color);
-      display: grid;
-      gap: 3px;
-    }
-    .room strong {
-      color: var(--primary-text-color);
-    }
-    .reason {
-      color: var(--secondary-text-color);
-    }
-  `}async _refresh(){this._loading=!0,this._error=!1;try{this._result=await this.hass.callWS({type:`roommind/control/preview`,mode:this._mode})}catch{this._error=!0}finally{this._loading=!1}}render(){let e=this.hass.language,t=this._result;return v`
-      <div class="controls">
-        <select
-          aria-label=${D(`preview.mode`,e)}
-          .value=${this._mode}
-          @change=${e=>{this._mode=e.target.value,this._result=void 0}}
-        >
-          <option value="heating">${D(`heat_source.budget_heating`,e)}</option>
-          <option value="cooling">${D(`heat_source.budget_cooling`,e)}</option>
-          <option value="dry">${D(`heat_source.budget_dry`,e)}</option>
-        </select>
-        <button ?disabled=${this._loading} @click=${()=>this._refresh()}>
-          ${D(`preview.run`,e)}
-        </button>
+  `}};k([w({attribute:!1})],Y.prototype,`hass`,void 0),k([w({type:String})],Y.prototype,`boilerEntity`,void 0),k([w({type:String})],Y.prototype,`boilerControlType`,void 0),k([w({type:Array})],Y.prototype,`bypassEntities`,void 0),k([w({type:Number})],Y.prototype,`startupDelay`,void 0),k([w({type:Number})],Y.prototype,`shutdownDelay`,void 0),k([w({type:Number})],Y.prototype,`bypassTemperature`,void 0),k([w({type:Boolean})],Y.prototype,`bypassChildLock`,void 0),k([w({type:Number})],Y.prototype,`minDemandRooms`,void 0),k([w({type:String})],Y.prototype,`demandUnit`,void 0),k([w({type:Number})],Y.prototype,`minRunMinutes`,void 0),k([w({type:Number})],Y.prototype,`minOffMinutes`,void 0),k([w({type:Number})],Y.prototype,`faultRetryMinutes`,void 0),k([w({type:Number})],Y.prototype,`maxWaitMinutes`,void 0),k([w({type:Boolean})],Y.prototype,`budgetEnabled`,void 0),k([w({type:String})],Y.prototype,`powerSensor`,void 0),k([w({type:String})],Y.prototype,`powerMode`,void 0),k([w({type:Number})],Y.prototype,`maxPower`,void 0),k([w({type:Number})],Y.prototype,`reserve`,void 0),k([w({type:Number})],Y.prototype,`energyPricePerKwh`,void 0),k([T()],Y.prototype,`_powerModeState`,void 0),Y=k([C(`rs-settings-heating-system`)],Y),x(),E(),A();var Ua=class extends J{constructor(...e){super(...e),this._mode=`cooling`,this._loading=!1,this._error=!1}static{this.styles=[J.settingsBaseStyles]}async _refresh(){this._loading=!0,this._error=!1;try{this._result=await this.hass.callWS({type:`roommind/control/preview`,mode:this._mode})}catch{this._error=!0}finally{this._loading=!1}}render(){let e=this.hass.language,t=this._result;return v`
+      <div class="settings-section first stack">
+        <rs-field .label=${D(`preview.mode`,e)} .hint=${D(`preview.scope`,e)}>
+          <rs-segmented
+            wrap
+            .label=${D(`preview.mode`,e)}
+            .options=${[`heating`,`cooling`,`dry`].map(t=>({value:t,label:D(`heat_source.budget_${t}`,e)}))}
+            .value=${this._mode}
+            @value-changed=${e=>{e.stopPropagation(),this._mode=e.detail.value,this._result=void 0}}
+          ></rs-segmented>
+        </rs-field>
+        <div>
+          <ha-button .disabled=${this._loading} @click=${()=>this._refresh()}>
+            <ha-icon icon="mdi:play-circle-outline" slot="icon"></ha-icon>
+            ${D(`preview.run`,e)}
+          </ha-button>
+        </div>
+        ${this._error?v`<p class="note" role="alert">${D(`preview.error`,e)}</p>`:y}
       </div>
-      <div class="summary">${D(`preview.scope`,e)}</div>
-      ${this._error?v`<div>${D(`preview.error`,e)}</div>`:y}
-      ${t?v`
-            <div class="summary">
-              ${D(`preview.headroom`,e)}:
-              ${t.house_available_watts===null?`—`:`${Math.round(t.house_available_watts)} W`}
-              · ${D(`preview.meter`,e)}:
-              ${t.power_sensor_healthy?D(`preview.healthy`,e):D(`preview.unavailable`,e)}
-              ${t.power_sensor_age_seconds===null?y:`(${Math.round(t.power_sensor_age_seconds)} s)`}
-              · ${D(`preview.boiler`,e)}: ${t.boiler_state} ·
-              ${D(`preview.bypass`,e)}:
-              ${t.bypass_acknowledged?D(`preview.acknowledged`,e):D(`preview.not_acknowledged`,e)}
+      ${t?v`<div class="settings-section">
+              <rs-list-row
+                icon="mdi:flash"
+                .heading=${D(`preview.headroom`,e)}
+                .value=${t.house_available_watts===null?`—`:`${Math.round(t.house_available_watts)} W`}
+              ></rs-list-row>
+              <rs-list-row
+                icon="mdi:meter-electric-outline"
+                .heading=${D(`preview.meter`,e)}
+                .value=${`${t.power_sensor_healthy?D(`preview.healthy`,e):D(`preview.unavailable`,e)}${t.power_sensor_age_seconds===null?``:` (${Math.round(t.power_sensor_age_seconds)} s)`}`}
+              ></rs-list-row>
+              <rs-list-row
+                icon="mdi:water-boiler"
+                .heading=${D(`preview.boiler`,e)}
+                .value=${t.boiler_state}
+              ></rs-list-row>
+              <rs-list-row
+                icon="mdi:valve"
+                .heading=${D(`preview.bypass`,e)}
+                .value=${t.bypass_acknowledged?D(`preview.acknowledged`,e):D(`preview.not_acknowledged`,e)}
+              ></rs-list-row>
             </div>
-            ${Object.entries(t.rooms).map(([t,n])=>v`
-                <div class="room">
-                  <strong>${t.replaceAll(`_`,` `)}</strong>
-                  <span
-                    >${n.watts} W · ${D(`heat_source.budget_${n.source}`,e)}</span
-                  >
-                  <span class="reason">${D(`preview.reason_${n.reason}`,e)}</span>
-                  ${n.current_decision_reasons.length?v`<span class="reason"
-                        >${D(`preview.current_reasons`,e)}:
-                        ${n.current_decision_reasons.join(`, `)}</span
-                      >`:y}
-                </div>
-              `)}
-          `:y}
+            <div class="settings-section">
+              ${Object.entries(t.rooms).map(([t,n])=>v`<rs-list-row
+                    wrap
+                    icon="mdi:door"
+                    .heading=${t.replaceAll(`_`,` `)}
+                    .secondary=${[D(`preview.reason_${n.reason}`,e),n.current_decision_reasons.length?`${D(`preview.current_reasons`,e)}: ${n.current_decision_reasons.join(`, `)}`:``].filter(Boolean).join(` · `)}
+                    .value=${`${n.watts} W · ${D(`heat_source.budget_${n.source}`,e)}`}
+                  ></rs-list-row>`)}
+            </div>`:y}
     `}};k([w({attribute:!1})],Ua.prototype,`hass`,void 0),k([T()],Ua.prototype,`_mode`,void 0),k([T()],Ua.prototype,`_result`,void 0),k([T()],Ua.prototype,`_loading`,void 0),k([T()],Ua.prototype,`_error`,void 0),Ua=k([C(`rs-settings-preview`)],Ua),x(),E(),A();var X=class extends b{constructor(...e){super(...e),this.rooms={},this.roomsWithoutArea=[],this.category=``,this.wide=!0,this._groupByFloor=!1,this._climateControlActive=!0,this._temperatureRoundingMode=`nearest`,this._learningDisabledRooms=[],this._outdoorTempSensor=``,this._outdoorHumiditySensor=``,this._outdoorCoolingMin=16,this._outdoorHeatingMax=22,this._comfortWeight=70,this._weatherEntity=``,this._outdoorUnavailableNotify=!0,this._predictionEnabled=!0,this._vacationActive=!1,this._vacationTemp=15,this._vacationUntil=``,this._presenceEnabled=!1,this._presencePersons=[],this._presenceAwayAction=`eco`,this._presenceClearsOverride=!1,this._scheduleOffAction=`eco`,this._valveProtectionEnabled=!1,this._acHeadOffsetEnabled=!1,this._acHeadOffsets={},this._valveProtectionInterval=7,this._moldDetectionEnabled=!1,this._moldHumidityThreshold=70,this._moldSustainedMinutes=30,this._moldNotificationCooldown=60,this._moldNotificationsEnabled=!0,this._moldNotificationTargets=[],this._moldPreventionEnabled=!1,this._moldPreventionSustainedMinutes=15,this._moldPreventionDehumidificationEnabled=!0,this._moldPreventionDryMinTemperature=23,this._moldPreventionNotify=!1,this._windowOpenNotificationMinutes=0,this._compressorGroups=[],this._boostAppliedAt={},this._boilerEntity=``,this._boilerControlType=`climate`,this._bypassEntities=[],this._startupDelay=30,this._shutdownDelay=60,this._bypassTemperature=28,this._bypassChildLock=!0,this._minDemandRooms=1,this._demandUnit=`valves`,this._minRunMinutes=5,this._minOffMinutes=3,this._faultRetryMinutes=5,this._maxWaitMinutes=120,this._budgetEnabled=!1,this._powerSensor=``,this._powerMode=`available`,this._powerModeDirty=!1,this._maxPower=3300,this._reserve=200,this._unavailableBehavior=`boiler`,this._energyPricePerKwh=0,this._loaded=!1,this._loadFailed=!1,this._savedPayload=null,this._saveQueue=Promise.resolve(),this._savesInFlight=0}connectedCallback(){super.connectedCallback(),this._loadSettings()}disconnectedCallback(){super.disconnectedCallback(),this._saveDebounce&&(clearTimeout(this._saveDebounce),this._saveDebounce=void 0,this._doSave())}async _loadSettings(){this._loadFailed=!1;try{let e=(await this.hass.callWS({type:`roommind/settings/get`})).settings;this._groupByFloor=e.group_by_floor??!1,this._climateControlActive=e.climate_control_active??!0,this._temperatureRoundingMode=e.temperature_rounding_mode??`nearest`,this._learningDisabledRooms=e.learning_disabled_rooms??[],this._outdoorTempSensor=e.outdoor_temp_sensor??``,this._outdoorHumiditySensor=e.outdoor_humidity_sensor??``,this._outdoorCoolingMin=e.outdoor_cooling_min??16,this._outdoorHeatingMax=e.outdoor_heating_max??22,this._comfortWeight=e.comfort_weight??70,this._weatherEntity=e.weather_entity??``,this._outdoorUnavailableNotify=e.outdoor_unavailable_notify??!0,this._predictionEnabled=e.prediction_enabled??!0;let t=e.vacation_until;this._vacationActive=!!(t&&t>Vt()/1e3),this._vacationTemp=e.vacation_temp??15,this._vacationUntil=t&&t>Vt()/1e3&&t<3250368e4?this._tsToDatetimeLocal(t):``,this._presenceEnabled=e.presence_enabled??!1,this._presencePersons=e.presence_persons??[],this._presenceAwayAction=e.presence_away_action??`eco`,this._presenceClearsOverride=e.presence_clears_override??!1,this._scheduleOffAction=e.schedule_off_action??`eco`,this._valveProtectionEnabled=e.valve_protection_enabled??!1,this._acHeadOffsetEnabled=e.ac_head_offset_enabled??!1,this._acHeadOffsets=e.ac_head_offsets??{},this._valveProtectionInterval=e.valve_protection_interval_days??7,this._moldDetectionEnabled=e.mold_detection_enabled??!1,this._moldHumidityThreshold=e.mold_humidity_threshold??70,this._moldSustainedMinutes=e.mold_sustained_minutes??30,this._moldNotificationCooldown=e.mold_notification_cooldown??60,this._moldNotificationsEnabled=e.mold_notifications_enabled??!0,this._moldNotificationTargets=e.mold_notification_targets??[],this._moldPreventionEnabled=e.mold_prevention_enabled??!1,this._moldPreventionSustainedMinutes=e.mold_prevention_sustained_minutes??60,this._moldPreventionDehumidificationEnabled=e.mold_prevention_dehumidification_enabled??!0,this._moldPreventionDryMinTemperature=e.mold_prevention_dry_min_temperature??22,this._moldPreventionNotify=e.mold_prevention_notify_enabled??!1,this._windowOpenNotificationMinutes=e.window_open_notification_minutes??0,this._compressorGroups=e.compressor_groups??[],this._boostAppliedAt=e.boost_applied_at??{},this._boilerEntity=e.boiler_entity??``,this._boilerControlType=e.boiler_control_type??`climate`,this._bypassEntities=ia(e.hydraulic_bypass_entities),this._startupDelay=e.boiler_startup_delay_seconds??30,this._shutdownDelay=e.boiler_shutdown_delay_seconds??60,this._bypassTemperature=e.hydraulic_bypass_open_temperature??28,this._bypassChildLock=e.hydraulic_bypass_child_lock??!0,this._minDemandRooms=e.boiler_min_demand_rooms??1,this._demandUnit=e.boiler_demand_unit??`valves`,this._minRunMinutes=e.boiler_min_run_minutes??5,this._minOffMinutes=e.boiler_min_off_minutes??3,this._faultRetryMinutes=e.boiler_fault_retry_minutes??5,this._maxWaitMinutes=e.boiler_max_wait_minutes??120,this._budgetEnabled=e.power_budget_enabled??!1,this._powerSensor=e.power_sensor??``,this._powerModeDirty||(this._powerMode=aa(e.power_sensor_mode)),this._maxPower=e.power_budget_max_watts??3300,this._reserve=e.power_budget_reserve_watts??200,this._unavailableBehavior=e.power_budget_unavailable_behavior??`boiler`,this._energyPricePerKwh=e.energy_price_per_kwh??0,this._savedPayload=Gi(this._buildPayload())}catch(e){console.debug(`[RoomMind] loadSettings:`,e),this._loadFailed=!0,this._savedPayload=null}finally{this._loaded=!0}}render(){if(!this._loaded)return v`<div class="loading">${D(`panel.loading`,this.hass.language)}</div>`;if(this._loadFailed)return v`<div class="loading">
         <p>${D(`settings.load_failed`,this.hass.language)}</p>
         <ha-button @click=${()=>this._loadSettings()}

@@ -1,8 +1,12 @@
 /** Read-only safety preview. Never sends commands to physical devices. */
-import { LitElement, css, html, nothing } from "lit";
+import { html, nothing } from "lit";
 import { customElement, property, state } from "lit/decorators.js";
 import type { HomeAssistant } from "../../types";
 import { localize } from "../../utils/localize";
+import { RsSettingsBase } from "./rs-settings-base";
+import "../shared/rs-field";
+import "../shared/rs-list-row";
+import "../shared/rs-segmented";
 
 interface PreviewRoom {
   watts: number;
@@ -31,57 +35,14 @@ interface ControlPreview {
 }
 
 @customElement("rs-settings-preview")
-export class RsSettingsPreview extends LitElement {
+export class RsSettingsPreview extends RsSettingsBase {
   @property({ attribute: false }) public hass!: HomeAssistant;
   @state() private _mode: "heating" | "cooling" | "dry" = "cooling";
   @state() private _result?: ControlPreview;
   @state() private _loading = false;
   @state() private _error = false;
 
-  static styles = css`
-    :host {
-      display: block;
-      font-size: 13px;
-    }
-    .controls {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      flex-wrap: wrap;
-    }
-    select,
-    button {
-      padding: 8px 12px;
-      border-radius: 9px;
-      background: var(--card-background-color);
-      color: var(--primary-text-color);
-      border: 1px solid var(--divider-color);
-    }
-    button {
-      cursor: pointer;
-    }
-    button:disabled {
-      opacity: 0.6;
-      cursor: default;
-    }
-    .summary {
-      margin: 12px 0;
-      color: var(--secondary-text-color);
-      line-height: 1.6;
-    }
-    .room {
-      padding: 10px 0;
-      border-top: 1px solid var(--divider-color);
-      display: grid;
-      gap: 3px;
-    }
-    .room strong {
-      color: var(--primary-text-color);
-    }
-    .reason {
-      color: var(--secondary-text-color);
-    }
-  `;
+  static styles = [RsSettingsBase.settingsBaseStyles];
 
   private async _refresh() {
     this._loading = true;
@@ -101,62 +62,85 @@ export class RsSettingsPreview extends LitElement {
   render() {
     const lang = this.hass.language;
     const r = this._result;
+    const modes = ["heating", "cooling", "dry"] as const;
     return html`
-      <div class="controls">
-        <select
-          aria-label=${localize("preview.mode", lang)}
-          .value=${this._mode}
-          @change=${(e: Event) => {
-            this._mode = (e.target as HTMLSelectElement).value as typeof this._mode;
-            this._result = undefined;
-          }}
-        >
-          <option value="heating">${localize("heat_source.budget_heating", lang)}</option>
-          <option value="cooling">${localize("heat_source.budget_cooling", lang)}</option>
-          <option value="dry">${localize("heat_source.budget_dry", lang)}</option>
-        </select>
-        <button ?disabled=${this._loading} @click=${() => this._refresh()}>
-          ${localize("preview.run", lang)}
-        </button>
+      <div class="settings-section first stack">
+        <rs-field .label=${localize("preview.mode", lang)} .hint=${localize("preview.scope", lang)}>
+          <rs-segmented
+            wrap
+            .label=${localize("preview.mode", lang)}
+            .options=${modes.map((mode) => ({
+              value: mode,
+              label: localize(`heat_source.budget_${mode}`, lang),
+            }))}
+            .value=${this._mode}
+            @value-changed=${(e: CustomEvent<{ value: "heating" | "cooling" | "dry" }>) => {
+              e.stopPropagation();
+              this._mode = e.detail.value;
+              this._result = undefined;
+            }}
+          ></rs-segmented>
+        </rs-field>
+        <div>
+          <ha-button .disabled=${this._loading} @click=${() => this._refresh()}>
+            <ha-icon icon="mdi:play-circle-outline" slot="icon"></ha-icon>
+            ${localize("preview.run", lang)}
+          </ha-button>
+        </div>
+        ${this._error
+          ? html`<p class="note" role="alert">${localize("preview.error", lang)}</p>`
+          : nothing}
       </div>
-      <div class="summary">${localize("preview.scope", lang)}</div>
-      ${this._error ? html`<div>${localize("preview.error", lang)}</div>` : nothing}
       ${r
-        ? html`
-            <div class="summary">
-              ${localize("preview.headroom", lang)}:
-              ${r.house_available_watts === null ? "—" : `${Math.round(r.house_available_watts)} W`}
-              · ${localize("preview.meter", lang)}:
-              ${r.power_sensor_healthy
-                ? localize("preview.healthy", lang)
-                : localize("preview.unavailable", lang)}
-              ${r.power_sensor_age_seconds !== null
-                ? `(${Math.round(r.power_sensor_age_seconds)} s)`
-                : nothing}
-              · ${localize("preview.boiler", lang)}: ${r.boiler_state} ·
-              ${localize("preview.bypass", lang)}:
-              ${r.bypass_acknowledged
-                ? localize("preview.acknowledged", lang)
-                : localize("preview.not_acknowledged", lang)}
+        ? html`<div class="settings-section">
+              <rs-list-row
+                icon="mdi:flash"
+                .heading=${localize("preview.headroom", lang)}
+                .value=${r.house_available_watts === null
+                  ? "—"
+                  : `${Math.round(r.house_available_watts)} W`}
+              ></rs-list-row>
+              <rs-list-row
+                icon="mdi:meter-electric-outline"
+                .heading=${localize("preview.meter", lang)}
+                .value=${`${
+                  r.power_sensor_healthy
+                    ? localize("preview.healthy", lang)
+                    : localize("preview.unavailable", lang)
+                }${r.power_sensor_age_seconds !== null ? ` (${Math.round(r.power_sensor_age_seconds)} s)` : ""}`}
+              ></rs-list-row>
+              <rs-list-row
+                icon="mdi:water-boiler"
+                .heading=${localize("preview.boiler", lang)}
+                .value=${r.boiler_state}
+              ></rs-list-row>
+              <rs-list-row
+                icon="mdi:valve"
+                .heading=${localize("preview.bypass", lang)}
+                .value=${r.bypass_acknowledged
+                  ? localize("preview.acknowledged", lang)
+                  : localize("preview.not_acknowledged", lang)}
+              ></rs-list-row>
             </div>
-            ${Object.entries(r.rooms).map(
-              ([areaId, room]) => html`
-                <div class="room">
-                  <strong>${areaId.replaceAll("_", " ")}</strong>
-                  <span
-                    >${room.watts} W · ${localize(`heat_source.budget_${room.source}`, lang)}</span
-                  >
-                  <span class="reason">${localize(`preview.reason_${room.reason}`, lang)}</span>
-                  ${room.current_decision_reasons.length
-                    ? html`<span class="reason"
-                        >${localize("preview.current_reasons", lang)}:
-                        ${room.current_decision_reasons.join(", ")}</span
-                      >`
-                    : nothing}
-                </div>
-              `,
-            )}
-          `
+            <div class="settings-section">
+              ${Object.entries(r.rooms).map(
+                ([areaId, room]) =>
+                  html`<rs-list-row
+                    wrap
+                    icon="mdi:door"
+                    .heading=${areaId.replaceAll("_", " ")}
+                    .secondary=${[
+                      localize(`preview.reason_${room.reason}`, lang),
+                      room.current_decision_reasons.length
+                        ? `${localize("preview.current_reasons", lang)}: ${room.current_decision_reasons.join(", ")}`
+                        : "",
+                    ]
+                      .filter(Boolean)
+                      .join(" · ")}
+                    .value=${`${room.watts} W · ${localize(`heat_source.budget_${room.source}`, lang)}`}
+                  ></rs-list-row>`,
+              )}
+            </div>`
         : nothing}
     `;
   }
