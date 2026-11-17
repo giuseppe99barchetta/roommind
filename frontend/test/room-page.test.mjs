@@ -231,3 +231,58 @@ test("the hero keeps the fork's diagnostics: budget, preconditioning, AC efficie
     planned.join(" | "),
   );
 });
+
+function overrideSection(live = {}) {
+  const sent = [];
+  const section = new OverrideSection();
+  section.hass = { ...hass, callWS: async (msg) => sent.push(msg) };
+  section.config = { area_id: "sala", climate_mode: "auto", live };
+  section.climateMode = "auto";
+  section.dispatchEvent = () => true;
+  return { section, sent };
+}
+
+test("a poll still carrying the old override of the same type does not undo a changed one", async () => {
+  const now = Date.now() / 1000;
+  const old = {
+    override_active: true,
+    override_type: "custom",
+    override_heat: 21,
+    override_cool: 25,
+    override_until: now + 3600,
+  };
+  const { section } = overrideSection(old);
+  section._overridePending = "custom";
+  section._overrideCustomHeat = 23;
+  section._overrideCustomCool = 26;
+  await section._onOverrideActivate(4);
+  section.config = { ...section.config, live: { ...old } };
+  section.updated(new Map([["config", null]]));
+  const ov = section.getEffectiveOverride();
+  assert.equal(ov.heat, 23);
+  assert.ok(ov.until > now + 3 * 3600, "the new 4 h end is kept");
+
+  // Same type, same band, a different duration: still the old one
+  const boost = { override_active: true, override_type: "boost", override_until: now + 3600 };
+  const b = overrideSection(boost).section;
+  b._overridePending = "boost";
+  await b._onOverrideActivate(0);
+  b.config = { ...b.config, live: { ...boost } };
+  b.updated(new Map([["config", null]]));
+  assert.equal(b.getEffectiveOverride().until, null);
+  // The server answers with the permanent override: confirmed
+  b.config = { ...b.config, live: { ...boost, override_until: null } };
+  b.updated(new Map([["config", null]]));
+  assert.equal(b._optimisticOverride, null);
+});
+
+test("turning control off while a choice is open drops it and sends nothing", async () => {
+  const { section, sent } = overrideSection();
+  section._overridePending = "boost";
+  section.disabled = true;
+  section.willUpdate(new Map([["disabled", false]]));
+  assert.equal(section._overridePending, null);
+  section._overridePending = "boost";
+  await section._onOverrideActivate(2);
+  assert.equal(sent.length, 0);
+});

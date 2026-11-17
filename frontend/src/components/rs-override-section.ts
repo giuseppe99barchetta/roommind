@@ -1,6 +1,6 @@
 import { LitElement, html, css, nothing } from "lit";
 import { customElement, property, state } from "lit/decorators.js";
-import type { HomeAssistant, RoomConfig, ClimateMode, OverrideType } from "../types";
+import type { HomeAssistant, RoomConfig, RoomLiveData, ClimateMode, OverrideType } from "../types";
 import { localize } from "../utils/localize";
 import { errorText } from "../utils/errors";
 import { tokens } from "../styles/tokens";
@@ -33,6 +33,24 @@ const OPTIMISTIC_TIMEOUT_MS = 15000;
  * once (optimistic) and fires `override-state` with the effective override whenever that
  * changes, so the hero can show it before the poll confirms.
  */
+/**
+ * Whether the server's override is the one just sent: same type and end, and for a custom one
+ * the same band (comfort/eco bands come from the server's own temps). Type alone would let a poll
+ * still carrying the old override of that type undo a changed duration or band.
+ */
+function overrideMatches(live: RoomLiveData, sent: Omit<EffectiveOverride, "active">): boolean {
+  const near = (a: number | null | undefined, b: number | null | undefined, tol: number) =>
+    a == null || b == null ? a == null && b == null : Math.abs(a - b) <= tol;
+  return (
+    !!live.override_active &&
+    live.override_type === sent.type &&
+    (sent.type !== "custom" ||
+      (near(live.override_heat, sent.heat, 0.05) && near(live.override_cool, sent.cool, 0.05))) &&
+    // The server stamps the end with its own clock
+    near(live.override_until, sent.until, 120)
+  );
+}
+
 @customElement("rs-override-section")
 export class RsOverrideSection extends LitElement {
   @property({ attribute: false }) public hass!: HomeAssistant;
@@ -91,6 +109,11 @@ export class RsOverrideSection extends LitElement {
     `,
   ];
 
+  willUpdate(changedProps: Map<string, unknown>) {
+    // Control turned off while a choice is open: the choice must not send an override anymore.
+    if (changedProps.has("disabled") && this.disabled) this._overridePending = null;
+  }
+
   updated(changedProps: Map<string, unknown>) {
     // Clear optimistic state once server data catches up (or never will).
     if (changedProps.has("config") && this.config?.live) {
@@ -98,7 +121,7 @@ export class RsOverrideSection extends LitElement {
       const expired = Date.now() - this._optimisticSince > OPTIMISTIC_TIMEOUT_MS;
       if (
         this._optimisticOverride &&
-        ((live.override_active && live.override_type === this._optimisticOverride.type) || expired)
+        (overrideMatches(live, this._optimisticOverride) || expired)
       ) {
         this._optimisticOverride = null;
       }
@@ -241,7 +264,7 @@ export class RsOverrideSection extends LitElement {
   }
 
   private async _onOverrideActivate(hours: number): Promise<void> {
-    if (!this._overridePending || !this.config) return;
+    if (!this._overridePending || !this.config || this.disabled) return;
 
     const pendingType = this._overridePending;
     const custom = { heat: this._overrideCustomHeat, cool: this._overrideCustomCool };
