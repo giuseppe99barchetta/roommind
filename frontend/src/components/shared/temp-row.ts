@@ -26,7 +26,9 @@ export function tempRow(opts: {
 }) {
   const { hass, side, label } = opts;
   const step = usesFahrenheit(hass) ? 1 : 0.5;
-  const shown = Math.round(toDisplay(opts.celsius, hass) / step) * step;
+  // The stored value as it is (one decimal), not snapped to the step: 21.2 °C shows 21.2 °C and
+  // only a press moves it onto the step grid
+  const shown = Math.round(toDisplay(opts.celsius, hass) * 10) / 10;
   return html`<div class="temp-row ${side}">
     <span
       ><ha-icon icon=${side === "heat" ? "mdi:fire" : "mdi:snowflake"} aria-hidden="true"></ha-icon

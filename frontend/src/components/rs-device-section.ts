@@ -757,7 +757,8 @@ export class RsDeviceSection extends LitElement {
     const asToggle =
       !!pair &&
       !idleOpening &&
-      (!device.valve_opening_entity ||
+      // Nothing stored, or exactly the recognised pair: half a stored pair keeps the pickers
+      ((!device.valve_opening_entity && !device.valve_closing_entity) ||
         (device.valve_opening_entity === pair[0] && device.valve_closing_entity === pair[1]));
     const show = this._showValveFields(device);
     const picker = (value: string, label: string, onChange: (v: string) => void) =>

@@ -267,3 +267,29 @@ test("valve pickers offer any number entity, and half a stored pair stays editab
   s._onValveOpeningChange("climate.trv", "", []);
   assert.equal("valve_opening_entity" in fired.at(-1).detail.devices[0], false, "cleared");
 });
+
+test("a closing-only valve entity next to a recognised pair keeps the pickers", () => {
+  const trv = {
+    entity_id: "climate.trv",
+    type: "trv",
+    role: "auto",
+    valve_closing_entity: "number.trv_valve_closing_degree",
+  };
+  const h = {
+    ...hass,
+    entities: {
+      "climate.trv": { entity_id: "climate.trv", device_id: "d1" },
+      "number.trv_valve_opening_degree": {
+        entity_id: "number.trv_valve_opening_degree",
+        device_id: "d1",
+      },
+      "number.trv_valve_closing_degree": {
+        entity_id: "number.trv_valve_closing_degree",
+        device_id: "d1",
+      },
+    },
+  };
+  const { s } = section([trv], { hass: h });
+  const pickers = bindings(s._renderValveGroup(trv), "<ha-entity-picker", ".value");
+  assert.ok(pickers.includes("number.trv_valve_closing_degree"), JSON.stringify(pickers));
+});

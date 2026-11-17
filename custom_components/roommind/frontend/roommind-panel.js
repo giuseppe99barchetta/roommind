@@ -1319,7 +1319,7 @@
       >
         <ha-icon icon="mdi:plus" aria-hidden="true"></ha-icon>
       </button>
-    </div>`}_step(e){if(this.disabled||(e<0?this._atMin:this._atMax))return;let t=this.value+e*this.step,n=Number((Math.round(t/this.step)*this.step).toFixed(2)),r=Math.min(this.max,Math.max(this.min,n));r!==this.value&&this.dispatchEvent(new CustomEvent(`value-changed`,{detail:{value:r},bubbles:!0}))}};O([w({type:Number})],Dn.prototype,`value`,void 0),O([w({type:Number})],Dn.prototype,`min`,void 0),O([w({type:Number})],Dn.prototype,`max`,void 0),O([w({type:Number})],Dn.prototype,`step`,void 0),O([w({type:String})],Dn.prototype,`label`,void 0),O([w({type:String})],Dn.prototype,`display`,void 0),O([w({type:Boolean,reflect:!0})],Dn.prototype,`disabled`,void 0),O([w({type:String})],Dn.prototype,`language`,void 0),Dn=O([C(`rs-stepper`)],Dn),x();function On(e){let{hass:t,side:n,label:r}=e,i=Ft(t)?1:.5,a=Math.round(j(e.celsius,t)/i)*i;return v`<div class="temp-row ${n}">
+    </div>`}_step(e){if(this.disabled||(e<0?this._atMin:this._atMax))return;let t=this.value+e*this.step,n=Number((Math.round(t/this.step)*this.step).toFixed(2)),r=Math.min(this.max,Math.max(this.min,n));r!==this.value&&this.dispatchEvent(new CustomEvent(`value-changed`,{detail:{value:r},bubbles:!0}))}};O([w({type:Number})],Dn.prototype,`value`,void 0),O([w({type:Number})],Dn.prototype,`min`,void 0),O([w({type:Number})],Dn.prototype,`max`,void 0),O([w({type:Number})],Dn.prototype,`step`,void 0),O([w({type:String})],Dn.prototype,`label`,void 0),O([w({type:String})],Dn.prototype,`display`,void 0),O([w({type:Boolean,reflect:!0})],Dn.prototype,`disabled`,void 0),O([w({type:String})],Dn.prototype,`language`,void 0),Dn=O([C(`rs-stepper`)],Dn),x();function On(e){let{hass:t,side:n,label:r}=e,i=Ft(t)?1:.5,a=Math.round(j(e.celsius,t)*10)/10;return v`<div class="temp-row ${n}">
     <span
       ><ha-icon icon=${n===`heat`?`mdi:fire`:`mdi:snowflake`} aria-hidden="true"></ha-icon
       >${r}</span
@@ -2111,7 +2111,7 @@
             .heading=${D(`devices.fan_only_season_${e}`,t)}
             .checked=${r.includes(e)}
             @toggle-changed=${t=>this._onFanOnlySeasonChange(n,e,t.detail)}
-          ></rs-list-row>`)}`}_showValveFields(e){return e.type!==`trv`||!this.selectedTempSensor?!1:e.valve_opening_entity||e.valve_closing_entity?!0:this._deviceNumberEntities(e.entity_id).length>0}_renderValveGroup(e){let t=this.hass.language,n=e.entity_id,r=this._deviceNumberEntities(n),i=!!e.valve_opening_entity&&!!e.valve_closing_entity,a=this._detectValvePair(r),o=e.valve_closing_mode===`idle_opening`,s=!!a&&!o&&(!e.valve_opening_entity||e.valve_opening_entity===a[0]&&e.valve_closing_entity===a[1]),c=this._showValveFields(e),l=(e,t,n)=>v`<ha-entity-picker
+          ></rs-list-row>`)}`}_showValveFields(e){return e.type!==`trv`||!this.selectedTempSensor?!1:e.valve_opening_entity||e.valve_closing_entity?!0:this._deviceNumberEntities(e.entity_id).length>0}_renderValveGroup(e){let t=this.hass.language,n=e.entity_id,r=this._deviceNumberEntities(n),i=!!e.valve_opening_entity&&!!e.valve_closing_entity,a=this._detectValvePair(r),o=e.valve_closing_mode===`idle_opening`,s=!!a&&!o&&(!e.valve_opening_entity&&!e.valve_closing_entity||e.valve_opening_entity===a[0]&&e.valve_closing_entity===a[1]),c=this._showValveFields(e),l=(e,t,n)=>v`<ha-entity-picker
         .hass=${this.hass}
         .includeDomains=${[`number`]}
         .value=${e}

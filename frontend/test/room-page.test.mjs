@@ -321,3 +321,10 @@ test("a late failure of an older override request does not undo a newer one", as
   await clear;
   assert.equal(section.getEffectiveOverride().type, "boost");
 });
+
+test("a stored target off the stepper grid shows as stored (21.2 °C, not 21)", async () => {
+  const { tempRow } = await server.ssrLoadModule("/src/components/shared/temp-row.ts");
+  const row = tempRow({ hass, side: "heat", label: "Comfort", celsius: 21.2, onChange() {} });
+  const text = flat(row);
+  assert.ok(text.includes("21.2"), text);
+});
