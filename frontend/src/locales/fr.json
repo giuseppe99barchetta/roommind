@@ -1615,5 +1615,6 @@
   "covers.schedule_default_name": "{room} volets",
   "schedules.also_in": "Aussi dans {rooms}",
   "schedules.covers_in": "Volets : {rooms}",
-  "schedules.temperature_in": "Température : {rooms}"
+  "schedules.temperature_in": "Température : {rooms}",
+  "common.edit": "Modifier"
 }

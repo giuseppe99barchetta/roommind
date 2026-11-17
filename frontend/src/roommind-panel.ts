@@ -619,6 +619,7 @@ export class RoomMindPanel extends LitElement {
             .presencePersons=${this._presencePersons}
             .climateControlActive=${this._climateControlActive}
             .valveProtectionEnabled=${this._valveProtectionEnabled}
+            .presenceAwayAction=${this._presenceAwayAction}
             @back-clicked=${this._onBackFromDetail}
             @room-updated=${this._onRoomUpdated}
           ></rs-room-detail>

@@ -1,6 +1,6 @@
 /**
  * rs-badge – Small pill badge (e.g. "Beta") for section headers.
- * Reused in rs-section-card and rs-settings-panel.
+ * Reused in rs-settings-panel.
  */
 import { LitElement, html, css } from "lit";
 import { customElement, property } from "lit/decorators.js";

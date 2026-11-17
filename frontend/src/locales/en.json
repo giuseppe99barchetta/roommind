@@ -1615,5 +1615,6 @@
   "covers.schedule_default_name": "{room} covers",
   "schedules.also_in": "Also in {rooms}",
   "schedules.covers_in": "Covers: {rooms}",
-  "schedules.temperature_in": "Temperature: {rooms}"
+  "schedules.temperature_in": "Temperature: {rooms}",
+  "common.edit": "Edit"
 }

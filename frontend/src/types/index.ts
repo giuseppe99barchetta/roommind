@@ -41,6 +41,8 @@ export interface RoomLiveData {
   compressor_protection_until?: number | null;
   occupancy_vacant?: boolean;
   mold_prevention_delta?: number | null;
+  mold_surface_temp?: number | null;
+  boost_applied_at?: number | null;
   dehumidifier?: DehumidifierStatus;
   schedule_temp_warnings?: ScheduleTempWarning[];
   current_temp: number | null;
@@ -113,6 +115,7 @@ export interface RoomLiveData {
   cover_auto_paused: boolean;
   cover_override_until?: number | null;
   cover_forced_reason: string;
+  cover_reason?: string;
   active_cover_schedule_index: number;
   active_heat_sources: string | null;
   heat_source?: "inactive" | "heat_pump" | "hybrid" | "boiler" | string;

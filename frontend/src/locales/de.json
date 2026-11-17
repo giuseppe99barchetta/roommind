@@ -1615,5 +1615,6 @@
   "covers.schedule_default_name": "{room} Rollläden",
   "schedules.also_in": "Auch in {rooms}",
   "schedules.covers_in": "Rollläden: {rooms}",
-  "schedules.temperature_in": "Temperatur: {rooms}"
+  "schedules.temperature_in": "Temperatur: {rooms}",
+  "common.edit": "Bearbeiten"
 }

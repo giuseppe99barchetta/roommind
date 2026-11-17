@@ -501,6 +501,7 @@ async def websocket_list_rooms(
             "cover_auto_paused": live.get("cover_auto_paused", False),
             "cover_override_until": live.get("cover_override_until"),
             "cover_forced_reason": live.get("cover_forced_reason", ""),
+            "cover_reason": live.get("cover_reason", ""),
             "active_cover_schedule_index": live.get("active_cover_schedule_index", -1),
             "active_heat_sources": live.get("active_heat_sources"),
             "learning_paused_reason": learning_paused_reason,
