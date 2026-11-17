@@ -491,6 +491,63 @@ export interface AnalyticsDataPoint {
   energy_prediction_confidence?: "low" | "medium" | "high" | null;
   predicted_device_power_w?: Record<string, number>;
   predicted_energy_1h_kwh?: number | null;
+  // Upstream 2.0 point fields the fork does not record (the 2.0 analytics hides what is absent)
+  co2?: number | null;
+  heat_target?: number | null;
+  cool_target?: number | null;
+  target_reason?: string;
+  mold_boost?: number | null;
+  price?: number | null;
+  price_level?: string;
+  price_shift?: number | null;
+}
+
+/** How far past the target the room went after the runs (analytics_stats._run_overshoot). */
+export interface RunOvershoot {
+  runs: number;
+  mean: number;
+  max: number;
+}
+
+/** Upstream 2.0's day rhythm; the fork does not send it (rhythm card not ported). */
+export interface RhythmDay {
+  date: string;
+  heat: Array<number | null>;
+  cool: Array<number | null>;
+  window: Array<number | null>;
+  deviation: Array<number | null>;
+  below: Array<number | null>;
+  above: Array<number | null>;
+  temp: Array<number | null>;
+  humidity: Array<number | null>;
+  outdoor: Array<number | null>;
+  within: number | null;
+}
+
+export interface AnalyticsRhythm {
+  days: RhythmDay[];
+}
+
+/** Upstream 2.0's per-day model history; the fork does not send it. */
+export interface ModelDay {
+  date: string;
+  confidence: number;
+  mpc_active: boolean;
+  error: number | null;
+  error_steps: number;
+}
+
+export interface BacktestFigures {
+  n: number;
+  mae: number | null;
+  bias: number | null;
+}
+
+/** Upstream 2.0's model backtest; the fork does not send it. */
+export interface ModelBacktest {
+  horizon_minutes: number;
+  idle: BacktestFigures;
+  active: BacktestFigures;
 }
 
 /** Range summary from the history (backend analytics_stats.compute_period_stats). */
@@ -501,6 +558,14 @@ export interface AnalyticsStats {
   window_hours: number;
   heating_starts: number;
   cooling_starts: number;
+  heat_overshoot?: RunOvershoot | null;
+  cool_overshoot?: RunOvershoot | null;
+  /** Run hours by price level; null in the fork (no price source). */
+  price?: {
+    heating_hours: Partial<Record<"cheap" | "normal" | "expensive", number>>;
+    cooling_hours: Partial<Record<"cheap" | "normal" | "expensive", number>>;
+    shifted_hours: number;
+  } | null;
   comfort: {
     below_pct: number;
     within_pct: number;
@@ -512,6 +577,9 @@ export interface AnalyticsStats {
 
 export interface AnalyticsData {
   stats?: AnalyticsStats;
+  /** Upstream 2.0 only (not sent by the fork). */
+  rhythm?: AnalyticsRhythm | null;
+  price_unit?: string;
   detail: AnalyticsDataPoint[];
   history: AnalyticsDataPoint[];
   forecast?: AnalyticsDataPoint[];
@@ -530,7 +598,19 @@ export interface AnalyticsData {
       Q_cool: number;
       Q_solar: number;
       Q_occupancy: number;
+      Q_fast?: number;
     };
+    // Upstream 2.0 only (not sent by the fork): the model card shows them when present
+    daily_history?: ModelDay[];
+    last_update_at?: number | null;
+    solar_learned?: boolean;
+    occupancy_learned?: boolean;
+    solar_gain_now?: number;
+    solar_gain_today_max?: number;
+    afterglow_k?: number;
+    afterglow_minutes?: number;
+    afterglow_learned?: boolean;
+    backtest?: ModelBacktest | null;
     n_samples: number;
     n_observations: number;
     n_heating: number;

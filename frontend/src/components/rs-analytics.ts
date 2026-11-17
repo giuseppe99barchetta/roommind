@@ -4,7 +4,8 @@
  */
 import { LitElement, html, css, nothing } from "lit";
 import { customElement, property, state } from "lit/decorators.js";
-import type { HomeAssistant, RoomConfig, AnalyticsData } from "../types";
+import type { HomeAssistant, RoomConfig, AnalyticsData, AnalyticsDataPoint } from "../types";
+import { QUICK_RANGE_DAYS, haTimeZone, quickRange } from "../utils/analytics-time";
 import { localize, type TranslationKey } from "../utils/localize";
 import "./analytics/rs-analytics-toolbar";
 import "./analytics/rs-analytics-chart";
@@ -13,6 +14,35 @@ import "./analytics/rs-analytics-model";
 import "./analytics/rs-analytics-summary";
 
 type ComparisonRoom = Record<string, string | number | null | string[]>;
+
+/** What a room can show: the summary, chart and model card use the same flags (no price here). */
+function roomFlags(room: RoomConfig | undefined) {
+  return {
+    canHeat: room?.climate_mode !== "cool_only",
+    canCool:
+      room?.climate_mode !== "heat_only" && (room?.devices ?? []).some((d) => d.type === "ac"),
+    hasWindowSensor: (room?.window_sensors?.length ?? 0) > 0,
+  };
+}
+
+/** Sides a room is judged on, same rule as the summary (one-sided rooms on their own side only). */
+function bandSides(mode: string | undefined): "both" | "heat" | "cool" {
+  if (mode === "heat_only") return "heat";
+  if (mode === "cool_only") return "cool";
+  return "both";
+}
+
+/** The 2.0 chart reads `humidity`; the fork records `current_humidity` (kept for the export). */
+function withHumidity(data: AnalyticsData): AnalyticsData {
+  const alias = (p: AnalyticsDataPoint) =>
+    p.humidity == null && p.current_humidity != null ? { ...p, humidity: p.current_humidity } : p;
+  return {
+    ...data,
+    detail: (data.detail ?? []).map(alias),
+    history: (data.history ?? []).map(alias),
+    forecast: data.forecast?.map(alias),
+  };
+}
 
 @customElement("rs-analytics")
 export class RsAnalytics extends LitElement {
@@ -30,6 +60,9 @@ export class RsAnalytics extends LitElement {
   @state() private _activeQuick: string | null = "24h";
   @state() private _comparison: ComparisonRoom[] = [];
   @state() private _comparisonInfoExpanded = false;
+  private _pointsOf: AnalyticsData | null = null;
+  private _pointsCache: AnalyticsDataPoint[] = [];
+  private _zoneApplied = false;
 
   private _refreshInterval?: ReturnType<typeof setInterval>;
 
@@ -53,6 +86,11 @@ export class RsAnalytics extends LitElement {
   }
 
   protected willUpdate(changedProps: Map<string, unknown>) {
+    // Browser midnight until hass is known, then the quick range in Home Assistant's zone
+    if (!this._zoneApplied && this.hass && this._activeQuick) {
+      this._zoneApplied = true;
+      this._applyQuickRange();
+    }
     if (changedProps.has("initialRoom") && this.initialRoom) {
       this._selectedRoom = this.initialRoom;
     }
@@ -85,6 +123,9 @@ export class RsAnalytics extends LitElement {
 
   protected render() {
     const l = this.hass.language;
+    const room = this.rooms[this._selectedRoom];
+    const flags = roomFlags(room);
+    const sides = bandSides(room?.climate_mode);
 
     return html`
       <header class="analytics-intro">
@@ -110,9 +151,16 @@ export class RsAnalytics extends LitElement {
           : html`
               ${!this.rooms[this._selectedRoom]?.is_outdoor
                 ? html`<rs-analytics-summary
+                    .hass=${this.hass}
                     .stats=${this._data?.stats ?? null}
-                    .canHeat=${this._roomCanHeat()}
-                    .canCool=${this._roomCanCool()}
+                    .points=${this._points()}
+                    .rangeStart=${this._rangeStart}
+                    .rangeEnd=${this._rangeEnd}
+                    .bandSides=${sides}
+                    .canHeat=${flags.canHeat}
+                    .canCool=${flags.canCool}
+                    .hasWindowSensor=${flags.hasWindowSensor}
+                    .showPrice=${false}
                     .language=${l}
                   ></rs-analytics-summary>`
                 : nothing}
@@ -124,6 +172,8 @@ export class RsAnalytics extends LitElement {
                 .chartAnchor=${this._chartAnchor}
                 .language=${l}
                 .isOutdoor=${this.rooms[this._selectedRoom]?.is_outdoor ?? false}
+                .targetBand=${sides}
+                .showPrice=${false}
               ></rs-analytics-chart>
               ${!this.rooms[this._selectedRoom]?.is_outdoor
                 ? html` <rs-energy-analytics-chart
@@ -206,6 +256,11 @@ export class RsAnalytics extends LitElement {
                       .hass=${this.hass}
                       .data=${this._data}
                       .language=${l}
+                      .controlMode=${"mpc"}
+                      .managed=${!room?.temperature_sensor}
+                      .canHeat=${flags.canHeat}
+                      .canCool=${flags.canCool}
+                      .boostHours=${null}
                     ></rs-analytics-model>`
                 : nothing}
             `
@@ -219,16 +274,24 @@ export class RsAnalytics extends LitElement {
   }
 
   /** Sides the selected room acts on: one-sided rooms are only judged on their own side. */
-  private _roomCanHeat(): boolean {
-    const room = this._selectedRoom ? this.rooms[this._selectedRoom] : undefined;
-    if (!room || room.climate_mode === "cool_only") return false;
-    return (room.thermostats?.length ?? 0) > 0 || (room.acs?.length ?? 0) > 0;
+  /** History and detail as loaded; one array per answer so the summary does not redraw needlessly. */
+  private _points(): AnalyticsDataPoint[] {
+    const data = this._data;
+    if (!data) return [];
+    if (this._pointsOf !== data) {
+      this._pointsOf = data;
+      this._pointsCache = [...data.history, ...data.detail];
+    }
+    return this._pointsCache;
   }
 
-  private _roomCanCool(): boolean {
-    const room = this._selectedRoom ? this.rooms[this._selectedRoom] : undefined;
-    if (!room || room.climate_mode === "heat_only") return false;
-    return (room.acs?.length ?? 0) > 0;
+  /** Recompute the active quick range up to now (today moves on, a new day starts at midnight). */
+  private _applyQuickRange() {
+    const days = this._activeQuick ? QUICK_RANGE_DAYS[this._activeQuick] : undefined;
+    if (!days) return;
+    const { start, end } = quickRange(days, haTimeZone(this.hass));
+    this._rangeStart = start;
+    this._rangeEnd = end;
   }
 
   private _onRoomSelected(e: CustomEvent) {
@@ -270,7 +333,7 @@ export class RsAnalytics extends LitElement {
 
     try {
       const result = await this.hass.callWS<AnalyticsData>(this._buildWsParams());
-      this._data = result;
+      this._data = withHumidity(result);
       try {
         const comparison = await this.hass.callWS<{ rooms: ComparisonRoom[] }>({
           type: "roommind/analytics/compare",
@@ -295,7 +358,7 @@ export class RsAnalytics extends LitElement {
     if (!this._selectedRoom || this._loading) return;
     try {
       const result = await this.hass.callWS<AnalyticsData>(this._buildWsParams());
-      this._data = result;
+      this._data = withHumidity(result);
       try {
         const comparison = await this.hass.callWS<{ rooms: ComparisonRoom[] }>({
           type: "roommind/analytics/compare",
