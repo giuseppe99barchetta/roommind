@@ -7,7 +7,7 @@ from homeassistant.const import Platform
 from homeassistant.core import Context
 
 DOMAIN = "roommind"
-VERSION = "1.13.0"
+VERSION = "1.13.1"
 
 # Platforms
 PLATFORMS = [
