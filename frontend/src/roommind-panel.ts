@@ -952,7 +952,11 @@ export class RoomMindPanel extends LitElement {
   private async _flushFor(token: object): Promise<boolean | null> {
     const editor = this._editor;
     const entity = this._scheduleEntity;
-    const message = (await editor?.flush()) ?? "";
+    let message = (await editor?.flush()) ?? "";
+    // A change that slipped in during the save (before the editor went inert) is sent too;
+    // bounded so an editor that keeps reporting work cannot hold the leave forever
+    for (let i = 0; i < 3 && !message && editor?.pending && this._owns(token, editor, entity); i++)
+      message = (await editor.flush()) ?? "";
     if (!this._owns(token, editor, entity)) return null;
     if (!message) return true;
     const moved =

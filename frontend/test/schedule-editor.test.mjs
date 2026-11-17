@@ -407,3 +407,18 @@ test("a different editor opened during the reload: the old leave leaves it and i
   assert.equal(g.panel._pendingRoute, true, "untouched by the stale leave");
   assert.deepEqual(g.nav, after);
 });
+
+test("every way out sends a change that slipped in during the save before closing", async () => {
+  for (const start of ["route", "tab"]) {
+    const g = guarded();
+    const leaving = start === "route" ? g.go("/settings") : g.panel._onTabClicked("analytics");
+    g.gates.shift()(""); // the first save went through, but a new edit is pending already
+    await tick();
+    assert.equal(g.editor.flushes, 2, `${start}: saved again`);
+    assert.equal(g.panel._scheduleEntity, "schedule.heating", `${start}: still open meanwhile`);
+    await g.save("Could not save");
+    await leaving;
+    assert.equal(g.panel._scheduleEntity, "schedule.heating", `${start}: kept on failure`);
+    assert.deepEqual(g.toasts, ["Could not save"], start);
+  }
+});
