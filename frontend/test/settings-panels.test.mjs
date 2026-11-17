@@ -197,3 +197,22 @@ test("learn faster stays available while a learned room waits (outdoor sensor go
     assert.deepEqual(disabledBindings, [false], `paused=${disabled.length > 0}`);
   }
 });
+
+test("learn faster is not offered before the room has a model", () => {
+  const room = { area_id: "sala", devices: [{}], temperature_sensor: "sensor.t", live: {} };
+  const p = new panels.learning();
+  p.hass = hass;
+  p.rooms = { sala: room };
+  const tpl = p._renderRoom("sala", "Sala", room);
+  const found = [];
+  (function walk(v) {
+    if (Array.isArray(v)) return v.forEach(walk);
+    if (!v || typeof v !== "object" || !v.strings) return;
+    v.strings.forEach((s, i) => {
+      if (v.strings.join("").includes("<rs-icon-button") && s.trimEnd().endsWith(".disabled="))
+        found.push(v.values[i]);
+    });
+    v.values.forEach(walk);
+  })(tpl);
+  assert.deepEqual(found, [true]);
+});

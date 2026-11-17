@@ -126,9 +126,10 @@ export class RsSettingsLearning extends RsSettingsBase {
     if (state === "outdoor") {
       return html`<rs-list-row .heading=${name} .secondary=${stateText}></rs-list-row>`;
     }
-    // As the fork's panel before: any learning room, also while paused or waiting (e.g. outdoor
-    // sensor gone), so the model re-learns quickly once it can; only the cooldown blocks it
-    const canBoost = !cooldown;
+    // Any room with a model, also while paused or waiting (e.g. outdoor sensor gone), so it
+    // re-learns quickly once it can. Without observations there is no model: the backend would
+    // report success, start the cooldown and change nothing
+    const canBoost = !cooldown && state !== "no_data";
     return html`<rs-list-row
       switch
       .heading=${name}

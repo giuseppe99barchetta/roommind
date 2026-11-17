@@ -6554,7 +6554,7 @@
         @cancel=${()=>{this._boostTarget=null,this._boostError=``}}
         @confirm=${this._boostLearning}
       ></rs-confirm-dialog>
-    `}_renderRoom(e,t,n){let r=this.hass.language,i=this.learningDisabledRooms.includes(e),a=Jr(n,i),o=j(Math.round((n.live?.confidence??0)*100),this.hass),s=D(Ji[a],r,{confidence:o}),c=this.boostAppliedAt[e],l=!i&&c!==void 0&&(n.live?.n_observations??0)-c<qi,u=l?v`<span slot="secondary" class="boost">${D(`settings.boost_cooldown`,r)}</span>`:y;if(a===`outdoor`)return v`<rs-list-row .heading=${t} .secondary=${s}></rs-list-row>`;let d=!l;return v`<rs-list-row
+    `}_renderRoom(e,t,n){let r=this.hass.language,i=this.learningDisabledRooms.includes(e),a=Jr(n,i),o=j(Math.round((n.live?.confidence??0)*100),this.hass),s=D(Ji[a],r,{confidence:o}),c=this.boostAppliedAt[e],l=!i&&c!==void 0&&(n.live?.n_observations??0)-c<qi,u=l?v`<span slot="secondary" class="boost">${D(`settings.boost_cooldown`,r)}</span>`:y;if(a===`outdoor`)return v`<rs-list-row .heading=${t} .secondary=${s}></rs-list-row>`;let d=!l&&a!==`no_data`;return v`<rs-list-row
       switch
       .heading=${t}
       .secondary=${s}
