@@ -345,3 +345,43 @@ test("heating system: number fields keep the backend ranges, keys and fractional
   assert.deepEqual(commit({ min: 0, max: 3600, step: 0.1 }, "12.5"), [12.5]);
   assert.deepEqual(commit({ min: 1, max: 240, step: 0.1 }, ""), []);
 });
+
+test("narrow screens: preview rooms keep wattage and source in the wrapping line, heating pairs stack", async () => {
+  const mod = await server.ssrLoadModule("/src/components/settings/rs-settings-preview.ts");
+  const p = new mod.RsSettingsPreview();
+  p.hass = hass;
+  p._result = {
+    read_only: true,
+    mode: "cooling",
+    house_available_watts: null,
+    power_sensor_healthy: false,
+    power_sensor_age_seconds: null,
+    boiler_state: "off",
+    bypass_acknowledged: true,
+    boiler_demand_rooms: [],
+    rooms: {
+      sala: {
+        watts: 800,
+        source: "fallback",
+        samples: 0,
+        already_running: false,
+        would_allow: false,
+        reason: "power_budget",
+        current_decision_reasons: [],
+      },
+    },
+  };
+  const view = p.render();
+  const secondary = ownBindings(view, "<rs-list-row", ".secondary");
+  assert.ok(
+    secondary.some((t) => t.startsWith("800 W · ")),
+    secondary.join("|"),
+  );
+  assert.ok(!ownBindings(view, "<rs-list-row", ".value").some((v) => String(v).includes("800 W")));
+  const css = panels["heating-system"].styles.cssText;
+  assert.match(css, /container-type:\s*inline-size/);
+  assert.match(
+    css,
+    /@container \(max-width: 520px\)\s*\{\s*\.grid\s*\{\s*grid-template-columns: 1fr/,
+  );
+});

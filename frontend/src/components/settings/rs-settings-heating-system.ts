@@ -329,6 +329,11 @@ export class RsSettingsHeatingSystem extends LitElement {
       </div>`;
   }
   static styles = css`
+    :host {
+      display: block;
+      /* the narrow rule below follows the panel's width, as in the other settings panels */
+      container-type: inline-size;
+    }
     .section {
       display: grid;
       gap: 12px;
@@ -342,6 +347,12 @@ export class RsSettingsHeatingSystem extends LitElement {
       display: grid;
       grid-template-columns: 1fr 1fr;
       gap: 12px;
+    }
+    /* one column on a narrow card, like the shared threshold-grid */
+    @container (max-width: 520px) {
+      .grid {
+        grid-template-columns: 1fr;
+      }
     }
     .toggle {
       display: flex;

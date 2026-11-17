@@ -130,6 +130,8 @@ export class RsSettingsPreview extends RsSettingsBase {
                     icon="mdi:door"
                     .heading=${areaId.replaceAll("_", " ")}
                     .secondary=${[
+                      // in the wrapping line, not the row's value: a narrow screen would cut it
+                      `${room.watts} W · ${localize(`heat_source.budget_${room.source}`, lang)}`,
                       localize(`preview.reason_${room.reason}`, lang),
                       room.current_decision_reasons.length
                         ? `${localize("preview.current_reasons", lang)}: ${room.current_decision_reasons.join(", ")}`
@@ -137,7 +139,6 @@ export class RsSettingsPreview extends RsSettingsBase {
                     ]
                       .filter(Boolean)
                       .join(" · ")}
-                    .value=${`${room.watts} W · ${localize(`heat_source.budget_${room.source}`, lang)}`}
                   ></rs-list-row>`,
               )}
             </div>`
