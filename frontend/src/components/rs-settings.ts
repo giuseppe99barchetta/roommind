@@ -29,7 +29,7 @@ import {
 } from "./settings/settings-categories";
 import { tokens } from "../styles/tokens";
 import { formatNumber, formatPercent } from "../utils/format";
-import { formatTempLocale, tempUnit } from "../utils/temperature";
+import { formatTempLocale, tempUnit, toCelsius } from "../utils/temperature";
 import { learningRoomIds } from "../utils/learning";
 import "./shared/rs-list-row";
 import "./shared/rs-badge";
@@ -61,8 +61,6 @@ export class RsSettings extends LitElement {
   @property({ type: String }) public category = "";
   /** List and panel side by side; otherwise list, then the panel as a subpage. */
   @property({ type: Boolean }) public wide = true;
-  /** Global control mode (from rooms/list), for the control category's summary. */
-  @property({ type: String }) public controlMode: "mpc" | "bangbang" = "mpc";
 
   @state() private _groupByFloor = false;
   @state() private _climateControlActive = true;
@@ -543,23 +541,31 @@ export class RsSettings extends LitElement {
         return { text: localize(key, l, { count: count(n), action }), on: true };
       }
       case "control":
+        // The fork has no Simple mode: "bangbang" from rooms/list only means MPC still learning
         return {
-          text:
-            this.controlMode === "bangbang"
-              ? localize("settings.summary.control_simple", l)
-              : localize("settings.summary.control_mpc", l, {
-                  weight: formatPercent(this._comfortWeight, this.hass),
-                }),
+          text: localize("settings.summary.control_mpc", l, {
+            weight: formatPercent(this._comfortWeight, this.hass),
+          }),
         };
       case "sensors": {
         const parts: string[] = [];
         if (this._outdoorTempSensor) {
           const v = this._sensorValue(this._outdoorTempSensor);
-          parts.push(
+          // As the backend reads it (temp_utils): the sensor's own unit, else Home Assistant's
+          const unit = this.hass.states[this._outdoorTempSensor]?.attributes?.unit_of_measurement;
+          const celsius =
             v === null
+              ? null
+              : unit
+                ? unit === "°F"
+                  ? ((v - 32) * 5) / 9
+                  : v
+                : toCelsius(v, this.hass);
+          parts.push(
+            celsius === null
               ? localize("settings.summary.outdoor_waiting", l)
               : localize("settings.summary.outdoor", l, {
-                  value: `${formatNumber(v, this.hass, 1)} ${tempUnit(this.hass)}`,
+                  value: `${formatTempLocale(celsius, this.hass, 0, 1)} ${tempUnit(this.hass)}`,
                 }),
           );
         }

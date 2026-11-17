@@ -170,3 +170,23 @@ test("the room page's presence link and the URL open the presence category", () 
   panel._applyRoute();
   assert.equal(panel._settingsCategory, "", "unknown id falls back");
 });
+
+test("summaries: control names MPC whatever rooms/list says, the outdoor reading is in the user's unit", () => {
+  const f = {
+    ...hass,
+    config: { unit_system: { temperature: "°F" } },
+    states: {
+      "sensor.out": {
+        entity_id: "sensor.out",
+        state: "20",
+        attributes: { unit_of_measurement: "°C" },
+      },
+    },
+  };
+  const s = settings({ hass: f, _outdoorTempSensor: "sensor.out" });
+  const outdoor = s._summary("sensors").text;
+  assert.ok(outdoor.includes("68"), outdoor);
+  assert.equal(outdoor.includes("20"), false, outdoor);
+  const control = s._summary("control").text;
+  assert.ok(control.includes("MPC"), control);
+});

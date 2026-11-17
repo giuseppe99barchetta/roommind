@@ -722,7 +722,6 @@ export class RoomMindPanel extends LitElement {
       .roomsWithoutArea=${this._roomsWithoutArea}
       .category=${this._settingsCategory}
       .wide=${this._wide}
-      .controlMode=${this._controlMode}
       @settings-category-changed=${this._onSettingsCategoryChanged}
     ></rs-settings>`;
   }
