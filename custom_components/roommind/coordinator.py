@@ -104,6 +104,7 @@ from .managers.heat_source_orchestrator import (
 from .managers.mold_manager import MoldManager
 from .managers.pending_shutdowns import PendingShutdowns
 from .managers.power_budget_manager import PowerBudgetManager
+from .managers.recent_temps import RECENT_WINDOW_S, RecentTemps
 from .managers.residual_heat_tracker import AfterglowReading, ResidualHeatLearner, ResidualHeatTracker
 from .managers.room_climate import async_apply_ac_auxiliary_mode
 from .managers.valve_manager import ValveManager
@@ -364,6 +365,8 @@ class RoomMindCoordinator(DataUpdateCoordinator):
         self._mode_on_since: dict[str, float] = {}
         # Sensor dropout fallback: last valid temperature per room
         self._last_valid_temps: dict[str, tuple[float, float]] = {}  # {area_id: (celsius, monotonic_ts)}
+        # Last hours of temperature per room for the dashboard cards (in memory)
+        self.recent_temps = RecentTemps()
         # Startup guard: rooms with at least one valid temperature reading since
         # coordinator start. Full Control rooms send no device commands until then
         # (prevents the off/on bounce after HA restart while sensors are unavailable).
@@ -672,6 +675,8 @@ class RoomMindCoordinator(DataUpdateCoordinator):
         await self._boiler_manager.async_reconcile(
             settings, boiler_demand, self._boiler_valves_per_room(boiler_demand, rooms)
         )
+
+        await self._async_record_recent_temps(room_states)
 
         # Record to history store (throttled)
         learning_disabled = set(settings.get("learning_disabled_rooms", []))
@@ -3966,6 +3971,24 @@ class RoomMindCoordinator(DataUpdateCoordinator):
             self.async_add_switch_entities([RoomMindDrySwitch(self, area_id)])
             self._dry_switch_entity_areas.add(area_id)
 
+    async def _async_record_recent_temps(self, room_states: dict[str, dict]) -> None:
+        """Feed the short series the dashboard cards draw; seeded from the history once per room."""
+        now = time.time()
+        for area_id, rs in room_states.items():
+            if self.recent_temps.needs_seed(area_id) and self._history_store:
+                try:
+                    rows = await self.hass.async_add_executor_job(
+                        self._history_store.read_detail, area_id, RECENT_WINDOW_S
+                    )
+                except Exception:  # noqa: BLE001
+                    _LOGGER.debug("Room '%s': reading recent history failed", area_id, exc_info=True)
+                    rows = []
+                self.recent_temps.seed(area_id, rows, now)
+            target = self.recent_temps.target_for(
+                area_id, rs.get("mode"), rs.get("heat_target"), rs.get("target_temp"), rs.get("cool_target")
+            )
+            self.recent_temps.add(area_id, now, rs.get("current_temp"), target)
+
     async def async_room_removed(self, area_id: str) -> None:
         """Remove sensor entities for a deleted room and refresh data."""
         self._forget_room(area_id)
@@ -4001,6 +4024,7 @@ class RoomMindCoordinator(DataUpdateCoordinator):
         self._window_impact_manager.remove_room(area_id)
         self._previous_modes.pop(area_id, None)
         self._last_valid_temps.pop(area_id, None)
+        self.recent_temps.forget(area_id)
         self._had_valid_temp.discard(area_id)
         self._startup_guard_warned.discard(area_id)
         self._block_temp_warned = {k for k in self._block_temp_warned if k[0] != area_id}

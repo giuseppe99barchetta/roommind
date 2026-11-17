@@ -3270,3 +3270,28 @@ async def test_save_room_with_only_schedules_keeps_the_rest(ws_hass, store, conn
     assert room["climate_mode"] == "heat_only"
     assert room["comfort_heat"] == 22.5
     assert room["cover_schedules"] == [{"entity_id": "schedule.c", "mode": "gate"}]
+
+
+@pytest.mark.asyncio
+async def test_list_rooms_includes_recent_temps(ws_hass, store, connection):
+    """The dashboard cards draw the short series from rooms/list."""
+    from custom_components.roommind.managers.recent_temps import RecentTemps
+
+    await store.async_load()
+    await _save_room(
+        ws_hass,
+        connection,
+        {"id": 2, "type": "roommind/rooms/save", "area_id": "kitchen", "thermostats": ["climate.kitchen_trv"]},
+    )
+    connection.send_result.reset_mock()
+    mock_coordinator = MagicMock()
+    mock_coordinator.rooms = {}
+    mock_coordinator.async_request_refresh = AsyncMock()
+    mock_coordinator.recent_temps = RecentTemps()
+    mock_coordinator.recent_temps.add("kitchen", 1000.0, 20.5, 21.0)
+    ws_hass.data[DOMAIN]["coordinator"] = mock_coordinator
+
+    await _list_rooms(ws_hass, connection, {"id": 3, "type": "roommind/rooms/list"})
+
+    room = connection.send_result.call_args[0][1]["rooms"]["kitchen"]
+    assert room["live"]["recent_temps"] == [[1000, 20.5, 21.0]]
