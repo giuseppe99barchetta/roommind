@@ -231,3 +231,21 @@ test("comfort/eco from the temperatures dialog and the schedule toggles land in 
   assert.equal(payload.eco_cool, 28);
   assert.equal(payload.preconditioning_enabled, true);
 });
+
+test("schedule status texts carry the unit once, no placeholder left", () => {
+  const sch = new ScheduleSettings();
+  sch.schedules = [{ entity_id: "schedule.sala" }];
+  sch.activeScheduleIndex = 0;
+  const texts = [
+    { state: "on", attributes: { temperature: 21 } },
+    { state: "on", attributes: {} },
+    { state: "off", attributes: {} },
+  ].map((st) => {
+    sch.hass = { ...hass, states: { "schedule.sala": { entity_id: "schedule.sala", ...st } } };
+    return sch._getStatusText(0, "active");
+  });
+  for (const t of texts) {
+    assert.equal(t.includes("{"), false, t);
+    assert.equal((t.match(/°C/g) ?? []).length, 1, t);
+  }
+});
