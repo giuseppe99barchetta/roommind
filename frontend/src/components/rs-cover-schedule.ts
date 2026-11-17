@@ -7,6 +7,7 @@ import { inputStyles } from "../styles/input-styles";
 
 @customElement("rs-cover-schedule")
 export class RsCoverSchedule extends RsScheduleBase {
+  protected readonly _kind = "cover";
   @property({ attribute: false }) public schedules: CoverScheduleEntry[] = [];
 
   static styles = [

@@ -49,6 +49,7 @@ export class RoomMindPanel extends LitElement {
   @state() private _anyoneHome = true;
   @state() private _presencePersons: string[] = [];
   @state() private _presenceAwayAction: "eco" | "off" = "eco";
+  @state() private _scheduleOffAction: "eco" | "off" = "eco";
   @state() private _saveStatus: "idle" | "saving" | "saved" | "error" = "idle";
   @state() private _roomOrder: string[] = [];
   @state() private _groupByFloor = false;
@@ -620,6 +621,7 @@ export class RoomMindPanel extends LitElement {
             .climateControlActive=${this._climateControlActive}
             .valveProtectionEnabled=${this._valveProtectionEnabled}
             .presenceAwayAction=${this._presenceAwayAction}
+            .scheduleOffAction=${this._scheduleOffAction}
             .controlMode=${this._controlMode}
             .vacationActive=${this._vacationActive}
             .vacationUntil=${this._vacationUntil}
@@ -742,6 +744,7 @@ export class RoomMindPanel extends LitElement {
       this._anyoneHome = result.anyone_home ?? true;
       this._presencePersons = result.presence_persons ?? [];
       this._presenceAwayAction = result.presence_away_action ?? "eco";
+      this._scheduleOffAction = result.schedule_off_action ?? "eco";
     } catch (err) {
       // eslint-disable-next-line no-console
       console.debug("[RoomMind] loadRooms:", err);

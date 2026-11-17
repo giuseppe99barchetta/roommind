@@ -15,6 +15,9 @@ import type {
 } from "../types";
 import "./rs-room-insights";
 import "./rs-schedule-settings";
+import type { ScheduleCardPart } from "./rs-schedule-settings";
+import "./room-detail/rs-target-temps";
+import { temperaturesHelp } from "./room-detail/edit-dialog-help";
 import "./rs-device-section";
 import "./rs-dehumidifier-section";
 import type { HumiditySettings } from "./rs-dehumidifier-section";
@@ -35,8 +38,7 @@ import "./shared/rs-icon-button";
 import type { EffectiveOverride } from "../utils/override";
 import { localize, type TranslationKey } from "../utils/localize";
 import { fireSaveStatus } from "../utils/events";
-import type { AirQualityConfig } from "./rs-air-quality-section";
-import "./rs-air-quality-section";
+import type { AirQualityConfig } from "./rs-sensor-section";
 import { changedSettings, snapshotSettings } from "../utils/settings-diff";
 import { resolveHeatingSystemType } from "../utils/device-utils";
 import type { RsOverrideSection } from "./rs-override-section";
@@ -46,6 +48,7 @@ const CONTROL_DOCS_URL =
 
 type EditableSection =
   | "schedule"
+  | "temperatures"
   | "devices"
   | "sensors"
   | "presence"
@@ -65,6 +68,7 @@ export class RsRoomDetail extends LitElement {
 
   @property({ type: Boolean }) public valveProtectionEnabled = false;
   @property({ type: String }) public presenceAwayAction: "eco" | "off" = "eco";
+  @property({ type: String }) public scheduleOffAction: "eco" | "off" = "eco";
   @property({ type: String }) public controlMode: "mpc" | "bangbang" = "bangbang";
   @property({ type: Boolean }) public vacationActive = false;
   @property({ attribute: false }) public vacationUntil: number | null = null;
@@ -638,6 +642,18 @@ export class RsRoomDetail extends LitElement {
     this._editing = section;
   };
 
+  /** A schedule card row opens the schedule or the temperatures dialog. */
+  private _onScheduleEditClick = (e: CustomEvent<{ part?: ScheduleCardPart } | undefined>) => {
+    e.stopPropagation();
+    this._focusDevice = "";
+    this._editing = e.detail?.part ?? "schedule";
+  };
+
+  /** Presence detection applies to this room (on globally, persons to watch, not ignored). */
+  private _presenceActive(): boolean {
+    return this.presenceEnabled && !this._ignorePresence && this.presencePersons.length > 0;
+  }
+
   /** A section's own row on the view opens its dialog. */
   private _onSectionEditClick = (section: EditableSection) => (e: Event) => {
     e.stopPropagation();
@@ -835,13 +851,13 @@ export class RsRoomDetail extends LitElement {
           .ecoCool=${this._ecoCool}
           .climateMode=${this._climateMode}
           .scheduleTempWarnings=${live?.schedule_temp_warnings ?? []}
+          .scheduleOffAction=${this.scheduleOffAction}
+          .presenceAwayAction=${this.presenceAwayAction}
+          .presenceActive=${this._presenceActive()}
+          .rooms=${this.rooms}
+          .roomId=${this.area.area_id}
           .editing=${false}
-          @schedules-changed=${this._onSchedulesChanged}
-          @schedule-selector-changed=${this._onScheduleSelectorChanged}
-          @comfort-heat-changed=${this._onComfortHeatChanged}
-          @comfort-cool-changed=${this._onComfortCoolChanged}
-          @eco-heat-changed=${this._onEcoHeatChanged}
-          @eco-cool-changed=${this._onEcoCoolChanged}
+          @edit-click=${this._onScheduleEditClick}
         ></rs-schedule-settings>
       </rs-list-card>
 
@@ -893,9 +909,16 @@ export class RsRoomDetail extends LitElement {
           .windowCloseDelay=${this._windowCloseDelay}
           .keepFanOnlyOnWindowOpen=${this._keepFanOnlyOnWindowOpen}
           .moldFRsi=${this._moldFRsi}
+          .co2Sensor=${this._airQuality.co2_sensor}
+          .co2Threshold=${this._airQuality.co2_threshold}
+          .vocSensor=${this._airQuality.voc_sensor}
+          .vocThreshold=${this._airQuality.voc_threshold}
+          .ventilationEntity=${this._airQuality.ventilation_entity}
+          .live=${live}
+          .outdoor=${!!this.config?.is_outdoor}
           .heatingSystemType=${resolveHeatingSystemType(this._devices)}
           .language=${l}
-          @sensor-changed=${this._onSensorChanged}
+          @edit-click=${this._onSectionEditClick("sensors")}
         ></rs-sensor-section>
       </rs-list-card>
 
@@ -1033,13 +1056,13 @@ export class RsRoomDetail extends LitElement {
             .ecoCool=${this._ecoCool}
             .climateMode=${this._climateMode}
             .scheduleTempWarnings=${this.config?.live?.schedule_temp_warnings ?? []}
+            .scheduleOffAction=${this.scheduleOffAction}
+            .rooms=${this.rooms}
+            .roomId=${this.area.area_id}
+            .roomName=${this._displayName || this.area.name}
             .editing=${true}
             @schedules-changed=${this._onSchedulesChanged}
             @schedule-selector-changed=${this._onScheduleSelectorChanged}
-            @comfort-heat-changed=${this._onComfortHeatChanged}
-            @comfort-cool-changed=${this._onComfortCoolChanged}
-            @eco-heat-changed=${this._onEcoHeatChanged}
-            @eco-cool-changed=${this._onEcoCoolChanged}
           ></rs-schedule-settings>
           <rs-toggle-row
             .label=${localize("schedule.preconditioning_toggle", lang)}
@@ -1055,6 +1078,28 @@ export class RsRoomDetail extends LitElement {
                 @toggle-changed=${this._onResidualControlToggle}
               ></rs-toggle-row>`
             : nothing}
+        </rs-edit-dialog>`;
+      case "temperatures":
+        return html`<rs-edit-dialog
+          open
+          icon="mdi:thermometer"
+          .heading=${localize("detail.schedule.dialog_temps", lang)}
+          hasInfo
+          @rs-dialog-closed=${this._closeEdit}
+        >
+          ${temperaturesHelp(lang)}
+          <rs-target-temps
+            .hass=${this.hass}
+            .comfortHeat=${this._comfortHeat}
+            .comfortCool=${this._comfortCool}
+            .ecoHeat=${this._ecoHeat}
+            .ecoCool=${this._ecoCool}
+            .climateMode=${this._climateMode}
+            @comfort-heat-changed=${this._onComfortHeatChanged}
+            @comfort-cool-changed=${this._onComfortCoolChanged}
+            @eco-heat-changed=${this._onEcoHeatChanged}
+            @eco-cool-changed=${this._onEcoCoolChanged}
+          ></rs-target-temps>
         </rs-edit-dialog>`;
       case "dehumidifier":
         return html`<rs-edit-dialog
@@ -1122,17 +1167,17 @@ export class RsRoomDetail extends LitElement {
             .windowCloseDelay=${this._windowCloseDelay}
             .keepFanOnlyOnWindowOpen=${this._keepFanOnlyOnWindowOpen}
             .moldFRsi=${this._moldFRsi}
+            .co2Sensor=${this._airQuality.co2_sensor}
+            .co2Threshold=${this._airQuality.co2_threshold}
+            .vocSensor=${this._airQuality.voc_sensor}
+            .vocThreshold=${this._airQuality.voc_threshold}
+            .ventilationEntity=${this._airQuality.ventilation_entity}
+            .live=${this.config?.live}
+            .outdoor=${!!this.config?.is_outdoor}
             .heatingSystemType=${resolveHeatingSystemType(this._devices)}
             .language=${this.hass.language}
             @sensor-changed=${this._onSensorChanged}
           ></rs-sensor-section>
-          ${this.config?.is_outdoor
-            ? nothing
-            : html`<rs-air-quality-section
-                .hass=${this.hass}
-                .config=${this._airQuality}
-                @air-quality-changed=${this._onAirQualityChanged}
-              ></rs-air-quality-section>`}
         </rs-edit-dialog>`;
       case "presence":
         return html`<rs-edit-dialog
@@ -1354,16 +1399,14 @@ export class RsRoomDetail extends LitElement {
     this._autoSave();
   }
 
-  private _onAirQualityChanged(e: CustomEvent<{ key: keyof AirQualityConfig; value: unknown }>) {
-    this._airQuality = { ...this._airQuality, [e.detail.key]: e.detail.value };
-    this._autoSave();
-  }
-
   private _onSensorChanged(
-    e: CustomEvent<{ key: string; value: string | string[] | number | boolean }>,
+    e: CustomEvent<{ key: string; value: string | string[] | number | boolean | null }>,
   ) {
     const { key, value } = e.detail;
-    if (key === "temperature_sensor") {
+    if (key in this._airQuality) {
+      // The folded air-quality fields (VOC threshold may be null: not judged)
+      this._airQuality = { ...this._airQuality, [key as keyof AirQualityConfig]: value };
+    } else if (key === "temperature_sensor") {
       this._selectedTempSensor = value as string;
     } else if (key === "humidity_sensor") {
       this._selectedHumiditySensor = value as string;

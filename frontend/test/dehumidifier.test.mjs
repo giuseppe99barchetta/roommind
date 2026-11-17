@@ -252,8 +252,8 @@ test("a registered device waiting for live data is not shown as unassigned", () 
 
 test("equipment cards remain actionable without any configured entities", () => {
   for (const [Component, action] of [
-    [Sensors, "Gestisci"],
-    // 2.0 device card: an "add" row that opens the devices dialog
+    // 2.0 cards: an "add" row that opens the section's dialog
+    [Sensors, "Aggiungi sensore"],
     [Devices, "Aggiungi dispositivo"],
   ]) {
     const section = new Component();
@@ -263,7 +263,8 @@ test("equipment cards remain actionable without any configured entities", () => 
   }
   const sensors = new Sensors();
   sensors.hass = { language: "it", states: { "binary_sensor.window": { state: "unavailable", attributes: {} } } };
-  const text = renderedText(sensors._renderWindowViewRow("binary_sensor.window"));
+  sensors.windowSensors = new Set(["binary_sensor.window"]);
+  const text = renderedText(sensors._renderControlRows([]));
   assert.ok(text.includes("Non disponibile"));
   assert.ok(!text.includes("Chiusa"));
 });
