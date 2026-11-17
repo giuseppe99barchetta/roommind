@@ -27,6 +27,9 @@ class PendingShutdowns:
 
     def __init__(self, data: dict | None = None) -> None:
         self._entries: dict[str, dict[str, Any]] = {}
+        # Bumped whenever a room starts waiting for a device (in memory): a shutdown whose
+        # command was awaited while it changed does not settle the newcomer
+        self._revisions: dict[str, int] = {}
         self.dirty = False
         for eid, entry in (data or {}).items():
             if not isinstance(entry, dict) or not isinstance(entry.get("areas"), list):
@@ -60,7 +63,12 @@ class PendingShutdowns:
                 entry["since"] = now
             else:
                 continue
+            self._revisions[eid] = self._revisions.get(eid, 0) + 1
             self.dirty = True
+
+    def revision(self, entity_id: str) -> int:
+        """Changes when a room starts waiting for *entity_id*."""
+        return self._revisions.get(entity_id, 0)
 
     def open_entries(self) -> list[tuple[str, dict[str, Any]]]:
         """Entries still without an outcome, in queue order."""

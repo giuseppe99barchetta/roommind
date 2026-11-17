@@ -3414,6 +3414,7 @@ class RoomMindCoordinator(DataUpdateCoordinator):
             pending.resolve(eid, "driven")
             return
         area_id = entry["areas"][0]
+        revision = pending.revision(eid)
         state = self.hass.states.get(eid)
         if state is None or state.state not in ("unavailable", "unknown"):
             try:
@@ -3423,6 +3424,9 @@ class RoomMindCoordinator(DataUpdateCoordinator):
             # A valve-protection cycle of it would otherwise command it again when it ends
             self._valve_manager.forget_cycle(eid)
             await self._async_release_valves(area_id, [entry["device"]], hand_back=False)
+        if pending.revision(eid) != revision:
+            # A room started waiting while the command was out: next pass, with its lock too
+            return
         if self._is_switched_off(eid):
             pending.resolve(eid, "off")
         elif pending.expired(eid, now):

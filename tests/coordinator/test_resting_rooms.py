@@ -520,3 +520,24 @@ async def test_a_room_that_starts_waiting_during_the_lock_wait_is_locked_too(has
         office.release()
         await task
     assert _sent(turn_off) == ["climate.shared_ac"]
+
+
+@pytest.mark.asyncio
+async def test_a_room_queued_while_the_off_command_is_out_is_not_settled(hass, mock_config_entry):
+    """D1/C2-01: a waiter added during the awaited command waits for the next pass (with its lock)."""
+    store = FakeStore({"bed": _room("bed", "climate.shared_ac")})
+    states = {"climate.shared_ac": "heat"}
+    _states(hass, states)
+    coordinator = _coord(hass, mock_config_entry, store)
+
+    async def _off(hass_, eid, **kwargs):
+        coordinator._pending_shutdowns.queue("office", [{"entity_id": eid}], 2.0)  # deleted meanwhile
+        states[eid] = "off"
+
+    with areas_missing("bed"), patch(TURN_OFF, new=AsyncMock(side_effect=_off)):
+        await coordinator._async_process_pending_shutdowns()
+        assert coordinator._pending_shutdowns.get("climate.shared_ac")["outcome"] is None
+        await coordinator._async_process_pending_shutdowns()
+    assert coordinator._pending_shutdowns.get("climate.shared_ac") is None or (
+        coordinator._pending_shutdowns.get("climate.shared_ac")["outcome"] == "off"
+    )
