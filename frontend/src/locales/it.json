@@ -1019,6 +1019,7 @@
   "settings.control_mode_hint": "Predittiva: RoomMind pianifica con il modello appreso della stanza. Finché sta ancora imparando, accende e spegne e basta. Semplice: sempre solo acceso e spento. Il modello continua comunque a imparare, e le tapparelle usano una stima del sole più semplice.",
   "settings.preheat_lead": "Preriscalda o pre-raffresca fino a {time} prima di una fascia oraria.",
   "settings.preheat_lead_none": "Nessun preriscaldamento né pre-raffrescamento: parte solo poco prima di una fascia oraria.",
+  "settings.preheat_lead_horizon": "Preriscalda o pre-raffresca fin dove arriva l'orizzonte di pianificazione.",
   "analytics.backtest": "Previsione",
   "analytics.backtest_delta": "Scostamento dalla previsione",
   "analytics.deviation_idle": "Scarto dopo 1 h (a riposo)",

@@ -1019,6 +1019,7 @@
   "settings.control_mode_hint": "Prédictive : RoomMind planifie avec le modèle appris de la pièce. Tant qu'il apprend, il fonctionne simplement en marche/arrêt. Simple : toujours marche/arrêt. Le modèle continue quand même d'apprendre, et les stores utilisent alors une estimation solaire plus simple.",
   "settings.preheat_lead": "Préchauffe ou prérefroidit jusqu’à {time} avant une plage horaire.",
   "settings.preheat_lead_none": "Pas de préchauffage ni de prérefroidissement : démarre seulement peu avant une plage horaire.",
+  "settings.preheat_lead_horizon": "Préchauffe ou prérefroidit aussi tôt que l’horizon de planification le permet.",
   "analytics.backtest": "Prédiction",
   "analytics.backtest_delta": "Écart avec la prédiction",
   "analytics.deviation_idle": "Écart après 1 h (au repos)",

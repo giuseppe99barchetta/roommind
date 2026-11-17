@@ -126,8 +126,9 @@ export class RsSettingsLearning extends RsSettingsBase {
     if (state === "outdoor") {
       return html`<rs-list-row .heading=${name} .secondary=${stateText}></rs-list-row>`;
     }
-    const canBoost =
-      (state === "learning" || state === "ready" || state === "managed") && !cooldown;
+    // As the fork's panel before: any learning room, also while paused or waiting (e.g. outdoor
+    // sensor gone), so the model re-learns quickly once it can; only the cooldown blocks it
+    const canBoost = !cooldown;
     return html`<rs-list-row
       switch
       .heading=${name}

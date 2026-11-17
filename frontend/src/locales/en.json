@@ -1019,6 +1019,7 @@
   "settings.control_mode_hint": "Predictive: RoomMind plans with the learned room model. While it is still learning, it simply switches on and off. Simple: always just on and off. The model keeps learning anyway, and the covers then use a simpler sun estimate.",
   "settings.preheat_lead": "Pre-heats or pre-cools up to {time} before a schedule block.",
   "settings.preheat_lead_none": "No pre-heating or pre-cooling: starts only shortly before a schedule block.",
+  "settings.preheat_lead_horizon": "Pre-heats or pre-cools as early as the planning horizon reaches.",
   "analytics.backtest": "Prediction",
   "analytics.backtest_delta": "Difference from the prediction",
   "analytics.deviation_idle": "Off after 1 h (idle)",

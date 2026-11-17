@@ -11,10 +11,12 @@ export const DEFAULT_COMFORT_WEIGHT = 70;
 /** Longest pre-heat lead; mirrors PREHEAT_MAX_LEAD_HOURS (mpc_optimizer). */
 export const PREHEAT_MAX_LEAD_HOURS = 12;
 
-/** Pre-heat lead in hours the slider allows; mirrors preheat_max_blocks() (5-min blocks). */
-export function preheatLeadHours(comfortWeight: number): number {
-  const hours =
-    (PREHEAT_MAX_LEAD_HOURS * Math.min(Math.max(comfortWeight, 0), DEFAULT_COMFORT_WEIGHT)) /
-    DEFAULT_COMFORT_WEIGHT;
+/**
+ * Pre-heat lead in hours the slider allows; mirrors preheat_max_blocks() (5-min blocks): null
+ * from the default weight up, where the optimizer plans as far as its horizon reaches.
+ */
+export function preheatLeadHours(comfortWeight: number): number | null {
+  if (comfortWeight >= DEFAULT_COMFORT_WEIGHT) return null;
+  const hours = (PREHEAT_MAX_LEAD_HOURS * Math.max(comfortWeight, 0)) / DEFAULT_COMFORT_WEIGHT;
   return (Math.floor((hours * 60) / 5) * 5) / 60;
 }

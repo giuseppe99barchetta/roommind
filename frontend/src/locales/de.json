@@ -1019,6 +1019,7 @@
   "settings.control_mode_hint": "Vorausschauend: RoomMind plant mit dem gelernten Raummodell. Solange es noch lernt, regelt es einfach ein und aus. Einfach: immer nur ein und aus. Das Modell lernt trotzdem weiter, die Rollos rechnen dann mit einer einfacheren Sonnenschätzung.",
   "settings.preheat_lead": "Heizt oder kühlt bis zu {time} vor einem Zeitplanblock vor.",
   "settings.preheat_lead_none": "Kein Vorheizen oder Vorkühlen: startet erst kurz vor einem Zeitplanblock.",
+  "settings.preheat_lead_horizon": "Heizt oder kühlt so früh vor, wie der Planungshorizont reicht.",
   "analytics.backtest": "Vorhersage",
   "analytics.backtest_delta": "Abweichung zur Vorhersage",
   "analytics.deviation_idle": "Abweichung nach 1 h (Leerlauf)",

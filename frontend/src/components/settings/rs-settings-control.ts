@@ -121,6 +121,7 @@ export class RsSettingsControl extends RsSettingsBase {
 
   private _preheatLeadText(l: string): string {
     const hours = preheatLeadHours(this._dragWeight ?? this.comfortWeight);
+    if (hours === null) return localize("settings.preheat_lead_horizon", l);
     if (hours <= 0) return localize("settings.preheat_lead_none", l);
     return localize("settings.preheat_lead", l, {
       time: formatHours(hours, l),

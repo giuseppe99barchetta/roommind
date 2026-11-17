@@ -163,3 +163,37 @@ test("the fork's own settings are reachable from their panels and land in the pa
     assert.ok(payloadKey in s._buildPayload(), payloadKey);
   }
 });
+
+test("the pre-heat line: up to the horizon from the default weight, a limit below it", async () => {
+  const { preheatLeadHours } = await server.ssrLoadModule("/src/utils/constants.ts");
+  assert.equal(preheatLeadHours(70), null);
+  assert.equal(preheatLeadHours(100), null);
+  assert.equal(preheatLeadHours(35), 6);
+  assert.equal(preheatLeadHours(0), 0);
+});
+
+test("learn faster stays available while a learned room waits (outdoor sensor gone) or is paused", () => {
+  const room = {
+    area_id: "sala",
+    devices: [{}],
+    temperature_sensor: "sensor.t",
+    live: { n_observations: 400, learning_paused_reason: "outdoor_unavailable", confidence: 0.5 },
+  };
+  for (const disabled of [[], ["sala"]]) {
+    const p = new panels.learning();
+    p.hass = hass;
+    p.rooms = { sala: room };
+    p.learningDisabledRooms = disabled;
+    const disabledBindings = [];
+    (function walk(v) {
+      if (Array.isArray(v)) return v.forEach(walk);
+      if (!v || typeof v !== "object" || !v.strings) return;
+      v.strings.forEach((s, i) => {
+        if (v.strings.join("").includes("<rs-icon-button") && s.trimEnd().endsWith(".disabled="))
+          disabledBindings.push(v.values[i]);
+      });
+      v.values.forEach(walk);
+    })(p._renderRoom("sala", "Sala", room));
+    assert.deepEqual(disabledBindings, [false], `paused=${disabled.length > 0}`);
+  }
+});
