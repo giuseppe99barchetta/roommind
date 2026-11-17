@@ -749,7 +749,8 @@ export class RsDeviceSection extends LitElement {
     const id = device.entity_id;
     const numbers = this._deviceNumberEntities(id);
     const hasValve = !!device.valve_opening_entity && !!device.valve_closing_entity;
-    // A recognised pair needs no entity picking: one switch, the pickers stay for anything else
+    // A recognised pair needs no entity picking: one switch. Once on, the pickers and the closing
+    // mode stay reachable (other entities, idle_opening), as before the 2.0 layout.
     const pair = this._detectValvePair(numbers);
     const idleOpening = device.valve_closing_mode === "idle_opening";
     const asToggle =
@@ -785,7 +786,7 @@ export class RsDeviceSection extends LitElement {
             ></rs-info-icon>
           </rs-list-row>`
         : nothing}
-      ${show && !asToggle
+      ${show && (!asToggle || hasValve)
         ? html`<rs-field .info=${localize("devices.valve_opening_info", l)}>
               ${picker(
                 device.valve_opening_entity ?? "",

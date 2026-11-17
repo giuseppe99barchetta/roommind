@@ -217,3 +217,34 @@ test("the heat source section emits the fork's keys only, native and legacy rule
   }
   assert.deepEqual([...keys].sort(), [...FORK_HEAT_KEYS].sort());
 });
+
+test("a TRV with a recognised valve pair keeps the entity pickers and the closing mode", () => {
+  const trv = {
+    entity_id: "climate.trv",
+    type: "trv",
+    role: "auto",
+    valve_opening_entity: "number.trv_valve_opening_degree",
+    valve_closing_entity: "number.trv_valve_closing_degree",
+  };
+  const h = {
+    ...hass,
+    entities: {
+      "climate.trv": { entity_id: "climate.trv", device_id: "d1" },
+      "number.trv_valve_opening_degree": {
+        entity_id: "number.trv_valve_opening_degree",
+        device_id: "d1",
+      },
+      "number.trv_valve_closing_degree": {
+        entity_id: "number.trv_valve_closing_degree",
+        device_id: "d1",
+      },
+    },
+  };
+  const { s, fired } = section([trv], { hass: h });
+  const tpl = s._renderValveGroup(trv);
+  assert.equal(bindings(tpl, "<ha-entity-picker", ".value").length, 2, "both pickers");
+  const modes = bindings(tpl, "<rs-segmented", ".options")[0].map((o) => o.value);
+  assert.deepEqual(modes, ["closing_degree", "idle_opening"]);
+  s._onValveClosingModeChange("climate.trv", "idle_opening");
+  assert.equal(fired.at(-1).detail.devices[0].valve_closing_mode, "idle_opening");
+});

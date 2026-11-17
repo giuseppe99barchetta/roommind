@@ -1964,7 +1964,7 @@
               .text=${D(`devices.valve_direct_info`,t)}
             ></rs-info-icon>
           </rs-list-row>`:y}
-      ${c&&!s?v`<rs-field .info=${D(`devices.valve_opening_info`,t)}>
+      ${c&&(!s||i)?v`<rs-field .info=${D(`devices.valve_opening_info`,t)}>
               ${l(e.valve_opening_entity??``,D(`devices.valve_opening_entity`,t),e=>this._onValveOpeningChange(n,e,r))}
             </rs-field>
             <rs-field
