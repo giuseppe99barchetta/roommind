@@ -27,7 +27,7 @@ from ..utils.comfort_insights import energy_suggestions
 from ..utils.device_utils import is_ac_type, room_has_power_sensor
 from ..utils.history_store import MODEL_INPUT_FIELDS
 from .analytics_stats import compute_period_stats, compute_rhythm, rhythm_window
-from .model_backtest import MIN_BACKTEST_WINDOWS, backtest
+from .model_backtest import BACKTEST_HORIZON_S, MAX_START_SLACK_S, backtest
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -386,11 +386,27 @@ async def build_analytics_data(
     backtest_figures: dict | None = None
     if coordinator and area_id in coordinator._model_manager._estimators:
         merged = sorted(history + detail, key=lambda p: p["ts"])
+        # The hour before the range starts the range's first hours (read only for the replay)
+        range_from = custom_start if custom_start is not None else now - max_age
+        lead: list[dict] = []
+        if history_store:
+            lead_from = range_from - BACKTEST_HORIZON_S - MAX_START_SLACK_S
+            lead = _csv_to_points(
+                await hass.async_add_executor_job(history_store.read_detail, area_id, None, lead_from, range_from)
+            )
+            lead = [p for p in lead if p["ts"] < range_from]
         model = coordinator._model_manager._estimators[area_id].get_model()
-        result = await hass.async_add_executor_job(backtest, merged, model)
+        try:
+            result = await hass.async_add_executor_job(
+                backtest, sorted(lead, key=lambda p: p["ts"]) + merged, model, range_from
+            )
+        except Exception:  # noqa: BLE001
+            # The page keeps everything else; only the model line and figures are missing
+            _LOGGER.warning("Room '%s': model backtest failed", area_id, exc_info=True)
+            result = None
         for point in merged:
-            point["predicted_temp"] = result.predicted.get(point["ts"])
-        if result.windows >= MIN_BACKTEST_WINDOWS:
+            point["predicted_temp"] = result.predicted.get(point["ts"]) if result else None
+        if result is not None and result.has_figure:
             backtest_figures = result.figures()
     # The model inputs only feed the backtest; 90 days of points need not carry them
     for point in history + detail:

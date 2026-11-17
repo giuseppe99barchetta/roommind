@@ -71,14 +71,12 @@ def test_a_gap_in_time_breaks_the_chain():
 def test_rows_from_before_the_columns_are_left_out():
     points = [{k: v for k, v in p.items() if not k.startswith("model_")} for p in _simulate(40)]
     result = backtest(points, MODEL)
-    assert result.predicted == {} and result.windows == 0
+    assert result.predicted == {} and result.idle.n + result.active.n == 0
     assert result.figures()["idle"] == {"n": 0, "mae": None, "bias": None}
 
 
 def test_ninety_days_of_rows_stay_fast():
-    points = _simulate(90 * 24 * 12, 0.3)  # 5-min rows over 90 days
-    for i, p in enumerate(points):
-        p["ts"] = 1_000_000.0 + i * 300.0
+    points = _simulate(90 * 24 * 20, 0.3)  # 3-min rows over 90 days
     start = time.perf_counter()
     backtest(points, MODEL)
     assert time.perf_counter() - start < 5.0
@@ -98,3 +96,33 @@ def test_an_hour_must_start_close_to_one_hour_before():
     # one long step left: keep the chain (rows within MAX_STEP_S) but the start is too early
     assert last - max(p["ts"] for p in kept if p["ts"] <= last - 3600) > 3600 + 300
     assert last not in backtest(kept, MODEL).predicted
+
+
+def test_a_missed_row_breaks_the_chain():
+    """A skipped room or failed write leaves a 6-minute step the next row's inputs do not cover."""
+    points = _simulate(60, 0.0)
+    del points[30]
+    result = backtest(points, MODEL)
+    after = points[30]["ts"]
+    assert not any(after <= ts < after + 3600 for ts in result.predicted)
+
+
+def test_hours_ending_before_count_from_are_left_out_but_start_the_next():
+    points = _simulate(60, 0.5)
+    count_from = points[25]["ts"]
+    result = backtest(points, MODEL, count_from)
+    assert min(result.predicted) >= count_from
+    assert count_from in result.predicted, "the first hour of the range starts in the lead rows"
+
+
+def test_a_figure_needs_enough_windows_of_one_kind():
+    from custom_components.roommind.services.model_backtest import BacktestResult
+
+    result = BacktestResult()
+    for _ in range(6):
+        result.idle.add(0.1)
+        result.active.add(0.1)
+    assert not result.has_figure
+    for _ in range(6):
+        result.idle.add(0.1)
+    assert result.has_figure

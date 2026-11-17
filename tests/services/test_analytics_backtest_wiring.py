@@ -82,3 +82,15 @@ async def test_without_a_model_the_recorded_values_stay(tmp_path):
     data = await build_analytics_data(_Hass(), "room_a", "24h", _store(), _coordinator(hs), now - 86400, now)
     assert data["model"] == {}
     assert all(p["predicted_temp"] == 99.0 for p in data["detail"])
+
+
+@pytest.mark.asyncio
+async def test_the_first_hour_of_a_range_is_backtested_from_the_hour_before(tmp_path):
+    now = time.time()
+    hs = HistoryStore(str(tmp_path))
+    _record(hs, now, 60)  # three hours of rows
+    start = now - 2 * 3600
+    data = await build_analytics_data(_Hass(), "room_a", "24h", _store(), _with_model(_coordinator(hs)), start, now)
+    first = min(data["detail"], key=lambda p: p["ts"])
+    assert first["ts"] >= start
+    assert first["predicted_temp"] is not None

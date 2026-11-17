@@ -19,8 +19,9 @@ from dataclasses import dataclass, field
 from ..control.thermal_model import RCModel
 
 BACKTEST_HORIZON_S = 3600.0
-# A longer gap between two rows breaks the chain (restart, missing sensor)
-MAX_STEP_S = 900.0
+# Rows come every ~3 minutes; a longer step means a missed row (restart, skipped room, failed
+# write) whose interval the next row's inputs do not describe, so it breaks the chain
+MAX_STEP_S = 270.0
 # How much earlier than one hour the start reading may be (rows come every ~3 minutes)
 MAX_START_SLACK_S = 300.0
 # Windows needed before a figure is shown
@@ -57,8 +58,9 @@ class BacktestResult:
     active: BacktestFigures = field(default_factory=BacktestFigures)
 
     @property
-    def windows(self) -> int:
-        return self.idle.n + self.active.n
+    def has_figure(self) -> bool:
+        """At least one kind of hour has enough windows for a figure."""
+        return max(self.idle.n, self.active.n) >= MIN_BACKTEST_WINDOWS
 
     def figures(self) -> dict:
         return {
@@ -72,13 +74,14 @@ def _reading(p: dict) -> bool:
     return p.get("room_temp") is not None and p.get("outdoor_temp") is not None
 
 
-def backtest(points: list[dict], model: RCModel) -> BacktestResult:
+def backtest(points: list[dict], model: RCModel, count_from: float | None = None) -> BacktestResult:
     """Run the one-hour backtest over *points* (sorted by ``ts``, typed like _csv_to_points).
 
     A row carries the mean inputs of the interval that *ends* at it, so the step from row k to
     row k+1 starts from row k's readings and runs with row k+1's inputs. ``predicted`` maps the
     end timestamp of each hour to the model's temperature. An hour counts as active when the
-    model saw heating or cooling in it.
+    model saw heating or cooling in it. Points before *count_from* only serve as the start of
+    the first hours of a range; hours ending before it are neither returned nor counted.
     """
     result = BacktestResult()
     n = len(points)
@@ -100,7 +103,7 @@ def backtest(points: list[dict], model: RCModel) -> BacktestResult:
 
     j = 0
     for i in range(1, n):
-        if points[i].get("room_temp") is None:
+        if points[i].get("room_temp") is None or (count_from is not None and ts[i] < count_from):
             continue
         start = ts[i] - BACKTEST_HORIZON_S
         while j + 1 < i and ts[j + 1] <= start:
