@@ -499,7 +499,6 @@ export class RsDehumidifierSection extends LitElement {
         ? this._disabledNotice(this._roomName(this.areaId))
         : nothing}
       <section class="panel">
-        ${this._heading("dehumidifier.device")}
         <rs-entity-picker-field
           .hass=${this.hass}
           .label=${this._label("dehumidifier.device")}

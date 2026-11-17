@@ -370,6 +370,33 @@ test("the wall preset menu lists labelled options (current HA reads .options)", 
   for (const x of options) assert.ok(x.label && x.label !== x.value, x.value);
 });
 
+test("comfort breakdown rows carry an icon per factor, coloured when they cost points", () => {
+  const i = new Insights();
+  i.hass = hass;
+  i.comfortScore = {
+    score: 80,
+    label: "fair",
+    factors: {},
+    breakdown: {
+      temperature: { penalty: 0, status: "at_target" },
+      window: { penalty: 15, status: "open" },
+      anomalies: { penalty: 5, status: "active" },
+    },
+  };
+  const tree = i.render();
+  const icons = [...own(tree, "<rs-list-row", "icon"), ...own(tree, "<rs-list-row", ".icon")];
+  for (const icon of ["mdi:thermometer", "mdi:window-open-variant", "mdi:alert-circle-outline"])
+    assert.ok(icons.includes(icon), icons.join("|"));
+  const colours = own(tree, "<rs-list-row", ".iconColor");
+  // window and anomalies cost points; plus the two "fair" score hearts (decision card, total)
+  assert.equal(
+    colours.filter((c) => c === "var(--warning-color, #ff9800)").length,
+    4,
+    colours.join("|"),
+  );
+  assert.ok(colours.includes(""), "a factor without a penalty keeps the neutral icon");
+});
+
 // ── Room insights as 2.0 list cards: same texts, same conditions ──
 test("room insights render as list cards with rows, not an ha-card", () => {
   const i = new Insights();

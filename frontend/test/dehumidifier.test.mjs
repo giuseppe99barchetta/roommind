@@ -473,3 +473,9 @@ test("the humidity number field commits a rounded value on change only (55.4 →
   field._onChange({ stopPropagation() {}, target: { value: "55.4" } });
   assert.deepEqual(out, [55]);
 });
+
+test("the device panel names the device once (field label, no repeated heading)", () => {
+  const { section } = editor();
+  const values = templates(section.render()).flatMap(t => t.values);
+  assert.equal(values.filter(v => v === "Physical device").length, 1);
+});

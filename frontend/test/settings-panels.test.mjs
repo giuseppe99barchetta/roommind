@@ -371,6 +371,38 @@ test("heating system: both boiler menus list labelled options and send their key
   );
 });
 
+test("safety preview: boiler state and current reasons are words, not backend codes", async () => {
+  const mod = await server.ssrLoadModule("/src/components/settings/rs-settings-preview.ts");
+  const p = new mod.RsSettingsPreview();
+  p.hass = hass;
+  p._result = {
+    read_only: true,
+    mode: "heating",
+    house_available_watts: 1000,
+    power_sensor_healthy: true,
+    power_sensor_age_seconds: 3,
+    boiler_state: "preopening",
+    bypass_acknowledged: true,
+    boiler_demand_rooms: [],
+    rooms: {
+      sala: {
+        watts: 800,
+        source: "learned",
+        samples: 2,
+        already_running: false,
+        would_allow: true,
+        reason: "eligible",
+        current_decision_reasons: ["mode_idle"],
+      },
+    },
+  };
+  const view = p.render();
+  const values = ownBindings(view, "<rs-list-row", ".value");
+  assert.ok(!values.includes("preopening"), values.join("|"));
+  const secondary = ownBindings(view, "<rs-list-row", ".secondary").join("|");
+  assert.ok(!secondary.includes("mode_idle"), secondary);
+});
+
 test("narrow screens: preview rooms keep wattage and source in the wrapping line, heating pairs stack", async () => {
   const mod = await server.ssrLoadModule("/src/components/settings/rs-settings-preview.ts");
   const p = new mod.RsSettingsPreview();

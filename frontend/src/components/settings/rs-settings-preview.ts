@@ -2,11 +2,15 @@
 import { html, nothing } from "lit";
 import { customElement, property, state } from "lit/decorators.js";
 import type { HomeAssistant } from "../../types";
-import { localize } from "../../utils/localize";
+import { localize, type TranslationKey } from "../../utils/localize";
+import { DECISION_KEYS } from "../rs-room-insights";
 import { RsSettingsBase } from "./rs-settings-base";
 import "../shared/rs-field";
 import "../shared/rs-list-row";
 import "../shared/rs-segmented";
+
+/** Boiler states the backend reports (BoilerState). */
+const BOILER_STATES = ["off", "preopening", "on", "poststop", "fault"];
 
 interface PreviewRoom {
   watts: number;
@@ -112,7 +116,9 @@ export class RsSettingsPreview extends RsSettingsBase {
               <rs-list-row
                 icon="mdi:water-boiler"
                 .heading=${localize("preview.boiler", lang)}
-                .value=${r.boiler_state}
+                .value=${BOILER_STATES.includes(r.boiler_state)
+                  ? localize(`preview.boiler_${r.boiler_state}` as TranslationKey, lang)
+                  : r.boiler_state}
               ></rs-list-row>
               <rs-list-row
                 wrap
@@ -135,7 +141,13 @@ export class RsSettingsPreview extends RsSettingsBase {
                       `${room.watts} W · ${localize(`heat_source.budget_${room.source}`, lang)}`,
                       localize(`preview.reason_${room.reason}`, lang),
                       room.current_decision_reasons.length
-                        ? `${localize("preview.current_reasons", lang)}: ${room.current_decision_reasons.join(", ")}`
+                        ? `${localize("preview.current_reasons", lang)}: ${room.current_decision_reasons
+                            .map((reason) =>
+                              DECISION_KEYS[reason]
+                                ? localize(DECISION_KEYS[reason], lang)
+                                : reason,
+                            )
+                            .join(" ")}`
                         : "",
                     ]
                       .filter(Boolean)

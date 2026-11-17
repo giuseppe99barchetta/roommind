@@ -6,7 +6,7 @@ import { localize, type TranslationKey } from "../utils/localize";
 import "./shared/rs-list-card";
 import "./shared/rs-list-row";
 
-const DECISION_KEYS: Record<string, TranslationKey> = {
+export const DECISION_KEYS: Record<string, TranslationKey> = {
   window_open: "insights.decision.window_open",
   power_budget: "insights.decision.power_budget",
   compressor_min_off: "insights.decision.compressor_min_off",
@@ -24,6 +24,15 @@ const DECISION_KEYS: Record<string, TranslationKey> = {
   mode_heating: "insights.decision.mode_heating",
   mode_cooling: "insights.decision.mode_cooling",
   mode_idle: "insights.decision.mode_idle",
+};
+
+/** Icon of each comfort factor the backend scores. */
+const FACTOR_ICONS: Record<string, string> = {
+  temperature: "mdi:thermometer",
+  humidity: "mdi:water-percent",
+  window: "mdi:window-closed-variant",
+  air_quality: "mdi:air-filter",
+  anomalies: "mdi:alert-circle-outline",
 };
 
 @customElement("rs-room-insights")
@@ -113,6 +122,7 @@ export class RsRoomInsights extends LitElement {
         ? html`<rs-list-card .heading=${localize("insights.comfort.title", language)}>
             <rs-list-row
               wrap
+              icon="mdi:numeric"
               .heading=${localize("insights.comfort.base", language)}
               .secondary=${localize("insights.comfort.summary", language)}
               value="100"
@@ -121,6 +131,10 @@ export class RsRoomInsights extends LitElement {
               ([factor, detail]) =>
                 html`<rs-list-row
                   wrap
+                  .icon=${factor === "window" && detail.status === "open"
+                    ? "mdi:window-open-variant"
+                    : (FACTOR_ICONS[factor] ?? "mdi:information-outline")}
+                  .iconColor=${detail.penalty ? "var(--warning-color, #ff9800)" : ""}
                   .heading=${localize(
                     `insights.comfort.factor.${factor}.${detail.status}` as TranslationKey,
                     language,
@@ -131,6 +145,8 @@ export class RsRoomInsights extends LitElement {
                 ></rs-list-row>`,
             )}
             <rs-list-row
+              icon="mdi:heart"
+              .iconColor=${this._scoreColor(score.label)}
               .heading=${localize("insights.comfort.total", language)}
               .value=${`${score.score}/100`}
             ></rs-list-row>
