@@ -740,8 +740,9 @@ export class RsDeviceSection extends LitElement {
   /** Direct valve control needs the room sensor; offered when the TRV has number entities. */
   private _showValveFields(device: DeviceConfig): boolean {
     if (device.type !== "trv" || !this.selectedTempSensor) return false;
-    const hasValve = !!device.valve_opening_entity && !!device.valve_closing_entity;
-    return hasValve || this._deviceNumberEntities(device.entity_id).length > 0;
+    // A stored entity (even half a pair) keeps the controls, so it can be completed or cleared
+    if (device.valve_opening_entity || device.valve_closing_entity) return true;
+    return this._deviceNumberEntities(device.entity_id).length > 0;
   }
 
   private _renderValveGroup(device: DeviceConfig) {
@@ -763,7 +764,6 @@ export class RsDeviceSection extends LitElement {
       html`<ha-entity-picker
         .hass=${this.hass}
         .includeDomains=${["number"]}
-        .includeEntities=${numbers.length ? numbers : undefined}
         .value=${value}
         .label=${label}
         @value-changed=${(e: CustomEvent) => onChange(e.detail.value as string)}

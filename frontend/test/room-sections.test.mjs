@@ -248,3 +248,22 @@ test("a TRV with a recognised valve pair keeps the entity pickers and the closin
   s._onValveClosingModeChange("climate.trv", "idle_opening");
   assert.equal(fired.at(-1).detail.devices[0].valve_closing_mode, "idle_opening");
 });
+
+test("valve pickers offer any number entity, and half a stored pair stays editable", () => {
+  // No number entity on the TRV's device: only the stored opening entity
+  const trv = {
+    entity_id: "climate.trv",
+    type: "trv",
+    role: "auto",
+    valve_opening_entity: "number.other_device_pos",
+  };
+  const { s, fired } = section([trv]);
+  assert.equal(s._showValveFields(trv), true);
+  const tpl = s._renderValveGroup(trv);
+  assert.equal(bindings(tpl, "<ha-entity-picker", ".value").length, 2, "both pickers");
+  assert.equal(bindings(tpl, "<ha-entity-picker", ".includeEntities").length, 0, "no restriction");
+  s._onValveClosingChange("climate.trv", "number.elsewhere_close");
+  assert.equal(fired.at(-1).detail.devices[0].valve_closing_entity, "number.elsewhere_close");
+  s._onValveOpeningChange("climate.trv", "", []);
+  assert.equal("valve_opening_entity" in fired.at(-1).detail.devices[0], false, "cleared");
+});

@@ -1943,10 +1943,9 @@
             .heading=${D(`devices.fan_only_season_${e}`,t)}
             .checked=${r.includes(e)}
             @toggle-changed=${t=>this._onFanOnlySeasonChange(n,e,t.detail)}
-          ></rs-list-row>`)}`}_showValveFields(e){return e.type!==`trv`||!this.selectedTempSensor?!1:!!e.valve_opening_entity&&!!e.valve_closing_entity||this._deviceNumberEntities(e.entity_id).length>0}_renderValveGroup(e){let t=this.hass.language,n=e.entity_id,r=this._deviceNumberEntities(n),i=!!e.valve_opening_entity&&!!e.valve_closing_entity,a=this._detectValvePair(r),o=e.valve_closing_mode===`idle_opening`,s=!!a&&!o&&(!e.valve_opening_entity||e.valve_opening_entity===a[0]&&e.valve_closing_entity===a[1]),c=this._showValveFields(e),l=(e,t,n)=>v`<ha-entity-picker
+          ></rs-list-row>`)}`}_showValveFields(e){return e.type!==`trv`||!this.selectedTempSensor?!1:e.valve_opening_entity||e.valve_closing_entity?!0:this._deviceNumberEntities(e.entity_id).length>0}_renderValveGroup(e){let t=this.hass.language,n=e.entity_id,r=this._deviceNumberEntities(n),i=!!e.valve_opening_entity&&!!e.valve_closing_entity,a=this._detectValvePair(r),o=e.valve_closing_mode===`idle_opening`,s=!!a&&!o&&(!e.valve_opening_entity||e.valve_opening_entity===a[0]&&e.valve_closing_entity===a[1]),c=this._showValveFields(e),l=(e,t,n)=>v`<ha-entity-picker
         .hass=${this.hass}
         .includeDomains=${[`number`]}
-        .includeEntities=${r.length?r:void 0}
         .value=${e}
         .label=${t}
         @value-changed=${e=>n(e.detail.value)}
