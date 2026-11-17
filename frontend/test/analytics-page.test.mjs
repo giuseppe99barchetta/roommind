@@ -230,3 +230,37 @@ test("summary and model render without NaN, the model shows the fork's afterglow
   assert.equal(/NaN|undefined/.test(mText), false);
   assert.equal(mText.includes("Simple"), false);
 });
+
+test("fork-only shapes: legacy AC list cools, solar shows without a learned flag, no mislabeled backtest line", async () => {
+  const page = await loadedPage();
+  const legacy = { ...room, devices: undefined, acs: ["climate.ac"], thermostats: ["climate.trv"] };
+  page.rooms = { sala: legacy };
+  const bound = [];
+  (function walk(v) {
+    if (Array.isArray(v)) return v.forEach(walk);
+    if (!v || typeof v !== "object" || !v.strings) return;
+    v.strings.forEach((str, i) => {
+      if (v.strings.join("").includes("<rs-analytics-model") && str.trimEnd().endsWith(".canCool="))
+        bound.push(v.values[i]);
+    });
+    v.values.forEach(walk);
+  })(page.render());
+  assert.deepEqual(bound, [true]);
+
+  assert.ok(
+    page._points().every((p) => p.predicted_temp === null),
+    "no backtest series",
+  );
+  const m = new Model();
+  const data = structuredClone(page._data);
+  data.model.model.Q_solar = 300;
+  Object.assign(m, {
+    hass,
+    data,
+    language: "en",
+    controlMode: "mpc",
+    canHeat: true,
+    canCool: false,
+  });
+  assert.ok(m._tiles().some((t) => t.id === "solar_gain"));
+});

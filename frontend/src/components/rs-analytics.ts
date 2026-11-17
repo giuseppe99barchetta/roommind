@@ -17,10 +17,11 @@ type ComparisonRoom = Record<string, string | number | null | string[]>;
 
 /** What a room can show: the summary, chart and model card use the same flags (no price here). */
 function roomFlags(room: RoomConfig | undefined) {
+  // Older stored rooms may still carry the legacy `acs` list instead of `devices`
+  const hasAc = (room?.devices ?? []).some((d) => d.type === "ac") || (room?.acs?.length ?? 0) > 0;
   return {
     canHeat: room?.climate_mode !== "cool_only",
-    canCool:
-      room?.climate_mode !== "heat_only" && (room?.devices ?? []).some((d) => d.type === "ac"),
+    canCool: room?.climate_mode !== "heat_only" && hasAc,
     hasWindowSensor: (room?.window_sensors?.length ?? 0) > 0,
   };
 }
@@ -32,15 +33,22 @@ function bandSides(mode: string | undefined): "both" | "heat" | "cool" {
   return "both";
 }
 
-/** The 2.0 chart reads `humidity`; the fork records `current_humidity` (kept for the export). */
+/**
+ * The fork's answer in the 2.0 chart's terms: `humidity` from `current_humidity` (kept for the
+ * export). The recorded `predicted_temp` is the end of the forecast at that time, not the
+ * model one hour ahead the 2.0 chart draws from it ("backtest"): left out of the past points so
+ * no line is labeled as something it is not; the forecast keeps its prediction.
+ */
 function withHumidity(data: AnalyticsData): AnalyticsData {
-  const alias = (p: AnalyticsDataPoint) =>
-    p.humidity == null && p.current_humidity != null ? { ...p, humidity: p.current_humidity } : p;
+  const past = (p: AnalyticsDataPoint) => ({
+    ...p,
+    humidity: p.humidity ?? p.current_humidity ?? null,
+    predicted_temp: null,
+  });
   return {
     ...data,
-    detail: (data.detail ?? []).map(alias),
-    history: (data.history ?? []).map(alias),
-    forecast: data.forecast?.map(alias),
+    detail: (data.detail ?? []).map(past),
+    history: (data.history ?? []).map(past),
   };
 }
 

@@ -451,7 +451,8 @@ export class RsAnalyticsModel extends LitElement {
       });
     }
     // Shown once the data contained sun or occupancy: before that the value is the start guess
-    if (model && m?.solar_learned && model.Q_solar > 0.1) {
+    // The fork sends no learned flag: Q_solar above the start guess counts, as its card did
+    if (model && (m?.solar_learned ?? true) && model.Q_solar > 0.1) {
       tiles.push({
         id: "solar_gain",
         icon: "mdi:white-balance-sunny",
