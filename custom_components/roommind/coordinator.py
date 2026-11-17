@@ -104,6 +104,7 @@ from .managers.heat_source_orchestrator import (
     evaluate_heat_sources,
     evaluate_native_heat_sources,
 )
+from .managers.model_inputs import ModelInputs
 from .managers.mold_manager import MoldManager
 from .managers.pending_shutdowns import PendingShutdowns
 from .managers.power_budget_manager import PowerBudgetManager
@@ -370,6 +371,8 @@ class RoomMindCoordinator(DataUpdateCoordinator):
         self._last_valid_temps: dict[str, tuple[float, float]] = {}  # {area_id: (celsius, monotonic_ts)}
         # Last hours of temperature per room for the dashboard cards (in memory)
         self.recent_temps = RecentTemps()
+        # The model's training inputs averaged per history row (analytics backtest)
+        self._model_inputs = ModelInputs()
         # Startup guard: rooms with at least one valid temperature reading since
         # coordinator start. Full Control rooms send no device commands until then
         # (prevents the off/on bounce after HA restart while sensors are unavailable).
@@ -734,6 +737,7 @@ class RoomMindCoordinator(DataUpdateCoordinator):
                             "heat_target": rs.get("heat_target"),
                             "cool_target": rs.get("cool_target"),
                             "target_reason": rs.get("target_reason", ""),
+                            **self._model_inputs.take(area_id),
                             **self._dehumidifier_manager.history_sample(area_id),
                         },
                     )
@@ -777,6 +781,8 @@ class RoomMindCoordinator(DataUpdateCoordinator):
                         self._pending_predictions[area_id] = round(clamped, 2)
                     except Exception:
                         pass
+            # Rows written: every room starts a new interval of model inputs
+            self._model_inputs.reset()
 
         # Save thermal data periodically
         self._thermal_save_count += 1
@@ -1131,6 +1137,7 @@ class RoomMindCoordinator(DataUpdateCoordinator):
     ) -> dict:
         """Process a single room: read sensor, evaluate schedule, apply control."""
         area_id = room.get("area_id", "unknown")
+        self._model_inputs.begin_cycle(area_id)
 
         sensor_snapshot = self._humidity_sensor_snapshot.get(area_id)
         current_temp, current_temp_raw, current_humidity, has_external_sensor = (
@@ -2403,8 +2410,18 @@ class RoomMindCoordinator(DataUpdateCoordinator):
                 dt_minutes=UPDATE_INTERVAL / 60.0,
                 q_occupancy=q_occupancy,
             )
+            self._model_inputs.note(
+                area_id,
+                mode=ekf_mode,
+                power=ekf_pf,
+                solar=self._current_q_solar * (shading_factor if shading_factor is not None else 0.0),
+                residual=q_residual_training,
+                occupancy=q_occupancy,
+                window_closed=not window_open and not raw_open,
+            )
         else:
             self._ekf_training.clear(area_id)
+            self._model_inputs.unusable(area_id)
 
         # Sensor lag after a stop on stored heat (afterglow control): the actual transition of the
         # final mode, after windows, holds and the boiler gate changed what the controller chose
@@ -4066,6 +4083,7 @@ class RoomMindCoordinator(DataUpdateCoordinator):
         self._air_quality_entity_areas.discard(area_id)
         self._air_quality.remove_room(area_id)
         self._ekf_training.remove_room(area_id)
+        self._model_inputs.remove_room(area_id)
         self._pending_predictions.pop(area_id, None)
         self._preconditioning_started_at.pop(area_id, None)
         self._residual_tracker.remove_room(area_id)

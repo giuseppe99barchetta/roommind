@@ -25,7 +25,9 @@ from ..control.mpc_controller import (
 from ..control.residual_heat import learned_afterglow_info
 from ..utils.comfort_insights import energy_suggestions
 from ..utils.device_utils import is_ac_type, room_has_power_sensor
+from ..utils.history_store import MODEL_INPUT_FIELDS
 from .analytics_stats import compute_period_stats, compute_rhythm, rhythm_window
+from .model_backtest import MIN_BACKTEST_WINDOWS, backtest
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -231,6 +233,7 @@ def _csv_to_points(rows: list[dict]) -> list[dict]:
                 "heat_target": _safe_float(row.get("heat_target", "")),
                 "cool_target": _safe_float(row.get("cool_target", "")),
                 "target_reason": row.get("target_reason", ""),
+                **{key: _safe_float(row.get(key, "")) for key in MODEL_INPUT_FIELDS},
                 "heat_starts": _safe_int(row.get("heat_starts", "")),
                 "cool_starts": _safe_int(row.get("cool_starts", "")),
                 "room_temp_max": _safe_float(row.get("room_temp_max", "")),
@@ -377,6 +380,22 @@ async def build_analytics_data(
         climate_mode,
         end_ts=custom_end if custom_start is not None and custom_end is not None else now,
     )
+
+    # The model's error one hour ahead on this range: the past line becomes the backtest (the
+    # stored value was the forecast end at record time, which the chart does not draw)
+    backtest_figures: dict | None = None
+    if coordinator and area_id in coordinator._model_manager._estimators:
+        merged = sorted(history + detail, key=lambda p: p["ts"])
+        model = coordinator._model_manager._estimators[area_id].get_model()
+        result = await hass.async_add_executor_job(backtest, merged, model)
+        for point in merged:
+            point["predicted_temp"] = result.predicted.get(point["ts"])
+        if result.windows >= MIN_BACKTEST_WINDOWS:
+            backtest_figures = result.figures()
+    # The model inputs only feed the backtest; 90 days of points need not carry them
+    for point in history + detail:
+        for key in MODEL_INPUT_FIELDS:
+            point.pop(key, None)
 
     # Day rhythm: an hour-by-day grid around the selected range (its own read, up to 32 days)
     rhythm: dict | None = None
@@ -673,6 +692,8 @@ async def build_analytics_data(
         ),
         "weekly_comparison_available": has_power_sensors,
     }
+    if model_info and backtest_figures is not None:
+        model_info["backtest"] = backtest_figures
     return {
         "detail": detail,
         "history": history,

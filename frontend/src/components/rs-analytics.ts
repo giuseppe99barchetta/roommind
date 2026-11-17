@@ -52,12 +52,13 @@ function withHumidity(data: AnalyticsData): AnalyticsData {
 }
 
 /**
- * For the chart only: the recorded `predicted_temp` is the end of the forecast at that time,
- * not the model one hour ahead the 2.0 chart draws from it ("backtest"), so the past points go
- * without it (no line labeled as something it is not). The export keeps the recorded values.
+ * For the chart only: with a backtest (`model.backtest`) the past `predicted_temp` is the
+ * model one hour ahead and the chart draws it; without one it may still be the forecast end
+ * recorded at the time, so the past points go without it (no line labeled as something it is
+ * not). The export keeps what the backend sent.
  */
 function forChart(data: AnalyticsData | null): AnalyticsData | null {
-  if (!data) return data;
+  if (!data || data.model?.backtest) return data;
   const past = (p: AnalyticsDataPoint) => ({ ...p, predicted_temp: null });
   return { ...data, detail: data.detail.map(past), history: data.history.map(past) };
 }

@@ -332,3 +332,22 @@ test("the rhythm card shows when the backend sends a rhythm; a picked day become
   assert.ok(page._rangeEnd > page._rangeStart);
   assert.ok(page._rangeEnd - page._rangeStart < 25 * 3600_000, "one day");
 });
+
+test("with a backtest from the backend the chart draws the past model line", async () => {
+  const page = await loadedPage();
+  page._data = {
+    ...page._data,
+    model: {
+      ...page._data.model,
+      backtest: {
+        horizon_minutes: 60,
+        idle: { n: 20, mae: 0.2, bias: 0.1 },
+        active: { n: 15, mae: 0.3, bias: -0.1 },
+      },
+    },
+  };
+  assert.ok(
+    page._chartData().history.every((p) => p.predicted_temp === 20.2),
+    "backtest values reach the chart",
+  );
+});
