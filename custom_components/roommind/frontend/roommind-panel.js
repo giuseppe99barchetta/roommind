@@ -6560,11 +6560,16 @@
           gap: 12px;
         }
       }
-    `]}};k([w({attribute:!1})],Va.prototype,`hass`,void 0),k([w({attribute:!1})],Va.prototype,`rooms`,void 0),k([T()],Va.prototype,`_resetSelectedRoom`,void 0),k([T()],Va.prototype,`_error`,void 0),Va=k([C(`rs-settings-reset`)],Va),x(),E(),A();var Ha={entity:{multiple:!0,filter:[{domain:`climate`}]}},Y=class extends b{constructor(...e){super(...e),this.boilerEntity=``,this.boilerControlType=`climate`,this.bypassEntities=[],this.startupDelay=30,this.shutdownDelay=60,this.bypassTemperature=28,this.bypassChildLock=!0,this.minDemandRooms=1,this.demandUnit=`valves`,this.minRunMinutes=5,this.minOffMinutes=3,this.faultRetryMinutes=5,this.maxWaitMinutes=120,this.budgetEnabled=!1,this.powerSensor=``,this.powerMode=`available`,this.maxPower=3300,this.reserve=200,this.energyPricePerKwh=0,this._powerModeState={value:`available`,hasLocalChange:!1}}willUpdate(e){e.has(`powerMode`)&&(this._powerModeState=sa(this._powerModeState,this.powerMode))}render(){let e=this.hass.language,t=(e,t)=>this.dispatchEvent(new CustomEvent(`setting-changed`,{detail:{key:e,value:t},bubbles:!0,composed:!0})),n=(e,n)=>v`<ha-textfield
-        type="number"
-        .value=${String(n)}
-        @change=${n=>t(e,Number(n.target.value))}
-      ></ha-textfield>`,r=e=>{let t=e.detail,n=e.target,r=e.currentTarget;if(typeof t==`string`||Array.isArray(t))return t;if(t&&typeof t==`object`){let e=t;return e.value??e.values??e.selected}return n?.value??n?.values??n?.selected??r?.value??r?.values};return v`<div class="section">
+    `]}};k([w({attribute:!1})],Va.prototype,`hass`,void 0),k([w({attribute:!1})],Va.prototype,`rooms`,void 0),k([T()],Va.prototype,`_resetSelectedRoom`,void 0),k([T()],Va.prototype,`_error`,void 0),Va=k([C(`rs-settings-reset`)],Va),x(),E(),A();var Ha={entity:{multiple:!0,filter:[{domain:`climate`}]}},Y=class extends b{constructor(...e){super(...e),this.boilerEntity=``,this.boilerControlType=`climate`,this.bypassEntities=[],this.startupDelay=30,this.shutdownDelay=60,this.bypassTemperature=28,this.bypassChildLock=!0,this.minDemandRooms=1,this.demandUnit=`valves`,this.minRunMinutes=5,this.minOffMinutes=3,this.faultRetryMinutes=5,this.maxWaitMinutes=120,this.budgetEnabled=!1,this.powerSensor=``,this.powerMode=`available`,this.maxPower=3300,this.reserve=200,this.energyPricePerKwh=0,this._powerModeState={value:`available`,hasLocalChange:!1}}willUpdate(e){e.has(`powerMode`)&&(this._powerModeState=sa(this._powerModeState,this.powerMode))}render(){let e=this.hass.language,t=(e,t)=>this.dispatchEvent(new CustomEvent(`setting-changed`,{detail:{key:e,value:t},bubbles:!0,composed:!0})),n=(e,n,r,i,a,o,{hint:s=``,suffix:c=``}={})=>v`<rs-number-field
+        .label=${r}
+        .hint=${s}
+        .suffix=${c}
+        .min=${i}
+        .max=${a}
+        .step=${o}
+        .value=${n}
+        @value-changed=${n=>t(e,n.detail.value)}
+      ></rs-number-field>`,r=e=>{let t=e.detail,n=e.target,r=e.currentTarget;if(typeof t==`string`||Array.isArray(t))return t;if(t&&typeof t==`object`){let e=t;return e.value??e.values??e.selected}return n?.value??n?.values??n?.selected??r?.value??r?.values};return v`<div class="section">
         <b>${D(`settings.boiler.title`,e)}</b>
         <ha-entity-picker
           .hass=${this.hass}
@@ -6584,13 +6589,8 @@
                 ></ha-select
               >
               <div class="grid">
-                <label
-                  >${D(`settings.boiler.startup_delay`,e)}
-                  ${n(`startupDelay`,this.startupDelay)}</label
-                ><label
-                  >${D(`settings.boiler.shutdown_hold`,e)}
-                  ${n(`shutdownDelay`,this.shutdownDelay)}</label
-                >
+                ${n(`startupDelay`,this.startupDelay,D(`settings.boiler.startup_delay`,e),0,3600,.1,{suffix:`s`})}
+                ${n(`shutdownDelay`,this.shutdownDelay,D(`settings.boiler.shutdown_hold`,e),0,3600,.1,{suffix:`s`})}
               </div>
               <ha-selector
                 .hass=${this.hass}
@@ -6600,10 +6600,7 @@
                 @value-changed=${e=>{let n=r(e);console.debug(`RoomMind hydraulic bypass picker event`,{type:e.type,detail:e.detail,targetValue:e.target?.value,currentTargetValue:e.currentTarget?.value,value:n}),t(`bypassEntities`,ia(n))}}
               ></ha-selector>
               <small>${D(`settings.boiler.bypass_hint`,e)}</small>
-              <label
-                >${D(`settings.boiler.bypass_temperature`,e)}
-                ${n(`bypassTemperature`,this.bypassTemperature)}</label
-              >
+              ${n(`bypassTemperature`,this.bypassTemperature,D(`settings.boiler.bypass_temperature`,e),5,50,.1,{suffix:`°C`})}
               <rs-list-row
                 switch
                 wrap
@@ -6622,36 +6619,17 @@
                   >${D(`settings.boiler.demand_unit_rooms`,this.hass.language)}</ha-list-item
                 ></ha-select
               >
-              <label
-                >${D(`settings.boiler.min_demand_rooms`,this.hass.language)}
-                ${n(`minDemandRooms`,this.minDemandRooms)}</label
-              >
-              <small>${D(`settings.boiler.min_demand_hint`,this.hass.language)}</small>
-              <label
-                >${D(`settings.boiler.max_wait_minutes`,this.hass.language)}
-                ${n(`maxWaitMinutes`,this.maxWaitMinutes)}</label
-              >
-              <small>${D(`settings.boiler.max_wait_hint`,this.hass.language)}</small>
+              ${n(`minDemandRooms`,this.minDemandRooms,D(`settings.boiler.min_demand_rooms`,e),1,20,1,{hint:D(`settings.boiler.min_demand_hint`,e)})}
+              ${n(`maxWaitMinutes`,this.maxWaitMinutes,D(`settings.boiler.max_wait_minutes`,e),0,1440,.1,{hint:D(`settings.boiler.max_wait_hint`,e)})}
               <div class="grid">
-                <label
-                  >${D(`settings.boiler.min_run_minutes`,this.hass.language)}
-                  ${n(`minRunMinutes`,this.minRunMinutes)}</label
-                ><label
-                  >${D(`settings.boiler.min_off_minutes`,this.hass.language)}
-                  ${n(`minOffMinutes`,this.minOffMinutes)}</label
-                >
+                ${n(`minRunMinutes`,this.minRunMinutes,D(`settings.boiler.min_run_minutes`,e),0,120,.1)}
+                ${n(`minOffMinutes`,this.minOffMinutes,D(`settings.boiler.min_off_minutes`,e),0,120,.1)}
               </div>
-              <label
-                >${D(`settings.boiler.fault_retry_minutes`,this.hass.language)}
-                ${n(`faultRetryMinutes`,this.faultRetryMinutes)}</label
-              >`:y}
+              ${n(`faultRetryMinutes`,this.faultRetryMinutes,D(`settings.boiler.fault_retry_minutes`,e),1,240,.1)}`:y}
       </div>
       <div class="section">
         <b>${D(`settings.energy_price`,this.hass.language)}</b>
-        <label
-          >${D(`settings.energy_price_hint`,this.hass.language)}
-          ${n(`energyPricePerKwh`,this.energyPricePerKwh)}</label
-        >
+        ${n(`energyPricePerKwh`,this.energyPricePerKwh,D(`settings.energy_price_hint`,e),0,100,1e-4)}
       </div>
       <div class="section">
         <rs-list-row
@@ -6676,13 +6654,8 @@
                 @selected=${e=>{let n=tn(e);console.debug(`RoomMind power sensor mode selected`,{type:e.type,detail:e.detail,targetValue:e.target?.value,currentTargetValue:e.currentTarget?.value,value:n}),this._powerModeState=oa(n),t(`powerMode`,this._powerModeState.value)}}
               ></ha-select>
               <div class="grid">
-                <label
-                  >${D(`settings.power_budget.max_power`,e)}
-                  ${n(`maxPower`,this.maxPower)}</label
-                ><label
-                  >${D(`settings.power_budget.reserve`,e)}
-                  ${n(`reserve`,this.reserve)}</label
-                >
+                ${n(`maxPower`,this.maxPower,D(`settings.power_budget.max_power`,e),0,1e5,1)}
+                ${n(`reserve`,this.reserve,D(`settings.power_budget.reserve`,e),0,1e5,1)}
               </div>`:y}
       </div>`}static{this.styles=l`
     .section {
@@ -6698,12 +6671,6 @@
       display: grid;
       grid-template-columns: 1fr 1fr;
       gap: 12px;
-    }
-    .grid label,
-    label {
-      display: grid;
-      gap: 4px;
-      font-size: 13px;
     }
     .toggle {
       display: flex;

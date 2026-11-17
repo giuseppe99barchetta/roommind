@@ -10,6 +10,7 @@ import {
 import { getSelectValue } from "../../utils/events";
 import { localize } from "../../utils/localize";
 import "../shared/rs-list-row";
+import "../shared/rs-number-field";
 
 // HA 2026.8's ha-entity-picker is single-value only. The entity selector
 // routes `multiple` values to ha-entities-picker, whose value is string[].
@@ -64,12 +65,26 @@ export class RsSettingsHeatingSystem extends LitElement {
           composed: true,
         }),
       );
-    const number = (key: string, value: number) =>
-      html`<ha-textfield
-        type="number"
-        .value=${String(value)}
-        @change=${(e: Event) => fire(key, Number((e.target as HTMLInputElement).value))}
-      ></ha-textfield>`;
+    // Ranges from the backend schema; steps keep the precision the backend stores (floats)
+    const number = (
+      key: string,
+      value: number,
+      label: string,
+      min: number,
+      max: number,
+      step: number,
+      { hint = "", suffix = "" } = {},
+    ) =>
+      html`<rs-number-field
+        .label=${label}
+        .hint=${hint}
+        .suffix=${suffix}
+        .min=${min}
+        .max=${max}
+        .step=${step}
+        .value=${value}
+        @value-changed=${(e: CustomEvent<{ value: number }>) => fire(key, e.detail.value)}
+      ></rs-number-field>`;
     const pickerValue = (e: CustomEvent): unknown => {
       const detail = e.detail as unknown;
       const target = e.target as { value?: unknown; values?: unknown; selected?: unknown } | null;
@@ -140,13 +155,24 @@ export class RsSettingsHeatingSystem extends LitElement {
                 ></ha-select
               >
               <div class="grid">
-                <label
-                  >${localize("settings.boiler.startup_delay", l)}
-                  ${number("startupDelay", this.startupDelay)}</label
-                ><label
-                  >${localize("settings.boiler.shutdown_hold", l)}
-                  ${number("shutdownDelay", this.shutdownDelay)}</label
-                >
+                ${number(
+                  "startupDelay",
+                  this.startupDelay,
+                  localize("settings.boiler.startup_delay", l),
+                  0,
+                  3600,
+                  0.1,
+                  { suffix: "s" },
+                )}
+                ${number(
+                  "shutdownDelay",
+                  this.shutdownDelay,
+                  localize("settings.boiler.shutdown_hold", l),
+                  0,
+                  3600,
+                  0.1,
+                  { suffix: "s" },
+                )}
               </div>
               <ha-selector
                 .hass=${this.hass}
@@ -156,10 +182,15 @@ export class RsSettingsHeatingSystem extends LitElement {
                 @value-changed=${onBypassChanged}
               ></ha-selector>
               <small>${localize("settings.boiler.bypass_hint", l)}</small>
-              <label
-                >${localize("settings.boiler.bypass_temperature", l)}
-                ${number("bypassTemperature", this.bypassTemperature)}</label
-              >
+              ${number(
+                "bypassTemperature",
+                this.bypassTemperature,
+                localize("settings.boiler.bypass_temperature", l),
+                5,
+                50,
+                0.1,
+                { suffix: "°C" },
+              )}
               <rs-list-row
                 switch
                 wrap
@@ -187,37 +218,62 @@ export class RsSettingsHeatingSystem extends LitElement {
                   )}</ha-list-item
                 ></ha-select
               >
-              <label
-                >${localize("settings.boiler.min_demand_rooms", this.hass.language)}
-                ${number("minDemandRooms", this.minDemandRooms)}</label
-              >
-              <small>${localize("settings.boiler.min_demand_hint", this.hass.language)}</small>
-              <label
-                >${localize("settings.boiler.max_wait_minutes", this.hass.language)}
-                ${number("maxWaitMinutes", this.maxWaitMinutes)}</label
-              >
-              <small>${localize("settings.boiler.max_wait_hint", this.hass.language)}</small>
+              ${number(
+                "minDemandRooms",
+                this.minDemandRooms,
+                localize("settings.boiler.min_demand_rooms", l),
+                1,
+                20,
+                1,
+                { hint: localize("settings.boiler.min_demand_hint", l) },
+              )}
+              ${number(
+                "maxWaitMinutes",
+                this.maxWaitMinutes,
+                localize("settings.boiler.max_wait_minutes", l),
+                0,
+                1440,
+                0.1,
+                { hint: localize("settings.boiler.max_wait_hint", l) },
+              )}
               <div class="grid">
-                <label
-                  >${localize("settings.boiler.min_run_minutes", this.hass.language)}
-                  ${number("minRunMinutes", this.minRunMinutes)}</label
-                ><label
-                  >${localize("settings.boiler.min_off_minutes", this.hass.language)}
-                  ${number("minOffMinutes", this.minOffMinutes)}</label
-                >
+                ${number(
+                  "minRunMinutes",
+                  this.minRunMinutes,
+                  localize("settings.boiler.min_run_minutes", l),
+                  0,
+                  120,
+                  0.1,
+                )}
+                ${number(
+                  "minOffMinutes",
+                  this.minOffMinutes,
+                  localize("settings.boiler.min_off_minutes", l),
+                  0,
+                  120,
+                  0.1,
+                )}
               </div>
-              <label
-                >${localize("settings.boiler.fault_retry_minutes", this.hass.language)}
-                ${number("faultRetryMinutes", this.faultRetryMinutes)}</label
-              >`
+              ${number(
+                "faultRetryMinutes",
+                this.faultRetryMinutes,
+                localize("settings.boiler.fault_retry_minutes", l),
+                1,
+                240,
+                0.1,
+              )}`
           : nothing}
       </div>
       <div class="section">
         <b>${localize("settings.energy_price", this.hass.language)}</b>
-        <label
-          >${localize("settings.energy_price_hint", this.hass.language)}
-          ${number("energyPricePerKwh", this.energyPricePerKwh)}</label
-        >
+        ${number(
+          "energyPricePerKwh",
+          this.energyPricePerKwh,
+          localize("settings.energy_price_hint", l),
+          0,
+          100,
+          0.0001,
+        )}
       </div>
       <div class="section">
         <rs-list-row
@@ -252,13 +308,22 @@ export class RsSettingsHeatingSystem extends LitElement {
                 @selected=${onPowerModeSelected}
               ></ha-select>
               <div class="grid">
-                <label
-                  >${localize("settings.power_budget.max_power", l)}
-                  ${number("maxPower", this.maxPower)}</label
-                ><label
-                  >${localize("settings.power_budget.reserve", l)}
-                  ${number("reserve", this.reserve)}</label
-                >
+                ${number(
+                  "maxPower",
+                  this.maxPower,
+                  localize("settings.power_budget.max_power", l),
+                  0,
+                  100000,
+                  1,
+                )}
+                ${number(
+                  "reserve",
+                  this.reserve,
+                  localize("settings.power_budget.reserve", l),
+                  0,
+                  100000,
+                  1,
+                )}
               </div>`
           : nothing}
       </div>`;
@@ -277,12 +342,6 @@ export class RsSettingsHeatingSystem extends LitElement {
       display: grid;
       grid-template-columns: 1fr 1fr;
       gap: 12px;
-    }
-    .grid label,
-    label {
-      display: grid;
-      gap: 4px;
-      font-size: 13px;
     }
     .toggle {
       display: flex;

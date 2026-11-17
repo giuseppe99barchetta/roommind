@@ -268,3 +268,80 @@ test("safety preview: segmented mode, a button that runs the same read-only requ
   });
   assert.equal(p._result, undefined);
 });
+
+// ── Heating system: every number is an rs-number-field with the backend's range ──
+function ownBindings(value, tag, name, out = []) {
+  if (Array.isArray(value)) value.forEach((v) => ownBindings(v, tag, name, out));
+  else if (value && typeof value === "object" && value.strings) {
+    value.values.forEach((v, i) => {
+      const before = value.strings.slice(0, i + 1).join("\u0000");
+      if (
+        before.trimEnd().endsWith(name + "=") &&
+        before.lastIndexOf("<") === before.lastIndexOf(tag)
+      )
+        out.push(v);
+      ownBindings(v, tag, name, out);
+    });
+  }
+  return out;
+}
+
+test("heating system: number fields keep the backend ranges, keys and fractional values", async () => {
+  const p = new panels["heating-system"]();
+  Object.assign(p, {
+    hass,
+    boilerEntity: "climate.boiler",
+    bypassEntities: ["switch.b"],
+    budgetEnabled: true,
+  });
+  const events = [];
+  p.dispatchEvent = (e) => {
+    events.push(e.detail);
+    return true;
+  };
+  const view = p.render();
+  assert.equal(ownBindings(view, "<ha-textfield", ".value").length, 0, "no raw text fields");
+  const at = (name) => ownBindings(view, "<rs-number-field", name);
+  assert.deepEqual(at(".min"), [0, 0, 5, 1, 0, 0, 0, 1, 0, 0, 0]);
+  assert.deepEqual(at(".max"), [3600, 3600, 50, 20, 1440, 120, 120, 240, 100, 100000, 100000]);
+  assert.deepEqual(at(".step"), [0.1, 0.1, 0.1, 1, 0.1, 0.1, 0.1, 0.1, 0.0001, 1, 1]);
+  const typed = [12.5, 60, 28.5, 2, 30, 2.5, 3, 5, 0.2857, 3300, 200];
+  at("@value-changed").forEach((fn, i) => fn({ detail: { value: typed[i] } }));
+  assert.deepEqual(
+    events.map((e) => e.key),
+    [
+      "startupDelay",
+      "shutdownDelay",
+      "bypassTemperature",
+      "minDemandRooms",
+      "maxWaitMinutes",
+      "minRunMinutes",
+      "minOffMinutes",
+      "faultRetryMinutes",
+      "energyPricePerKwh",
+      "maxPower",
+      "reserve",
+    ],
+  );
+  assert.deepEqual(
+    events.map((e) => e.value),
+    typed,
+  );
+  // what the field itself commits for typed fractions, and an emptied field sends nothing
+  const { RsNumberField } = await server.ssrLoadModule("/src/components/shared/rs-number-field.ts");
+  const commit = (props, text) => {
+    const f = new RsNumberField();
+    Object.assign(f, { value: 1 }, props);
+    const out = [];
+    f.dispatchEvent = (e) => {
+      out.push(e.detail.value);
+      return true;
+    };
+    f._onChange({ stopPropagation() {}, target: { value: text } });
+    return out;
+  };
+  assert.deepEqual(commit({ min: 0, max: 100, step: 0.0001 }, "0.2857"), [0.2857]);
+  assert.deepEqual(commit({ min: 0, max: 120, step: 0.1 }, "2.5"), [2.5]);
+  assert.deepEqual(commit({ min: 0, max: 3600, step: 0.1 }, "12.5"), [12.5]);
+  assert.deepEqual(commit({ min: 1, max: 240, step: 0.1 }, ""), []);
+});
