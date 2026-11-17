@@ -710,8 +710,11 @@ export class RsSettings extends LitElement {
   }
 
   protected updated(changed: Map<string, unknown>) {
-    if (!changed.has("category") || this.wide) return;
-    const previous = changed.get("category") as string | undefined;
+    // A deep link (e.g. the room page's presence link) can arrive before the settings loaded:
+    // the heading only exists once they did, so focus then
+    const loadedNow = changed.has("_loaded") && this._loaded;
+    if ((!changed.has("category") && !loadedNow) || this.wide) return;
+    const previous = changed.has("category") ? (changed.get("category") as string | undefined) : "";
     if (this.category && resolveSettingsCategory(this.category, this._hasOrphans(), false)) {
       // Subpage opened from a scrolled list: start at its top, focus its heading.
       window.scrollTo({ top: 0 });

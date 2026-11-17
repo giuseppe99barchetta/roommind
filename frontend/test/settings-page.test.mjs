@@ -190,3 +190,14 @@ test("summaries: control names MPC whatever rooms/list says, the outdoor reading
   const control = s._summary("control").text;
   assert.ok(control.includes("MPC"), control);
 });
+
+test("a narrow deep link that arrives before the settings load focuses the page once they did", () => {
+  const s = settings({ category: "presence", wide: false });
+  let focused = 0;
+  globalThis.window.scrollTo ??= () => {};
+  s.renderRoot = {
+    querySelector: (sel) => (sel === "#page-title" ? { focus: () => focused++ } : null),
+  };
+  s.updated(new Map([["_loaded", false]]));
+  assert.equal(focused, 1);
+});
