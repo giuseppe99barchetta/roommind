@@ -1079,3 +1079,120 @@ async def test_forecast_targets_where_comfort_demand_actually_stops(control):
     k = runtime.k[0] * SERVED_FACTOR  # no fan entity: a single speed bucket
     # Comfort demand clears at target + 2, so the ETA is to 57, not 55.
     assert manager.room_status("bath")["devices"][0]["forecast_minutes"]["bath"] == minutes_to_target(62.0, 57.0, k)
+
+
+def restarted(control):
+    """A fresh manager as after an HA restart, loaded with the ownership persisted before it."""
+    manager, rooms, states, clock = control
+    fresh = DehumidifierManager(manager.hass)
+    fresh.load_owned(manager.owned_state())
+    return fresh, rooms, states, clock
+
+
+@pytest.mark.asyncio
+async def test_ownership_survives_a_restart_while_on(control):
+    await start_automatic_run(control)
+    control = restarted(control)
+    manager, _, _, clock = control
+    prepare(control)
+    assert manager.devices["switch.dryer"]["reason"] is None
+    clock[0] += 400  # past min_run
+    prepare(control, {"bed": 40.0, "bath": 40.0})
+    await manager.apply(PowerBudgetManager())
+    assert manager.hass.services.async_call.call_args.args[1] == "turn_off"
+
+
+@pytest.mark.asyncio
+async def test_ownership_survives_a_restart_while_unavailable(control):
+    await start_automatic_run(control)
+    control = restarted(control)
+    manager, _, states, clock = control
+    states["switch.dryer"].state = "unavailable"
+    prepare(control)
+    assert manager.devices["switch.dryer"]["reason"] == "unavailable"
+    assert manager.owned_state() == ["switch.dryer"]  # kept while the unit is not back yet
+    states["switch.dryer"].state = "on"
+    prepare(control)
+    assert manager.devices["switch.dryer"]["reason"] is None
+    clock[0] += 400
+    prepare(control, {"bed": 40.0, "bath": 40.0})
+    await manager.apply(PowerBudgetManager())
+    assert manager.hass.services.async_call.call_args.args[1] == "turn_off"
+
+
+@pytest.mark.parametrize("unavailable_first", [False, True])
+def test_restart_with_unit_off_drops_ownership(control, unavailable_first):
+    manager, _, states, _ = control
+    states["switch.dryer"].state = "on"
+    prepare(control)
+    manager.adopt("switch.dryer")
+    control = restarted(control)
+    manager = control[0]
+    if unavailable_first:
+        states["switch.dryer"].state = "unavailable"
+        prepare(control)
+    states["switch.dryer"].state = "off"
+    prepare(control, {"bed": 40.0, "bath": 40.0})
+    assert manager.owned_state() == []
+    assert manager.devices["switch.dryer"]["reason"] != "user_off"
+    states["switch.dryer"].state = "on"
+    prepare(control)
+    assert manager.devices["switch.dryer"]["reason"] == "manual"
+
+
+@pytest.mark.asyncio
+async def test_restored_ownership_user_off_still_respected(control):
+    await start_automatic_run(control)
+    control = restarted(control)
+    manager, _, states, _ = control
+    prepare(control)
+    states["switch.dryer"].state = "off"
+    prepare(control)
+    assert manager.devices["switch.dryer"]["reason"] == "user_off"
+
+
+def test_manual_run_stays_manual_after_restart(control):
+    manager, _, states, _ = control
+    states["switch.dryer"].state = "on"
+    prepare(control)
+    assert manager.owned_state() == []
+    control = restarted(control)
+    prepare(control)
+    assert control[0].devices["switch.dryer"]["reason"] == "manual"
+
+
+@pytest.mark.asyncio
+async def test_restored_ownership_not_resurrected_on_later_reconfigure(control):
+    await start_automatic_run(control)
+    control = restarted(control)
+    manager, rooms, states, _ = control
+    config = rooms["bed"].pop("dehumidifier")
+    prepare(control)  # first cycle after boot: the unit is not configured
+    assert manager.owned_state() == []
+    rooms["bed"]["dehumidifier"] = config
+    states["switch.dryer"].state = "on"
+    prepare(control)
+    assert manager.devices["switch.dryer"]["reason"] == "manual"
+
+
+def test_load_owned_ignores_garbage(control):
+    manager = control[0]
+    assert manager.load_owned(None) == []
+    assert manager.load_owned({"switch.dryer": True}) == []
+    assert manager.load_owned(["switch.b", 3, None, "switch.a"]) == ["switch.a", "switch.b"]
+
+
+@pytest.mark.asyncio
+async def test_owned_state_tracks_manual_mode_and_release(control):
+    manager, rooms, _, _ = control
+    await start_automatic_run(control)
+    assert manager.owned_state() == ["switch.dryer"]
+    rooms["bed"]["dehumidifier"]["mode"] = "manual"
+    prepare(control)
+    assert manager.owned_state() == []
+    rooms["bed"]["dehumidifier"]["mode"] = "auto"
+    prepare(control)
+    manager.adopt("switch.dryer")
+    assert manager.owned_state() == ["switch.dryer"]
+    await manager.release(rooms["bed"]["dehumidifier"], None, True)
+    assert manager.owned_state() == []

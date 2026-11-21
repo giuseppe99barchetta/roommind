@@ -108,3 +108,27 @@ async def test_native_action_reported_without_claiming_switch_compressor_is_runn
     coordinator, _, room = setup_control(hass, mock_config_entry)
     result = await coordinator._async_update_data()
     assert result["rooms"][room["area_id"]]["humidity_action"] == "idle"
+
+
+def _owned_saves(store):
+    return [c.args[0] for c in store.async_save_settings.call_args_list if "dehumidifier_owned" in c.args[0]]
+
+
+@pytest.mark.asyncio
+async def test_ownership_is_saved_once_when_roommind_starts_the_unit(hass, mock_config_entry):
+    coordinator, store, _ = setup_control(hass, mock_config_entry)
+    await coordinator._async_update_data()
+    assert _owned_saves(store) == [{"dehumidifier_owned": ["switch.dryer"]}]
+    await coordinator._async_update_data()
+    assert len(_owned_saves(store)) == 1
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("owned,reason", [(["switch.dryer"], None), ([], "manual")])
+async def test_running_unit_owned_before_a_restart_stays_roommind_controlled(hass, mock_config_entry, owned, reason):
+    coordinator, store, room = setup_control(
+        hass, mock_config_entry, mode="off", device_state="on", settings={"dehumidifier_owned": owned}
+    )
+    result = await coordinator._async_update_data()
+    assert result["rooms"][room["area_id"]]["dehumidifier"]["devices"][0]["reason"] == reason
+    assert _owned_saves(store) == []  # unchanged ownership: nothing to write

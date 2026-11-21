@@ -323,6 +323,7 @@ class RoomMindCoordinator(DataUpdateCoordinator):
         # Mold risk tracking
         self._mold_manager = MoldManager(hass)
         self._dehumidifier_manager = DehumidifierManager(hass)
+        self._dehumidifier_owned_saved: list[str] = []
         self._humidity_sensor_snapshot: dict = {}
         self._humidity_mold_snapshot: dict = {}
         # AC power history + adaptive consumption prediction
@@ -460,6 +461,9 @@ class RoomMindCoordinator(DataUpdateCoordinator):
             self._valve_manager.load_actuation_data(settings.get("valve_last_actuation", {}))
             self._ventilation.load_state(settings.get("ventilation_state", {}))
             self._dehumidifier_manager.load_learned(store.get_dehumidifier_data())
+            self._dehumidifier_owned_saved = self._dehumidifier_manager.load_owned(
+                settings.get("dehumidifier_owned", [])
+            )
             self._head_offsets.load_state(settings.get("ac_head_offsets", {}))
             # Merged, not replaced: a room deleted before the first cycle is already queued
             loaded = PendingShutdowns(settings.get("pending_shutdowns", {}))
@@ -595,6 +599,11 @@ class RoomMindCoordinator(DataUpdateCoordinator):
                 await self._dehumidifier_manager.apply(self._power_budget_manager)
             else:
                 self._dehumidifier_manager.prepare({}, settings, {}, {})
+        # Who owns a running unit must survive a restart, or the run turns "manual".
+        owned = self._dehumidifier_manager.owned_state()
+        if owned != self._dehumidifier_owned_saved:
+            await store.async_save_settings({"dehumidifier_owned": owned})
+            self._dehumidifier_owned_saved = owned
 
         await self._async_process_pending_shutdowns()
 

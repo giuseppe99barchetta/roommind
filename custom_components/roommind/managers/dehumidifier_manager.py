@@ -110,6 +110,17 @@ class DehumidifierManager:
         self._mold_dry: set[str] = set()
         self._windows = WindowManager()
         self._previous_requests: dict[str, list[str]] = {}
+        # Devices RoomMind was running before a restart; honoured on the first prepare() only.
+        self._owned_restored: set[str] = set()
+
+    def load_owned(self, data: Any) -> list[str]:
+        """Restore the devices whose run RoomMind owned before a restart, ignoring garbage."""
+        self._owned_restored = {e for e in data if isinstance(e, str)} if isinstance(data, list) else set()
+        return sorted(self._owned_restored)
+
+    def owned_state(self) -> list[str]:
+        """Devices whose current run RoomMind started or adopted, for persistence."""
+        return sorted(eid for eid, r in self.runtime.items() if r.owned_on)
 
     def room_humidity(self, room: dict, measured: float | None) -> float | None:
         """Only a host without a configured external sensor may use its device."""
@@ -179,9 +190,20 @@ class DehumidifierManager:
             )
             on = available and state.state == "on"
             learned = self.learned.setdefault(eid, _new_learning())
-            runtime = self.runtime.setdefault(
-                eid, DeviceRuntime(on, now, now, available=available, k=learned["k"], k_n=learned["k_n"])
-            )
+            runtime = self.runtime.get(eid)
+            if runtime is None:
+                restored = eid in self._owned_restored
+                # A unit still unavailable at boot is assumed as we left it: reporting "on" later
+                # is then no transition and keeps our run; one already "off" ends it.
+                runtime = self.runtime[eid] = DeviceRuntime(
+                    on if available else restored,
+                    now,
+                    now,
+                    available=available,
+                    owned_on=restored and (on or not available),
+                    k=learned["k"],
+                    k_n=learned["k_n"],
+                )
             if available and not runtime.available and not on:
                 runtime.off_since = now
             was_available, runtime.available = runtime.available, available
@@ -274,6 +296,8 @@ class DehumidifierManager:
                 "fan_speed": self._fan_speed(config),
                 "config": config,
             }
+        # Restored ownership is valid only for the first reconciliation after boot.
+        self._owned_restored.clear()
         self._comfort.intersection_update(rooms)
         self._mold_dry.intersection_update(rooms)
         for owner in previous_owners - {d["owner_area_id"] for d in self.devices.values()}:
